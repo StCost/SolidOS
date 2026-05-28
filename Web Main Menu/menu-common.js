@@ -28,6 +28,7 @@ var WebMenu = (function () {
   var PAGE_START = "start";
   var PAGE_SETTINGS = "settings";
   var PAGE_CREDITS = "credits";
+  var PAGE_EXTRAS = "extras";
 
   var pauseInputHandling = false;
 
@@ -35,16 +36,19 @@ var WebMenu = (function () {
   var pageStart = document.getElementById("pageStart");
   var pageSettings = document.getElementById("pageSettings");
   var pageCredits = document.getElementById("pageCredits");
+  var pageExtras = document.getElementById("pageExtras");
   var statusModule = document.getElementById("osStatusModule");
 
   var STATUS_KEY_MENU = "web.status.shell";
   var STATUS_KEY_START = "web.status.conn-mgr";
   var STATUS_KEY_SETTINGS = "web.status.config";
   var STATUS_KEY_CREDITS = "web.status.credits";
+  var STATUS_KEY_EXTRAS = "web.status.extras";
   var STATUS_FALLBACK_MENU = "SHELL 2.4";
   var STATUS_FALLBACK_START = "conn_mgr.exe";
   var STATUS_FALLBACK_SETTINGS = "config.sys";
   var STATUS_FALLBACK_CREDITS = "credits.exe";
+  var STATUS_FALLBACK_EXTRAS = "extras.exe";
 
   function getLocaleText(key, fallback) {
     if (window.WebLocale) {
@@ -72,19 +76,21 @@ var WebMenu = (function () {
   function getPageElement(pageId) {
     if (pageId === PAGE_START) return pageStart;
     if (pageId === PAGE_SETTINGS) return pageSettings;
+    if (pageId === PAGE_EXTRAS) return pageExtras;
     if (pageId === PAGE_CREDITS) return pageCredits;
     return pageMenu;
   }
 
   function getCurrentPageId() {
     if (pageCredits && !pageCredits.hidden) return PAGE_CREDITS;
+    if (pageExtras && !pageExtras.hidden) return PAGE_EXTRAS;
     if (pageSettings && !pageSettings.hidden) return PAGE_SETTINGS;
     if (pageStart && !pageStart.hidden) return PAGE_START;
     return PAGE_MENU;
   }
 
   function showPage(pageId) {
-    if (!pageMenu || !pageStart || !pageSettings || !pageCredits) return;
+    if (!pageMenu || !pageStart || !pageSettings || !pageCredits || !pageExtras) return;
 
     if (window.WebWindowManager && window.WebWindowManager.flushLayoutsSave) {
       window.WebWindowManager.flushLayoutsSave();
@@ -94,10 +100,12 @@ var WebMenu = (function () {
     pageStart.hidden = pageId !== PAGE_START;
     pageSettings.hidden = pageId !== PAGE_SETTINGS;
     pageCredits.hidden = pageId !== PAGE_CREDITS;
+    pageExtras.hidden = pageId !== PAGE_EXTRAS;
 
     if (pageId === PAGE_MENU) setStatusModule(STATUS_KEY_MENU, STATUS_FALLBACK_MENU);
     else if (pageId === PAGE_START) setStatusModule(STATUS_KEY_START, STATUS_FALLBACK_START);
     else if (pageId === PAGE_SETTINGS) setStatusModule(STATUS_KEY_SETTINGS, STATUS_FALLBACK_SETTINGS);
+    else if (pageId === PAGE_EXTRAS) setStatusModule(STATUS_KEY_EXTRAS, STATUS_FALLBACK_EXTRAS);
     else if (pageId === PAGE_CREDITS) setStatusModule(STATUS_KEY_CREDITS, STATUS_FALLBACK_CREDITS);
 
     if (window.WebLocale) {
@@ -130,6 +138,13 @@ var WebMenu = (function () {
     }
   }
 
+  function goToExtrasPage() {
+    showPage(PAGE_EXTRAS);
+    if (window.WebExtras && window.WebExtras.renderExtras) {
+      window.WebExtras.renderExtras();
+    }
+  }
+
   function isPageVisible(pageId) {
     var pageElement = getPageElement(pageId);
     if (!pageElement) return false;
@@ -145,6 +160,16 @@ var WebMenu = (function () {
     pauseInputHandling = true;
 
     var currentPageId = getCurrentPageId();
+    if (currentPageId === PAGE_EXTRAS) {
+      if (window.WebExtras && window.WebExtras.handleEscape()) {
+        pauseInputHandling = false;
+        return;
+      }
+      goToIndexPage();
+      pauseInputHandling = false;
+      return;
+    }
+
     if (
       currentPageId === PAGE_SETTINGS ||
       currentPageId === PAGE_START ||
@@ -169,6 +194,8 @@ var WebMenu = (function () {
       setStatusModule(STATUS_KEY_START, STATUS_FALLBACK_START);
     } else if (pageSettings && !pageSettings.hidden) {
       setStatusModule(STATUS_KEY_SETTINGS, STATUS_FALLBACK_SETTINGS);
+    } else if (pageExtras && !pageExtras.hidden) {
+      setStatusModule(STATUS_KEY_EXTRAS, STATUS_FALLBACK_EXTRAS);
     } else if (pageCredits && !pageCredits.hidden) {
       setStatusModule(STATUS_KEY_CREDITS, STATUS_FALLBACK_CREDITS);
     }
@@ -181,12 +208,14 @@ var WebMenu = (function () {
     PAGE_START: PAGE_START,
     PAGE_SETTINGS: PAGE_SETTINGS,
     PAGE_CREDITS: PAGE_CREDITS,
+    PAGE_EXTRAS: PAGE_EXTRAS,
     dispatchMenuEvent: dispatchMenuEvent,
     trimValue: trimValue,
     goToIndexPage: goToIndexPage,
     goToStartPage: goToStartPage,
     goToSettingsPage: goToSettingsPage,
     goToCreditsPage: goToCreditsPage,
+    goToExtrasPage: goToExtrasPage,
     isPageVisible: isPageVisible,
     isIndexPageVisible: isIndexPageVisible,
     getCurrentPageId: getCurrentPageId,

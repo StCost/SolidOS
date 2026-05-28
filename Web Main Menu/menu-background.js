@@ -6,6 +6,7 @@
   ];
 
   var STORAGE_KEY = "cm-menu-background-history";
+  var SELECTED_STORAGE_KEY = "cm-menu-background-selected";
   var backgroundCount = BACKGROUND_FILES.length;
 
   function readStorage() {
@@ -101,11 +102,72 @@
     return chosenIndex;
   }
 
-  var chosenIndex = chooseBackgroundIndex();
-  var chosenPath = BACKGROUND_FILES[chosenIndex];
-  var backgroundUrl = 'url("' + chosenPath + '")';
+  function getIndexForPath(path) {
+    var index;
+    for (index = 0; index < backgroundCount; index++) {
+      if (BACKGROUND_FILES[index] === path) return index;
+    }
+    return -1;
+  }
 
-  document.documentElement.style.setProperty("--menu-background-image", backgroundUrl);
-  window.WebMenuBackgroundPath = chosenPath;
-  window.WebMenuBackgroundIndex = chosenIndex;
+  function readSelectedBackground() {
+    try {
+      var raw = localStorage.getItem(SELECTED_STORAGE_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed.path !== "string" || !parsed.path) return null;
+      return parsed;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeSelectedBackground(path, index) {
+    try {
+      localStorage.setItem(
+        SELECTED_STORAGE_KEY,
+        JSON.stringify({
+          path: path,
+          index: typeof index === "number" ? index : -1
+        })
+      );
+    } catch (error) {
+    }
+  }
+
+  function applyBackgroundPath(path, index) {
+    if (!path) return false;
+    var backgroundUrl = 'url("' + path + '")';
+    document.documentElement.style.setProperty("--menu-background-image", backgroundUrl);
+    window.WebMenuBackgroundPath = path;
+    if (typeof index === "number" && index >= 0) {
+      window.WebMenuBackgroundIndex = index;
+    } else {
+      window.WebMenuBackgroundIndex = getIndexForPath(path);
+    }
+    writeSelectedBackground(path, window.WebMenuBackgroundIndex);
+    return true;
+  }
+
+  function initBackground() {
+    var selected = readSelectedBackground();
+    if (selected && selected.path) {
+      applyBackgroundPath(selected.path, selected.index);
+      return;
+    }
+    var chosenIndex = chooseBackgroundIndex();
+    applyBackgroundPath(BACKGROUND_FILES[chosenIndex], chosenIndex);
+  }
+
+  window.WebMenuBackground = {
+    getBackgroundFiles: function () {
+      return BACKGROUND_FILES.slice();
+    },
+    getIndexForPath: getIndexForPath,
+    setBackground: function (path) {
+      return applyBackgroundPath(path, getIndexForPath(path));
+    }
+  };
+
+  initBackground();
 })();

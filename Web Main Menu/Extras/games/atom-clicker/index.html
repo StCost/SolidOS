@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atom Clicker</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #040609;
+      color: #ffcc9f;
+      font-family: "Courier New", Courier, monospace;
+      cursor: url("../../cursor-pointer.svg") 2.1 0, pointer;
+    }
+
+    body {
+      position: relative;
+      margin: 0;
+      padding: 0;
+    }
+
+    .game-box {
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(255, 128, 0, 0.28);
+      box-shadow: inset 0 0 28px rgba(255, 128, 0, 0.05);
+      background: #040609;
+      overflow: hidden;
+    }
+
+    .space-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 120% 80% at 50% 110%, rgba(12, 22, 42, 0.55), transparent 58%),
+        radial-gradient(ellipse 90% 60% at 18% 12%, rgba(20, 40, 72, 0.2), transparent 52%),
+        radial-gradient(ellipse 70% 50% at 82% 78%, rgba(32, 18, 48, 0.14), transparent 48%),
+        #040609;
+    }
+
+    .space-bg-stars {
+      position: absolute;
+      inset: -8%;
+      opacity: 0.2;
+      animation: space-stars-drift 100s linear infinite;
+    }
+
+    .space-bg-stars::before,
+    .space-bg-stars::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+    }
+
+    .space-bg-stars::before {
+      background-image:
+        radial-gradient(circle, rgba(210, 228, 255, 0.9) 0.45px, transparent 0.55px),
+        radial-gradient(circle, rgba(180, 210, 255, 0.55) 0.35px, transparent 0.45px);
+      background-size: 56px 56px, 84px 84px;
+      background-position: 0 0, 28px 18px;
+      opacity: 0.55;
+    }
+
+    .space-bg-stars::after {
+      background-image:
+        radial-gradient(circle, rgba(255, 220, 200, 0.45) 0.4px, transparent 0.5px),
+        radial-gradient(circle, rgba(200, 220, 255, 0.35) 0.3px, transparent 0.4px);
+      background-size: 96px 96px, 128px 128px;
+      background-position: 12px 40px, 60px 8px;
+      opacity: 0.4;
+      animation: space-stars-drift-alt 140s linear infinite reverse;
+    }
+
+    .space-bg-fog {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(52px);
+      will-change: transform;
+    }
+
+    .space-bg-fog--a {
+      width: 70%;
+      height: 52%;
+      left: -12%;
+      top: 18%;
+      background: radial-gradient(ellipse at 40% 50%, rgba(90, 140, 200, 0.14), transparent 68%);
+      opacity: 0.35;
+      animation: space-fog-float-a 75s ease-in-out infinite alternate;
+    }
+
+    .space-bg-fog--b {
+      width: 62%;
+      height: 48%;
+      right: -14%;
+      bottom: 8%;
+      background: radial-gradient(ellipse at 60% 45%, rgba(120, 80, 140, 0.1), transparent 70%);
+      opacity: 0.3;
+      animation: space-fog-float-b 95s ease-in-out infinite alternate;
+    }
+
+    .space-bg-fog--c {
+      width: 55%;
+      height: 40%;
+      left: 22%;
+      bottom: -8%;
+      background: radial-gradient(ellipse at 50% 50%, rgba(255, 140, 60, 0.06), transparent 72%);
+      opacity: 0.45;
+      animation: space-fog-float-c 110s ease-in-out infinite alternate;
+    }
+
+    @keyframes space-stars-drift {
+      0% {
+        transform: translate3d(0, 0, 0);
+      }
+      100% {
+        transform: translate3d(-2.5%, -1.8%, 0);
+      }
+    }
+
+    @keyframes space-stars-drift-alt {
+      0% {
+        transform: translate3d(0, 0, 0);
+      }
+      100% {
+        transform: translate3d(1.8%, 2.2%, 0);
+      }
+    }
+
+    @keyframes space-fog-float-a {
+      0% {
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+      100% {
+        transform: translate3d(6%, -4%, 0) scale(1.06);
+      }
+    }
+
+    @keyframes space-fog-float-b {
+      0% {
+        transform: translate3d(0, 0, 0) scale(1.04);
+      }
+      100% {
+        transform: translate3d(-5%, 3%, 0) scale(1);
+      }
+    }
+
+    @keyframes space-fog-float-c {
+      0% {
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+      100% {
+        transform: translate3d(3%, -5%, 0) scale(1.08);
+      }
+    }
+
+    .game-title {
+      position: absolute;
+      top: 0.55rem;
+      left: 0.7rem;
+      z-index: 4;
+      margin: 0;
+      font-size: 0.72rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #c8e8ff;
+      opacity: 0.1;
+      text-shadow: none;
+      pointer-events: none;
+    }
+
+    #gameStage {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    #screenFlash {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 50%, rgba(120, 200, 255, 0.28), rgba(255, 128, 0, 0.2), transparent 72%);
+      opacity: 0;
+    }
+
+    #screenFlash.is-active {
+      animation: screen-flash 0.35s ease-out forwards;
+    }
+
+    .hud {
+      position: absolute;
+      left: 50%;
+      top: 26%;
+      z-index: 3;
+      pointer-events: none;
+      text-align: center;
+      transform: translateX(-50%);
+    }
+
+    .score-shake {
+      display: inline-block;
+      transition: transform 0.05s linear;
+    }
+
+    .score-shake.is-shaking {
+      transition: none;
+    }
+
+    #score {
+      font-size: 2.4rem;
+      letter-spacing: 0.12em;
+      color: #ff8030;
+      text-shadow: 0 0 12px rgba(255, 128, 0, 0.45);
+    }
+
+    #atom {
+      position: absolute;
+      left: 50%;
+      top: 56%;
+      z-index: 3;
+      width: 9rem;
+      height: 9rem;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+
+    .atom-shake {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.05s linear;
+    }
+
+    .atom-shake.is-shaking {
+      transition: none;
+    }
+
+    .nucleus-cluster {
+      position: relative;
+      z-index: 4;
+      width: 1.55rem;
+      height: 1.4rem;
+      transform-origin: 50% 50%;
+      will-change: transform;
+    }
+
+    .nucleon {
+      position: absolute;
+      width: 0.68rem;
+      height: 0.68rem;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
+    }
+
+    .nucleon--proton {
+      background: radial-gradient(circle at 32% 28%, #d8ecff, #4080ff 50%, #1a4dcc 90%);
+      box-shadow: 0 0 12px rgba(64, 128, 255, 0.8);
+    }
+
+    .nucleon--neutron {
+      background: radial-gradient(circle at 32% 28%, #ffe8e8, #e84040 55%, #aa1818 90%);
+      box-shadow: 0 0 10px rgba(232, 64, 64, 0.6);
+    }
+
+    .nucleon--proton-a {
+      left: 36%;
+      top: 64%;
+    }
+
+    .nucleon--proton-b {
+      left: 64%;
+      top: 64%;
+    }
+
+    .nucleon--neutron-a {
+      left: 50%;
+      top: 36%;
+    }
+
+    .orbit {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      border: 1px solid rgba(120, 200, 255, 0.38);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 10px rgba(100, 180, 255, 0.14);
+      pointer-events: none;
+    }
+
+    .orbit--shell {
+      width: 8.4rem;
+      height: 4.75rem;
+    }
+
+    .orbit-electron-layer {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 8.4rem;
+      height: 4.75rem;
+      pointer-events: none;
+    }
+
+    .electron {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 0.5rem;
+      height: 0.5rem;
+      margin: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #e8ffff, #40e8ff 55%, #00a8cc);
+      box-shadow: 0 0 10px rgba(64, 232, 255, 0.95), 0 0 16px rgba(0, 200, 220, 0.5);
+      will-change: transform;
+    }
+
+    #fxLayer {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .click-ripple {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      margin-left: -14px;
+      margin-top: -14px;
+      border: 2px solid rgba(120, 200, 255, 0.75);
+      border-radius: 50%;
+      animation: ripple 0.45s ease-out forwards;
+    }
+
+    .score-pop {
+      position: absolute;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      pointer-events: none;
+      animation: score-rise 0.9s ease-out forwards;
+      white-space: nowrap;
+    }
+
+    .score-pop--click {
+      font-size: 1rem;
+      color: #c8e8ff;
+      text-shadow: 0 0 6px rgba(120, 200, 255, 0.7);
+    }
+
+    .score-pop--bonus {
+      color: #ffb347;
+      text-shadow: 0 0 10px rgba(255, 128, 0, 0.9);
+    }
+
+    .score-pop--bonus-tier-1 {
+      font-size: 1.2rem;
+    }
+
+    .score-pop--bonus-tier-2 {
+      font-size: 1.55rem;
+      color: #ff9a3c;
+      text-shadow: 0 0 14px rgba(255, 100, 20, 1);
+    }
+
+    .score-pop--bonus-tier-3 {
+      font-size: 2rem;
+      color: #ff8030;
+      text-shadow: 0 0 20px rgba(255, 80, 0, 1), 0 0 40px rgba(255, 128, 0, 0.6);
+    }
+
+    .explosion-burst {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      margin-left: -10px;
+      margin-top: -10px;
+      border-radius: 50%;
+      border: 2px solid rgba(120, 200, 255, 0.85);
+      animation: burst-ring 0.5s ease-out forwards;
+    }
+
+    .explosion-particle {
+      position: absolute;
+      border-radius: 50%;
+      background: #6eb8ff;
+      box-shadow: 0 0 12px rgba(110, 184, 255, 0.95);
+      animation: explode 0.6s ease-out forwards;
+    }
+
+    @keyframes ripple {
+      0% {
+        transform: scale(0.35);
+        opacity: 0.95;
+      }
+      100% {
+        transform: scale(2.8);
+        opacity: 0;
+      }
+    }
+
+    @keyframes score-rise {
+      0% {
+        transform: translateY(0) scale(0.85);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-56px) scale(1.2);
+        opacity: 0;
+      }
+    }
+
+    @keyframes burst-ring {
+      0% {
+        transform: scale(0.2);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(var(--burst-scale, 4));
+        opacity: 0;
+      }
+    }
+
+    @keyframes explode {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--dx), var(--dy)) scale(0.15);
+        opacity: 0;
+      }
+    }
+
+    @keyframes screen-flash {
+      0% {
+        opacity: 0.55;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-box" id="gameBox">
+    <h1 class="game-title">Atom Clicker</h1>
+    <div class="space-bg" aria-hidden="true">
+      <div class="space-bg-stars"></div>
+      <div class="space-bg-fog space-bg-fog--a"></div>
+      <div class="space-bg-fog space-bg-fog--b"></div>
+      <div class="space-bg-fog space-bg-fog--c"></div>
+    </div>
+    <div id="gameStage" aria-hidden="true"></div>
+    <div id="screenFlash" aria-hidden="true"></div>
+    <div id="fxLayer" aria-hidden="true"></div>
+    <div class="hud">
+      <div class="score-shake" id="scoreShake"><div id="score">0°</div></div>
+    </div>
+    <div id="atom" aria-hidden="true">
+    <div class="atom-shake" id="atomShake">
+      <div class="orbit orbit--shell" id="orbitShell" aria-hidden="true"></div>
+      <div class="orbit-electron-layer" id="orbitElectronLayer">
+        <span class="electron" id="electronA"></span>
+        <span class="electron" id="electronB"></span>
+      </div>
+      <div class="nucleus-cluster" id="nucleusCluster" aria-hidden="true">
+        <span class="nucleon nucleon--proton nucleon--proton-a"></span>
+        <span class="nucleon nucleon--proton nucleon--proton-b"></span>
+        <span class="nucleon nucleon--neutron nucleon--neutron-a"></span>
+      </div>
+    </div>
+    </div>
+  </div>
+  <script>
+    var degreeSymbol = "\u00B0";
+    var score = 0;
+    var scoreElement = document.getElementById("score");
+    var scoreShake = document.getElementById("scoreShake");
+    var nucleusCluster = document.getElementById("nucleusCluster");
+    var atomShake = document.getElementById("atomShake");
+    var gameStage = document.getElementById("gameStage");
+    var fxLayer = document.getElementById("fxLayer");
+    var screenFlash = document.getElementById("screenFlash");
+    var bonusChance = 0.34;
+    var bonusPercent = 0.1;
+    var clickMilestoneSize = 1000;
+    var twoPi = Math.PI * 2;
+
+    var electronSpeedScale = 1.35;
+    var spinMax = 6.8;
+    var spinBoostClick = 0.14;
+    var spinBoostBonusScale = 0.038;
+    var spinScoreFullScale = 900;
+    var nucleusSpinAngle = 0;
+    var nucleusSpinSpeed = 0.11;
+
+    var shellRadiusX = 0;
+    var shellRadiusY = 0;
+    var shellElectronSpeed = twoPi / 5.8;
+    var shellBaseTiltDeg = -20;
+
+    var orbitShell = document.getElementById("orbitShell");
+    var orbitElectronLayer = document.getElementById("orbitElectronLayer");
+    var electronA = document.getElementById("electronA");
+    var electronB = document.getElementById("electronB");
+
+    var orbitConfigs = [
+      {
+        orbitElement: orbitShell,
+        electronLayerElement: orbitElectronLayer,
+        baseTiltDeg: shellBaseTiltDeg,
+        orbitSpinSpeed: 0.038,
+        orbitSpinDirection: 1,
+        orbitAngle: 0,
+        electrons: [
+          {
+            element: electronA,
+            radiusX: 0,
+            radiusY: 0,
+            electronSpeed: shellElectronSpeed,
+            electronDirection: 1,
+            electronAngle: 0
+          },
+          {
+            element: electronB,
+            radiusX: 0,
+            radiusY: 0,
+            electronSpeed: shellElectronSpeed,
+            electronDirection: 1,
+            electronAngle: Math.PI
+          }
+        ]
+      }
+    ];
+
+    var spinMultiplier = 1;
+    var lastFrameTime = 0;
+    var animationRunning = false;
+
+    function randomInt(min, max) {
+      if (max < min) return min;
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function formatDegrees(value) {
+      return String(value) + degreeSymbol;
+    }
+
+    function setScoreText() {
+      scoreElement.textContent = formatDegrees(score);
+    }
+
+    function getScoreSpinFactor() {
+      if (score <= 0) return 0;
+      var factor = score / spinScoreFullScale;
+      if (factor > 1) factor = 1;
+      return factor;
+    }
+
+    function getClickMinimum(scoreValue) {
+      return 1 + Math.floor(scoreValue / clickMilestoneSize);
+    }
+
+    function getMaxBonus(scoreValue) {
+      var cap = Math.floor(scoreValue * bonusPercent);
+      if (cap < 1) return 1;
+      return cap;
+    }
+
+    function getBonusTier(bonus, maxBonus) {
+      if (maxBonus <= 1) return 1;
+      var ratio = bonus / maxBonus;
+      if (ratio >= 0.85) return 3;
+      if (ratio >= 0.45) return 2;
+      return 1;
+    }
+
+    function removeNodeLater(node, delayMs) {
+      window.setTimeout(function () {
+        if (node.parentNode) node.parentNode.removeChild(node);
+      }, delayMs);
+    }
+
+    function syncOrbitRadii() {
+      if (!orbitShell) return;
+      shellRadiusX = orbitShell.offsetWidth * 0.5;
+      shellRadiusY = orbitShell.offsetHeight * 0.5;
+      var config = orbitConfigs[0];
+      var electronIndex;
+      for (electronIndex = 0; electronIndex < config.electrons.length; electronIndex++) {
+        config.electrons[electronIndex].radiusX = shellRadiusX;
+        config.electrons[electronIndex].radiusY = shellRadiusY;
+      }
+    }
+
+    function setOrbitTransform(config) {
+      var orbit = config.orbitElement;
+      var layer = config.electronLayerElement;
+      var tiltDeg = config.baseTiltDeg + (config.orbitAngle * 180) / Math.PI;
+      var transform =
+        "translate(-50%, -50%) rotate(" + String(tiltDeg) + "deg)";
+      if (orbit) orbit.style.transform = transform;
+      if (layer) layer.style.transform = transform;
+    }
+
+    function setElectronTransform(electronConfig) {
+      var electron = electronConfig.element;
+      if (!electron) return;
+      var offsetX = Math.cos(electronConfig.electronAngle) * electronConfig.radiusX;
+      var offsetY = Math.sin(electronConfig.electronAngle) * electronConfig.radiusY;
+      electron.style.transform =
+        "translate(-50%, -50%) translate(" +
+        String(offsetX) +
+        "px, " +
+        String(offsetY) +
+        "px)";
+    }
+
+    function updateAtomMotion(deltaSeconds) {
+      var index;
+      var electronIndex;
+      var decay = 1 - Math.min(deltaSeconds * 2.8, 0.12);
+      spinMultiplier = 1 + (spinMultiplier - 1) * decay;
+      if (spinMultiplier < 1.001) spinMultiplier = 1;
+
+      var motionSpin = getScoreSpinFactor() * spinMultiplier;
+
+      for (index = 0; index < orbitConfigs.length; index++) {
+        var config = orbitConfigs[index];
+        var orbitSpeed = config.orbitSpinSpeed * motionSpin * config.orbitSpinDirection;
+        var electrons = config.electrons;
+
+        config.orbitAngle = config.orbitAngle + orbitSpeed * deltaSeconds;
+        if (config.orbitAngle > twoPi) config.orbitAngle = config.orbitAngle - twoPi;
+        if (config.orbitAngle < 0) config.orbitAngle = config.orbitAngle + twoPi;
+
+        setOrbitTransform(config);
+
+        for (electronIndex = 0; electronIndex < electrons.length; electronIndex++) {
+          var electronConfig = electrons[electronIndex];
+          var electronSpeed =
+            electronConfig.electronSpeed *
+            motionSpin *
+            electronSpeedScale *
+            electronConfig.electronDirection;
+
+          electronConfig.electronAngle = electronConfig.electronAngle + electronSpeed * deltaSeconds;
+          if (electronConfig.electronAngle > twoPi) {
+            electronConfig.electronAngle = electronConfig.electronAngle - twoPi;
+          }
+          if (electronConfig.electronAngle < 0) {
+            electronConfig.electronAngle = electronConfig.electronAngle + twoPi;
+          }
+          setElectronTransform(electronConfig);
+        }
+      }
+
+      if (nucleusCluster && motionSpin > 0) {
+        var nucleusSpeed = nucleusSpinSpeed * motionSpin;
+        nucleusSpinAngle = nucleusSpinAngle + nucleusSpeed * deltaSeconds;
+        if (nucleusSpinAngle > twoPi) nucleusSpinAngle = nucleusSpinAngle - twoPi;
+        if (nucleusSpinAngle < 0) nucleusSpinAngle = nucleusSpinAngle + twoPi;
+        nucleusCluster.style.transform =
+          "rotate(" + String((nucleusSpinAngle * 180) / Math.PI) + "deg)";
+      }
+    }
+
+    function animationTick(timestamp) {
+      if (!lastFrameTime) lastFrameTime = timestamp;
+      var deltaSeconds = (timestamp - lastFrameTime) / 1000;
+      if (deltaSeconds > 0.05) deltaSeconds = 0.05;
+      lastFrameTime = timestamp;
+      updateAtomMotion(deltaSeconds);
+      animationRunning = true;
+      window.requestAnimationFrame(animationTick);
+    }
+
+    function ensureAnimationLoop() {
+      if (!animationRunning) {
+        lastFrameTime = 0;
+        window.requestAnimationFrame(animationTick);
+      }
+    }
+
+    function addSpinBoost(power) {
+      var boost = spinBoostClick + Math.min(power, 80) * spinBoostBonusScale;
+      spinMultiplier = spinMultiplier + boost;
+      if (spinMultiplier > spinMax) spinMultiplier = spinMax;
+      ensureAnimationLoop();
+    }
+
+    function shakeElement(element, power, maxIntensity) {
+      if (!element) return;
+      var intensity = 2 + Math.sqrt(power) * 1.35;
+      if (intensity > maxIntensity) intensity = maxIntensity;
+      var offsetX = (Math.random() * 2 - 1) * intensity;
+      var offsetY = (Math.random() * 2 - 1) * intensity;
+      var rotate = (Math.random() * 2 - 1) * intensity * 0.35;
+      element.classList.add("is-shaking");
+      element.style.transform =
+        "translate(" + String(offsetX) + "px," + String(offsetY) + "px) rotate(" + String(rotate) + "deg)";
+      window.setTimeout(function () {
+        element.style.transform = "translate(0,0) rotate(0deg)";
+        element.classList.remove("is-shaking");
+      }, 70);
+    }
+
+    function shakeAtom(power) {
+      shakeElement(atomShake, power, 18);
+    }
+
+    function shakeScore(power) {
+      shakeElement(scoreShake, power, 14);
+    }
+
+    function spawnRipple(x, y, power) {
+      var ripple = document.createElement("div");
+      ripple.className = "click-ripple";
+      ripple.style.left = String(x) + "px";
+      ripple.style.top = String(y) + "px";
+      ripple.style.borderWidth = String(1 + Math.min(power, 30) * 0.05) + "px";
+      ripple.style.animationDuration = String(0.5 - Math.min(power, 20) * 0.008) + "s";
+      fxLayer.appendChild(ripple);
+      removeNodeLater(ripple, 550);
+    }
+
+    function spawnScorePop(x, y, amount, kind, tier) {
+      var pop = document.createElement("div");
+      pop.className = "score-pop score-pop--" + kind;
+      if (tier) pop.className += " score-pop--bonus-tier-" + String(tier);
+      pop.textContent = "+" + formatDegrees(amount);
+      pop.style.left = String(x) + "px";
+      pop.style.top = String(y) + "px";
+      fxLayer.appendChild(pop);
+      removeNodeLater(pop, 950);
+    }
+
+    function spawnExplosion(x, y, bonus, maxBonus) {
+      var tier = getBonusTier(bonus, maxBonus);
+      var particleCount = 8 + Math.min(bonus, 80) * 0.35;
+      var particleSize = 4 + Math.floor(Math.min(bonus, 50) * 0.12);
+      var burstScale = 3 + Math.min(bonus, 60) * 0.08;
+      var maxDistance = 24 + Math.min(bonus, 80) * 0.9;
+      var index;
+
+      var burst = document.createElement("div");
+      burst.className = "explosion-burst";
+      burst.style.left = String(x) + "px";
+      burst.style.top = String(y) + "px";
+      burst.style.setProperty("--burst-scale", String(burstScale));
+      fxLayer.appendChild(burst);
+      removeNodeLater(burst, 550);
+
+      for (index = 0; index < particleCount; index++) {
+        var particle = document.createElement("div");
+        var angle = (twoPi * index) / particleCount + Math.random() * 0.4;
+        var distance = maxDistance * 0.45 + Math.random() * maxDistance * 0.55;
+        var dx = Math.cos(angle) * distance;
+        var dy = Math.sin(angle) * distance;
+        particle.className = "explosion-particle";
+        particle.style.width = String(particleSize) + "px";
+        particle.style.height = String(particleSize) + "px";
+        particle.style.marginLeft = String(-particleSize * 0.5) + "px";
+        particle.style.marginTop = String(-particleSize * 0.5) + "px";
+        particle.style.left = String(x) + "px";
+        particle.style.top = String(y) + "px";
+        particle.style.setProperty("--dx", String(dx) + "px");
+        particle.style.setProperty("--dy", String(dy) + "px");
+        if (tier >= 3) {
+          particle.style.background = "#ffaa44";
+          particle.style.boxShadow = "0 0 16px rgba(255, 160, 40, 1)";
+        } else if (tier >= 2) {
+          particle.style.background = "#ffb060";
+        }
+        fxLayer.appendChild(particle);
+        removeNodeLater(particle, 650);
+      }
+
+      if (tier >= 3) {
+        screenFlash.classList.remove("is-active");
+        void screenFlash.offsetHeight;
+        screenFlash.classList.add("is-active");
+        window.setTimeout(function () {
+          screenFlash.classList.remove("is-active");
+        }, 400);
+      }
+    }
+
+    function registerClick(event) {
+      var x = event.clientX;
+      var y = event.clientY;
+      var clickValue = getClickMinimum(score);
+      var clickPower = clickValue;
+
+      score = score + clickValue;
+      setScoreText();
+      spawnRipple(x, y, clickPower);
+      spawnScorePop(x - 10, y - 14, clickValue, "click");
+      shakeAtom(clickPower);
+      shakeScore(clickPower);
+      addSpinBoost(clickPower);
+
+      if (Math.random() < bonusChance) {
+        var bonusMinimum = getClickMinimum(score);
+        var maxBonus = getMaxBonus(score);
+        if (bonusMinimum > maxBonus) bonusMinimum = maxBonus;
+        var bonus = randomInt(bonusMinimum, maxBonus);
+        var bonusX = x + randomInt(-18, 18);
+        var bonusY = y - 28 + randomInt(-8, 8);
+        var totalPower = clickPower + bonus;
+        score = score + bonus;
+        setScoreText();
+        var tier = getBonusTier(bonus, maxBonus);
+        spawnExplosion(x, y, bonus, maxBonus);
+        spawnScorePop(bonusX, bonusY, bonus, "bonus", tier);
+        shakeAtom(totalPower);
+        shakeScore(totalPower);
+        addSpinBoost(bonus);
+      }
+    }
+
+    function layoutAtomOrbit() {
+      var index;
+      var electronIndex;
+      syncOrbitRadii();
+      for (index = 0; index < orbitConfigs.length; index++) {
+        setOrbitTransform(orbitConfigs[index]);
+        for (electronIndex = 0; electronIndex < orbitConfigs[index].electrons.length; electronIndex++) {
+          setElectronTransform(orbitConfigs[index].electrons[electronIndex]);
+        }
+      }
+    }
+
+    layoutAtomOrbit();
+    window.addEventListener("resize", layoutAtomOrbit);
+    ensureAnimationLoop();
+
+    gameStage.addEventListener("pointerdown", registerClick);
+    document.addEventListener("selectstart", function (event) {
+      event.preventDefault();
+    });
+  </script>
+</body>
+</html>

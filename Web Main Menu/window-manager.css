@@ -10,7 +10,8 @@
 
 .os-workspace--connect.os-workspace--wm,
 .os-workspace--settings.os-workspace--wm,
-.os-workspace--credits.os-workspace--wm {
+.os-workspace--credits.os-workspace--wm,
+.os-workspace--extras.os-workspace--wm {
   --wm-inset: clamp(16px, 3vmin, 32px);
 }
 
@@ -29,7 +30,7 @@
   --wm-connect-prompt-top: calc(var(--wm-inset) + 1.35em + 6px);
   --wm-connect-nav-slot: 7.5rem;
   --wm-connect-nav-gap: var(--wm-inset);
-  --wm-menu-actions-slot: 13.75rem;
+  --wm-menu-actions-slot: 18rem;
 }
 
 .os-workspace--wm .os-window[data-wm-preset] {
@@ -97,7 +98,8 @@
 
 .os-workspace--connect.os-workspace--wm > .term-prompt--entry,
 .os-workspace--settings.os-workspace--wm > .term-prompt--entry,
-.os-workspace--credits.os-workspace--wm > .term-prompt--entry {
+.os-workspace--credits.os-workspace--wm > .term-prompt--entry,
+.os-workspace--extras.os-workspace--wm > .term-prompt--entry {
   position: absolute;
   left: var(--wm-inset);
   top: var(--wm-inset);
@@ -160,6 +162,29 @@
   max-width: calc(100% - 2 * var(--wm-inset));
   height: auto;
   transform: translateX(-50%);
+}
+
+.os-workspace--extras {
+  --wm-extras-nav-slot: var(--wm-menu-actions-slot);
+  --wm-extras-nav-gap: var(--wm-inset);
+  --wm-extras-content-width: min(42rem, calc(100% - 2 * var(--wm-inset)));
+}
+
+.os-workspace--extras .os-window[data-wm-preset="extras-content"] {
+  left: 50%;
+  top: var(--wm-connect-prompt-top);
+  bottom: calc(var(--wm-extras-nav-slot) + var(--wm-extras-nav-gap) + var(--wm-inset));
+  width: var(--wm-extras-content-width);
+  height: auto;
+  transform: translateX(-50%);
+}
+
+.os-workspace--extras .os-window[data-wm-preset="extras-nav"] {
+  left: var(--wm-inset);
+  top: calc(100% - var(--wm-extras-nav-slot) - var(--wm-inset));
+  bottom: var(--wm-inset);
+  width: min(440px, calc(100% - 2 * var(--wm-inset)));
+  height: auto;
 }
 
 .os-window--managed {

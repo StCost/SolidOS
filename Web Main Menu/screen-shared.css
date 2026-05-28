@@ -665,6 +665,14 @@ html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--se {
   width: 100%;
 }
 
+.os-window--actions .term-menu {
+  gap: 6px;
+}
+
+.os-window--actions .term-row {
+  padding: 0.48em 0.7em;
+}
+
 .term-menu--inline {
   width: min(320px, 100%);
 }
