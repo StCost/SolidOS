@@ -202,5 +202,8 @@
   "web.credits.loading": "クレジットを読み込み中...",
   "web.aria.credits-content": "クレジット",
   "web.aria.credits-list": "クレジット一覧",
-  "web.aria.credits-menu": "クレジットメニュー"
+  "web.aria.credits-menu": "クレジットメニュー",
+  "settings.web.window-layout": "メニューウィンドウ配置",
+  "settings.web.reset-window-layouts": "位置をリセット",
+  "settings.help.web.window-layout": "ドラッグ可能なメニューウィンドウの既定の位置とサイズを復元します。"
 }

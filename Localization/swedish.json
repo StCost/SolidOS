@@ -202,5 +202,8 @@
   "web.credits.loading": "Laddar credits...",
   "web.aria.credits-content": "Credits",
   "web.aria.credits-list": "Creditslista",
-  "web.aria.credits-menu": "Creditsmeny"
+  "web.aria.credits-menu": "Creditsmeny",
+  "settings.web.window-layout": "Menyfönsterlayout",
+  "settings.web.reset-window-layouts": "Återställ positioner",
+  "settings.help.web.window-layout": "Återställer standardpositioner och storlekar för menyfönster."
 }

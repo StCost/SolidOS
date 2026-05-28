@@ -202,5 +202,8 @@
   "web.credits.loading": "Laster credits...",
   "web.aria.credits-content": "Credits",
   "web.aria.credits-list": "Creditsliste",
-  "web.aria.credits-menu": "Creditsmeny"
+  "web.aria.credits-menu": "Creditsmeny",
+  "settings.web.window-layout": "Menyvindusoppsett",
+  "settings.web.reset-window-layouts": "Tilbakestill posisjoner",
+  "settings.help.web.window-layout": "Gjenoppretter standard posisjon og størrelse for menyvinduer."
 }

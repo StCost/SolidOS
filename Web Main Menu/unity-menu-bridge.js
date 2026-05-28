@@ -7,6 +7,7 @@
     "web-select-steam",
     "web-page-changed",
     "web-window-layout-save",
+    "web-window-layout-reset",
     "web-start-lists-save"
   ];
 

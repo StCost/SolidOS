@@ -223,6 +223,52 @@ var WebWindowManager = (function () {
     applySavedLayouts(payload);
   }
 
+  function postWindowLayoutsReset() {
+    if (!isUnityHost()) return;
+    window.vuplex.postMessage(
+      JSON.stringify({
+        eventName: "web-window-layout-reset"
+      })
+    );
+  }
+
+  function resetAllWindowLayouts() {
+    if (layoutSaveTimer) {
+      window.clearTimeout(layoutSaveTimer);
+      layoutSaveTimer = 0;
+    }
+
+    savedLayoutTable = {};
+    clearLayoutBootstrap();
+
+    try {
+      localStorage.removeItem(LAYOUTS_STORAGE_KEY);
+    } catch (error) {
+    }
+
+    var windows = document.querySelectorAll(".os-window[data-wm-preset]");
+    var index;
+    for (index = 0; index < windows.length; index++) {
+      var windowElement = windows[index];
+      clearWindowInlineGeometry(windowElement);
+      windowElement.wmHasInlineLayout = false;
+      windowElement.wmState = null;
+      setBodyMaxVar(windowElement);
+    }
+
+    var workspaces = document.querySelectorAll(".os-workspace--wm");
+    for (index = 0; index < workspaces.length; index++) {
+      syncWorkspaceWindows(workspaces[index]);
+    }
+    syncOverlayWindow();
+    syncActivePageWindows();
+
+    postWindowLayoutsReset();
+    writeLayoutsToStorage({ layouts: [] });
+
+    window.dispatchEvent(new CustomEvent("web-wm-layouts-reset"));
+  }
+
   function postWindowLayoutsSave() {
     var payload = collectWindowLayoutsPayload();
     if (!isUnityHost()) {
@@ -1016,6 +1062,7 @@ var WebWindowManager = (function () {
     applySavedLayouts: function (payload) {
       applySavedLayouts(payload);
       clearLayoutBootstrap();
-    }
+    },
+    resetAllLayouts: resetAllWindowLayouts
   };
 })();

@@ -202,5 +202,8 @@
   "web.credits.loading": "正在載入製作人員...",
   "web.aria.credits-content": "製作人員",
   "web.aria.credits-list": "製作人員清單",
-  "web.aria.credits-menu": "製作人員選單"
+  "web.aria.credits-menu": "製作人員選單",
+  "settings.web.window-layout": "選單視窗配置",
+  "settings.web.reset-window-layouts": "重設位置",
+  "settings.help.web.window-layout": "還原可拖曳選單視窗的預設位置與大小。"
 }

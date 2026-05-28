@@ -202,5 +202,8 @@
   "web.credits.loading": "Credits werden geladen...",
   "web.aria.credits-content": "Credits",
   "web.aria.credits-list": "Credits-Liste",
-  "web.aria.credits-menu": "Credits-Menü"
+  "web.aria.credits-menu": "Credits-Menü",
+  "settings.web.window-layout": "Menüfenster-Layout",
+  "settings.web.reset-window-layouts": "Positionen zurücksetzen",
+  "settings.help.web.window-layout": "Stellt Standardpositionen und -größen der Menüfenster wieder her."
 }

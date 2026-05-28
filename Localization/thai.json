@@ -202,5 +202,8 @@
   "web.credits.loading": "กำลังโหลดเครดิต...",
   "web.aria.credits-content": "เครดิต",
   "web.aria.credits-list": "รายการเครดิต",
-  "web.aria.credits-menu": "เมนูเครดิต"
+  "web.aria.credits-menu": "เมนูเครดิต",
+  "settings.web.window-layout": "การจัดวางหน้าต่างเมนู",
+  "settings.web.reset-window-layouts": "รีเซ็ตตำแหน่ง",
+  "settings.help.web.window-layout": "คืนค่าตำแหน่งและขนาดเริ่มต้นของหน้าต่างเมนูที่ลากได้"
 }

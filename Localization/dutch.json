@@ -202,5 +202,8 @@
   "web.credits.loading": "Credits laden...",
   "web.aria.credits-content": "Credits",
   "web.aria.credits-list": "Creditslijst",
-  "web.aria.credits-menu": "Creditsmenu"
+  "web.aria.credits-menu": "Creditsmenu",
+  "settings.web.window-layout": "Menuvensterindeling",
+  "settings.web.reset-window-layouts": "Posities herstellen",
+  "settings.help.web.window-layout": "Herstelt standaardposities en -groottes van versleepbare menuvensters."
 }

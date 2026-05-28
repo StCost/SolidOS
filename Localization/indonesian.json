@@ -202,5 +202,8 @@
   "web.credits.loading": "Memuat kredit...",
   "web.aria.credits-content": "Kredit",
   "web.aria.credits-list": "Daftar kredit",
-  "web.aria.credits-menu": "Menu kredit"
+  "web.aria.credits-menu": "Menu kredit",
+  "settings.web.window-layout": "Tata letak jendela menu",
+  "settings.web.reset-window-layouts": "Atur ulang posisi",
+  "settings.help.web.window-layout": "Mengembalikan posisi dan ukuran default jendela menu yang dapat diseret."
 }

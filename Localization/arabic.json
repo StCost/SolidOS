@@ -202,5 +202,8 @@
   "web.credits.loading": "جارٍ تحميل الشكر...",
   "web.aria.credits-content": "الشكر",
   "web.aria.credits-list": "قائمة الشكر",
-  "web.aria.credits-menu": "قائمة الشكر"
+  "web.aria.credits-menu": "قائمة الشكر",
+  "settings.web.window-layout": "تخطيط نوافذ القائمة",
+  "settings.web.reset-window-layouts": "إعادة المواضع",
+  "settings.help.web.window-layout": "استعادة المواضع والأحجام الافتراضية لنوافذ القائمة القابلة للسحب."
 }

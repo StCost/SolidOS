@@ -249,7 +249,13 @@
       return [
         { type: "choice", key: "language", labelKey: "settings.language", options: getLanguageOptions, format: stringChoiceFormat },
         { type: "toggle", key: "useCustomCursor", labelKey: "settings.custom-cursor" },
-        { type: "toggle", key: "terminalAnimationsEnabled", labelKey: "settings.terminal-animations" }
+        { type: "toggle", key: "terminalAnimationsEnabled", labelKey: "settings.terminal-animations" },
+        {
+          type: "action",
+          actionId: "reset-window-layouts",
+          labelKey: "settings.web.window-layout",
+          buttonLabelKey: "settings.web.reset-window-layouts"
+        }
       ];
     }
 
@@ -342,7 +348,7 @@
   function getSliderThumbOffsetPx(slider, ratio) {
     var trackWidth = slider.offsetWidth;
     if (trackWidth <= 0) return -1;
-    return ratio * (trackWidth - sliderThumbSizePx) + sliderThumbSizePx * 0.5;
+    return ratio * (trackWidth - sliderThumbWidthPx) + sliderThumbWidthPx * 0.5;
   }
 
   function resolveOptions(field) {
@@ -416,6 +422,9 @@
   function postChange(key, value) {
     if (isUnityHost() && window.WebSettingsBridge) {
       window.WebSettingsBridge.set(key, value);
+      if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.isAudioVolumeKey(key)) {
+        pushAudioVolumeStateToMenu();
+      }
       return;
     }
     saveLocalPreview();
@@ -458,8 +467,11 @@
     if (preservedLanguageOptions && preservedLanguageOptions.length) {
       state.languageOptions = preservedLanguageOptions;
     }
+    if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.clearRuntimeVolumes) {
+      window.WebMenuAudioVolume.clearRuntimeVolumes();
+    }
     renderAll();
-    syncWebAudioVolumes();
+    pushAudioVolumeStateToMenu();
   }
 
   function resetLocalPreview() {
@@ -472,12 +484,23 @@
     if (preservedLanguageOptions && preservedLanguageOptions.length) {
       state.languageOptions = preservedLanguageOptions;
     }
+    if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.clearRuntimeVolumes) {
+      window.WebMenuAudioVolume.clearRuntimeVolumes();
+    }
     renderAll();
-    syncWebAudioVolumes();
+    pushAudioVolumeStateToMenu();
   }
 
   function isUnityHost() {
     return typeof window.vuplex !== "undefined" && window.vuplex.postMessage;
+  }
+
+  function pushAudioVolumeStateToMenu() {
+    if (!window.WebMenuAudioVolume) return;
+    if (window.WebMenuAudioVolume.setVolumesFromSettingsState) {
+      window.WebMenuAudioVolume.setVolumesFromSettingsState(state);
+    }
+    syncWebAudioVolumes();
   }
 
   function syncWebAudioVolumes() {
@@ -486,8 +509,11 @@
   }
 
   function onAudioVolumeSliderInput(field) {
-    if (isUnityHost()) return;
     if (!window.WebMenuAudioVolume || !window.WebMenuAudioVolume.isAudioVolumeKey(field.key)) return;
+    if (isUnityHost()) {
+      pushAudioVolumeStateToMenu();
+      return;
+    }
     saveLocalPreview();
     syncWebAudioVolumes();
   }
@@ -648,6 +674,7 @@
       if (field.type === "toggle") contentRoot.appendChild(buildToggleRow(field));
       else if (field.type === "choice") contentRoot.appendChild(buildChoiceRow(field));
       else if (field.type === "slider") contentRoot.appendChild(buildSliderRow(field));
+      else if (field.type === "action") contentRoot.appendChild(buildActionRow(field));
     }
 
     if (!fields.length) contentRoot.classList.add("is-empty");
@@ -694,6 +721,48 @@
     var isOn = state[field.key] === true;
     switchButton.classList.toggle("is-on", isOn);
     switchButton.setAttribute("aria-checked", isOn ? "true" : "false");
+  }
+
+  function onSettingsAction(actionId) {
+    if (actionId === "reset-window-layouts") {
+      if (window.WebWindowManager && window.WebWindowManager.resetAllLayouts) {
+        window.WebWindowManager.resetAllLayouts();
+      }
+    }
+  }
+
+  function buildActionRow(field) {
+    var row = document.createElement("div");
+    row.className = "settings-row settings-row--action";
+    row.setAttribute("data-setting-action", field.actionId);
+
+    var line = document.createElement("div");
+    line.className = "settings-field-line";
+
+    var labelBox = document.createElement("div");
+    labelBox.className = "settings-field-label-box";
+    appendFieldLabel(labelBox, field);
+
+    var controlBox = document.createElement("div");
+    controlBox.className = "settings-field-control-box settings-field-control-box--action";
+
+    var actionButton = document.createElement("button");
+    actionButton.type = "button";
+    actionButton.className = "term-row settings-action-btn";
+    var buttonLabelKey = field.buttonLabelKey || field.labelKey;
+    var buttonLabel = document.createElement("span");
+    buttonLabel.className = "term-row-label terminal-text";
+    buttonLabel.textContent = getLocalized(buttonLabelKey, buttonLabelKey);
+    actionButton.appendChild(buttonLabel);
+    actionButton.addEventListener("click", function () {
+      onSettingsAction(field.actionId);
+    });
+
+    controlBox.appendChild(actionButton);
+    line.appendChild(labelBox);
+    line.appendChild(controlBox);
+    row.appendChild(line);
+    return row;
   }
 
   function buildToggleRow(field) {
@@ -879,7 +948,8 @@
     return row;
   }
 
-  var sliderThumbSizePx = 14;
+  var sliderThumbWidthPx = 12;
+  var sliderThumbHeightPx = 18;
   var sliderResizeTimer = 0;
   var sliderLayoutRefreshFrame = 0;
   var sliderLayoutRefreshTimer = 0;
@@ -896,6 +966,13 @@
     return ratio;
   }
 
+  function updateSliderFillVisual(slider) {
+    if (!slider) return;
+    var track = slider.parentElement;
+    if (!track || !track.classList.contains("settings-slider-track")) return;
+    track.style.setProperty("--settings-slider-fill", String(getSliderThumbRatio(slider)));
+  }
+
   function updateSliderTrackLayout(slider, valueSpan, minSpan, maxSpan) {
     if (!slider) return;
     var trackWidth = slider.offsetWidth;
@@ -903,6 +980,7 @@
       scheduleSliderValueLayoutRefresh();
       return;
     }
+    updateSliderFillVisual(slider);
     var minOffsetPx = getSliderThumbOffsetPx(slider, 0);
     var maxOffsetPx = getSliderThumbOffsetPx(slider, 1);
     if (minSpan && minOffsetPx >= 0) {
@@ -1164,7 +1242,7 @@
       Object.prototype.hasOwnProperty.call(payload, "musicVolume") ||
       Object.prototype.hasOwnProperty.call(payload, "interfaceVolume")
     ) {
-      syncWebAudioVolumes();
+      pushAudioVolumeStateToMenu();
     }
     renderAll();
     updateNavLabels();

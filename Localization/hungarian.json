@@ -202,5 +202,8 @@
   "web.credits.loading": "Stáblista betöltése...",
   "web.aria.credits-content": "Stáblista",
   "web.aria.credits-list": "Stáblista",
-  "web.aria.credits-menu": "Stáblista menü"
+  "web.aria.credits-menu": "Stáblista menü",
+  "settings.web.window-layout": "Menüablak-elrendezés",
+  "settings.web.reset-window-layouts": "Pozíciók visszaállítása",
+  "settings.help.web.window-layout": "Visszaállítja a húzható menüablakok alapértelmezett helyzetét és méretét."
 }

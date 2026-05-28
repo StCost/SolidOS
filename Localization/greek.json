@@ -202,5 +202,8 @@
   "web.credits.loading": "Φόρτωση credits...",
   "web.aria.credits-content": "Credits",
   "web.aria.credits-list": "Λίστα credits",
-  "web.aria.credits-menu": "Μενού credits"
+  "web.aria.credits-menu": "Μενού credits",
+  "settings.web.window-layout": "Διάταξη παραθύρων μενού",
+  "settings.web.reset-window-layouts": "Επαναφορά θέσεων",
+  "settings.help.web.window-layout": "Επαναφέρει τις προεπιλεγμένες θέσεις και μεγέθη των παραθύρων μενού."
 }
