@@ -86,6 +86,10 @@ var WebMenu = (function () {
   function showPage(pageId) {
     if (!pageMenu || !pageStart || !pageSettings || !pageCredits) return;
 
+    if (window.WebWindowManager && window.WebWindowManager.flushLayoutsSave) {
+      window.WebWindowManager.flushLayoutsSave();
+    }
+
     pageMenu.hidden = pageId !== PAGE_MENU;
     pageStart.hidden = pageId !== PAGE_START;
     pageSettings.hidden = pageId !== PAGE_SETTINGS;

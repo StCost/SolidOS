@@ -4,11 +4,25 @@
   var fillElement = null;
   var percentElement = null;
   var barElement = null;
+  var rootElement = null;
+  var BACKGROUND_TRANSPARENT_CLASS = "loading-background-transparent";
 
   function clampProgress(progress) {
     if (progress < 0) return 0;
     if (progress > 1) return 1;
     return progress;
+  }
+
+  function bindRoot() {
+    if (rootElement) return;
+    rootElement = document.getElementById("loadingRoot");
+  }
+
+  function setBackgroundTransparentTransition(enabled) {
+    bindRoot();
+    if (!rootElement) return;
+    if (enabled) rootElement.classList.add(BACKGROUND_TRANSPARENT_CLASS);
+    else rootElement.classList.remove(BACKGROUND_TRANSPARENT_CLASS);
   }
 
   function applyState(payload) {
@@ -39,6 +53,7 @@
   }
 
   function bindElements() {
+    bindRoot();
     textElement = document.getElementById("loadingText");
     fillElement = document.getElementById("loadingBarFill");
     percentElement = document.getElementById("loadingPercent");
@@ -47,7 +62,8 @@
   }
 
   window.WebLoading = {
-    applyState: applyState
+    applyState: applyState,
+    setBackgroundTransparentTransition: setBackgroundTransparentTransition
   };
 
   if (document.readyState === "loading") {

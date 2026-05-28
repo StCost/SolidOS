@@ -30,6 +30,9 @@ var WebWindowManager = (function () {
   var mainMenuCanvasShown = false;
   var savedLayoutTable = {};
   var layoutSaveTimer = 0;
+  var LAYOUTS_STORAGE_KEY = "cm-menu-window-layouts";
+  var LAYOUT_BOOTSTRAP_CLASS = "menu-wm-layout-bootstrap";
+  var LAYOUT_BOOTSTRAP_STYLE_ID = "cm-wm-layout-bootstrap";
 
   function getPreset(name) {
     return presetTable[name];
@@ -87,7 +90,7 @@ var WebWindowManager = (function () {
     };
   }
 
-  function applySavedLayouts(payload) {
+  function populateSavedLayoutTable(payload) {
     var layouts = payload && payload.layouts ? payload.layouts : [];
     var index = 0;
     savedLayoutTable = {};
@@ -96,10 +99,29 @@ var WebWindowManager = (function () {
       if (!entry || !entry.preset) continue;
       setSavedLayout(entry.preset, entry);
     }
+  }
 
+  function applySavedLayouts(payload) {
+    populateSavedLayoutTable(payload);
+    applyAllSavedLayoutsInDocument();
+  }
+
+  function applyAllSavedLayoutsInDocument() {
     var windows = document.querySelectorAll(".os-window[data-wm-preset]");
+    var index = 0;
     for (index = 0; index < windows.length; index++) {
       applySavedLayoutToWindow(windows[index]);
+    }
+  }
+
+  function clearLayoutBootstrap() {
+    document.documentElement.classList.remove(LAYOUT_BOOTSTRAP_CLASS);
+    var styleElement = document.getElementById(LAYOUT_BOOTSTRAP_STYLE_ID);
+    if (styleElement && styleElement.parentNode) {
+      styleElement.parentNode.removeChild(styleElement);
+    }
+    if (window.__cmWmLayoutsPayload) {
+      window.__cmWmLayoutsPayload = null;
     }
   }
 
@@ -124,29 +146,97 @@ var WebWindowManager = (function () {
     windowElement.wmHasInlineLayout = true;
   }
 
-  function collectWindowLayoutsPayload() {
+  function syncSavedLayoutFromWindow(windowElement) {
+    var presetName = windowElement.getAttribute("data-wm-preset");
+    if (!presetName || !windowElement.wmState) return;
+    setSavedLayout(presetName, {
+      left: windowElement.wmState.left,
+      top: windowElement.wmState.top,
+      width: windowElement.wmState.width,
+      height: windowElement.wmState.height
+    });
+  }
+
+  function mergeInlineLayoutsIntoSavedTable() {
     var windows = document.querySelectorAll(".os-window[data-wm-preset]");
-    var layouts = [];
     var index = 0;
     for (index = 0; index < windows.length; index++) {
       var windowElement = windows[index];
       if (!windowElement.wmHasInlineLayout || !windowElement.wmState) continue;
-      var presetName = windowElement.getAttribute("data-wm-preset");
-      if (!presetName) continue;
+      syncSavedLayoutFromWindow(windowElement);
+    }
+  }
+
+  function buildLayoutsPayloadFromSavedTable() {
+    var layouts = [];
+    var presetName;
+    for (presetName in savedLayoutTable) {
+      if (!Object.prototype.hasOwnProperty.call(savedLayoutTable, presetName)) continue;
+      var layout = savedLayoutTable[presetName];
       layouts.push({
         preset: presetName,
-        left: windowElement.wmState.left,
-        top: windowElement.wmState.top,
-        width: windowElement.wmState.width,
-        height: windowElement.wmState.height
+        left: layout.left,
+        top: layout.top,
+        width: layout.width,
+        height: layout.height
       });
     }
     return { layouts: layouts };
   }
 
+  function collectWindowLayoutsPayload() {
+    mergeInlineLayoutsIntoSavedTable();
+    return buildLayoutsPayloadFromSavedTable();
+  }
+
+  function flushWindowLayoutsSave() {
+    if (layoutSaveTimer) {
+      window.clearTimeout(layoutSaveTimer);
+      layoutSaveTimer = 0;
+    }
+    postWindowLayoutsSave();
+  }
+
+  function isUnityHost() {
+    return typeof window.vuplex !== "undefined" && window.vuplex.postMessage;
+  }
+
+  function readLayoutsFromStorage() {
+    try {
+      var raw = localStorage.getItem(LAYOUTS_STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeLayoutsToStorage(payload) {
+    try {
+      localStorage.setItem(LAYOUTS_STORAGE_KEY, JSON.stringify(payload));
+    } catch (error) {
+    }
+  }
+
+  function getPersistedLayoutsPayload() {
+    if (window.__cmWmLayoutsPayload) {
+      return window.__cmWmLayoutsPayload;
+    }
+    return readLayoutsFromStorage();
+  }
+
+  function loadPersistedLayouts() {
+    var payload = getPersistedLayoutsPayload();
+    if (!payload) return;
+    applySavedLayouts(payload);
+  }
+
   function postWindowLayoutsSave() {
-    if (!window.vuplex || !window.vuplex.postMessage) return;
     var payload = collectWindowLayoutsPayload();
+    if (!isUnityHost()) {
+      writeLayoutsToStorage(payload);
+      return;
+    }
     window.vuplex.postMessage(
       JSON.stringify({
         eventName: "web-window-layout-save",
@@ -309,12 +399,14 @@ var WebWindowManager = (function () {
     }
   }
 
-  function clearWorkspaceInlineFlags(workspaceElement) {
-    var windows = getWorkspaceWindows(workspaceElement);
-    var index = 0;
-    for (index = 0; index < windows.length; index++) {
-      windows[index].wmHasInlineLayout = false;
+  function hasSavedLayouts() {
+    var presetName;
+    for (presetName in savedLayoutTable) {
+      if (Object.prototype.hasOwnProperty.call(savedLayoutTable, presetName)) {
+        return true;
+      }
     }
+    return false;
   }
 
   function syncWindowLayout(windowElement) {
@@ -325,6 +417,11 @@ var WebWindowManager = (function () {
     if (!containerElement) return;
 
     if (containerElement.clientWidth < 1 || containerElement.clientHeight < 1) return;
+
+    if (savedLayoutTable[presetName]) {
+      applySavedLayoutToWindow(windowElement);
+      return;
+    }
 
     if (!windowElement.wmHasInlineLayout) {
       clearWindowInlineGeometry(windowElement);
@@ -473,15 +570,21 @@ var WebWindowManager = (function () {
   }
 
   function onPointerUp() {
+    var finishedWindow = null;
     if (activeDrag) {
       activeDrag.windowElement.wmHasInlineLayout = true;
+      finishedWindow = activeDrag.windowElement;
     }
     if (activeResize) {
       activeResize.windowElement.wmHasInlineLayout = true;
+      finishedWindow = activeResize.windowElement;
     }
     if (activeResize || activeDrag) {
       clearBodyInteractionCursor();
-      scheduleWindowLayoutsSave();
+      if (finishedWindow) {
+        syncSavedLayoutFromWindow(finishedWindow);
+      }
+      flushWindowLayoutsSave();
     }
     activeDrag = null;
     activeResize = null;
@@ -643,6 +746,9 @@ var WebWindowManager = (function () {
   function activateWorkspace(workspaceElement) {
     if (!workspaceElement) return;
     initWorkspace(workspaceElement);
+    if (hasSavedLayouts()) {
+      applyAllSavedLayoutsInDocument();
+    }
     syncWorkspaceWindows(workspaceElement);
     playWorkspaceOpenAnimations(workspaceElement);
   }
@@ -655,7 +761,6 @@ var WebWindowManager = (function () {
     if (pageStart && !pageStart.hidden) {
       var startWorkspace = pageStart.querySelector(".os-workspace--wm");
       if (startWorkspace) {
-        clearWorkspaceInlineFlags(startWorkspace);
         syncWorkspaceWindows(startWorkspace);
         refreshWorkspaceScrollbars(startWorkspace);
       }
@@ -664,7 +769,6 @@ var WebWindowManager = (function () {
     if (pageCredits && !pageCredits.hidden) {
       var creditsWorkspace = pageCredits.querySelector(".os-workspace--wm");
       if (creditsWorkspace) {
-        clearWorkspaceInlineFlags(creditsWorkspace);
         syncWorkspaceWindows(creditsWorkspace);
         refreshWorkspaceScrollbars(creditsWorkspace);
       }
@@ -673,7 +777,6 @@ var WebWindowManager = (function () {
     if (pageSettings && !pageSettings.hidden) {
       var settingsWorkspace = pageSettings.querySelector(".os-workspace--wm");
       if (settingsWorkspace) {
-        clearWorkspaceInlineFlags(settingsWorkspace);
         syncWorkspaceWindows(settingsWorkspace);
         refreshWorkspaceScrollbars(settingsWorkspace);
       }
@@ -682,7 +785,6 @@ var WebWindowManager = (function () {
     if (pageMenu && !pageMenu.hidden) {
       var menuWorkspace = pageMenu.querySelector(".os-workspace--wm");
       if (menuWorkspace) {
-        clearWorkspaceInlineFlags(menuWorkspace);
         syncWorkspaceWindows(menuWorkspace);
         refreshWorkspaceScrollbars(menuWorkspace);
       }
@@ -747,17 +849,20 @@ var WebWindowManager = (function () {
     if (pageMenuElement && !pageMenuElement.hidden) activatePage(pageMenuElement);
   }
 
-  function isUnityHost() {
-    return typeof window.vuplex !== "undefined" && window.vuplex.postMessage;
-  }
-
   function initOnReady() {
     var pageMenuElement = document.getElementById("pageMenu");
     var device = document.getElementById("device");
     if (device && shouldDeferMainMenuOpenAnimations()) {
       device.classList.add("menu-defer-animations");
     }
+    if (!isUnityHost()) {
+      loadPersistedLayouts();
+    }
     initAll();
+    if (!isUnityHost() && hasSavedLayouts()) {
+      applyAllSavedLayoutsInDocument();
+      clearLayoutBootstrap();
+    }
     if (shouldDeferMainMenuOpenAnimations()) {
       if (mainMenuCanvasShown) {
         onMainMenuCanvasShown();
@@ -771,6 +876,9 @@ var WebWindowManager = (function () {
   }
 
   window.addEventListener("web-menu-canvas-shown", onMainMenuCanvasShown);
+  window.addEventListener("web-page-changed", function () {
+    syncActivePageWindows();
+  });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initOnReady);
@@ -784,10 +892,14 @@ var WebWindowManager = (function () {
     activateWorkspace: activateWorkspace,
     relayoutWorkspace: syncWorkspaceWindows,
     relayoutActivePage: syncActivePageWindows,
+    flushLayoutsSave: flushWindowLayoutsSave,
     relayoutOverlayWindow: syncOverlayWindow,
     focusWindow: focusWindow,
     playWindowOpen: playOpenAnimation,
     playWindowBodyOpen: playBodyOpenAnimation,
-    applySavedLayouts: applySavedLayouts
+    applySavedLayouts: function (payload) {
+      applySavedLayouts(payload);
+      clearLayoutBootstrap();
+    }
   };
 })();

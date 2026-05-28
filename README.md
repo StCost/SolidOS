@@ -47,6 +47,8 @@ StreamingAssets/Web UI/
 - `#device.menu-mode--menu` (default in browser): full backdrop and menu music.
 - `#device.menu-mode--game` (Unity pause menu): transparent backdrop, no menu music.
 
+In the browser (no Unity), window positions and start lists persist in `localStorage` (`cm-menu-window-layouts`, `cm-menu-start-lists`). The connect screen ships default worlds, IP servers, and sample Steam friends for preview.
+
 ## Local development
 
 Browsers block `fetch()` on `file://` pages. Serve this folder over HTTP:

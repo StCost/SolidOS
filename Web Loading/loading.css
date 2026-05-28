@@ -1,5 +1,20 @@
 .loading-screen {
-  background: transparent;
+  background: #06080c;
+  transition: background-color 0.55s ease;
+}
+
+.loading-screen,
+.loading-screen .screen-backdrop,
+.loading-screen .screen-backdrop::before {
+  transition: opacity 0.55s ease, background-color 0.55s ease;
+}
+
+.loading-screen.loading-background-transparent {
+  background: rgba(6, 8, 12, 0.5);
+}
+
+.loading-screen.loading-background-transparent .screen-backdrop {
+  opacity: 0.5;
 }
 
 .loading-screen .screen-backdrop {

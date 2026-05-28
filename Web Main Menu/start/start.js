@@ -8,14 +8,78 @@
   var btnAddWorld = document.getElementById("btnAddWorld");
   var btnAddServer = document.getElementById("btnAddServer");
   var listsSaveTimer = 0;
+  var LISTS_STORAGE_KEY = "cm-menu-start-lists";
+
+  var DEFAULT_WORLDS = [
+    { name: "Rust Belt", seed: "48291037" },
+    { name: "Glass Canyon", seed: "10938472" }
+  ];
+
+  var DEFAULT_SERVERS = [
+    { name: "Sector 7 Relay", ip: "192.168.1.42" },
+    { name: "Collapse DMZ", ip: "10.0.0.8:7777" }
+  ];
+
+  var DEFAULT_FRIENDS = [
+    { name: "SaintKostya" },
+    { name: "VoxelRider" }
+  ];
 
   var savedWorlds = [];
   var savedServers = [];
   var savedFriends = [];
 
+  function isUnityHost() {
+    return typeof window.vuplex !== "undefined" && window.vuplex.postMessage;
+  }
+
   function postToUnity(payload) {
-    if (!window.vuplex || !window.vuplex.postMessage) return;
+    if (!isUnityHost()) return;
     window.vuplex.postMessage(JSON.stringify(payload));
+  }
+
+  function copyListEntries(source) {
+    var copy = [];
+    var index;
+    if (!source || !source.length) return copy;
+    for (index = 0; index < source.length; index++) {
+      copy.push(source[index]);
+    }
+    return copy;
+  }
+
+  function readListsFromStorage() {
+    try {
+      var raw = localStorage.getItem(LISTS_STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeListsToStorage(payload) {
+    try {
+      localStorage.setItem(LISTS_STORAGE_KEY, JSON.stringify(payload));
+    } catch (error) {
+    }
+  }
+
+  function getDefaultLists() {
+    return {
+      worlds: copyListEntries(DEFAULT_WORLDS),
+      servers: copyListEntries(DEFAULT_SERVERS),
+      friends: copyListEntries(DEFAULT_FRIENDS)
+    };
+  }
+
+  function loadLocalLists() {
+    var stored = readListsFromStorage();
+    if (!stored) {
+      applyLists(getDefaultLists());
+      return;
+    }
+    applyLists(stored);
   }
 
   function postWorldDelete(name, seed) {
@@ -231,6 +295,7 @@
     }
     savedWorlds = nextWorlds;
     renderAllLists();
+    scheduleListsSave();
   }
 
   function removeIpServerEntry(ip, name) {
@@ -280,12 +345,18 @@
 
   function collectListsPayload() {
     return {
-      servers: savedServers
+      worlds: copyListEntries(savedWorlds),
+      servers: copyListEntries(savedServers),
+      friends: copyListEntries(savedFriends)
     };
   }
 
   function postListsSave() {
     var payload = collectListsPayload();
+    if (!isUnityHost()) {
+      writeListsToStorage(payload);
+      return;
+    }
     postToUnity({ eventName: "web-start-lists-save", listsJson: JSON.stringify(payload) });
   }
 
@@ -299,9 +370,9 @@
 
   function applyLists(payload) {
     if (!payload) return;
-    savedWorlds = payload.worlds ? payload.worlds.slice() : [];
-    savedServers = payload.servers ? payload.servers.slice() : [];
-    savedFriends = payload.friends ? payload.friends.slice() : [];
+    savedWorlds = copyListEntries(payload.worlds);
+    savedServers = copyListEntries(payload.servers);
+    savedFriends = copyListEntries(payload.friends);
     renderAllLists();
   }
 
@@ -316,16 +387,21 @@
 
     if (kind === "singleplayer") {
       var seed = menu.trimValue(seedInput.value);
-      postWorldCreate(name, seed);
+      if (isUnityHost()) {
+        postWorldCreate(name, seed);
+      } else {
+        savedWorlds.push({ name: name, seed: seed });
+        scheduleListsSave();
+      }
       resetWorldForm();
     } else {
       var ip = menu.trimValue(ipInput.value);
       savedServers.push({ name: name, ip: ip });
       resetServerForm();
+      scheduleListsSave();
     }
 
     renderAllLists();
-    if (kind !== "singleplayer") scheduleListsSave();
     updateComposeFormState(form, addButton);
   }
 
@@ -388,6 +464,8 @@
   if (window.__webPendingStartLists) {
     applyLists(window.__webPendingStartLists);
     window.__webPendingStartLists = null;
+  } else if (!isUnityHost()) {
+    loadLocalLists();
   } else {
     renderAllLists();
   }

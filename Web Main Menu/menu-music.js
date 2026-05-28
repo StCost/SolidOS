@@ -1,10 +1,7 @@
 (function () {
   var MUSIC_PATH = "../audio/menu-music.mp3";
-  var SETTINGS_STORAGE_KEY = "web-settings-preview";
-  var MUSIC_VOLUME_KEY = "musicVolume";
   var FADE_STEP_MS = 50;
   var FADE_DURATION_MS = 10000;
-  var DEFAULT_MUSIC_VOLUME = 0.5;
 
   var musicAudio = null;
   var fadeTimerId = 0;
@@ -21,17 +18,10 @@
   }
 
   function getMusicVolumeFromSettings() {
-    try {
-      var raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (!raw) return DEFAULT_MUSIC_VOLUME;
-      var parsed = JSON.parse(raw);
-      if (parsed && parsed[MUSIC_VOLUME_KEY] != null) {
-        return Number(parsed[MUSIC_VOLUME_KEY]);
-      }
-    } catch (error) {
-      return DEFAULT_MUSIC_VOLUME;
+    if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.getMusicOutputVolume) {
+      return window.WebMenuAudioVolume.getMusicOutputVolume();
     }
-    return DEFAULT_MUSIC_VOLUME;
+    return 0.5;
   }
 
   function ensureMusicAudio() {
@@ -145,10 +135,14 @@
     observer.observe(device, { attributes: true, attributeFilter: ["class"] });
   }
 
-  function onSettingsVolumeChanged(event) {
-    var detail = event.detail;
-    if (!detail || detail.key !== MUSIC_VOLUME_KEY) return;
-    if (isGameMode() || !musicAudio || musicAudio.paused) return;
+  function onAudioVolumeChanged() {
+    if (isGameMode()) return;
+    if (!musicAudio || musicAudio.paused) {
+      if (audioUnlocked) {
+        syncMenuMusic();
+      }
+      return;
+    }
     fadeMusicTo(getMusicVolumeFromSettings());
   }
 
@@ -166,5 +160,10 @@
 
   document.addEventListener("pointerdown", onUserGesture, true);
   document.addEventListener("keydown", onUserGesture, true);
-  window.addEventListener("web-settings-set", onSettingsVolumeChanged);
+  if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.EVENT_AUDIO_VOLUME_CHANGED) {
+    window.addEventListener(
+      window.WebMenuAudioVolume.EVENT_AUDIO_VOLUME_CHANGED,
+      onAudioVolumeChanged
+    );
+  }
 })();

@@ -10,11 +10,23 @@
   hoverAudio.preload = "auto";
   clickAudio.preload = "auto";
 
+  function getInterfaceVolume() {
+    if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.getInterfaceOutputVolume) {
+      return window.WebMenuAudioVolume.getInterfaceOutputVolume();
+    }
+    return 0.5;
+  }
+
+  function applyInterfaceVolume() {
+    var volume = getInterfaceVolume();
+    hoverAudio.volume = volume;
+    clickAudio.volume = volume;
+  }
+
   function unlockAudio() {
     if (audioUnlocked) return;
     audioUnlocked = true;
-    hoverAudio.volume = 1;
-    clickAudio.volume = 1;
+    applyInterfaceVolume();
     var hoverPromise = hoverAudio.play();
     if (hoverPromise && hoverPromise.then) {
       hoverPromise.then(function () {
@@ -27,6 +39,7 @@
   function playSound(audioElement) {
     if (!audioElement) return;
     if (!audioUnlocked) return;
+    applyInterfaceVolume();
     audioElement.currentTime = 0;
     var playPromise = audioElement.play();
     if (playPromise && playPromise.catch) {
@@ -132,4 +145,11 @@
   document.addEventListener("pointerdown", onPointerDown, true);
   document.addEventListener("pointerleave", onPointerLeave, true);
   document.addEventListener("keydown", unlockAudio, true);
+
+  if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.EVENT_AUDIO_VOLUME_CHANGED) {
+    window.addEventListener(
+      window.WebMenuAudioVolume.EVENT_AUDIO_VOLUME_CHANGED,
+      applyInterfaceVolume
+    );
+  }
 })();
