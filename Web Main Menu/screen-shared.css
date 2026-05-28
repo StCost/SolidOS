@@ -5,6 +5,54 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: "CMFallback";
+  src: url("fonts/noto_arabic_subset.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+@font-face {
+  font-family: "CMFallback";
+  src: url("fonts/noto_thai_subset.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+  unicode-range: U+0E00-0E7F;
+}
+
+@font-face {
+  font-family: "CMFallback";
+  src: url("fonts/noto_vietnamese_subset.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+1EA0-1EF9;
+}
+
+@font-face {
+  font-family: "CMFallback";
+  src: url("fonts/noto_korean_subset.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+  unicode-range: U+1100-11FF, U+3130-318F, U+AC00-D7AF;
+}
+
+@font-face {
+  font-family: "CMFallback";
+  src: url("fonts/noto_simplified_chinese_subset.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+  unicode-range: U+3400-4DBF, U+4E00-9FFF, U+20000-2A6DF;
+}
+
+@font-face {
+  font-family: "CMFallback";
+  src: url("fonts/noto_traditional_chinese_subset.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+  unicode-range: U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+20000-2A6DF;
+}
+
 :root {
   --orange: #ff8000;
   --orange-hot: #ffae55;
@@ -108,7 +156,7 @@ body {
   min-height: 100dvh;
   overflow: hidden;
   background: transparent;
-  font-family: "IBM3270", "IBM 3270", ui-monospace, monospace;
+  font-family: "IBM3270", "CMFallback", "IBM 3270", ui-monospace, monospace;
   font-variant-ligatures: none;
   -webkit-font-smoothing: antialiased;
   -webkit-user-select: none;
