@@ -659,6 +659,23 @@ var WebWindowManager = (function () {
     );
   }
 
+  function clearOpenAnimationTimers(windowElement) {
+    if (!windowElement) return;
+    if (windowElement.wmOpenAnimationTimers && windowElement.wmOpenAnimationTimers.length) {
+      var index = 0;
+      for (index = 0; index < windowElement.wmOpenAnimationTimers.length; index++) {
+        window.clearTimeout(windowElement.wmOpenAnimationTimers[index]);
+      }
+    }
+    windowElement.wmOpenAnimationTimers = [];
+  }
+
+  function trackOpenAnimationTimer(windowElement, timerId) {
+    if (!windowElement) return;
+    if (!windowElement.wmOpenAnimationTimers) windowElement.wmOpenAnimationTimers = [];
+    windowElement.wmOpenAnimationTimers.push(timerId);
+  }
+
   function playOpenAnimation(windowElement, delayMs) {
     var openDoneMs = delayMs + CHROME_OPEN_MS + BODY_OPEN_MS + OPEN_DONE_BUFFER_MS;
 
@@ -676,25 +693,90 @@ var WebWindowManager = (function () {
       return;
     }
 
+    clearOpenAnimationTimers(windowElement);
     windowElement.classList.remove("os-window--open-done");
+    windowElement.classList.remove("os-window--opening");
+    void windowElement.offsetHeight;
     windowElement.classList.add("os-window--opening");
     setBodyMaxVar(windowElement);
 
-    window.setTimeout(function () {
-      windowElement.classList.add("os-window--open-done");
-    }, delayMs + CHROME_OPEN_MS + BODY_OPEN_MS + 40);
+    trackOpenAnimationTimer(
+      windowElement,
+      window.setTimeout(function () {
+        if (!windowElement || !windowElement.classList) return;
+        windowElement.classList.add("os-window--open-done");
+      }, delayMs + CHROME_OPEN_MS + BODY_OPEN_MS + 40)
+    );
 
-    window.setTimeout(function () {
-      windowElement.classList.remove("os-window--opening");
+    trackOpenAnimationTimer(
+      windowElement,
+      window.setTimeout(function () {
+        if (!windowElement || !windowElement.classList) return;
+        windowElement.classList.remove("os-window--opening");
+        windowElement.classList.remove("os-window--open-done");
+        setBodyMaxVar(windowElement);
+        dispatchWorkspaceLayoutSettled(windowElement);
+        if (window.WebScrollbarCursor) {
+          window.WebScrollbarCursor.refreshAllScrollbars();
+        }
+      }, openDoneMs)
+    );
+  }
+
+  function playBodyOpenAnimation(windowElement, delayMs) {
+    if (delayMs == null) delayMs = 0;
+    var openDoneMs = delayMs + BODY_OPEN_MS + OPEN_DONE_BUFFER_MS;
+
+    ensureWindowStructure(windowElement);
+    if (!windowElement.wmState) {
+      syncWindowLayout(windowElement);
+    }
+
+    if (reducedMotion) {
+      clearOpenAnimationTimers(windowElement);
+      windowElement.classList.remove("os-window--opening-body-only");
       windowElement.classList.remove("os-window--open-done");
       setBodyMaxVar(windowElement);
       dispatchWorkspaceLayoutSettled(windowElement);
       if (window.WebScrollbarCursor) {
         window.WebScrollbarCursor.refreshAllScrollbars();
       }
-    }, openDoneMs);
+      return;
+    }
+
+    clearOpenAnimationTimers(windowElement);
+    windowElement.classList.remove("os-window--opening");
+    windowElement.classList.remove("os-window--opening-body-only");
+    windowElement.classList.remove("os-window--open-done");
+    void windowElement.offsetHeight;
+    windowElement.classList.add("os-window--opening-body-only");
+    setBodyMaxVar(windowElement);
+
+    trackOpenAnimationTimer(
+      windowElement,
+      window.setTimeout(function () {
+        if (!windowElement || !windowElement.classList) return;
+        windowElement.classList.add("os-window--open-done");
+      }, delayMs + BODY_OPEN_MS + 40)
+    );
+
+    trackOpenAnimationTimer(
+      windowElement,
+      window.setTimeout(function () {
+        if (!windowElement || !windowElement.classList) return;
+        windowElement.classList.remove("os-window--opening-body-only");
+        windowElement.classList.remove("os-window--open-done");
+        setBodyMaxVar(windowElement);
+        dispatchWorkspaceLayoutSettled(windowElement);
+        if (window.WebScrollbarCursor) {
+          window.WebScrollbarCursor.refreshAllScrollbars();
+        }
+      }, openDoneMs)
+    );
   }
 
+  /* replaced by timer-tracked version above */
+  /*
   function playBodyOpenAnimation(windowElement, delayMs) {
     if (delayMs == null) delayMs = 0;
     var openDoneMs = delayMs + BODY_OPEN_MS + OPEN_DONE_BUFFER_MS;
@@ -735,6 +817,7 @@ var WebWindowManager = (function () {
       }
     }, openDoneMs);
   }
+  */
 
   function getWorkspaceWindows(workspaceElement) {
     var windows = workspaceElement.querySelectorAll(".os-window[data-wm-preset]");
