@@ -422,12 +422,12 @@
   function postChange(key, value) {
     if (isUnityHost() && window.WebSettingsBridge) {
       window.WebSettingsBridge.set(key, value);
-      if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.isAudioVolumeKey(key)) {
-        pushAudioVolumeStateToMenu();
-      }
-      return;
+    } else {
+      saveLocalPreview();
     }
-    saveLocalPreview();
+    if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.isAudioVolumeKey(key)) {
+      pushAudioVolumeStateToMenu();
+    }
   }
 
   function saveLocalPreview() {
@@ -510,12 +510,10 @@
 
   function onAudioVolumeSliderInput(field) {
     if (!window.WebMenuAudioVolume || !window.WebMenuAudioVolume.isAudioVolumeKey(field.key)) return;
-    if (isUnityHost()) {
-      pushAudioVolumeStateToMenu();
-      return;
+    if (!isUnityHost()) {
+      saveLocalPreview();
     }
-    saveLocalPreview();
-    syncWebAudioVolumes();
+    pushAudioVolumeStateToMenu();
   }
 
   function applyLocalChange(key, value) {
@@ -546,7 +544,7 @@
       notifyLanguageChanged();
     }
     if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.isAudioVolumeKey(key)) {
-      syncWebAudioVolumes();
+      pushAudioVolumeStateToMenu();
     }
 
     if (changedField && changedField.type === "toggle") {
