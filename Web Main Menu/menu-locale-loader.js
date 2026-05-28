@@ -186,8 +186,15 @@
 
   function initStandaloneLocale() {
     if (isUnityHost()) return;
-    // Web mode should lazy-load locale JSON. We only fetch languages + strings when Settings is opened.
-    // Until then, the menu uses built-in text content (English) already present in the DOM.
+    // Web mode should fetch the currently selected language on init,
+    // but keep the full language list/options lazy-loaded for Settings.
+    if (!canFetchLocales()) {
+      warnIfFileProtocol();
+      return;
+    }
+
+    var languageCode = getStoredLanguageCode() || DEFAULT_LANGUAGE_CODE;
+    loadLanguage(languageCode, false);
   }
 
   window.WebLocaleLoader = {
@@ -214,9 +221,6 @@
       warnIfFileProtocol();
       return;
     }
-
-    var languageCode = getStoredLanguageCode() || DEFAULT_LANGUAGE_CODE;
-    loadLanguage(languageCode, true);
     loadLanguageOptions();
   }
 

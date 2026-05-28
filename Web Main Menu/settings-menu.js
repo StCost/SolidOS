@@ -603,7 +603,11 @@
 
   function onTabClicked(event) {
     var tabId = event.currentTarget.getAttribute("data-tab-id");
-    if (!tabId || tabId === activeTabId) return;
+    if (!tabId) return;
+    if (tabId === activeTabId) {
+      playSettingsContentBodyOpen();
+      return;
+    }
     activeTabId = tabId;
     renderAll();
     playSettingsContentBodyOpen();
