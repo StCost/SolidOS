@@ -6,7 +6,7 @@ Standalone repo: [collapse-machine-web](https://github.com/StCost/collapse-machi
 
 Live preview (GitHub Pages): [stcost.github.io/collapse-machine-web](https://stcost.github.io/collapse-machine-web/)
 
-Pushes to `main` or `master` run `.github/workflows/deploy-pages.yml` and publish the main menu at the site root. In the repo settings, set **Pages → Build and deployment → Source** to **GitHub Actions** (first deploy only).
+Pushes to `main` run `.github/workflows/deploy-pages.yml` and publish the main menu at the site root. In the repo settings, set **Pages → Build and deployment → Source** to **GitHub Actions** (first deploy only).
 
 ## Direction
 
