@@ -33,6 +33,7 @@ var WebWindowManager = (function () {
   var LAYOUTS_STORAGE_KEY = "cm-menu-window-layouts";
   var LAYOUT_BOOTSTRAP_CLASS = "menu-wm-layout-bootstrap";
   var LAYOUT_BOOTSTRAP_STYLE_ID = "cm-wm-layout-bootstrap";
+  var DRAG_MOVE_SOUND_STEP_PX = 300;
 
   function getPreset(name) {
     return presetTable[name];
@@ -304,6 +305,33 @@ var WebWindowManager = (function () {
     document.body.removeAttribute("data-wm-resize");
   }
 
+  function dispatchWindowDragStart() {
+    window.dispatchEvent(new CustomEvent("web-wm-drag-start"));
+  }
+
+  function dispatchWindowDragEnd() {
+    window.dispatchEvent(new CustomEvent("web-wm-drag-end"));
+  }
+
+  function dispatchWindowDragMoveStep() {
+    window.dispatchEvent(new CustomEvent("web-wm-drag-step"));
+  }
+
+  function accumulateWindowDragMoveSound(drag, previousLeft, previousTop, nextLeft, nextTop) {
+    var deltaLeft = nextLeft - previousLeft;
+    var deltaTop = nextTop - previousTop;
+    if (deltaLeft === 0 && deltaTop === 0) {
+      return;
+    }
+
+    var stepDistance = Math.sqrt(deltaLeft * deltaLeft + deltaTop * deltaTop);
+    drag.moveSoundRemainder = drag.moveSoundRemainder + stepDistance;
+    while (drag.moveSoundRemainder >= DRAG_MOVE_SOUND_STEP_PX) {
+      drag.moveSoundRemainder = drag.moveSoundRemainder - DRAG_MOVE_SOUND_STEP_PX;
+      dispatchWindowDragMoveStep();
+    }
+  }
+
   function clamp(value, min, max) {
     if (value < min) return min;
     if (value > max) return max;
@@ -492,9 +520,11 @@ var WebWindowManager = (function () {
         startY: clientY,
         startLeft: windowElement.wmState.left,
         startTop: windowElement.wmState.top,
-        pointerId: pointerId
+        pointerId: pointerId,
+        moveSoundRemainder: 0
       };
       setBodyDragCursor();
+      dispatchWindowDragStart();
     }
 
     chrome.addEventListener("mousedown", function (event) {
@@ -582,6 +612,10 @@ var WebWindowManager = (function () {
       nextLeft = clamp(nextLeft, 0, Math.max(0, bounds.width - drag.windowElement.wmState.width));
       nextTop = clamp(nextTop, 0, Math.max(0, bounds.height - drag.windowElement.wmState.height));
 
+      var previousLeft = drag.windowElement.wmState.left;
+      var previousTop = drag.windowElement.wmState.top;
+      accumulateWindowDragMoveSound(drag, previousLeft, previousTop, nextLeft, nextTop);
+
       drag.windowElement.wmState.left = nextLeft;
       drag.windowElement.wmState.top = nextTop;
       applyWindowRect(drag.windowElement);
@@ -647,6 +681,7 @@ var WebWindowManager = (function () {
 
   function onPointerUp() {
     var finishedWindow = null;
+    var wasDragging = !!activeDrag;
     if (activeDrag) {
       activeDrag.windowElement.wmHasInlineLayout = true;
       finishedWindow = activeDrag.windowElement;
@@ -661,6 +696,9 @@ var WebWindowManager = (function () {
         syncSavedLayoutFromWindow(finishedWindow);
       }
       flushWindowLayoutsSave();
+    }
+    if (wasDragging) {
+      dispatchWindowDragEnd();
     }
     activeDrag = null;
     activeResize = null;
