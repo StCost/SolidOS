@@ -440,8 +440,7 @@ var WebWindowManager = (function () {
     var chrome = windowElement.querySelector(".os-window-chrome--drag");
     if (!chrome) return;
 
-    chrome.addEventListener("mousedown", function (event) {
-      if (event.button !== 0) return;
+    function beginDrag(clientX, clientY, pointerId) {
       var container = getLayoutContainer(windowElement);
       if (!container) return;
 
@@ -451,12 +450,28 @@ var WebWindowManager = (function () {
       activeDrag = {
         windowElement: windowElement,
         container: container,
-        startX: event.clientX,
-        startY: event.clientY,
+        startX: clientX,
+        startY: clientY,
         startLeft: windowElement.wmState.left,
-        startTop: windowElement.wmState.top
+        startTop: windowElement.wmState.top,
+        pointerId: pointerId
       };
       setBodyDragCursor();
+    }
+
+    chrome.addEventListener("mousedown", function (event) {
+      if (event.button !== 0) return;
+      beginDrag(event.clientX, event.clientY, null);
+      event.preventDefault();
+    });
+
+    chrome.addEventListener("pointerdown", function (event) {
+      if (event.button != null && event.button !== 0) return;
+      if (event.isPrimary === false) return;
+      beginDrag(event.clientX, event.clientY, event.pointerId);
+      try {
+        chrome.setPointerCapture(event.pointerId);
+      } catch (error) {}
       event.preventDefault();
     });
   }
@@ -465,11 +480,10 @@ var WebWindowManager = (function () {
     var handles = windowElement.querySelectorAll(".os-wm-resize");
     var index = 0;
     for (index = 0; index < handles.length; index++) {
-      handles[index].addEventListener("mousedown", function (event) {
-        if (event.button !== 0) return;
+      function beginResize(handleElement, clientX, clientY, pointerId) {
         var container = getLayoutContainer(windowElement);
         if (!container) return;
-        var edge = event.currentTarget.getAttribute("data-wm-edge");
+        var edge = handleElement.getAttribute("data-wm-edge");
 
         if (!windowElement.wmState) {
           syncWindowLayout(windowElement);
@@ -480,14 +494,31 @@ var WebWindowManager = (function () {
           windowElement: windowElement,
           container: container,
           edge: edge,
-          startX: event.clientX,
-          startY: event.clientY,
+          startX: clientX,
+          startY: clientY,
           startLeft: windowElement.wmState.left,
           startTop: windowElement.wmState.top,
           startWidth: windowElement.wmState.width,
-          startHeight: windowElement.wmState.height
+          startHeight: windowElement.wmState.height,
+          pointerId: pointerId
         };
         setBodyResizeCursor(edge);
+      }
+
+      handles[index].addEventListener("mousedown", function (event) {
+        if (event.button !== 0) return;
+        beginResize(event.currentTarget, event.clientX, event.clientY, null);
+        event.preventDefault();
+        event.stopPropagation();
+      });
+
+      handles[index].addEventListener("pointerdown", function (event) {
+        if (event.button != null && event.button !== 0) return;
+        if (event.isPrimary === false) return;
+        beginResize(event.currentTarget, event.clientX, event.clientY, event.pointerId);
+        try {
+          event.currentTarget.setPointerCapture(event.pointerId);
+        } catch (error) {}
         event.preventDefault();
         event.stopPropagation();
       });
@@ -495,6 +526,13 @@ var WebWindowManager = (function () {
   }
 
   function onPointerMove(event) {
+    if (activeDrag && activeDrag.pointerId != null) {
+      if (event.pointerId != null && event.pointerId !== activeDrag.pointerId) return;
+    }
+    if (activeResize && activeResize.pointerId != null) {
+      if (event.pointerId != null && event.pointerId !== activeResize.pointerId) return;
+    }
+
     if (activeDrag) {
       var drag = activeDrag;
       var bounds = getBounds(drag.container);
@@ -819,6 +857,9 @@ var WebWindowManager = (function () {
 
     document.addEventListener("mousemove", onPointerMove);
     document.addEventListener("mouseup", onPointerUp);
+    document.addEventListener("pointermove", onPointerMove, { passive: false });
+    document.addEventListener("pointerup", onPointerUp, { passive: false });
+    document.addEventListener("pointercancel", onPointerUp, { passive: false });
     window.addEventListener("resize", syncActivePageWindows);
   }
 
