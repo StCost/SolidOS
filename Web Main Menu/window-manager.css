@@ -228,12 +228,16 @@
   animation: wm-body-open 0.32s ease-out 0.3s forwards;
 }
 
-.os-window--opening.os-window--open-done .os-window-chrome--drag,
-.os-window--opening.os-window--open-done .os-window-body-shell {
+.os-window--opening.os-window--open-done .os-window-chrome--drag {
   animation: none;
   transform: none;
-  max-height: none;
   overflow: visible;
+}
+
+.os-window--opening.os-window--open-done .os-window-body-shell {
+  animation: none;
+  max-height: var(--wm-body-max);
+  overflow: hidden;
 }
 
 .os-window--opening-body-only .os-window-chrome--drag {
@@ -250,8 +254,8 @@
 
 .os-window--opening-body-only.os-window--open-done .os-window-body-shell {
   animation: none;
-  max-height: none;
-  overflow: visible;
+  max-height: var(--wm-body-max);
+  overflow: hidden;
 }
 
 @keyframes wm-chrome-open {

@@ -382,6 +382,9 @@
       if (field.key === "terminalAnimationsEnabled") {
         applyTerminalAnimations(state.terminalAnimationsEnabled !== false);
       }
+      if (field.key === "useCustomCursor") {
+        applyCustomCursorMode(state.useCustomCursor);
+      }
       return;
     }
 
@@ -1103,15 +1106,88 @@
   function applyCustomCursorMode(enabled) {
     var screen = document.querySelector(".menu-screen");
     if (!screen) return;
-    var useUnityCursor = enabled !== false && isUnityMenuHost();
+    var useCustomCursor = enabled !== false;
+    var useUnityCursor = useCustomCursor && isUnityMenuHost();
     if (useUnityCursor) screen.classList.add("menu-screen--unity-cursor");
     else screen.classList.remove("menu-screen--unity-cursor");
+    if (useCustomCursor) screen.classList.remove("menu-screen--system-cursor");
+    else screen.classList.add("menu-screen--system-cursor");
     if (window.WebMenuCursorBridge) {
       window.WebMenuCursorBridge.setUnityCursorEnabled(useUnityCursor);
     }
   }
 
-  function updateSliderDisplay(field, slider, valueSpan) {
+  function sliderValueIsTypedInput(field) {
+    return !field.steppedOptions;
+  }
+
+  function getSliderValueDisplayText(field, wireValue) {
+    if (field.steppedOptions) {
+      var steppedIndex = parseInt(wireValue, 10);
+      var steppedOption = getSteppedOptionByIndex(field.steppedOptions, steppedIndex);
+      return steppedOption.label;
+    }
+    if (field.parse) {
+      return volumeFormat(parseFloat(field.parse(wireValue)));
+    }
+    return field.format(Number(wireValue));
+  }
+
+  function parseSliderTypedNumber(rawText) {
+    var text = String(rawText).trim();
+    if (!text) return null;
+    if (text.charAt(text.length - 1) === "%") {
+      text = text.substring(0, text.length - 1).trim();
+    }
+    if (!text) return null;
+    var number = Number(text);
+    if (isNaN(number)) return null;
+    return number;
+  }
+
+  function clampSliderTypedNumber(field, number) {
+    var min = Number(field.min);
+    var max = Number(field.max);
+    if (number < min) number = min;
+    if (number > max) number = max;
+    var step = Number(field.step);
+    if (step > 0) {
+      number = Math.round(number / step) * step;
+      if (number < min) number = min;
+      if (number > max) number = max;
+    }
+    return number;
+  }
+
+  function setSliderValueDisplay(valueDisplay, field, wireValue) {
+    if (!valueDisplay) return;
+    var displayText = getSliderValueDisplayText(field, wireValue);
+    if (valueDisplay.tagName === "INPUT") {
+      if (document.activeElement === valueDisplay) return;
+      valueDisplay.value = displayText;
+      return;
+    }
+    valueDisplay.textContent = displayText;
+  }
+
+  function commitSliderValueInput(field, slider, valueInput) {
+    var typedNumber = parseSliderTypedNumber(valueInput.value);
+    if (typedNumber == null) {
+      setSliderValueDisplay(valueInput, field, slider.value);
+      return;
+    }
+    var clampedNumber = clampSliderTypedNumber(field, typedNumber);
+    var wireValue = String(Math.round(clampedNumber));
+    slider.value = wireValue;
+    updateSliderDisplay(field, slider, valueInput);
+    postChange(field.key, field.parse ? field.parse(wireValue) : wireValue);
+    onAudioVolumeSliderInput(field);
+    if (!isUnityHost()) {
+      saveLocalPreview();
+    }
+  }
+
+  function updateSliderDisplay(field, slider, valueDisplay) {
     var track = slider.parentElement;
     var minSpan = track ? track.querySelector(".settings-slider-min") : null;
     var maxSpan = track ? track.querySelector(".settings-slider-max") : null;
@@ -1120,19 +1196,19 @@
       var steppedIndex = parseInt(wireValue, 10);
       var steppedOption = getSteppedOptionByIndex(field.steppedOptions, steppedIndex);
       state[field.key] = steppedOption.value;
-      valueSpan.textContent = steppedOption.label;
-      updateSliderTrackLayout(slider, valueSpan, minSpan, maxSpan);
+      setSliderValueDisplay(valueDisplay, field, wireValue);
+      updateSliderTrackLayout(slider, valueDisplay, minSpan, maxSpan);
       return steppedOption.value;
     }
     if (field.parse) {
       state[field.key] = parseFloat(field.parse(wireValue));
-      valueSpan.textContent = wireValue + "%";
-      updateSliderTrackLayout(slider, valueSpan, minSpan, maxSpan);
+      setSliderValueDisplay(valueDisplay, field, wireValue);
+      updateSliderTrackLayout(slider, valueDisplay, minSpan, maxSpan);
       return wireValue;
     }
     state[field.key] = parseInt(wireValue, 10);
-    valueSpan.textContent = field.format(Number(wireValue));
-    updateSliderTrackLayout(slider, valueSpan, minSpan, maxSpan);
+    setSliderValueDisplay(valueDisplay, field, wireValue);
+    updateSliderTrackLayout(slider, valueDisplay, minSpan, maxSpan);
     return wireValue;
   }
 
@@ -1163,8 +1239,19 @@
     maxSpan.className = "settings-slider-max";
     maxSpan.textContent = getSliderEndpointLabel(field, true);
 
-    var valueSpan = document.createElement("span");
-    valueSpan.className = "settings-value settings-slider-value";
+    var valueDisplay;
+    if (sliderValueIsTypedInput(field)) {
+      valueDisplay = document.createElement("input");
+      valueDisplay.type = "text";
+      valueDisplay.className = "settings-value settings-slider-value settings-slider-value-input";
+      valueDisplay.setAttribute("inputmode", "decimal");
+      valueDisplay.setAttribute("autocomplete", "off");
+      valueDisplay.setAttribute("spellcheck", "false");
+      valueDisplay.setAttribute("aria-label", getFieldLabel(field));
+    } else {
+      valueDisplay = document.createElement("span");
+      valueDisplay.className = "settings-value settings-slider-value";
+    }
 
     var slider = document.createElement("input");
     slider.type = "range";
@@ -1177,34 +1264,64 @@
       var steppedIndex = getSteppedOptionIndex(field.steppedOptions, state[field.key]);
       var steppedOption = getSteppedOptionByIndex(field.steppedOptions, steppedIndex);
       slider.value = String(steppedIndex);
-      valueSpan.textContent = steppedOption.label;
+      valueDisplay.textContent = steppedOption.label;
     } else if (field.parse) {
       slider.value = String(volumeSliderValue(state[field.key]));
-      valueSpan.textContent = volumeFormat(state[field.key]);
+      valueDisplay.value = volumeFormat(state[field.key]);
     } else {
       slider.value = String(state[field.key]);
-      valueSpan.textContent = field.format(state[field.key]);
+      valueDisplay.value = field.format(state[field.key]);
     }
 
     slider.addEventListener("input", function () {
-      updateSliderDisplay(field, slider, valueSpan);
+      updateSliderDisplay(field, slider, valueDisplay);
       onAudioVolumeSliderInput(field);
     });
 
     slider.addEventListener("change", function () {
-      var wireValue = updateSliderDisplay(field, slider, valueSpan);
+      var wireValue = updateSliderDisplay(field, slider, valueDisplay);
       postChange(field.key, field.parse ? field.parse(wireValue) : wireValue);
     });
+
+    if (valueDisplay.tagName === "INPUT") {
+      valueDisplay.addEventListener("pointerdown", function (event) {
+        event.stopPropagation();
+      });
+      valueDisplay.addEventListener("click", function (event) {
+        event.stopPropagation();
+        valueDisplay.select();
+      });
+      valueDisplay.addEventListener("focus", function () {
+        sliderTrack.classList.add("settings-slider-track--value-editing");
+        valueDisplay.select();
+      });
+      valueDisplay.addEventListener("blur", function () {
+        sliderTrack.classList.remove("settings-slider-track--value-editing");
+        commitSliderValueInput(field, slider, valueDisplay);
+      });
+      valueDisplay.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          valueDisplay.blur();
+          return;
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setSliderValueDisplay(valueDisplay, field, slider.value);
+          valueDisplay.blur();
+        }
+      });
+    }
 
     sliderTrack.appendChild(slider);
     sliderTrack.appendChild(minSpan);
     sliderTrack.appendChild(maxSpan);
-    sliderTrack.appendChild(valueSpan);
+    sliderTrack.appendChild(valueDisplay);
     controlBox.appendChild(sliderTrack);
     line.appendChild(labelBox);
     line.appendChild(controlBox);
     row.appendChild(line);
-    updateSliderTrackLayout(slider, valueSpan, minSpan, maxSpan);
+    updateSliderTrackLayout(slider, valueDisplay, minSpan, maxSpan);
     return row;
   }
 

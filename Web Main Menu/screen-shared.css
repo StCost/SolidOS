@@ -204,13 +204,23 @@ button:disabled,
 }
 
 .term-row-label,
-.settings-heading,
 .settings-tab,
 .os-statusbar-segment,
 .loading-text {
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.os-window-title,
+.term-title,
+.term-line-heading,
+.settings-heading {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 body ::selection {
@@ -251,6 +261,54 @@ textarea::selection {
 .menu-screen.menu-screen--unity-cursor,
 .menu-screen.menu-screen--unity-cursor * {
   cursor: none !important;
+}
+
+html:has(.menu-screen.menu-screen--system-cursor) {
+  --cursor-default: default;
+  --cursor-pointer: pointer;
+  --cursor-forbidden: not-allowed;
+  --cursor-drag: grabbing;
+  --cursor-resize-ew: ew-resize;
+  --cursor-resize-ns: ns-resize;
+  --cursor-resize-nesw: nesw-resize;
+  --cursor-resize-nwse: nwse-resize;
+  --cursor-scroll: default;
+  --cursor-scroll-h: ew-resize;
+}
+
+html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar,
+html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-track,
+html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-thumb,
+html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-thumb:hover,
+html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-thumb:active,
+html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-corner,
+html:has(.menu-screen.menu-screen--system-cursor) .worlds-list-scrollbar,
+html:has(.menu-screen.menu-screen--system-cursor) .worlds-list-scrollbar-thumb,
+html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .os-window--managed .os-window-body--terminal::-webkit-scrollbar-thumb,
+html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .settings-scroll::-webkit-scrollbar-thumb,
+html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .settings-tabs::-webkit-scrollbar-thumb,
+html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .worlds-column .worlds-list::-webkit-scrollbar-thumb {
+  cursor: default !important;
+}
+
+html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--n,
+html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--s {
+  cursor: ns-resize !important;
+}
+
+html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--e,
+html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--w {
+  cursor: ew-resize !important;
+}
+
+html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--ne,
+html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--sw {
+  cursor: nwse-resize !important;
+}
+
+html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--nw,
+html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--se {
+  cursor: nesw-resize !important;
 }
 
 .menu-screen {
@@ -551,11 +609,6 @@ textarea::selection {
   font-size: clamp(0.6rem, 2.2cqw, 0.8rem);
   letter-spacing: clamp(0.06em, 0.22cqw, 0.12em);
   text-transform: uppercase;
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
 .os-window-body--terminal {
