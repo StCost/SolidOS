@@ -228,7 +228,7 @@
     var index;
     for (index = 0; index < games.length; index++) {
       var game = games[index];
-      var title = getLocalized(game.titleKey, game.titleFallback || game.id);
+      var title = game.title || game.titleFallback || game.id;
       html +=
         '<li><button type="button" class="term-row extras-game-picker" data-game-id="' +
         escapeHtml(game.id) +

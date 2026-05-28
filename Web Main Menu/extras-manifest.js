@@ -3,8 +3,7 @@
     games: [
       {
         id: "atom-clicker",
-        titleKey: "web.extras.game.atom-clicker",
-        titleFallback: "Atom Clicker",
+        title: "Atom Clicker",
         path: "Extras/games/atom-clicker/index.html"
       }
     ],

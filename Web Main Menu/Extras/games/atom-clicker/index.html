@@ -189,7 +189,7 @@
     #screenFlash {
       position: absolute;
       inset: 0;
-      z-index: 4;
+      z-index: 6;
       pointer-events: none;
       background: radial-gradient(circle at 50% 50%, rgba(120, 200, 255, 0.28), rgba(255, 128, 0, 0.2), transparent 72%);
       opacity: 0;
@@ -207,6 +207,7 @@
       pointer-events: none;
       text-align: center;
       transform: translateX(-50%);
+      will-change: transform;
     }
 
     .score-shake {
@@ -225,6 +226,47 @@
       text-shadow: 0 0 12px rgba(255, 128, 0, 0.45);
     }
 
+    .hud-best {
+      margin: 0;
+      font-size: 0.82rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      text-align: right;
+      color: rgba(200, 232, 255, 0.42);
+      -webkit-text-fill-color: rgba(200, 232, 255, 0.42);
+      pointer-events: none;
+    }
+
+    .best-shake {
+      position: absolute;
+      bottom: 0.7rem;
+      right: 0.7rem;
+      z-index: 4;
+      pointer-events: none;
+      transition: transform 0.05s linear;
+    }
+
+    .best-shake.is-shaking {
+      transition: none;
+    }
+
+    .hud-best.is-new-record {
+      color: #e8f4ff;
+      -webkit-text-fill-color: #e8f4ff;
+      text-shadow: 0 0 12px rgba(120, 200, 255, 0.85), 0 0 22px rgba(64, 200, 255, 0.35);
+      animation: best-record-pulse 0.5s ease-out 2;
+    }
+
+    @keyframes best-record-pulse {
+      0%,
+      100% {
+        transform: scale(1);
+      }
+      45% {
+        transform: scale(1.14);
+      }
+    }
+
     #atom {
       position: absolute;
       left: 50%;
@@ -234,6 +276,7 @@
       height: 9rem;
       pointer-events: none;
       transform: translate(-50%, -50%);
+      will-change: transform;
     }
 
     .atom-shake {
@@ -333,7 +376,7 @@
     #fxLayer {
       position: absolute;
       inset: 0;
-      z-index: 2;
+      z-index: 5;
       overflow: hidden;
       pointer-events: none;
     }
@@ -383,6 +426,17 @@
       font-size: 2rem;
       color: #ff8030;
       text-shadow: 0 0 20px rgba(255, 80, 0, 1), 0 0 40px rgba(255, 128, 0, 0.6);
+    }
+
+    .score-pop--record {
+      font-size: 1.15rem;
+      color: #b8ecff;
+      text-shadow: 0 0 10px rgba(120, 200, 255, 0.95), 0 0 18px rgba(64, 232, 255, 0.45);
+    }
+
+    .record-burst {
+      border-color: rgba(120, 200, 255, 0.95);
+      box-shadow: 0 0 14px rgba(110, 184, 255, 0.65);
     }
 
     .explosion-burst {
@@ -460,7 +514,7 @@
 </head>
 <body>
   <div class="game-box" id="gameBox">
-    <h1 class="game-title">Atom Clicker</h1>
+      <h1 class="game-title">Atom Clicker</h1>
     <div class="space-bg" aria-hidden="true">
       <div class="space-bg-stars"></div>
       <div class="space-bg-fog space-bg-fog--a"></div>
@@ -470,6 +524,9 @@
     <div id="gameStage" aria-hidden="true"></div>
     <div id="screenFlash" aria-hidden="true"></div>
     <div id="fxLayer" aria-hidden="true"></div>
+    <div class="best-shake" id="bestScoreShake">
+      <p class="hud-best" id="highScore">best 0°</p>
+    </div>
     <div class="hud">
       <div class="score-shake" id="scoreShake"><div id="score">0°</div></div>
     </div>
@@ -490,18 +547,41 @@
   </div>
   <script>
     var degreeSymbol = "\u00B0";
+    var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
+    var HIGH_SCORE_STORAGE_KEY = "cm-atom-clicker-high-score";
     var score = 0;
+    var highScore = 0;
     var scoreElement = document.getElementById("score");
+    var highScoreElement = document.getElementById("highScore");
+    var bestScoreShake = document.getElementById("bestScoreShake");
     var scoreShake = document.getElementById("scoreShake");
     var nucleusCluster = document.getElementById("nucleusCluster");
     var atomShake = document.getElementById("atomShake");
+    var gameBox = document.getElementById("gameBox");
     var gameStage = document.getElementById("gameStage");
+    var atomElement = document.getElementById("atom");
+    var hudElement = document.querySelector(".hud");
     var fxLayer = document.getElementById("fxLayer");
     var screenFlash = document.getElementById("screenFlash");
     var bonusChance = 0.34;
     var bonusPercent = 0.1;
     var clickMilestoneSize = 1000;
     var twoPi = Math.PI * 2;
+
+    var cursorPointerX = -10000;
+    var cursorPointerY = -10000;
+    var atomRepelX = 0;
+    var atomRepelY = 0;
+    var hudRepelX = 0;
+    var hudRepelY = 0;
+    var cursorRepelRadius = 130;
+    var cursorRepelMaxPx = 20;
+    var cursorRepelHudScale = 0.72;
+    var cursorRepelSmooth = 11;
+    var atomAnchorFractionX = 0.5;
+    var atomAnchorFractionY = 0.56;
+    var hudAnchorFractionX = 0.5;
+    var hudAnchorFractionY = 0.26;
 
     var electronSpeedScale = 1.35;
     var spinMax = 6.8;
@@ -563,8 +643,166 @@
       return String(value) + degreeSymbol;
     }
 
+    function getLocaleApi() {
+      if (window.parent && window.parent !== window && window.parent.WebLocale) {
+        return window.parent.WebLocale;
+      }
+      if (window.WebLocale) {
+        return window.WebLocale;
+      }
+      return null;
+    }
+
+    function getLocalized(key, fallback) {
+      var locale = getLocaleApi();
+      if (locale) {
+        return locale.get(key, fallback);
+      }
+      if (fallback != null) {
+        return fallback;
+      }
+      return key;
+    }
+
+    function applyGameLocale() {
+      setHighScoreText();
+    }
+
+    function bindLocaleListener() {
+      var localeTarget = window;
+      if (window.parent && window.parent !== window) {
+        localeTarget = window.parent;
+      }
+      localeTarget.addEventListener("web-locale-applied", applyGameLocale);
+    }
+
     function setScoreText() {
       scoreElement.textContent = formatDegrees(score);
+    }
+
+    function readHighScore() {
+      try {
+        var raw = localStorage.getItem(HIGH_SCORE_STORAGE_KEY);
+        if (!raw) return 0;
+        var value = parseInt(raw, 10);
+        if (isNaN(value) || value < 0) return 0;
+        return value;
+      } catch (error) {
+        return 0;
+      }
+    }
+
+    function writeHighScore(value) {
+      try {
+        localStorage.setItem(HIGH_SCORE_STORAGE_KEY, String(value));
+      } catch (error) {
+      }
+    }
+
+    function setHighScoreText() {
+      if (!highScoreElement) return;
+      highScoreElement.textContent =
+        getLocalized(LOCALE_KEY_BEST_LABEL, "best") + " " + formatDegrees(highScore);
+    }
+
+    function getHighScoreAnchorPosition() {
+      if (!highScoreElement) {
+        return { x: window.innerWidth * 0.88, y: window.innerHeight * 0.92 };
+      }
+      var rect = highScoreElement.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width * 0.5,
+        y: rect.top + rect.height * 0.5
+      };
+    }
+
+    function spawnRecordBurst(x, y, power) {
+      var burst = document.createElement("div");
+      var burstScale = 2.2 + Math.min(power, 30) * 0.12;
+      burst.className = "explosion-burst record-burst";
+      burst.style.left = String(x) + "px";
+      burst.style.top = String(y) + "px";
+      burst.style.setProperty("--burst-scale", String(burstScale));
+      fxLayer.appendChild(burst);
+      removeNodeLater(burst, 550);
+    }
+
+    function spawnRecordPop(x, y, newBestValue) {
+      var pop = document.createElement("div");
+      pop.className = "score-pop score-pop--record";
+      pop.textContent = formatDegrees(newBestValue);
+      pop.style.left = String(x - 28) + "px";
+      pop.style.top = String(y - 10) + "px";
+      fxLayer.appendChild(pop);
+      removeNodeLater(pop, 950);
+    }
+
+    function playNewRecordEffects(previousBest, newBest) {
+      var improvement = newBest - previousBest;
+      if (improvement < 1) improvement = 1;
+      var power = 6 + Math.sqrt(improvement) * 1.15;
+      if (power > 28) power = 28;
+      var anchor = getHighScoreAnchorPosition();
+      var index;
+      var particleCount = 6 + Math.floor(Math.min(improvement, 40) * 0.15);
+      var particleSize = 3 + Math.floor(Math.min(improvement, 30) * 0.08);
+
+      if (highScoreElement) {
+        highScoreElement.classList.remove("is-new-record");
+        void highScoreElement.offsetWidth;
+        highScoreElement.classList.add("is-new-record");
+        window.setTimeout(function () {
+          if (highScoreElement) highScoreElement.classList.remove("is-new-record");
+        }, 1000);
+      }
+
+      shakeElement(bestScoreShake, power, 10);
+      shakeScore(power * 0.7);
+      shakeAtom(power * 0.5);
+      addSpinBoost(power * 0.65);
+      spawnRipple(anchor.x, anchor.y, power);
+      spawnRecordBurst(anchor.x, anchor.y, power);
+      spawnRecordPop(anchor.x, anchor.y, newBest);
+
+      for (index = 0; index < particleCount; index++) {
+        var particle = document.createElement("div");
+        var angle = (twoPi * index) / particleCount + Math.random() * 0.5;
+        var distance = 10 + Math.random() * (14 + Math.min(improvement, 50) * 0.35);
+        var dx = Math.cos(angle) * distance;
+        var dy = Math.sin(angle) * distance;
+        particle.className = "explosion-particle";
+        particle.style.width = String(particleSize) + "px";
+        particle.style.height = String(particleSize) + "px";
+        particle.style.marginLeft = String(-particleSize * 0.5) + "px";
+        particle.style.marginTop = String(-particleSize * 0.5) + "px";
+        particle.style.left = String(anchor.x) + "px";
+        particle.style.top = String(anchor.y) + "px";
+        particle.style.background = "#8ee8ff";
+        particle.style.boxShadow = "0 0 12px rgba(110, 220, 255, 0.95)";
+        particle.style.setProperty("--dx", String(dx) + "px");
+        particle.style.setProperty("--dy", String(dy) + "px");
+        fxLayer.appendChild(particle);
+        removeNodeLater(particle, 650);
+      }
+
+      if (screenFlash) {
+        screenFlash.classList.remove("is-active");
+        void screenFlash.offsetHeight;
+        screenFlash.classList.add("is-active");
+        window.setTimeout(function () {
+          screenFlash.classList.remove("is-active");
+        }, 320);
+      }
+    }
+
+    function updateHighScoreFromScore() {
+      if (score <= highScore) return false;
+      var previousBest = highScore;
+      highScore = score;
+      writeHighScore(highScore);
+      setHighScoreText();
+      playNewRecordEffects(previousBest, highScore);
+      return true;
     }
 
     function getScoreSpinFactor() {
@@ -633,6 +871,95 @@
         "px)";
     }
 
+    function setCursorPointer(clientX, clientY) {
+      cursorPointerX = clientX;
+      cursorPointerY = clientY;
+    }
+
+    function clearCursorPointer() {
+      cursorPointerX = -10000;
+      cursorPointerY = -10000;
+    }
+
+    function getLayoutAnchorCenter(fractionX, fractionY) {
+      if (!gameBox) {
+        return { x: 0, y: 0 };
+      }
+      var rect = gameBox.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width * fractionX,
+        y: rect.top + rect.height * fractionY
+      };
+    }
+
+    function getCursorRepelOffset(anchorX, anchorY, radius, maxPx) {
+      var deltaX = anchorX - cursorPointerX;
+      var deltaY = anchorY - cursorPointerY;
+      var distanceSq = deltaX * deltaX + deltaY * deltaY;
+      var radiusSq = radius * radius;
+      if (distanceSq >= radiusSq) {
+        return { x: 0, y: 0 };
+      }
+      if (distanceSq < 1) {
+        return { x: maxPx, y: 0 };
+      }
+      var distance = Math.sqrt(distanceSq);
+      var push = (1 - distance / radius) * maxPx;
+      return {
+        x: (deltaX / distance) * push,
+        y: (deltaY / distance) * push
+      };
+    }
+
+    function lerpRepel(current, target, deltaSeconds) {
+      var blend = 1 - Math.exp(-cursorRepelSmooth * deltaSeconds);
+      return current + (target - current) * blend;
+    }
+
+    function setAtomRepelTransform() {
+      if (!atomElement) return;
+      atomElement.style.transform =
+        "translate(calc(-50% + " +
+        String(atomRepelX) +
+        "px), calc(-50% + " +
+        String(atomRepelY) +
+        "px))";
+    }
+
+    function setHudRepelTransform() {
+      if (!hudElement) return;
+      hudElement.style.transform =
+        "translate(calc(-50% + " +
+        String(hudRepelX) +
+        "px), " +
+        String(hudRepelY) +
+        "px)";
+    }
+
+    function updateCursorRepulsion(deltaSeconds) {
+      var atomAnchor = getLayoutAnchorCenter(atomAnchorFractionX, atomAnchorFractionY);
+      var atomTarget = getCursorRepelOffset(
+        atomAnchor.x,
+        atomAnchor.y,
+        cursorRepelRadius,
+        cursorRepelMaxPx
+      );
+      atomRepelX = lerpRepel(atomRepelX, atomTarget.x, deltaSeconds);
+      atomRepelY = lerpRepel(atomRepelY, atomTarget.y, deltaSeconds);
+      setAtomRepelTransform();
+
+      var hudAnchor = getLayoutAnchorCenter(hudAnchorFractionX, hudAnchorFractionY);
+      var hudTarget = getCursorRepelOffset(
+        hudAnchor.x,
+        hudAnchor.y,
+        cursorRepelRadius * 0.92,
+        cursorRepelMaxPx * cursorRepelHudScale
+      );
+      hudRepelX = lerpRepel(hudRepelX, hudTarget.x, deltaSeconds);
+      hudRepelY = lerpRepel(hudRepelY, hudTarget.y, deltaSeconds);
+      setHudRepelTransform();
+    }
+
     function updateAtomMotion(deltaSeconds) {
       var index;
       var electronIndex;
@@ -688,6 +1015,7 @@
       if (deltaSeconds > 0.05) deltaSeconds = 0.05;
       lastFrameTime = timestamp;
       updateAtomMotion(deltaSeconds);
+      updateCursorRepulsion(deltaSeconds);
       animationRunning = true;
       window.requestAnimationFrame(animationTick);
     }
@@ -811,6 +1139,7 @@
 
       score = score + clickValue;
       setScoreText();
+      updateHighScoreFromScore();
       spawnRipple(x, y, clickPower);
       spawnScorePop(x - 10, y - 14, clickValue, "click");
       shakeAtom(clickPower);
@@ -827,6 +1156,7 @@
         var totalPower = clickPower + bonus;
         score = score + bonus;
         setScoreText();
+        updateHighScoreFromScore();
         var tier = getBonusTier(bonus, maxBonus);
         spawnExplosion(x, y, bonus, maxBonus);
         spawnScorePop(bonusX, bonusY, bonus, "bonus", tier);
@@ -848,11 +1178,22 @@
       }
     }
 
+    highScore = readHighScore();
+    bindLocaleListener();
+    applyGameLocale();
+    setScoreText();
+
     layoutAtomOrbit();
     window.addEventListener("resize", layoutAtomOrbit);
     ensureAnimationLoop();
 
     gameStage.addEventListener("pointerdown", registerClick);
+    if (gameBox) {
+      gameBox.addEventListener("pointermove", function (event) {
+        setCursorPointer(event.clientX, event.clientY);
+      });
+      gameBox.addEventListener("pointerleave", clearCursorPointer);
+    }
     document.addEventListener("selectstart", function (event) {
       event.preventDefault();
     });
