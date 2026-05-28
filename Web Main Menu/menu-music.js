@@ -104,7 +104,7 @@
     } else if (audio.paused) {
       var resumePromise = audio.play();
       if (resumePromise && resumePromise.catch) {
-        resumePromise.catch(function () {});
+        resumePromise.catch(function () { });
       }
     }
 
