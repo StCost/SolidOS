@@ -1,14 +1,26 @@
 (function () {
   var AUDIO_HOVER_PATH = "../audio/ui-hover.wav";
   var AUDIO_CLICK_PATH = "../audio/ui-click.wav";
+  var AUDIO_TERMINAL_OPEN_PATH = "../audio/ui-terminal.wav";
+  var AUDIO_MOVE_PATH = "../audio/ui-move.wav";
+
+  var PAGE_MENU = "menu";
+  var PAGE_START = "start";
+  var PAGE_SETTINGS = "settings";
+  var PAGE_CREDITS = "credits";
 
   var hoverAudio = new Audio(AUDIO_HOVER_PATH);
   var clickAudio = new Audio(AUDIO_CLICK_PATH);
+  var terminalOpenAudio = new Audio(AUDIO_TERMINAL_OPEN_PATH);
+  var moveAudio = new Audio(AUDIO_MOVE_PATH);
   var lastHoverKey = "";
   var audioUnlocked = false;
+  var skippedInitialPageChange = false;
 
   hoverAudio.preload = "auto";
   clickAudio.preload = "auto";
+  terminalOpenAudio.preload = "auto";
+  moveAudio.preload = "auto";
 
   function getInterfaceVolume() {
     if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.getInterfaceOutputVolume) {
@@ -21,6 +33,8 @@
     var volume = getInterfaceVolume();
     hoverAudio.volume = volume;
     clickAudio.volume = volume;
+    terminalOpenAudio.volume = volume;
+    moveAudio.volume = volume;
   }
 
   function unlockAudio() {
@@ -141,10 +155,44 @@
     lastHoverKey = "";
   }
 
+  function shouldPlayTerminalOpenForPage(pageId) {
+    return (
+      pageId === PAGE_MENU ||
+      pageId === PAGE_START ||
+      pageId === PAGE_SETTINGS ||
+      pageId === PAGE_CREDITS
+    );
+  }
+
+  function onWindowDragStart() {
+    unlockAudio();
+  }
+
+  function onWindowDragMoveStep() {
+    playSound(moveAudio);
+  }
+
+  function onPageChanged(event) {
+    if (!skippedInitialPageChange) {
+      skippedInitialPageChange = true;
+      return;
+    }
+
+    if (!event || !event.detail) return;
+    var pageId = event.detail.pageId;
+    if (!shouldPlayTerminalOpenForPage(pageId)) return;
+
+    unlockAudio();
+    playSound(terminalOpenAudio);
+  }
+
   document.addEventListener("pointermove", onPointerMove, true);
   document.addEventListener("pointerdown", onPointerDown, true);
   document.addEventListener("pointerleave", onPointerLeave, true);
   document.addEventListener("keydown", unlockAudio, true);
+  window.addEventListener("web-page-changed", onPageChanged);
+  window.addEventListener("web-wm-drag-start", onWindowDragStart);
+  window.addEventListener("web-wm-drag-step", onWindowDragMoveStep);
 
   if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.EVENT_AUDIO_VOLUME_CHANGED) {
     window.addEventListener(
