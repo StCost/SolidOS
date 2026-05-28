@@ -51,6 +51,10 @@
 
 .settings-content-window .settings-heading {
   flex-shrink: 0;
+  padding-bottom: 0.45em;
+  margin-bottom: 0.15em;
+  border-bottom: 1px solid rgba(255, 128, 0, 0.22);
+  box-shadow: 0 1px 0 rgba(255, 128, 0, 0.06);
 }
 
 .settings-scroll {
