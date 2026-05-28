@@ -450,6 +450,7 @@
       state.languageOptions = preservedLanguageOptions;
     }
     renderAll();
+    syncWebAudioVolumes();
   }
 
   function resetLocalPreview() {
@@ -463,6 +464,23 @@
       state.languageOptions = preservedLanguageOptions;
     }
     renderAll();
+    syncWebAudioVolumes();
+  }
+
+  function isUnityHost() {
+    return typeof window.vuplex !== "undefined" && window.vuplex.postMessage;
+  }
+
+  function syncWebAudioVolumes() {
+    if (!window.WebMenuAudioVolume) return;
+    window.WebMenuAudioVolume.notifyAudioVolumeChanged();
+  }
+
+  function onAudioVolumeSliderInput(field) {
+    if (isUnityHost()) return;
+    if (!window.WebMenuAudioVolume || !window.WebMenuAudioVolume.isAudioVolumeKey(field.key)) return;
+    saveLocalPreview();
+    syncWebAudioVolumes();
   }
 
   function applyLocalChange(key, value) {
@@ -492,8 +510,8 @@
         new CustomEvent("web-settings-language-changed", { detail: { languageCode: state.language } })
       );
     }
-    if (key === "musicVolume") {
-      window.dispatchEvent(new CustomEvent("web-settings-set", { detail: { key: key, value: value } }));
+    if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.isAudioVolumeKey(key)) {
+      syncWebAudioVolumes();
     }
     renderAll();
   }
@@ -1045,6 +1063,7 @@
 
     slider.addEventListener("input", function () {
       updateSliderDisplay(field, slider, valueSpan);
+      onAudioVolumeSliderInput(field);
     });
 
     slider.addEventListener("change", function () {
@@ -1114,10 +1133,12 @@
     if (Object.prototype.hasOwnProperty.call(payload, "useCustomCursor")) {
       applyCustomCursorMode(payload.useCustomCursor);
     }
-    if (Object.prototype.hasOwnProperty.call(payload, "musicVolume")) {
-      window.dispatchEvent(
-        new CustomEvent("web-settings-set", { detail: { key: "musicVolume", value: String(payload.musicVolume) } })
-      );
+    if (
+      Object.prototype.hasOwnProperty.call(payload, "masterVolume") ||
+      Object.prototype.hasOwnProperty.call(payload, "musicVolume") ||
+      Object.prototype.hasOwnProperty.call(payload, "interfaceVolume")
+    ) {
+      syncWebAudioVolumes();
     }
     renderAll();
     updateNavLabels();

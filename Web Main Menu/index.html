@@ -5,7 +5,10 @@
   <meta charset="UTF-8" />
   <meta name="transparent" content="true" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>SYS</title>
+  <title>COLLAPSE MACHINE - Main Menu</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="favicon.png" type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="favicon.png" />
   <link rel="stylesheet" href="screen-shared.css" />
   <link rel="stylesheet" href="menu.css" />
   <link rel="stylesheet" href="menu-title-fx.css" />
@@ -16,6 +19,7 @@
   <link rel="stylesheet" href="credits-menu.css" />
   <link rel="stylesheet" href="terminal-scroll.css" />
   <script src="menu-background.js"></script>
+  <script src="menu-window-layouts-bootstrap.js"></script>
   <script src="menu-locale.js"></script>
   <script src="unity-menu-bridge.js" defer></script>
   <script src="settings-menu-bridge.js" defer></script>
@@ -24,6 +28,7 @@
   <script src="credits-menu.js" defer></script>
   <script src="menu-scrollbar-cursor.js" defer></script>
   <script src="menu-cursor-bridge.js" defer></script>
+  <script src="menu-audio-volume.js"></script>
   <script src="menu-ui-sounds.js" defer></script>
   <script src="menu-music.js" defer></script>
   <script src="menu-common.js" defer></script>
@@ -134,24 +139,7 @@
               <div class="os-window-body os-window-body--terminal">
                 <p class="term-prompt term-prompt--list terminal-text--dim"><span
                     class="term-prompt-path">C:\CM\connect\local&gt;</span> <span data-locale-key="web.connect.prompt.dir-local">dir</span></p>
-                <ul class="worlds-list" id="singleplayerList">
-                  <li>
-                    <button type="button" class="worlds-entry" data-world-kind="singleplayer" data-seed="48291037"
-                      data-name="Rust Belt">
-                      <span class="worlds-entry-index terminal-text--dim">01</span>
-                      <span class="worlds-entry-name terminal-text">Rust Belt</span>
-                      <span class="worlds-entry-seed terminal-text--dim">48291037</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button type="button" class="worlds-entry" data-world-kind="singleplayer" data-seed="10938472"
-                      data-name="Glass Canyon">
-                      <span class="worlds-entry-index terminal-text--dim">02</span>
-                      <span class="worlds-entry-name terminal-text">Glass Canyon</span>
-                      <span class="worlds-entry-seed terminal-text--dim">10938472</span>
-                    </button>
-                  </li>
-                </ul>
+                <ul class="worlds-list" id="singleplayerList"></ul>
                 <div class="worlds-column-bottom">
                   <form class="worlds-compose worlds-compose-dock" id="formNewWorld" data-compose-kind="singleplayer">
                     <div class="worlds-compose-fields">
@@ -192,24 +180,7 @@
               <div class="os-window-body os-window-body--terminal">
                 <p class="term-prompt term-prompt--list terminal-text--dim"><span
                     class="term-prompt-path">C:\CM\connect\net&gt;</span> <span data-locale-key="web.connect.prompt.net-view">net view</span></p>
-                <ul class="worlds-list" id="ipMultiplayerList">
-                  <li>
-                    <button type="button" class="worlds-entry" data-world-kind="ip-multiplayer" data-ip="192.168.1.42"
-                      data-name="Sector 7 Relay">
-                      <span class="worlds-entry-index terminal-text--dim">01</span>
-                      <span class="worlds-entry-name terminal-text">Sector 7 Relay</span>
-                      <span class="worlds-entry-ip terminal-text--dim">192.168.1.42</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button type="button" class="worlds-entry" data-world-kind="ip-multiplayer" data-ip="10.0.0.8:7777"
-                      data-name="Collapse DMZ">
-                      <span class="worlds-entry-index terminal-text--dim">02</span>
-                      <span class="worlds-entry-name terminal-text">Collapse DMZ</span>
-                      <span class="worlds-entry-ip terminal-text--dim">10.0.0.8:7777</span>
-                    </button>
-                  </li>
-                </ul>
+                <ul class="worlds-list" id="ipMultiplayerList"></ul>
                 <div class="worlds-column-bottom">
                   <form class="worlds-compose worlds-compose-dock" id="formNewServer"
                     data-compose-kind="ip-multiplayer">
@@ -251,22 +222,7 @@
               <div class="os-window-body os-window-body--terminal">
                 <p class="term-prompt term-prompt--list terminal-text--dim"><span
                     class="term-prompt-path">C:\CM\connect\steam&gt;</span> <span data-locale-key="web.connect.prompt.net-friends">net friends</span></p>
-                <ul class="worlds-list" id="steamMultiplayerList">
-                  <li>
-                    <button type="button" class="worlds-entry worlds-entry--name-only"
-                      data-world-kind="steam-multiplayer" data-name="SaintKostya">
-                      <span class="worlds-entry-index terminal-text--dim">01</span>
-                      <span class="worlds-entry-name terminal-text">SaintKostya</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button type="button" class="worlds-entry worlds-entry--name-only"
-                      data-world-kind="steam-multiplayer" data-name="VoxelRider">
-                      <span class="worlds-entry-index terminal-text--dim">02</span>
-                      <span class="worlds-entry-name terminal-text">VoxelRider</span>
-                    </button>
-                  </li>
-                </ul>
+                <ul class="worlds-list" id="steamMultiplayerList"></ul>
                 <div class="worlds-column-bottom worlds-column-bottom--compose-only">
                   <p class="term-prompt term-prompt--compose terminal-text--dim"><span
                       class="term-prompt-path">C:\CM\connect\steam&gt;</span> <span data-locale-key="web.connect.prompt.net-join">net join</span></p>
