@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Menu kredit",
   "settings.web.window-layout": "Tata letak jendela menu",
   "settings.web.reset-window-layouts": "Atur ulang posisi",
-  "settings.help.web.window-layout": "Mengembalikan posisi dan ukuran default jendela menu yang dapat diseret."
+  "settings.help.web.window-layout": "Mengembalikan posisi dan ukuran default jendela menu yang dapat diseret.",
+  "web.menu.quit": "Keluar",
+  "web.menu.disconnect": "Putuskan"
 }

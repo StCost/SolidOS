@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Menu titulků",
   "settings.web.window-layout": "Rozložení oken menu",
   "settings.web.reset-window-layouts": "Obnovit pozice",
-  "settings.help.web.window-layout": "Obnoví výchozí pozice a velikosti přetahovatelných oken menu."
+  "settings.help.web.window-layout": "Obnoví výchozí pozice a velikosti přetahovatelných oken menu.",
+  "web.menu.quit": "Ukončit",
+  "web.menu.disconnect": "Odpojit"
 }

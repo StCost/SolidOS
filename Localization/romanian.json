@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Meniul creditelor",
   "settings.web.window-layout": "Aranjarea ferestrelor",
   "settings.web.reset-window-layouts": "Resetează pozițiile",
-  "settings.help.web.window-layout": "Restabilește pozițiile și dimensiunile implicite ale ferestrelor meniului."
+  "settings.help.web.window-layout": "Restabilește pozițiile și dimensiunile implicite ale ferestrelor meniului.",
+  "web.menu.quit": "Ieșire",
+  "web.menu.disconnect": "Deconectare"
 }

@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "قائمة الشكر",
   "settings.web.window-layout": "تخطيط نوافذ القائمة",
   "settings.web.reset-window-layouts": "إعادة المواضع",
-  "settings.help.web.window-layout": "استعادة المواضع والأحجام الافتراضية لنوافذ القائمة القابلة للسحب."
+  "settings.help.web.window-layout": "استعادة المواضع والأحجام الافتراضية لنوافذ القائمة القابلة للسحب.",
+  "web.menu.quit": "خروج",
+  "web.menu.disconnect": "قطع الاتصال"
 }

@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Stáblista menü",
   "settings.web.window-layout": "Menüablak-elrendezés",
   "settings.web.reset-window-layouts": "Pozíciók visszaállítása",
-  "settings.help.web.window-layout": "Visszaállítja a húzható menüablakok alapértelmezett helyzetét és méretét."
+  "settings.help.web.window-layout": "Visszaállítja a húzható menüablakok alapértelmezett helyzetét és méretét.",
+  "web.menu.quit": "Kilépés",
+  "web.menu.disconnect": "Kapcsolat bontása"
 }

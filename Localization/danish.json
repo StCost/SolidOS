@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Creditsmenu",
   "settings.web.window-layout": "Menuvindueslayout",
   "settings.web.reset-window-layouts": "Nulstil positioner",
-  "settings.help.web.window-layout": "Gendanner standardpositioner og -størrelser for trækbare menuvinduer."
+  "settings.help.web.window-layout": "Gendanner standardpositioner og -størrelser for trækbare menuvinduer.",
+  "web.menu.quit": "Afslut",
+  "web.menu.disconnect": "Afbryd forbindelse"
 }

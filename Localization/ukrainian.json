@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Меню титрів",
   "settings.web.window-layout": "Розташування вікон меню",
   "settings.web.reset-window-layouts": "Скинути позиції",
-  "settings.help.web.window-layout": "Відновлює стандартні позиції та розміри вікон меню."
+  "settings.help.web.window-layout": "Відновлює стандартні позиції та розміри вікон меню.",
+  "web.menu.quit": "Вийти",
+  "web.menu.disconnect": "Від'єднатися"
 }

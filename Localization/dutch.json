@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Creditsmenu",
   "settings.web.window-layout": "Menuvensterindeling",
   "settings.web.reset-window-layouts": "Posities herstellen",
-  "settings.help.web.window-layout": "Herstelt standaardposities en -groottes van versleepbare menuvensters."
+  "settings.help.web.window-layout": "Herstelt standaardposities en -groottes van versleepbare menuvensters.",
+  "web.menu.quit": "Afsluiten",
+  "web.menu.disconnect": "Verbinding verbreken"
 }

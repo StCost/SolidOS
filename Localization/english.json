@@ -104,6 +104,8 @@
   "settings.web.step.previous": "Previous",
   "settings.web.step.next": "Next",
   "web.menu.exit": "Exit",
+  "web.menu.disconnect": "Disconnect",
+  "web.menu.quit": "Quit",
   "web.menu.credit": "by Dreaming Saints",
   "web.connect.cd-connect": "cd connect",
   "web.connect.col.single": "local_worlds.lst",

@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Menu de créditos",
   "settings.web.window-layout": "Disposição das janelas",
   "settings.web.reset-window-layouts": "Repor posições",
-  "settings.help.web.window-layout": "Restaura as posições e tamanhos predefinidos das janelas do menu."
+  "settings.help.web.window-layout": "Restaura as posições e tamanhos predefinidos das janelas do menu.",
+  "web.menu.quit": "Sair",
+  "web.menu.disconnect": "Desligar"
 }

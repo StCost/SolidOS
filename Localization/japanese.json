@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "クレジットメニュー",
   "settings.web.window-layout": "メニューウィンドウ配置",
   "settings.web.reset-window-layouts": "位置をリセット",
-  "settings.help.web.window-layout": "ドラッグ可能なメニューウィンドウの既定の位置とサイズを復元します。"
+  "settings.help.web.window-layout": "ドラッグ可能なメニューウィンドウの既定の位置とサイズを復元します。",
+  "web.menu.quit": "終了",
+  "web.menu.disconnect": "切断"
 }
