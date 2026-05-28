@@ -369,6 +369,31 @@ var WebWindowManager = (function () {
     windowElement.style.setProperty("--wm-body-max", String(bodyMax) + "px");
   }
 
+  function markOpenAnimationDone(windowElement) {
+    if (!windowElement || !windowElement.classList) return;
+    if (
+      !windowElement.classList.contains("os-window--opening") &&
+      !windowElement.classList.contains("os-window--opening-body-only")
+    ) {
+      return;
+    }
+    setBodyMaxVar(windowElement);
+    windowElement.classList.add("os-window--open-done");
+  }
+
+  function finishOpenAnimation(windowElement) {
+    if (!windowElement || !windowElement.classList) return;
+    setBodyMaxVar(windowElement);
+    windowElement.classList.remove("os-window--opening");
+    windowElement.classList.remove("os-window--opening-body-only");
+    windowElement.classList.remove("os-window--open-done");
+    setBodyMaxVar(windowElement);
+    dispatchWorkspaceLayoutSettled(windowElement);
+    if (window.WebScrollbarCursor) {
+      window.WebScrollbarCursor.refreshAllScrollbars();
+    }
+  }
+
   function wrapWindowBody(windowElement) {
     if (windowElement.querySelector(".os-window-body-shell")) return;
 
@@ -787,22 +812,14 @@ var WebWindowManager = (function () {
     trackOpenAnimationTimer(
       windowElement,
       window.setTimeout(function () {
-        if (!windowElement || !windowElement.classList) return;
-        windowElement.classList.add("os-window--open-done");
+        markOpenAnimationDone(windowElement);
       }, delayMs + CHROME_OPEN_MS + BODY_OPEN_MS + 40)
     );
 
     trackOpenAnimationTimer(
       windowElement,
       window.setTimeout(function () {
-        if (!windowElement || !windowElement.classList) return;
-        windowElement.classList.remove("os-window--opening");
-        windowElement.classList.remove("os-window--open-done");
-        setBodyMaxVar(windowElement);
-        dispatchWorkspaceLayoutSettled(windowElement);
-        if (window.WebScrollbarCursor) {
-          window.WebScrollbarCursor.refreshAllScrollbars();
-        }
+        finishOpenAnimation(windowElement);
       }, openDoneMs)
     );
   }
@@ -839,22 +856,14 @@ var WebWindowManager = (function () {
     trackOpenAnimationTimer(
       windowElement,
       window.setTimeout(function () {
-        if (!windowElement || !windowElement.classList) return;
-        windowElement.classList.add("os-window--open-done");
+        markOpenAnimationDone(windowElement);
       }, delayMs + BODY_OPEN_MS + 40)
     );
 
     trackOpenAnimationTimer(
       windowElement,
       window.setTimeout(function () {
-        if (!windowElement || !windowElement.classList) return;
-        windowElement.classList.remove("os-window--opening-body-only");
-        windowElement.classList.remove("os-window--open-done");
-        setBodyMaxVar(windowElement);
-        dispatchWorkspaceLayoutSettled(windowElement);
-        if (window.WebScrollbarCursor) {
-          window.WebScrollbarCursor.refreshAllScrollbars();
-        }
+        finishOpenAnimation(windowElement);
       }, openDoneMs)
     );
   }

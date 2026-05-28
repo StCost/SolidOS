@@ -48,14 +48,11 @@
 }
 
 .term-title {
-  width: max-content;
+  width: 100%;
   max-width: 100%;
   font-size: min(4.8rem, 14cqw, 20cqh, 8.5vmin);
   letter-spacing: clamp(0.04em, 0.18cqw, 0.08em);
   line-height: 1;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
 .os-window--splash .term-divider {

@@ -62,39 +62,39 @@
 }
 
 /* Hide scrollbar visuals during open animation; keep scrollbar-gutter: stable so layout does not shift */
-.menu-screen:not(.terminal-animations-off) .os-window--opening:not(.os-window--open-done) .os-window-body--terminal,
-.menu-screen:not(.terminal-animations-off) .os-window--opening:not(.os-window--open-done) .settings-scroll,
-.menu-screen:not(.terminal-animations-off) .os-window--opening:not(.os-window--open-done) .settings-tabs,
-.menu-screen:not(.terminal-animations-off) .os-window--opening:not(.os-window--open-done) .worlds-column .worlds-list,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only:not(.os-window--open-done) .os-window-body--terminal,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only:not(.os-window--open-done) .settings-scroll,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only:not(.os-window--open-done) .settings-tabs,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only:not(.os-window--open-done) .worlds-column .worlds-list {
+.menu-screen:not(.terminal-animations-off) .os-window--opening .os-window-body--terminal,
+.menu-screen:not(.terminal-animations-off) .os-window--opening .settings-scroll,
+.menu-screen:not(.terminal-animations-off) .os-window--opening .settings-tabs,
+.menu-screen:not(.terminal-animations-off) .os-window--opening .worlds-column .worlds-list,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .os-window-body--terminal,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .settings-scroll,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .settings-tabs,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .worlds-column .worlds-list {
   scrollbar-gutter: stable;
   scrollbar-color: transparent transparent;
   pointer-events: none;
 }
 
-.menu-screen:not(.terminal-animations-off) .os-window--opening:not(.os-window--open-done) .os-window-body--terminal::-webkit-scrollbar-thumb,
-.menu-screen:not(.terminal-animations-off) .os-window--opening:not(.os-window--open-done) .settings-scroll::-webkit-scrollbar-thumb,
-.menu-screen:not(.terminal-animations-off) .os-window--opening:not(.os-window--open-done) .settings-tabs::-webkit-scrollbar-thumb,
-.menu-screen:not(.terminal-animations-off) .os-window--opening:not(.os-window--open-done) .worlds-column .worlds-list::-webkit-scrollbar-thumb,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only:not(.os-window--open-done) .os-window-body--terminal::-webkit-scrollbar-thumb,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only:not(.os-window--open-done) .settings-scroll::-webkit-scrollbar-thumb,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only:not(.os-window--open-done) .settings-tabs::-webkit-scrollbar-thumb,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only:not(.os-window--open-done) .worlds-column .worlds-list::-webkit-scrollbar-thumb {
+.menu-screen:not(.terminal-animations-off) .os-window--opening .os-window-body--terminal::-webkit-scrollbar-thumb,
+.menu-screen:not(.terminal-animations-off) .os-window--opening .settings-scroll::-webkit-scrollbar-thumb,
+.menu-screen:not(.terminal-animations-off) .os-window--opening .settings-tabs::-webkit-scrollbar-thumb,
+.menu-screen:not(.terminal-animations-off) .os-window--opening .worlds-column .worlds-list::-webkit-scrollbar-thumb,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .os-window-body--terminal::-webkit-scrollbar-thumb,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .settings-scroll::-webkit-scrollbar-thumb,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .settings-tabs::-webkit-scrollbar-thumb,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .worlds-column .worlds-list::-webkit-scrollbar-thumb {
   background-color: transparent;
   background-image: none;
   border-color: transparent;
 }
 
-.menu-screen:not(.terminal-animations-off) .os-window--opening:not(.os-window--open-done) .os-window-body--terminal::-webkit-scrollbar-track,
-.menu-screen:not(.terminal-animations-off) .os-window--opening:not(.os-window--open-done) .settings-scroll::-webkit-scrollbar-track,
-.menu-screen:not(.terminal-animations-off) .os-window--opening:not(.os-window--open-done) .settings-tabs::-webkit-scrollbar-track,
-.menu-screen:not(.terminal-animations-off) .os-window--opening:not(.os-window--open-done) .worlds-column .worlds-list::-webkit-scrollbar-track,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only:not(.os-window--open-done) .os-window-body--terminal::-webkit-scrollbar-track,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only:not(.os-window--open-done) .settings-scroll::-webkit-scrollbar-track,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only:not(.os-window--open-done) .settings-tabs::-webkit-scrollbar-track,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only:not(.os-window--open-done) .worlds-column .worlds-list::-webkit-scrollbar-track {
+.menu-screen:not(.terminal-animations-off) .os-window--opening .os-window-body--terminal::-webkit-scrollbar-track,
+.menu-screen:not(.terminal-animations-off) .os-window--opening .settings-scroll::-webkit-scrollbar-track,
+.menu-screen:not(.terminal-animations-off) .os-window--opening .settings-tabs::-webkit-scrollbar-track,
+.menu-screen:not(.terminal-animations-off) .os-window--opening .worlds-column .worlds-list::-webkit-scrollbar-track,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .os-window-body--terminal::-webkit-scrollbar-track,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .settings-scroll::-webkit-scrollbar-track,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .settings-tabs::-webkit-scrollbar-track,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .worlds-column .worlds-list::-webkit-scrollbar-track {
   background: transparent;
 }
