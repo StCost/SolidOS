@@ -108,7 +108,7 @@
       }
     }
 
-    fadeMusicTo(getMusicVolumeFromSettings());
+    setMusicVolumeImmediate(getMusicVolumeFromSettings());
   }
 
   function stopMenuMusic() {
@@ -143,7 +143,7 @@
       }
       return;
     }
-    fadeMusicTo(getMusicVolumeFromSettings());
+    setMusicVolumeImmediate(getMusicVolumeFromSettings());
   }
 
   function onUserGesture() {
