@@ -5,15 +5,6 @@
   font-style: normal;
 }
 
-html.cm-fonts-loading,
-html.cm-fonts-loading body {
-  background: #000000 !important;
-}
-
-html.cm-fonts-loading #device {
-  display: none !important;
-}
-
 @font-face {
   font-family: "CMFallback";
   src: url("fonts/noto_arabic_subset.otf") format("opentype");

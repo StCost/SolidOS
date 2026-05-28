@@ -186,14 +186,8 @@
 
   function initStandaloneLocale() {
     if (isUnityHost()) return;
-    if (!canFetchLocales()) {
-      warnIfFileProtocol();
-      return;
-    }
-
-    var languageCode = getStoredLanguageCode() || DEFAULT_LANGUAGE_CODE;
-    loadLanguage(languageCode, true);
-    loadLanguageOptions();
+    // Web mode should lazy-load locale JSON. We only fetch languages + strings when Settings is opened.
+    // Until then, the menu uses built-in text content (English) already present in the DOM.
   }
 
   window.WebLocaleLoader = {
@@ -209,6 +203,26 @@
   } else {
     initStandaloneLocale();
   }
+
+  var standaloneLocaleLoaded = false;
+  function ensureStandaloneLocaleLoaded() {
+    if (standaloneLocaleLoaded) return;
+    standaloneLocaleLoaded = true;
+
+    if (isUnityHost()) return;
+    if (!canFetchLocales()) {
+      warnIfFileProtocol();
+      return;
+    }
+
+    var languageCode = getStoredLanguageCode() || DEFAULT_LANGUAGE_CODE;
+    loadLanguage(languageCode, true);
+    loadLanguageOptions();
+  }
+
+  window.addEventListener("web-settings-open", function () {
+    ensureStandaloneLocaleLoaded();
+  });
 
   window.addEventListener("web-settings-language-changed", function (event) {
     if (isUnityHost()) return;
