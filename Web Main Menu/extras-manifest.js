@@ -5,6 +5,11 @@
         id: "atom-clicker",
         title: "Atom Clicker",
         path: "Extras/games/atom-clicker/index.html"
+      },
+      {
+        id: "midnight-run",
+        title: "Midnight Run",
+        path: "Extras/games/midnight-run/index.html"
       }
     ],
     art: [
