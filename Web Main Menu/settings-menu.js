@@ -45,9 +45,9 @@
   ];
 
   var TABS = [
+    { id: "interface", labelKey: "settings.title.interface" },
     { id: "gameplay", labelKey: "settings.title.gameplay" },
     { id: "audio", labelKey: "settings.title.audio" },
-    { id: "interface", labelKey: "settings.title.interface" },
     { id: "graphics", labelKey: "settings.title.graphics" }
   ];
 
@@ -92,7 +92,7 @@
 
   var state = copyState(DEFAULT_STATE);
   var localeStrings = {};
-  var activeTabId = "gameplay";
+  var activeTabId = "interface";
   var contentRoot;
   var tabsRoot;
   var helpTooltip;
