@@ -202,5 +202,8 @@
   "web.credits.loading": "Wczytywanie napisów końcowych...",
   "web.aria.credits-content": "Napis końcowy",
   "web.aria.credits-list": "Lista napisów końcowych",
-  "web.aria.credits-menu": "Menu napisów końcowych"
+  "web.aria.credits-menu": "Menu napisów końcowych",
+  "settings.web.window-layout": "Układ okien menu",
+  "settings.web.reset-window-layouts": "Resetuj pozycje",
+  "settings.help.web.window-layout": "Przywraca domyślne pozycje i rozmiary okien menu."
 }

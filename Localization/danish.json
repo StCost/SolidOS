@@ -202,5 +202,8 @@
   "web.credits.loading": "Indlæser credits...",
   "web.aria.credits-content": "Credits",
   "web.aria.credits-list": "Creditsliste",
-  "web.aria.credits-menu": "Creditsmenu"
+  "web.aria.credits-menu": "Creditsmenu",
+  "settings.web.window-layout": "Menuvindueslayout",
+  "settings.web.reset-window-layouts": "Nulstil positioner",
+  "settings.help.web.window-layout": "Gendanner standardpositioner og -størrelser for trækbare menuvinduer."
 }

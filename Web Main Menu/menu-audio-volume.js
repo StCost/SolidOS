@@ -7,6 +7,9 @@
   var DEFAULT_MUSIC = 1;
   var DEFAULT_INTERFACE = 1;
   var EVENT_AUDIO_VOLUME_CHANGED = "web-audio-volume-changed";
+  var runtimeMasterVolume = null;
+  var runtimeMusicVolume = null;
+  var runtimeInterfaceVolume = null;
 
   function clamp01(value) {
     if (value < 0) return 0;
@@ -32,17 +35,42 @@
     return clamp01(value);
   }
 
-  function getMusicOutputVolume() {
+  function getRuntimeOrStoredVolume(key, defaultValue) {
+    if (key === KEY_MASTER && runtimeMasterVolume != null) return runtimeMasterVolume;
+    if (key === KEY_MUSIC && runtimeMusicVolume != null) return runtimeMusicVolume;
+    if (key === KEY_INTERFACE && runtimeInterfaceVolume != null) return runtimeInterfaceVolume;
     var settings = readSettingsObject();
-    var master = getSettingValue(settings, KEY_MASTER, DEFAULT_MASTER);
-    var music = getSettingValue(settings, KEY_MUSIC, DEFAULT_MUSIC);
+    return getSettingValue(settings, key, defaultValue);
+  }
+
+  function setVolumesFromSettingsState(settingsState) {
+    if (!settingsState) return;
+    if (settingsState[KEY_MASTER] != null) {
+      runtimeMasterVolume = getSettingValue(settingsState, KEY_MASTER, DEFAULT_MASTER);
+    }
+    if (settingsState[KEY_MUSIC] != null) {
+      runtimeMusicVolume = getSettingValue(settingsState, KEY_MUSIC, DEFAULT_MUSIC);
+    }
+    if (settingsState[KEY_INTERFACE] != null) {
+      runtimeInterfaceVolume = getSettingValue(settingsState, KEY_INTERFACE, DEFAULT_INTERFACE);
+    }
+  }
+
+  function clearRuntimeVolumes() {
+    runtimeMasterVolume = null;
+    runtimeMusicVolume = null;
+    runtimeInterfaceVolume = null;
+  }
+
+  function getMusicOutputVolume() {
+    var master = getRuntimeOrStoredVolume(KEY_MASTER, DEFAULT_MASTER);
+    var music = getRuntimeOrStoredVolume(KEY_MUSIC, DEFAULT_MUSIC);
     return clamp01(master * music);
   }
 
   function getInterfaceOutputVolume() {
-    var settings = readSettingsObject();
-    var master = getSettingValue(settings, KEY_MASTER, DEFAULT_MASTER);
-    var interfaceVolume = getSettingValue(settings, KEY_INTERFACE, DEFAULT_INTERFACE);
+    var master = getRuntimeOrStoredVolume(KEY_MASTER, DEFAULT_MASTER);
+    var interfaceVolume = getRuntimeOrStoredVolume(KEY_INTERFACE, DEFAULT_INTERFACE);
     return clamp01(master * interfaceVolume);
   }
 
@@ -62,6 +90,8 @@
     getMusicOutputVolume: getMusicOutputVolume,
     getInterfaceOutputVolume: getInterfaceOutputVolume,
     isAudioVolumeKey: isAudioVolumeKey,
+    setVolumesFromSettingsState: setVolumesFromSettingsState,
+    clearRuntimeVolumes: clearRuntimeVolumes,
     notifyAudioVolumeChanged: notifyAudioVolumeChanged
   };
 })();
