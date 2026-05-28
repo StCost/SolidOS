@@ -1,6 +1,6 @@
 var WebWindowManager = (function () {
   var MIN_WIDTH = 200;
-  var MIN_HEIGHT = 120;
+  var MIN_HEIGHT = 0;
   var CHROME_OPEN_MS = 300;
   var BODY_OPEN_MS = 320;
   var OPEN_DONE_BUFFER_MS = 180;
@@ -9,18 +9,18 @@ var WebWindowManager = (function () {
   var RESIZE_EDGES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
 
   var presetTable = {
-    "menu-splash": { minWidth: 300, minHeight: 300 },
-    "menu-actions": { minWidth: 260, minHeight: 200 },
-    "connect-col-0": { minWidth: 260, minHeight: MIN_HEIGHT },
-    "connect-col-1": { minWidth: 260, minHeight: 320 },
-    "connect-col-2": { minWidth: 260, minHeight: 320 },
-    "connect-nav": { minWidth: 260, minHeight: 96 },
-    "settings-tabs": { minWidth: 240, minHeight: 200 },
-    "settings-content": { minWidth: 360, minHeight: 280 },
-    "settings-nav": { minWidth: 260, minHeight: 96 },
-    "credits-content": { minWidth: 360, minHeight: 280 },
-    "credits-nav": { minWidth: 260, minHeight: 96 },
-    "modal-center": { minWidth: 280, minHeight: 140 }
+    "menu-splash": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "menu-actions": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "connect-col-0": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "connect-col-1": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "connect-col-2": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "connect-nav": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "settings-tabs": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "settings-content": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "settings-nav": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "credits-content": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "credits-nav": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "modal-center": { minWidth: MIN_WIDTH, minHeight: 0 }
   };
 
   var activeDrag = null;
@@ -67,14 +67,6 @@ var WebWindowManager = (function () {
     var chromeHeight = getWindowChromeHeight(windowElement);
     if (chromeHeight + 2 > minSize.minHeight) {
       minSize.minHeight = chromeHeight + 2;
-    }
-
-    if (presetName === "menu-splash") {
-      var titleHeight = getWindowTitleBlockHeight(windowElement);
-      var splashMin = chromeHeight + titleHeight + 12;
-      if (splashMin > minSize.minHeight) {
-        minSize.minHeight = splashMin;
-      }
     }
 
     return minSize;

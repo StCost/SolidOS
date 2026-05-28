@@ -89,11 +89,11 @@
   border-bottom: 1px dashed rgba(255, 128, 0, 0.18);
   background: transparent;
   padding: 0.35em 0 0.5em;
-  min-height: calc(var(--settings-choice-btn-height) + 0.85em);
+  min-height: 0;
 }
 
 .settings-row.settings-row--slider {
-  min-height: calc(var(--settings-choice-btn-height) + 1.35em + 0.85em);
+  min-height: 0;
 }
 
 .settings-row.settings-row--choice:last-child,
@@ -264,8 +264,8 @@
 
 .settings-row.settings-row--choice .settings-field-label-box,
 .settings-row.settings-row--slider .settings-field-label-box {
-  padding-top: calc((var(--settings-choice-btn-height) - 1.35em) / 2);
-  min-height: var(--settings-choice-btn-height);
+  padding-top: 0.12em;
+  min-height: 0;
   box-sizing: border-box;
 }
 
