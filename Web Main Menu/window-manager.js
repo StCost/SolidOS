@@ -744,6 +744,9 @@ var WebWindowManager = (function () {
     if (!workspaceElement || !window.WebScrollbarCursor) {
       return;
     }
+    if (window.WebScrollbarCursor.initScrollViews) {
+      window.WebScrollbarCursor.initScrollViews(workspaceElement);
+    }
     window.WebScrollbarCursor.refreshAllScrollbars();
   }
 

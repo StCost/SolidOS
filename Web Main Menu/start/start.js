@@ -339,6 +339,10 @@
     }
 
     if (window.WebScrollbarCursor) {
+      var connectWorkspace = document.querySelector(".os-workspace--connect");
+      if (window.WebScrollbarCursor.initVerticalScrollViews && connectWorkspace) {
+        window.WebScrollbarCursor.initVerticalScrollViews(connectWorkspace);
+      }
       window.WebScrollbarCursor.refreshAllScrollbars();
     }
   }

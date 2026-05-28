@@ -20,6 +20,12 @@
   overflow: hidden;
 }
 
+.credits-content-window .menu-v-scroll,
+.credits-content-window .worlds-list-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .credits-scroll {
   flex: 1 1 auto;
   min-height: 0;

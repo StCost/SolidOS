@@ -16,6 +16,7 @@
 .menu-screen .worlds-column .worlds-list::-webkit-scrollbar {
   width: var(--scrollbar-size);
   height: var(--scrollbar-size);
+  cursor: var(--cursor-scroll);
 }
 
 .menu-screen .os-window--managed .os-window-body--terminal::-webkit-scrollbar-corner,
@@ -31,6 +32,7 @@
 .menu-screen .worlds-column .worlds-list::-webkit-scrollbar-track {
   background: var(--scrollbar-track);
   border-radius: 0;
+  cursor: var(--cursor-scroll);
 }
 
 .menu-screen .os-window--managed .os-window-body--terminal::-webkit-scrollbar-thumb,
@@ -46,7 +48,7 @@
   border-radius: 0;
   min-height: 24px;
   min-width: 24px;
-  cursor: url("cursor-scroll.svg?v=1") 11.2 11.2, default;
+  cursor: var(--cursor-scroll) !important;
 }
 
 .menu-screen .os-window--managed .os-window-body--terminal::-webkit-scrollbar-thumb:hover,
@@ -59,6 +61,7 @@
 .menu-screen .worlds-column .worlds-list::-webkit-scrollbar-thumb:active {
   background-color: var(--scrollbar-thumb-hover);
   border-color: rgba(255, 128, 0, 0.22);
+  cursor: var(--cursor-scroll) !important;
 }
 
 /* Hide scrollbar visuals during open animation; keep scrollbar-gutter: stable so layout does not shift */
