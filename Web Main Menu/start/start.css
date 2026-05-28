@@ -1,0 +1,331 @@
+.os-shell--start {
+  overflow: hidden;
+}
+
+.term-prompt--entry {
+  flex-shrink: 0;
+}
+
+.worlds-column {
+  min-height: 0;
+}
+
+.worlds-column .os-window-body--terminal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.worlds-column .term-prompt--list,
+.worlds-column .worlds-column-bottom {
+  flex-shrink: 0;
+}
+
+.worlds-column .worlds-list-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.worlds-list {
+  list-style: none;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  box-sizing: border-box;
+}
+
+.worlds-list>li {
+  flex: 0 0 auto;
+  min-height: 2.5em;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 0;
+  position: relative;
+}
+
+.worlds-list>li+li>.worlds-entry {
+  box-shadow: inset 0 1px 0 rgba(255, 128, 0, 0.14);
+}
+
+.worlds-entry {
+  display: grid;
+  grid-template-columns: 2.2em minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 100%;
+  padding: 0.5em 0.5em;
+  box-sizing: border-box;
+  border: none;
+  border-left: 2px solid transparent;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  appearance: none;
+  transition: background-color 0.1s ease, border-color 0.1s ease, box-shadow 0.1s ease;
+}
+
+.worlds-entry--name-only {
+  grid-template-columns: 2.2em 1fr;
+}
+
+.worlds-list>li>.worlds-entry {
+  grid-column: 1;
+}
+
+.worlds-entry-delete {
+  position: absolute;
+  right: 0.35em;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.75em;
+  height: 1.75em;
+  margin-right: 0;
+  padding: 0;
+  border: 1px solid rgba(255, 128, 0, 0.28);
+  background: rgba(4, 6, 9, 0.85);
+  font: inherit;
+  font-size: clamp(0.7rem, 1.3vmin, 0.82rem);
+  letter-spacing: 0.05em;
+  line-height: 1;
+  appearance: none;
+  cursor: var(--cursor-pointer);
+  transition: background-color 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+}
+
+.worlds-entry-confirm,
+.worlds-entry-cancel {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.75em;
+  height: 1.75em;
+  margin-right: 0;
+  padding: 0;
+  border: 1px solid rgba(255, 128, 0, 0.28);
+  background: rgba(4, 6, 9, 0.85);
+  font: inherit;
+  font-size: clamp(0.7rem, 1.3vmin, 0.82rem);
+  letter-spacing: 0.05em;
+  line-height: 1;
+  appearance: none;
+  cursor: var(--cursor-pointer);
+  transition: background-color 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+}
+
+.worlds-entry-confirm {
+  right: 2.35em;
+}
+
+.worlds-entry-cancel {
+  right: 0.35em;
+}
+
+.worlds-list>li>.worlds-entry {
+  padding-right: 4.6em;
+}
+
+.worlds-entry-delete:hover,
+.worlds-entry-delete:focus-visible {
+  border-color: rgba(255, 128, 0, 0.75);
+  background: rgba(18, 10, 4, 0.95);
+  color: var(--orange-hot);
+  -webkit-text-fill-color: var(--orange-hot);
+  outline: none;
+}
+
+.worlds-entry-confirm:hover,
+.worlds-entry-confirm:focus-visible {
+  border-color: rgba(255, 128, 0, 0.75);
+  background: rgba(18, 10, 4, 0.95);
+  color: rgba(255, 220, 170, 1);
+  -webkit-text-fill-color: rgba(255, 220, 170, 1);
+  outline: none;
+}
+
+.worlds-entry-cancel:hover,
+.worlds-entry-cancel:focus-visible {
+  border-color: rgba(255, 128, 0, 0.75);
+  background: rgba(18, 10, 4, 0.95);
+  color: rgba(255, 160, 96, 0.75);
+  -webkit-text-fill-color: rgba(255, 160, 96, 0.75);
+  outline: none;
+}
+
+.worlds-entry:hover,
+.worlds-entry:focus-visible {
+  background: rgba(18, 10, 4, 0.94);
+  border-left-color: rgba(255, 128, 0, 0.95);
+  box-shadow: inset 0 0 18px rgba(255, 90, 40, 0.16);
+  outline: none;
+}
+
+.worlds-entry-index {
+  font-size: clamp(0.72rem, 1.35vmin, 0.85rem);
+  letter-spacing: 0.06em;
+}
+
+.worlds-entry-name {
+  min-width: 0;
+  font-size: clamp(0.88rem, 1.85vmin, 1.1rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.worlds-entry-seed,
+.worlds-entry-ip {
+  font-size: clamp(0.72rem, 1.4vmin, 0.88rem);
+  letter-spacing: 0.08em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.worlds-column-bottom {
+  flex-shrink: 0;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.worlds-column-bottom--compose-only {
+  padding-top: 6px;
+  border-top: 1px dashed rgba(255, 128, 0, 0.18);
+}
+
+.worlds-compose-dock {
+  flex-shrink: 0;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(255, 128, 0, 0.18);
+}
+
+.term-prompt--list {
+  flex-shrink: 0;
+  margin-bottom: 6px;
+}
+
+.term-prompt--compose {
+  flex-shrink: 0;
+  margin-bottom: 0;
+  padding-top: 8px;
+}
+
+.worlds-compose-dock .term-row-label {
+  font-size: clamp(0.85rem, 1.8vmin, 1.05rem);
+}
+
+.worlds-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.worlds-compose-fields {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.worlds-compose-field {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.worlds-compose-field--name {
+  flex: 1 1 auto;
+}
+
+.worlds-compose-field--meta {
+  flex: 0 0 9.5em;
+}
+
+.worlds-compose-label {
+  flex-shrink: 0;
+  font-size: clamp(0.65rem, 1.2vmin, 0.75rem);
+  letter-spacing: 0.08em;
+}
+
+.worlds-compose-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.3em 0.4em;
+  border: none;
+  border-bottom: 1px solid rgba(255, 128, 0, 0.35);
+  background: rgba(2, 4, 7, 0.6);
+  color: rgba(255, 160, 80, 0.95);
+  font: inherit;
+  font-size: clamp(0.8rem, 1.6vmin, 0.95rem);
+  letter-spacing: 0.06em;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.worlds-compose-input::placeholder {
+  color: rgba(255, 128, 0, 0.35);
+}
+
+.worlds-compose-input:focus {
+  outline: none;
+  border-bottom-color: rgba(255, 128, 0, 0.75);
+  background: rgba(2, 4, 7, 0.85);
+}
+
+.worlds-compose-field--meta .worlds-compose-input {
+  text-align: right;
+}
+
+.worlds-compose-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.worlds-compose-actions .term-row {
+  flex: 1 1 0;
+  padding: 0.4em 0.5em;
+}
+
+.worlds-compose-actions .term-row:disabled {
+  opacity: 0.38;
+  border-color: rgba(255, 128, 0, 0.18);
+  background: rgba(4, 6, 9, 0.75);
+  box-shadow: none;
+}
+
+.worlds-compose-actions .term-row-label {
+  font-size: clamp(0.8rem, 1.6vmin, 0.95rem);
+}
+
+.os-window--nav .os-window-body--terminal {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.os-window--nav .term-prompt {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.os-window--nav .term-menu {
+  width: 100%;
+}

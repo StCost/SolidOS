@@ -1,0 +1,384 @@
+.os-workspace.os-workspace--wm {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  --wm-inset: clamp(12px, 2.5vmin, 24px);
+  padding: 0;
+  gap: 0;
+}
+
+.os-workspace--connect.os-workspace--wm,
+.os-workspace--settings.os-workspace--wm,
+.os-workspace--credits.os-workspace--wm {
+  --wm-inset: clamp(16px, 3vmin, 32px);
+}
+
+.os-workspace--wm.os-workspace--menu {
+  justify-content: flex-start;
+  --wm-inset: clamp(16px, 3vmin, 32px);
+}
+
+.os-wm-board {
+  display: contents;
+}
+
+.os-workspace--wm {
+  --wm-col-gap: 2%;
+  --wm-col-width: calc((100% - 2 * var(--wm-inset) - 2 * var(--wm-col-gap)) / 3);
+  --wm-connect-prompt-top: calc(var(--wm-inset) + 1.35em + 6px);
+  --wm-connect-nav-slot: 7.5rem;
+  --wm-connect-nav-gap: var(--wm-inset);
+  --wm-menu-actions-slot: 13.75rem;
+}
+
+.os-workspace--wm .os-window[data-wm-preset] {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  max-width: none;
+  max-height: none;
+  box-sizing: border-box;
+}
+
+.os-workspace--menu .os-window[data-wm-preset="menu-splash"] {
+  left: 50%;
+  top: 14%;
+  width: min(900px, 92%);
+  height: 300px;
+  transform: translateX(-50%);
+}
+
+.os-workspace--menu .os-window[data-wm-preset="menu-actions"] {
+  left: var(--wm-inset);
+  top: calc(100% - var(--wm-menu-actions-slot) - var(--wm-inset));
+  bottom: var(--wm-inset);
+  width: min(440px, calc(100% - 2 * var(--wm-inset)));
+  height: auto;
+}
+
+.os-workspace--connect .os-window[data-wm-preset="connect-col-0"],
+.os-workspace--connect .os-window[data-wm-preset="connect-col-1"],
+.os-workspace--connect .os-window[data-wm-preset="connect-col-2"] {
+  top: var(--wm-connect-prompt-top);
+  width: var(--wm-col-width);
+}
+
+.os-workspace--connect .os-window[data-wm-preset="connect-col-0"] {
+  left: var(--wm-inset);
+  bottom: calc(var(--wm-connect-nav-slot) + var(--wm-connect-nav-gap) + var(--wm-inset));
+  height: auto;
+}
+
+.os-workspace--connect .os-window[data-wm-preset="connect-col-1"] {
+  left: calc(var(--wm-inset) + var(--wm-col-width) + var(--wm-col-gap));
+  bottom: var(--wm-inset);
+  height: auto;
+}
+
+.os-workspace--connect .os-window[data-wm-preset="connect-col-2"] {
+  left: calc(var(--wm-inset) + 2 * (var(--wm-col-width) + var(--wm-col-gap)));
+  bottom: var(--wm-inset);
+  height: auto;
+}
+
+.os-workspace--connect .os-window[data-wm-preset="connect-nav"] {
+  left: var(--wm-inset);
+  top: calc(100% - var(--wm-connect-nav-slot) - var(--wm-inset));
+  bottom: var(--wm-inset);
+  width: var(--wm-col-width);
+  max-width: calc(100% - 2 * var(--wm-inset));
+  height: auto;
+}
+
+.os-workspace--connect.os-workspace--wm > .term-prompt--entry,
+.os-workspace--settings.os-workspace--wm > .term-prompt--entry,
+.os-workspace--credits.os-workspace--wm > .term-prompt--entry {
+  position: absolute;
+  left: var(--wm-inset);
+  top: var(--wm-inset);
+  right: var(--wm-inset);
+  z-index: 1;
+  margin: 0;
+}
+
+.os-workspace--settings {
+  --wm-settings-nav-slot: 10.75rem;
+  --wm-settings-nav-gap: var(--wm-inset);
+}
+
+.os-workspace--settings .os-window[data-wm-preset="settings-tabs"] {
+  left: var(--wm-inset);
+  top: var(--wm-connect-prompt-top);
+  bottom: calc(var(--wm-settings-nav-slot) + var(--wm-settings-nav-gap) + var(--wm-inset));
+  width: var(--wm-col-width);
+  height: auto;
+}
+
+.os-workspace--settings .os-window[data-wm-preset="settings-content"] {
+  left: calc(var(--wm-inset) + var(--wm-col-width) + var(--wm-col-gap));
+  right: var(--wm-inset);
+  top: var(--wm-connect-prompt-top);
+  bottom: var(--wm-inset);
+  width: auto;
+  height: auto;
+}
+
+.os-workspace--settings .os-window[data-wm-preset="settings-nav"] {
+  left: var(--wm-inset);
+  top: calc(100% - var(--wm-settings-nav-slot) - var(--wm-inset));
+  bottom: var(--wm-inset);
+  width: var(--wm-col-width);
+  max-width: calc(100% - 2 * var(--wm-inset));
+  height: auto;
+}
+
+.os-workspace--credits {
+  --wm-credits-nav-slot: 7.5rem;
+  --wm-credits-nav-gap: var(--wm-inset);
+  --wm-credits-content-width: min(36rem, calc(100% - 2 * var(--wm-inset)));
+}
+
+.os-workspace--credits .os-window[data-wm-preset="credits-content"] {
+  left: 50%;
+  top: var(--wm-connect-prompt-top);
+  bottom: calc(var(--wm-credits-nav-slot) + var(--wm-credits-nav-gap) + var(--wm-inset));
+  width: var(--wm-credits-content-width);
+  height: auto;
+  transform: translateX(-50%);
+}
+
+.os-workspace--credits .os-window[data-wm-preset="credits-nav"] {
+  left: 50%;
+  top: calc(100% - var(--wm-credits-nav-slot) - var(--wm-inset));
+  bottom: var(--wm-inset);
+  width: var(--wm-credits-content-width);
+  max-width: calc(100% - 2 * var(--wm-inset));
+  height: auto;
+  transform: translateX(-50%);
+}
+
+.os-window--managed {
+  align-self: auto;
+}
+
+.os-window--managed.os-window--focused {
+  z-index: 6;
+}
+
+.os-window-chrome--drag {
+  cursor: var(--cursor-drag) !important;
+  touch-action: none;
+}
+
+.os-window-body-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.os-window--splash.os-window--managed {
+  min-height: 300px;
+}
+
+.os-window--splash.os-window--managed .os-window-body-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.os-window--splash.os-window--managed .os-window-body--terminal {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.os-window--managed .os-window-body-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.os-window--managed .os-window-body--terminal {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.os-window--opening .os-window-chrome--drag {
+  overflow: hidden;
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: wm-chrome-open 0.3s ease-out forwards;
+}
+
+.os-window--opening .os-window-body-shell {
+  max-height: 0;
+  overflow: clip;
+  animation: wm-body-open 0.32s ease-out 0.3s forwards;
+}
+
+.os-window--opening.os-window--open-done .os-window-chrome--drag,
+.os-window--opening.os-window--open-done .os-window-body-shell {
+  animation: none;
+  transform: none;
+  max-height: none;
+  overflow: visible;
+}
+
+.os-window--opening-body-only .os-window-chrome--drag {
+  transform: none;
+  animation: none;
+  overflow: visible;
+}
+
+.os-window--opening-body-only .os-window-body-shell {
+  max-height: 0;
+  overflow: clip;
+  animation: wm-body-open 0.32s ease-out forwards;
+}
+
+.os-window--opening-body-only.os-window--open-done .os-window-body-shell {
+  animation: none;
+  max-height: none;
+  overflow: visible;
+}
+
+@keyframes wm-chrome-open {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes wm-body-open {
+  to {
+    max-height: var(--wm-body-max);
+  }
+}
+
+.os-wm-resize {
+  position: absolute;
+  z-index: 4;
+  touch-action: none;
+}
+
+.os-wm-resize--n {
+  left: 8px;
+  right: 8px;
+  top: -4px;
+  height: 8px;
+  cursor: url("cursor-resize-ns.svg?v=2") 11.2 11.2, ns-resize !important;
+}
+
+.os-wm-resize--s {
+  left: 8px;
+  right: 8px;
+  bottom: -4px;
+  height: 8px;
+  cursor: url("cursor-resize-ns.svg?v=2") 11.2 11.2, ns-resize !important;
+}
+
+.os-wm-resize--e {
+  top: 8px;
+  bottom: 8px;
+  right: -4px;
+  width: 8px;
+  cursor: url("cursor-resize-ew.svg?v=2") 11.2 11.2, ew-resize !important;
+}
+
+.os-wm-resize--w {
+  top: 8px;
+  bottom: 8px;
+  left: -4px;
+  width: 8px;
+  cursor: url("cursor-resize-ew.svg?v=2") 11.2 11.2, ew-resize !important;
+}
+
+.os-wm-resize--ne {
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  cursor: url("cursor-resize-nwse.svg?v=2") 11.2 11.2, nwse-resize !important;
+}
+
+.os-wm-resize--nw {
+  top: -4px;
+  left: -4px;
+  width: 12px;
+  height: 12px;
+  cursor: url("cursor-resize-nesw.svg?v=2") 11.2 11.2, nesw-resize !important;
+}
+
+.os-wm-resize--se {
+  bottom: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  cursor: url("cursor-resize-nesw.svg?v=2") 11.2 11.2, nesw-resize !important;
+}
+
+.os-wm-resize--sw {
+  bottom: -4px;
+  left: -4px;
+  width: 12px;
+  height: 12px;
+  cursor: url("cursor-resize-nwse.svg?v=2") 11.2 11.2, nwse-resize !important;
+}
+
+.term-overlay .os-window[data-wm-preset] {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: min(480px, 100%);
+  height: fit-content;
+  max-width: 100%;
+}
+
+.term-overlay .os-window--managed {
+  align-self: auto;
+}
+
+body[data-wm-drag] {
+  cursor: var(--cursor-drag) !important;
+}
+
+body[data-wm-resize="n"],
+body[data-wm-resize="s"] {
+  cursor: var(--cursor-resize-ns) !important;
+}
+
+body[data-wm-resize="e"],
+body[data-wm-resize="w"] {
+  cursor: var(--cursor-resize-ew) !important;
+}
+
+body[data-wm-resize="ne"],
+body[data-wm-resize="sw"] {
+  cursor: var(--cursor-resize-nesw) !important;
+}
+
+body[data-wm-resize="nw"],
+body[data-wm-resize="se"] {
+  cursor: var(--cursor-resize-nwse) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .os-window--opening .os-window-chrome--drag,
+  .os-window--opening .os-window-body-shell,
+  .os-window--opening-body-only .os-window-body-shell {
+    animation: none;
+    transform: none;
+    max-height: none;
+  }
+}

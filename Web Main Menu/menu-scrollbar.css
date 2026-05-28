@@ -1,0 +1,120 @@
+.worlds-list-scroll {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.worlds-list-scroll > .worlds-list {
+  width: 100%;
+  height: 100%;
+  margin-bottom: 0;
+  box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.worlds-list-scroll > .worlds-list::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.worlds-list-scrollbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--scrollbar-size);
+  background: var(--scrollbar-track);
+  cursor: url("cursor-scroll.svg?v=1") 11.2 11.2, default;
+  touch-action: none;
+  z-index: 4;
+  pointer-events: auto;
+}
+
+.worlds-list-scrollbar.is-hidden {
+  display: none;
+}
+
+.worlds-list-scrollbar-thumb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  min-height: 24px;
+  background-color: rgba(255, 128, 0, 0.06);
+  background-image: var(--scrollbar-thumb-stripe), url("hazard-tile.png");
+  background-size: auto, 16px 16px;
+  background-blend-mode: screen, normal;
+  border: 1px solid var(--scrollbar-thumb-border);
+  cursor: url("cursor-scroll.svg?v=1") 11.2 11.2, default;
+  touch-action: none;
+}
+
+.worlds-list-scrollbar-thumb:hover,
+.worlds-list-scrollbar-thumb.is-dragging {
+  background-color: var(--scrollbar-thumb-hover);
+  border-color: rgba(255, 128, 0, 0.22);
+}
+
+.menu-h-scroll {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.menu-h-scroll > .menu-h-scroll-view {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.menu-h-scroll > .menu-h-scroll-view::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.menu-h-scrollbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--scrollbar-size);
+  background: var(--scrollbar-track);
+  cursor: var(--cursor-scroll-h);
+  touch-action: none;
+  z-index: 4;
+  pointer-events: auto;
+}
+
+.menu-h-scrollbar.is-hidden {
+  display: none;
+}
+
+.menu-h-scrollbar-thumb {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  min-width: 24px;
+  background-color: rgba(255, 128, 0, 0.06);
+  background-image: var(--scrollbar-thumb-stripe), url("hazard-tile.png");
+  background-size: auto, 16px 16px;
+  background-blend-mode: screen, normal;
+  border: 1px solid var(--scrollbar-thumb-border);
+  cursor: var(--cursor-scroll-h);
+  touch-action: none;
+}
+
+.menu-h-scrollbar-thumb:hover,
+.menu-h-scrollbar-thumb.is-dragging {
+  background-color: var(--scrollbar-thumb-hover);
+  border-color: rgba(255, 128, 0, 0.22);
+}

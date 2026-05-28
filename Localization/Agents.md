@@ -1,0 +1,1 @@
+if adding new localization key-value - translate value to correct lang of file. make sure all localization files have edited key correctly.
