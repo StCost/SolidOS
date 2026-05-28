@@ -64,10 +64,6 @@
   overflow-y: scroll;
   overflow-x: hidden;
   scrollbar-gutter: stable;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  align-items: stretch;
 }
 
 .settings-scroll.is-empty::before {
@@ -408,20 +404,16 @@
   --settings-slider-thumb-width: 12px;
   --settings-slider-thumb-height: 18px;
   --settings-slider-fill: 0;
-  --settings-slider-stripe-unfilled: repeating-linear-gradient(
-    -45deg,
-    rgba(255, 128, 0, 0.055) 0,
-    rgba(255, 128, 0, 0.055) 4px,
-    transparent 4px,
-    transparent 8px
-  );
-  --settings-slider-stripe-filled: repeating-linear-gradient(
-    -45deg,
-    rgba(255, 170, 80, 0.28) 0,
-    rgba(255, 170, 80, 0.28) 4px,
-    rgba(255, 128, 0, 0.1) 4px,
-    rgba(255, 128, 0, 0.1) 8px
-  );
+  --settings-slider-stripe-unfilled: repeating-linear-gradient(-45deg,
+      rgba(255, 128, 0, 0.055) 0,
+      rgba(255, 128, 0, 0.055) 4px,
+      transparent 4px,
+      transparent 8px);
+  --settings-slider-stripe-filled: repeating-linear-gradient(-45deg,
+      rgba(255, 170, 80, 0.28) 0,
+      rgba(255, 170, 80, 0.28) 4px,
+      rgba(255, 128, 0, 0.1) 4px,
+      rgba(255, 128, 0, 0.1) 8px);
   --settings-slider-rail-inset-left: 0.1em;
   --settings-slider-rail-inset-right: 0.7em;
   position: relative;
@@ -693,13 +685,13 @@
   box-sizing: border-box;
 }
 
-.settings-controls-block > .settings-row.settings-row--slider {
+.settings-controls-block>.settings-row.settings-row--slider {
   flex-shrink: 0;
   margin-bottom: 0.15em;
   padding-bottom: 0.65em;
 }
 
-.settings-controls-block > .settings-row.settings-row--slider .settings-slider-track {
+.settings-controls-block>.settings-row.settings-row--slider .settings-slider-track {
   min-height: calc(var(--settings-slider-thumb-height, 18px) + 1.6em);
   padding-bottom: 1.6em;
 }
