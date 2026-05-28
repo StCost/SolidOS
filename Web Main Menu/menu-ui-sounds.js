@@ -8,6 +8,7 @@
   var PAGE_START = "start";
   var PAGE_SETTINGS = "settings";
   var PAGE_CREDITS = "credits";
+  var PAGE_EXTRAS = "extras";
 
   var hoverAudio = new Audio(AUDIO_HOVER_PATH);
   var clickAudio = new Audio(AUDIO_CLICK_PATH);
@@ -80,7 +81,11 @@
           element.classList.contains("term-row") ||
           element.classList.contains("settings-tab") ||
           element.classList.contains("settings-option-btn") ||
-          element.classList.contains("settings-step")
+          element.classList.contains("settings-step") ||
+          element.classList.contains("extras-link-row") ||
+          element.classList.contains("extras-game-picker") ||
+          element.classList.contains("extras-nav-tab") ||
+          element.classList.contains("extras-game-back")
         ) {
           return element;
         }
@@ -160,7 +165,8 @@
       pageId === PAGE_MENU ||
       pageId === PAGE_START ||
       pageId === PAGE_SETTINGS ||
-      pageId === PAGE_CREDITS
+      pageId === PAGE_CREDITS ||
+      pageId === PAGE_EXTRAS
     );
   }
 

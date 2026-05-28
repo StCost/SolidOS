@@ -3,6 +3,7 @@
   var pageStart = document.getElementById("pageStart");
   var pageSettings = document.getElementById("pageSettings");
   var pageCredits = document.getElementById("pageCredits");
+  var pageExtras = document.getElementById("pageExtras");
 
   function isGameMode() {
     if (window.WebMenuMode === "game") return true;
@@ -33,6 +34,10 @@
   document.getElementById("btnSettings").addEventListener("click", function () {
     menu.goToSettingsPage();
     openSettingsFromUnity();
+  });
+
+  document.getElementById("btnExtras").addEventListener("click", function () {
+    menu.goToExtrasPage();
   });
 
   document.getElementById("btnCredit").addEventListener("click", function () {
@@ -84,6 +89,14 @@
     }
 
     if (pageCredits && !pageCredits.hidden) {
+      menu.goToIndexPage();
+      return;
+    }
+
+    if (pageExtras && !pageExtras.hidden) {
+      if (window.WebExtras && window.WebExtras.handleEscape()) {
+        return;
+      }
       menu.goToIndexPage();
       return;
     }

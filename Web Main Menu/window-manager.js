@@ -20,6 +20,8 @@ var WebWindowManager = (function () {
     "settings-nav": { minWidth: MIN_WIDTH, minHeight: 0 },
     "credits-content": { minWidth: MIN_WIDTH, minHeight: 0 },
     "credits-nav": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "extras-content": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "extras-nav": { minWidth: MIN_WIDTH, minHeight: 0 },
     "modal-center": { minWidth: MIN_WIDTH, minHeight: 0 }
   };
 
@@ -966,6 +968,7 @@ var WebWindowManager = (function () {
     var pageStart = document.getElementById("pageStart");
     var pageSettings = document.getElementById("pageSettings");
     var pageCredits = document.getElementById("pageCredits");
+    var pageExtras = document.getElementById("pageExtras");
     var pageMenu = document.getElementById("pageMenu");
     if (pageStart && !pageStart.hidden) {
       var startWorkspace = pageStart.querySelector(".os-workspace--wm");
@@ -980,6 +983,14 @@ var WebWindowManager = (function () {
       if (creditsWorkspace) {
         syncWorkspaceWindows(creditsWorkspace);
         refreshWorkspaceScrollbars(creditsWorkspace);
+      }
+      return;
+    }
+    if (pageExtras && !pageExtras.hidden) {
+      var extrasWorkspace = pageExtras.querySelector(".os-workspace--wm");
+      if (extrasWorkspace) {
+        syncWorkspaceWindows(extrasWorkspace);
+        refreshWorkspaceScrollbars(extrasWorkspace);
       }
       return;
     }

@@ -9,7 +9,8 @@
     "web-page-changed",
     "web-window-layout-save",
     "web-window-layout-reset",
-    "web-start-lists-save"
+    "web-start-lists-save",
+    "web-open-external-url"
   ];
 
   function postToUnity(event) {
@@ -26,7 +27,8 @@
       seed: detail.seed || "",
       ip: detail.ip || "",
       layoutsJson: detail.layoutsJson || "",
-      listsJson: detail.listsJson || ""
+      listsJson: detail.listsJson || "",
+      url: detail.url || ""
     };
 
     window.vuplex.postMessage(JSON.stringify(payload));
