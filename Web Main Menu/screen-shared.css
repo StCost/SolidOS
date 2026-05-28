@@ -39,6 +39,14 @@
 
 @font-face {
   font-family: "CMFallback";
+  src: url("fonts/noto_cjk_subset.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+  unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+FF66-FF9D;
+}
+
+@font-face {
+  font-family: "CMFallback";
   src: url("fonts/noto_simplified_chinese_subset.otf") format("opentype");
   font-weight: normal;
   font-style: normal;
