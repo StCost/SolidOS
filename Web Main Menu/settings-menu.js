@@ -402,6 +402,15 @@
     state[field.key] = wireValue;
     postChange(field.key, wireValue);
     if (refreshChoiceRow) refreshChoiceRowUi(field);
+    if (field.key === "language") {
+      notifyLanguageChanged();
+    }
+  }
+
+  function notifyLanguageChanged() {
+    window.dispatchEvent(
+      new CustomEvent("web-settings-language-changed", { detail: { languageCode: state.language } })
+    );
   }
 
   function postChange(key, value) {
@@ -508,9 +517,7 @@
       applyCustomCursorMode(state.useCustomCursor);
     }
     if (key === "language") {
-      window.dispatchEvent(
-        new CustomEvent("web-settings-language-changed", { detail: { languageCode: state.language } })
-      );
+      notifyLanguageChanged();
     }
     if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.isAudioVolumeKey(key)) {
       syncWebAudioVolumes();
