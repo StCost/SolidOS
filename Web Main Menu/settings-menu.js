@@ -48,7 +48,8 @@
     { id: "interface", labelKey: "settings.title.interface" },
     { id: "gameplay", labelKey: "settings.title.gameplay" },
     { id: "audio", labelKey: "settings.title.audio" },
-    { id: "graphics", labelKey: "settings.title.graphics" }
+    { id: "graphics", labelKey: "settings.title.graphics" },
+    { id: "controls", labelKey: "settings.title.controls" }
   ];
 
   var DEFAULT_STATE = {
@@ -218,7 +219,6 @@
   function getFieldsForTab(tabId) {
     if (tabId === "gameplay") {
       return [
-        { type: "slider", key: "lookSensitivityPercent", labelKey: "settings.controls.look-sensitivity", min: 25, max: 200, step: 1, format: percentFormat },
         { type: "slider", key: "screenShakeIntensityPercent", labelKey: "settings.screen-shake", min: 0, max: 100, step: 1, format: percentFormat },
         { type: "toggle", key: "autoSelectPickup", labelKey: "settings.item-auto-select" },
         { type: "choice", key: "inventoryScrollClamp", labelKey: "settings.inventory-scroll", options: INVENTORY_SCROLL_OPTIONS, format: boolChoiceFormat },
@@ -656,7 +656,18 @@
     }
     activeTabId = tabId;
     renderAll();
+    if (tabId === "controls" && window.WebSettingsControls) {
+      window.WebSettingsControls.openControlsTab();
+    }
     playSettingsContentBodyOpen();
+  }
+
+  function renderControlsOnly() {
+    if (!contentRoot || activeTabId !== "controls") return;
+    hideHelpTooltip();
+    if (window.WebSettingsControls) {
+      window.WebSettingsControls.renderControlsInto(contentRoot);
+    }
   }
 
   function renderFields() {
@@ -664,6 +675,11 @@
     hideHelpTooltip();
     contentRoot.textContent = "";
     contentRoot.classList.remove("is-empty");
+
+    if (activeTabId === "controls") {
+      renderControlsOnly();
+      return;
+    }
 
     var fields = getFieldsForTab(activeTabId);
     var index;
@@ -1052,6 +1068,13 @@
     if (!isUnityMenuHost() && window.WebLocaleLoader && window.WebLocaleLoader.flushPendingLanguageOptions) {
       window.WebLocaleLoader.flushPendingLanguageOptions();
     }
+    if (!contentRoot) {
+      contentRoot = document.getElementById("settingsContent");
+    }
+    renderAll();
+    if (activeTabId === "controls" && window.WebSettingsControls) {
+      window.WebSettingsControls.openControlsTab();
+    }
     scheduleSliderValueLayoutRefresh();
   }
 
@@ -1227,7 +1250,23 @@
         continue;
       }
       if (key === "localeStrings") continue;
+      if (key === "controlsSection" || key === "controlsRows" || key === "controlsListeningRowId") continue;
       state[key] = payload[key];
+    }
+    if (window.WebSettingsControls) {
+      window.WebSettingsControls.applyControlsState(payload);
+      if (payload.controlsListeningRowId) {
+        window.WebSettingsControls.setListeningRowId(payload.controlsListeningRowId);
+      } else {
+        window.WebSettingsControls.setListeningRowId("");
+      }
+      if (
+        activeTabId === "controls" &&
+        (!payload.controlsRows || !payload.controlsRows.length) &&
+        isUnityMenuHost()
+      ) {
+        window.WebSettingsControls.openControlsTab();
+      }
     }
     if (Object.prototype.hasOwnProperty.call(payload, "terminalAnimationsEnabled")) {
       applyTerminalAnimations(payload.terminalAnimationsEnabled !== false);
@@ -1369,7 +1408,14 @@
     loadLocalPreview: loadLocalPreview,
     resetLocalPreview: resetLocalPreview,
     applyLocalChange: applyLocalChange,
-    setLanguageOptions: setLanguageOptions
+    setLanguageOptions: setLanguageOptions,
+    getLocalized: getLocalized,
+    percentFormat: percentFormat,
+    buildSliderRowForField: buildSliderRow,
+    renderControlsOnly: renderControlsOnly,
+    refreshAllSliderValuePositions: refreshAllSliderValuePositions,
+    scheduleSliderValueLayoutRefresh: scheduleSliderValueLayoutRefresh,
+    refreshOnOpen: onSettingsMenuOpen
   };
 
   if (document.readyState === "loading") {

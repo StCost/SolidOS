@@ -13,6 +13,9 @@
   function openSettingsFromUnity() {
     if (window.WebSettingsBridge) {
       WebSettingsBridge.open();
+      if (window.WebSettings && window.WebSettings.refreshOnOpen) {
+        window.WebSettings.refreshOnOpen();
+      }
     } else {
       window.dispatchEvent(new CustomEvent("web-settings-open"));
     }
