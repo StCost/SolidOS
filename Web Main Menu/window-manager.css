@@ -184,7 +184,7 @@
 }
 
 .os-window--splash.os-window--managed {
-  min-height: 300px;
+  min-height: 0;
 }
 
 .os-window--splash.os-window--managed .os-window-body-shell {

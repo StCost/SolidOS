@@ -40,7 +40,9 @@
   font-size: min(4.8rem, 18cqw, 22cqh, 9vmin);
   letter-spacing: 0.08em;
   line-height: 1;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .os-window--splash .term-divider {
@@ -55,7 +57,7 @@
 .os-window--splash .term-divider-line {
   flex: 1 1 auto;
   width: auto;
-  min-width: clamp(56px, 14vw, 140px);
+  min-width: 0;
   height: 2px;
   background: linear-gradient(180deg, var(--orange-hot), var(--orange-red));
 }

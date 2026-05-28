@@ -203,6 +203,16 @@ button:disabled,
   pointer-events: none;
 }
 
+.term-row-label,
+.settings-heading,
+.settings-tab,
+.os-statusbar-segment,
+.loading-text {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 body ::selection {
   background: transparent;
 }
@@ -538,12 +548,14 @@ textarea::selection {
 .os-window-title {
   flex: 1 1 auto;
   min-width: 0;
-  font-size: clamp(0.68rem, 1.3vmin, 0.8rem);
-  letter-spacing: 0.12em;
+  font-size: clamp(0.6rem, 2.2cqw, 0.8rem);
+  letter-spacing: clamp(0.06em, 0.22cqw, 0.12em);
   text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .os-window-body--terminal {
@@ -624,10 +636,10 @@ textarea::selection {
   transition: background-color 0.1s ease, border-color 0.1s ease;
 }
 
-.settings-scroll > .settings-row.settings-row--choice:nth-child(even),
-.settings-scroll > .settings-row.settings-row--slider:nth-child(even),
-.settings-scroll > .settings-row.settings-row--toggle:nth-child(even),
-.worlds-list > li:nth-child(even) > .worlds-entry {
+.settings-scroll>.settings-row.settings-row--choice:nth-child(even),
+.settings-scroll>.settings-row.settings-row--slider:nth-child(even),
+.settings-scroll>.settings-row.settings-row--toggle:nth-child(even),
+.worlds-list>li:nth-child(even)>.worlds-entry {
   background-color: var(--term-list-row-stripe);
 }
 
@@ -709,11 +721,9 @@ textarea::selection {
 
 .menu-mode--game .screen-vignette {
   background:
-    radial-gradient(
-      ellipse 85% 75% at 50% 50%,
+    radial-gradient(ellipse 85% 75% at 50% 50%,
       rgba(0, 0, 0, 0.12) 0%,
       rgba(0, 0, 0, 0.06) 25%,
-      rgba(0, 0, 0, 0.82) 100%
-    ),
+      rgba(0, 0, 0, 0.82) 100%),
     linear-gradient(180deg, rgba(0, 0, 0, 0.42) 0%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.65) 100%);
 }
