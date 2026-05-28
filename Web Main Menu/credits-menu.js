@@ -119,6 +119,12 @@
     }
 
     contentRoot.innerHTML = html;
+    if (window.WebScrollbarCursor) {
+      if (window.WebScrollbarCursor.initVerticalScrollViews) {
+        window.WebScrollbarCursor.initVerticalScrollViews(contentRoot);
+      }
+      window.WebScrollbarCursor.refreshAllScrollbars();
+    }
   }
 
   function onPageChanged(event) {

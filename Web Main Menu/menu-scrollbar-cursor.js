@@ -163,20 +163,23 @@
     updateThumbLayout(instance);
   }
 
+  var VERTICAL_SCROLL_WRAP_SELECTOR =
+    ".settings-scroll, .settings-tabs, .worlds-list, .credits-scroll";
+
   function wrapVerticalScrollView(scrollElement) {
-    if (!scrollElement || scrollElement.closest(".worlds-list-scroll")) {
+    if (!scrollElement || scrollElement.closest(".menu-v-scroll, .worlds-list-scroll")) {
       return;
     }
 
     var wrapperElement = document.createElement("div");
-    wrapperElement.className = "worlds-list-scroll";
+    wrapperElement.className = "menu-v-scroll worlds-list-scroll";
 
     var trackElement = document.createElement("div");
-    trackElement.className = "worlds-list-scrollbar";
+    trackElement.className = "menu-v-scrollbar worlds-list-scrollbar";
     trackElement.setAttribute("aria-hidden", "true");
 
     var thumbElement = document.createElement("div");
-    thumbElement.className = "worlds-list-scrollbar-thumb";
+    thumbElement.className = "menu-v-scrollbar-thumb worlds-list-scrollbar-thumb";
     trackElement.appendChild(thumbElement);
 
     scrollElement.parentNode.insertBefore(wrapperElement, scrollElement);
@@ -203,10 +206,28 @@
     if (!scrollElement) {
       return false;
     }
-    if (scrollElement.closest(".worlds-list-scroll")) {
+    if (scrollElement.closest(".menu-v-scroll, .worlds-list-scroll")) {
       return false;
     }
     return true;
+  }
+
+  function initVerticalScrollViews(rootElement) {
+    var searchRoot = rootElement || document;
+    var scrollElements = searchRoot.querySelectorAll(VERTICAL_SCROLL_WRAP_SELECTOR);
+    var index;
+    for (index = 0; index < scrollElements.length; index++) {
+      var scrollElement = scrollElements[index];
+      if (!shouldWrapScrollElement(scrollElement)) {
+        continue;
+      }
+      wrapVerticalScrollView(scrollElement);
+    }
+  }
+
+  function initScrollViews(rootElement) {
+    initVerticalScrollViews(rootElement);
+    initHorizontalScrollViews(rootElement);
   }
 
   function canHorizontalScroll(viewElement) {
@@ -421,13 +442,13 @@
 
   function getScrollCursorToken(clientX, clientY) {
     var element = document.elementFromPoint(clientX, clientY);
-    if (!element) {
+    if (!element || !element.closest) {
       return null;
     }
     if (element.closest(".menu-h-scrollbar") != null) {
       return "scroll-h";
     }
-    if (element.closest(".worlds-list-scrollbar") != null) {
+    if (element.closest(".menu-v-scrollbar, .worlds-list-scrollbar") != null) {
       return "scroll";
     }
     return null;
@@ -447,10 +468,22 @@
 
   window.addEventListener("resize", refreshAllScrollbars);
 
+  function onDomReady() {
+    initScrollViews(document);
+  }
+
   window.WebScrollbarCursor = {
     isOverScrollbar: isOverScrollbar,
     getScrollCursorToken: getScrollCursorToken,
     refreshAllScrollbars: refreshAllScrollbars,
-    initHorizontalScrollViews: initHorizontalScrollViews
+    initVerticalScrollViews: initVerticalScrollViews,
+    initHorizontalScrollViews: initHorizontalScrollViews,
+    initScrollViews: initScrollViews
   };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", onDomReady);
+  } else {
+    onDomReady();
+  }
 })();

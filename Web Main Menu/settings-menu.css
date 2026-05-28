@@ -15,6 +15,18 @@
   flex-shrink: 0;
 }
 
+.settings-tabs-window .menu-v-scroll,
+.settings-tabs-window .worlds-list-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.settings-content-window .menu-v-scroll,
+.settings-content-window .worlds-list-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .settings-tabs {
   display: flex;
   flex-direction: column;

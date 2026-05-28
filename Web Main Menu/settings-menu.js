@@ -698,6 +698,9 @@
     refreshAllSliderValuePositions();
     scheduleSliderValueLayoutRefresh();
     if (window.WebScrollbarCursor) {
+      if (window.WebScrollbarCursor.initVerticalScrollViews) {
+        window.WebScrollbarCursor.initVerticalScrollViews(contentRoot);
+      }
       window.WebScrollbarCursor.refreshAllScrollbars();
     }
   }
@@ -1495,6 +1498,12 @@
     }
     updateEmptyLoadingLabel();
     renderTabs();
+    if (window.WebScrollbarCursor && window.WebScrollbarCursor.initVerticalScrollViews) {
+      var settingsWorkspace = document.querySelector(".os-workspace--settings");
+      if (settingsWorkspace) {
+        window.WebScrollbarCursor.initVerticalScrollViews(settingsWorkspace);
+      }
+    }
     updateNavLabels();
     if (!isUnityMenuHost()) {
       loadLocalPreview();
