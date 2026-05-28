@@ -202,5 +202,8 @@
   "web.credits.loading": "Завантаження титрів...",
   "web.aria.credits-content": "Титри",
   "web.aria.credits-list": "Список титрів",
-  "web.aria.credits-menu": "Меню титрів"
+  "web.aria.credits-menu": "Меню титрів",
+  "settings.web.window-layout": "Розташування вікон меню",
+  "settings.web.reset-window-layouts": "Скинути позиції",
+  "settings.help.web.window-layout": "Відновлює стандартні позиції та розміри вікон меню."
 }

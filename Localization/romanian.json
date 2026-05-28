@@ -202,5 +202,8 @@
   "web.credits.loading": "Se încarcă creditele...",
   "web.aria.credits-content": "Credite",
   "web.aria.credits-list": "Lista creditelor",
-  "web.aria.credits-menu": "Meniul creditelor"
+  "web.aria.credits-menu": "Meniul creditelor",
+  "settings.web.window-layout": "Aranjarea ferestrelor",
+  "settings.web.reset-window-layouts": "Resetează pozițiile",
+  "settings.help.web.window-layout": "Restabilește pozițiile și dimensiunile implicite ale ferestrelor meniului."
 }

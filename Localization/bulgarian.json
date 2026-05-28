@@ -202,5 +202,8 @@
   "web.credits.loading": "Зареждане на екипа...",
   "web.aria.credits-content": "Екип",
   "web.aria.credits-list": "Списък с екипа",
-  "web.aria.credits-menu": "Меню на екипа"
+  "web.aria.credits-menu": "Меню на екипа",
+  "settings.web.window-layout": "Подредба на прозорците",
+  "settings.web.reset-window-layouts": "Нулирай позициите",
+  "settings.help.web.window-layout": "Възстановява стандартните позиции и размери на прозорците в менюто."
 }

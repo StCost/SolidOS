@@ -202,5 +202,8 @@
   "web.credits.loading": "Caricamento crediti...",
   "web.aria.credits-content": "Crediti",
   "web.aria.credits-list": "Elenco crediti",
-  "web.aria.credits-menu": "Menu crediti"
+  "web.aria.credits-menu": "Menu crediti",
+  "settings.web.window-layout": "Layout finestre menu",
+  "settings.web.reset-window-layouts": "Reimposta posizioni",
+  "settings.help.web.window-layout": "Ripristina posizioni e dimensioni predefinite delle finestre del menu."
 }

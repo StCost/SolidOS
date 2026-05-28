@@ -202,5 +202,8 @@
   "web.credits.loading": "Đang tải phần ghi công...",
   "web.aria.credits-content": "Ghi công",
   "web.aria.credits-list": "Danh sách ghi công",
-  "web.aria.credits-menu": "Menu ghi công"
+  "web.aria.credits-menu": "Menu ghi công",
+  "settings.web.window-layout": "Bố cục cửa sổ menu",
+  "settings.web.reset-window-layouts": "Đặt lại vị trí",
+  "settings.help.web.window-layout": "Khôi phục vị trí và kích thước mặc định của cửa sổ menu."
 }
