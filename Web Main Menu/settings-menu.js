@@ -663,6 +663,32 @@
       window.WebSettingsControls.openControlsTab();
     }
     playSettingsContentBodyOpen();
+    window.dispatchEvent(
+      new CustomEvent("web-settings-tab-changed", { detail: { tabId: tabId } })
+    );
+  }
+
+  function setActiveTab(tabId) {
+    if (!tabId) return false;
+    var index;
+    var found = false;
+    for (index = 0; index < TABS.length; index++) {
+      if (TABS[index].id === tabId) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) return false;
+    if (tabId === activeTabId) return true;
+    activeTabId = tabId;
+    renderAll();
+    if (tabId === "controls" && window.WebSettingsControls) {
+      window.WebSettingsControls.openControlsTab();
+    }
+    window.dispatchEvent(
+      new CustomEvent("web-settings-tab-changed", { detail: { tabId: tabId } })
+    );
+    return true;
   }
 
   function renderControlsOnly() {
@@ -1536,6 +1562,10 @@
     applyLocalChange: applyLocalChange,
     setLanguageOptions: setLanguageOptions,
     getLocalized: getLocalized,
+    getActiveTabId: function () {
+      return activeTabId;
+    },
+    setActiveTab: setActiveTab,
     percentFormat: percentFormat,
     buildSliderRowForField: buildSliderRow,
     renderControlsOnly: renderControlsOnly,

@@ -14,6 +14,7 @@
   var activeArtCard = null;
   var activeArtIsBackground = false;
   var activeArtId = "";
+  var activeGameId = "";
   var backgroundApplyTimer = 0;
   var ART_MODAL_OPEN_MS_DEFAULT = 340;
 
@@ -63,6 +64,31 @@
   function getManifest() {
     if (window.WebExtrasManifest) return window.WebExtrasManifest;
     return { games: [], art: [] };
+  }
+
+  function notifyRouteChanged() {
+    window.dispatchEvent(new CustomEvent("web-extras-route-changed"));
+  }
+
+  function normalizeExtrasRouteSection(section) {
+    if (!section) return "";
+    var value = section.toLowerCase();
+    if (value === "arts") return VIEW_ART;
+    if (value === "art") return VIEW_ART;
+    if (value === "games" || value === "game") return VIEW_GAMES;
+    if (value === "links" || value === "link") return VIEW_LINKS;
+    return "";
+  }
+
+  function findArtItemById(artId) {
+    if (!artId) return null;
+    var manifest = getManifest();
+    var artItems = manifest.art || [];
+    var index;
+    for (index = 0; index < artItems.length; index++) {
+      if (artItems[index].id === artId) return artItems[index];
+    }
+    return null;
   }
 
   function isBackgroundArtItem(artId, title) {
@@ -169,6 +195,7 @@
       cancelPendingBackgroundApply();
       closeArtViewer();
     }
+    if (viewId !== VIEW_GAME) activeGameId = "";
     currentView = viewId;
     if (viewArt) viewArt.hidden = viewId !== VIEW_ART;
     if (viewGames) viewGames.hidden = viewId !== VIEW_GAMES;
@@ -191,6 +218,7 @@
     if (playContentOpen !== false && viewChanged) {
       playExtrasContentBodyOpen();
     }
+    notifyRouteChanged();
   }
 
   function buildGameListHtml() {
@@ -230,13 +258,29 @@
   function openGame(gameId) {
     var game = findGameById(gameId);
     if (!game || !gameFrame) return;
+    activeGameId = gameId;
     gameFrame.src = game.path;
     showView(VIEW_GAME);
   }
 
   function closeGame() {
+    activeGameId = "";
     if (gameFrame) gameFrame.src = "about:blank";
     showView(VIEW_GAMES);
+  }
+
+  function openArtById(artId) {
+    var item = findArtItemById(artId);
+    if (!item) return false;
+    renderArt();
+    showView(VIEW_ART, false);
+    var title = getLocalized(item.titleKey, item.titleFallback || item.id);
+    var card = null;
+    if (artGridRoot) {
+      card = artGridRoot.querySelector('.extras-art-card[data-art-id="' + artId + '"]');
+    }
+    openArtViewer(item.path, title, card, item.id);
+    return true;
   }
 
   function renderGames() {
@@ -367,6 +411,7 @@
     setActiveArtCard(null);
     activeArtIsBackground = false;
     activeArtId = "";
+    notifyRouteChanged();
   }
 
   function openArtViewer(src, title, card, artId) {
@@ -385,6 +430,7 @@
     artViewer.classList.add("is-open");
     artViewerOpen = true;
     setActiveArtCard(card);
+    notifyRouteChanged();
   }
 
   function onArtGridClick(event) {
@@ -499,6 +545,9 @@
   function onPageChanged(event) {
     var detail = event.detail;
     if (!detail || detail.pageId !== PAGE_EXTRAS) return;
+    if (window.WebMenuRoute && window.WebMenuRoute.isApplyingRoute && window.WebMenuRoute.isApplyingRoute()) {
+      return;
+    }
     currentView = "";
     cancelPendingBackgroundApply();
     closeArtViewer();
@@ -549,8 +598,62 @@
   window.addEventListener("web-locale-applied", renderExtras);
   window.addEventListener("web-page-changed", onPageChanged);
 
+  function getRouteSegments() {
+    if (!isExtrasPageVisible()) return null;
+    var segments = ["extras"];
+    if (currentView === VIEW_LINKS) {
+      segments.push("links");
+      return segments;
+    }
+    if (currentView === VIEW_GAMES || currentView === VIEW_GAME) {
+      segments.push("games");
+      if (currentView === VIEW_GAME && activeGameId) {
+        segments.push(activeGameId);
+      }
+      return segments;
+    }
+    segments.push("art");
+    if (artViewerOpen && activeArtId) {
+      segments.push(activeArtId);
+    }
+    return segments;
+  }
+
+  function applyExtrasRoute(routeParts) {
+    if (!routeParts || !routeParts.length) {
+      showTab(VIEW_ART);
+      return;
+    }
+    var section = normalizeExtrasRouteSection(routeParts[0]);
+    var itemId = routeParts.length > 1 ? routeParts[1] : "";
+    if (section === VIEW_GAMES) {
+      if (itemId) {
+        renderGames();
+        openGame(itemId);
+      } else {
+        showTab(VIEW_GAMES);
+      }
+      return;
+    }
+    if (section === VIEW_LINKS) {
+      showTab(VIEW_LINKS);
+      return;
+    }
+    if (section === VIEW_ART) {
+      if (itemId) {
+        openArtById(itemId);
+      } else {
+        showTab(VIEW_ART);
+      }
+      return;
+    }
+    showTab(VIEW_ART);
+  }
+
   window.WebExtras = {
     renderExtras: renderExtras,
+    getRouteSegments: getRouteSegments,
+    applyRoute: applyExtrasRoute,
     handleEscape: function () {
       if (!isExtrasPageVisible()) return false;
       if (artViewerOpen) {
