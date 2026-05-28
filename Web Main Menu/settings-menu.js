@@ -405,7 +405,7 @@
   }
 
   function postChange(key, value) {
-    if (window.WebSettingsBridge) {
+    if (isUnityHost() && window.WebSettingsBridge) {
       window.WebSettingsBridge.set(key, value);
       return;
     }
@@ -492,10 +492,12 @@
       for (fieldIndex = 0; fieldIndex < tabFields.length; fieldIndex++) fields.push(tabFields[fieldIndex]);
     }
 
+    var changedField = null;
     var index;
     for (index = 0; index < fields.length; index++) {
       if (fields[index].key !== key) continue;
-      setFieldValueLocal(fields[index], value);
+      changedField = fields[index];
+      setFieldValueLocal(changedField, value);
       break;
     }
     saveLocalPreview();
@@ -513,6 +515,19 @@
     if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.isAudioVolumeKey(key)) {
       syncWebAudioVolumes();
     }
+
+    if (changedField && changedField.type === "toggle") {
+      refreshToggleRowUi(changedField);
+      updateNavLabels();
+      return;
+    }
+
+    if (changedField && changedField.type === "choice") {
+      refreshChoiceRowUi(changedField);
+      updateNavLabels();
+      return;
+    }
+
     renderAll();
   }
 
