@@ -119,7 +119,7 @@
   "settings.web.help.title": "ヘルプ",
   "settings.help.graphics.fps-cap": "1秒あたりの描画フレーム数を制限します。0は無制限で、GPUが許す限り高速です。 GPU負荷：高",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "乗り物や騎乗中にキャラクターモデルを表示します。",
+  "settings.help.third-person-view-seat": "車両を運転しているとき、または椅子に座っているときにキャラクターの後ろにカメラを配置します",
   "settings.help.custom-cursor": "メニューでシステム既定のポインターの代わりにカスタムカーソルを使用します",
   "settings.terminal-animations": "ターミナルアニメーション",
   "web.connect.prompt.net-join": "net join",

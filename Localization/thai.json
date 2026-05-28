@@ -119,7 +119,7 @@
   "settings.web.help.title": "ช่วยเหลือ",
   "settings.help.graphics.fps-cap": "จำกัดเฟรมที่เรนเดอร์ต่อวินาที ค่า 0 หมายถึงไม่จำกัด เร็วเท่าที่ GPU อนุญาต. โหลด GPU: สูง",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "แสดงโมเดลตัวละครของคุณเมื่อกำลังนั่งในยานพาหนะหรือพาหนะขี่",
+  "settings.help.third-person-view-seat": "กล้องอยู่หลังตัวละครเมื่อขับยานพาหนะหรือนั่งบนเก้าอี้",
   "settings.help.custom-cursor": "ใช้เคอร์เซอร์แบบกำหนดเองในเมนูแทนตัวชี้เริ่มต้นของระบบ",
   "settings.terminal-animations": "แอนิเมชันเทอร์มินัล",
   "web.connect.prompt.net-join": "net join",

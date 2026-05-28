@@ -119,7 +119,7 @@
   "settings.web.help.title": "Yardım",
   "settings.help.graphics.fps-cap": "Saniyede işlenen kareleri sınırlar. Sıfır sınırsız demektir, GPU'nun izin verdiği kadar hızlı. GPU yükü: yüksek",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "Bir araçta veya binekte otururken karakter modelinizi gösterir",
+  "settings.help.third-person-view-seat": "Bir araç kullanırken veya sandalyede otururken kamerayı karakterin arkasında tutar",
   "settings.help.custom-cursor": "Menülerde sistemin varsayılan işaretçisi yerine özel imleci kullanır",
   "settings.terminal-animations": "Terminal animasyonları",
   "web.connect.prompt.net-join": "net join",

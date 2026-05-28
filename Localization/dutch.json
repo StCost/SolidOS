@@ -119,7 +119,7 @@
   "settings.web.help.title": "Hulp",
   "settings.help.graphics.fps-cap": "Beperkt het aantal gerenderde frames per seconde. Nul betekent onbeperkt, zo snel als je GPU toestaat. GPU-belasting: hoog",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "Toont je personagemodel wanneer je in een voertuig of op een rijdier zit",
+  "settings.help.third-person-view-seat": "Camera achter het personage wanneer je een voertuig bestuurt of op een stoel zit",
   "settings.help.custom-cursor": "Gebruikt de aangepaste cursor in menu's in plaats van de standaard systeemaanwijzer",
   "settings.terminal-animations": "Terminalanimaties",
   "web.connect.prompt.net-join": "net join",

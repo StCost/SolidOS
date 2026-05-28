@@ -119,7 +119,7 @@
   "settings.web.help.title": "Pomoc",
   "settings.help.graphics.fps-cap": "Ogranicza renderowane klatki na sekundę. Zero oznacza bez limitu, tak szybko jak pozwala GPU. Obciążenie GPU: wysokie",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "Pokazuje model twojej postaci, gdy siedzisz w pojeździe lub na wierzchowcu",
+  "settings.help.third-person-view-seat": "Kamera za postacią podczas prowadzenia pojazdu lub siedzenia na krześle",
   "settings.help.custom-cursor": "Używa niestandardowego kursora w menu zamiast domyślnego wskaźnika systemowego",
   "settings.terminal-animations": "Animacje terminala",
   "web.connect.prompt.net-join": "net join",

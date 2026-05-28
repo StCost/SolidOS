@@ -119,7 +119,7 @@
   "settings.web.help.title": "Βοήθεια",
   "settings.help.graphics.fps-cap": "Περιορίζει τα καρέ που αποδίδονται ανά δευτερόλεπτο. Το μηδέν σημαίνει χωρίς όριο, όσο επιτρέπει η GPU. Φόρτος GPU: υψηλός",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "Δείχνει το μοντέλο του χαρακτήρα σου όταν κάθεσαι σε όχημα ή υποζύγιο",
+  "settings.help.third-person-view-seat": "Κάμερα πίσω από τον χαρακτήρα όταν οδηγείς όχημα ή κάθεσαι σε καρέκλα",
   "settings.help.custom-cursor": "Χρησιμοποιεί τον προσαρμοσμένο κέρσορα στα μενού αντί για τον προεπιλεγμένο δείκτη συστήματος",
   "settings.terminal-animations": "Κινούμενα σχέδια τερματικού",
   "web.connect.prompt.net-join": "net join",

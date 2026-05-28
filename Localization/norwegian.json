@@ -119,7 +119,7 @@
   "settings.web.help.title": "Hjelp",
   "settings.help.graphics.fps-cap": "Begrenser gjengitte bilder per sekund. Null betyr ubegrenset, så raskt GPU-en tillater. GPU-belastning: høy",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "Viser figurmodellen din når du sitter i et kjøretøy eller på et ridedyr",
+  "settings.help.third-person-view-seat": "Kamera bak figuren når du kjører et kjøretøy eller sitter på en stol",
   "settings.help.custom-cursor": "Bruker den tilpassede markøren i menyer i stedet for standard systempeker",
   "settings.terminal-animations": "Terminalanimasjoner",
   "web.connect.prompt.net-join": "net join",
