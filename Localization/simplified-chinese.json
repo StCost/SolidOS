@@ -119,7 +119,7 @@
   "settings.web.help.title": "帮助",
   "settings.help.graphics.fps-cap": "限制每秒渲染帧数。0表示无限制，按GPU能力尽快渲染。 GPU 负载：高",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "坐在载具或坐骑上时显示你的角色模型。",
+  "settings.help.third-person-view-seat": "驾驶载具或坐在椅子上时，镜头位于角色后方",
   "settings.help.custom-cursor": "在菜单中使用自定义光标，而不是系统默认指针",
   "settings.terminal-animations": "终端动画",
   "web.connect.prompt.net-join": "net join",

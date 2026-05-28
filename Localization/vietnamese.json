@@ -119,7 +119,7 @@
   "settings.web.help.title": "Trợ giúp",
   "settings.help.graphics.fps-cap": "Giới hạn số khung hình render mỗi giây. Số không nghĩa là không giới hạn, nhanh hết mức GPU cho phép. Tải GPU: cao",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "Hiển thị mô hình nhân vật khi bạn ngồi trong xe hoặc trên thú cưỡi",
+  "settings.help.third-person-view-seat": "Camera phía sau nhân vật khi lái phương tiện hoặc ngồi trên ghế",
   "settings.help.custom-cursor": "Dùng con trỏ tùy chỉnh trong menu thay cho con trỏ mặc định của hệ thống",
   "settings.terminal-animations": "Hoạt ảnh terminal",
   "web.connect.prompt.net-join": "net join",

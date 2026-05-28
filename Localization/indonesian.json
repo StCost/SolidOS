@@ -119,7 +119,7 @@
   "settings.web.help.title": "Bantuan",
   "settings.help.graphics.fps-cap": "Membatasi frame yang dirender per detik. Nol berarti tanpa batas, secepat yang diizinkan GPU. Beban GPU: tinggi",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "Menampilkan model karaktermu saat duduk di kendaraan atau tunggangan",
+  "settings.help.third-person-view-seat": "Kamera di belakang karakter saat mengemudi kendaraan atau duduk di kursi",
   "settings.help.custom-cursor": "Menggunakan kursor kustom di menu, bukan penunjuk default sistem",
   "settings.terminal-animations": "Animasi terminal",
   "web.connect.prompt.net-join": "net join",

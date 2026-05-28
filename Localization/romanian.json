@@ -119,7 +119,7 @@
   "settings.web.help.title": "Ajutor",
   "settings.help.graphics.fps-cap": "Limitează cadrele randate pe secundă. Zero înseamnă nelimitat, cât permite GPU-ul. Încărcare GPU: ridicată",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "Arată modelul personajului tău când stai într-un vehicul sau pe o montură",
+  "settings.help.third-person-view-seat": "Cameră în spatele personajului când conduci un vehicul sau stai pe un scaun",
   "settings.help.custom-cursor": "Folosește cursorul personalizat în meniuri în locul indicatorului implicit al sistemului",
   "settings.terminal-animations": "Animații terminal",
   "web.connect.prompt.net-join": "net join",

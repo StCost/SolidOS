@@ -119,7 +119,7 @@
   "settings.web.help.title": "Ajuda",
   "settings.help.graphics.fps-cap": "Limita imagens renderizadas por segundo. Zero significa sem limite, tão rápido quanto a GPU permitir. Carga da GPU: alta",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "Mostra o modelo da tua personagem quando estás sentado num veículo ou montada",
+  "settings.help.third-person-view-seat": "Câmara atrás da personagem ao conduzires um veículo ou estares sentado numa cadeira",
   "settings.help.custom-cursor": "Usa o cursor personalizado nos menus em vez do ponteiro padrão do sistema",
   "settings.terminal-animations": "Animações do terminal",
   "web.connect.prompt.net-join": "net join",

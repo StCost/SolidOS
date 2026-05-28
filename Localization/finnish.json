@@ -119,7 +119,7 @@
   "settings.web.help.title": "Ohje",
   "settings.help.graphics.fps-cap": "Rajoittaa renderöityjä ruutuja sekunnissa. Nolla tarkoittaa rajatonta, niin nopeasti kuin GPU sallii. GPU-kuorma: korkea",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "Näyttää hahmomallisi, kun istut ajoneuvossa tai ratsun selässä",
+  "settings.help.third-person-view-seat": "Kamera hahmon takana ajoneuvoa ajaessa tai tuolilla istuessa",
   "settings.help.custom-cursor": "Käyttää mukautettua kursoria valikoissa järjestelmän oletusosoittimen sijaan",
   "settings.terminal-animations": "Pääteanimaatiot",
   "web.connect.prompt.net-join": "net join",

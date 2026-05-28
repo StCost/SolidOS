@@ -119,7 +119,7 @@
   "settings.web.help.title": "Помощ",
   "settings.help.graphics.fps-cap": "Ограничава кадрите в секунда. Нула означава без ограничение, колкото позволява видеокартата. Натоварване на GPU: високо",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "Показва модела на героя ти, когато седиш в превозно средство или на ездитно животно",
+  "settings.help.third-person-view-seat": "Камера зад героя при шофиране на превозно средство или седене на стол",
   "settings.help.custom-cursor": "Използва персонализиран курсор в менютата вместо системния указател по подразбиране",
   "settings.terminal-animations": "Терминални анимации",
   "web.connect.prompt.net-join": "net join",

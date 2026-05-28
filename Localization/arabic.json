@@ -119,7 +119,7 @@
   "settings.web.help.title": "مساعدة",
   "settings.help.graphics.fps-cap": "يحد عدد الإطارات المعروضة في الثانية. الصفر يعني بلا حد، حسب قدرة وحدة الرسوم. حمل وحدة معالجة الرسومات: مرتفع",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "يعرض نموذج شخصيتك أثناء الجلوس في مركبة أو على دابة",
+  "settings.help.third-person-view-seat": "الكاميرا خلف الشخصية عند قيادة مركبة أو الجلوس على كرسي",
   "settings.help.custom-cursor": "يستخدم مؤشرًا مخصصًا في القوائم بدلًا من المؤشر الافتراضي للنظام",
   "settings.terminal-animations": "رسوم الطرفية",
   "web.connect.prompt.net-join": "net join",

@@ -119,7 +119,7 @@
   "settings.web.help.title": "Súgó",
   "settings.help.graphics.fps-cap": "Korlátozza a másodpercenként renderelt képkockákat. A nulla korlátlant jelent, amennyit a GPU bír. GPU-terhelés: magas",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "Megjeleníti a karaktermodelledet, amikor járműben vagy hátason ülsz",
+  "settings.help.third-person-view-seat": "Kamera a karakter mögött, amikor járművet vezetsz vagy széken ülsz",
   "settings.help.custom-cursor": "A menükben az egyéni kurzort használja a rendszer alapértelmezett mutatója helyett",
   "settings.terminal-animations": "Terminál animációk",
   "web.connect.prompt.net-join": "net join",

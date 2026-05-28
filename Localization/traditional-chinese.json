@@ -119,7 +119,7 @@
   "settings.web.help.title": "說明",
   "settings.help.graphics.fps-cap": "限制每秒算繪影格數。0 表示無限制，依 GPU 能力盡快算繪。 GPU 負載：高",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "坐在載具或坐騎上時顯示你的角色模型。",
+  "settings.help.third-person-view-seat": "駕駛載具或坐在椅子上時，鏡頭位於角色後方",
   "settings.help.custom-cursor": "在選單中使用自訂游標，而不是系統預設指標",
   "settings.terminal-animations": "終端動畫",
   "web.connect.prompt.net-join": "net join",

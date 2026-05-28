@@ -119,7 +119,7 @@
   "settings.web.help.title": "Nápověda",
   "settings.help.graphics.fps-cap": "Omezuje vykreslené snímky za sekundu. Nula znamená bez limitu, podle výkonu GPU. Zátěž GPU: vysoká",
   "web.connect.label.addr": "ADDR=",
-  "settings.help.third-person-view-seat": "Zobrazuje model postavy, když sedíš ve vozidle nebo na jízdním tvorovi",
+  "settings.help.third-person-view-seat": "Kamera za postavou při řízení vozidla nebo sezení na židli",
   "settings.help.custom-cursor": "Použije vlastní kurzor v menu místo výchozího systémového ukazatele",
   "settings.terminal-animations": "Terminálové animace",
   "web.connect.prompt.net-join": "net join",
