@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "制作人员菜单",
   "settings.web.window-layout": "菜单窗口布局",
   "settings.web.reset-window-layouts": "重置位置",
-  "settings.help.web.window-layout": "恢复可拖动菜单窗口的默认位置和大小。"
+  "settings.help.web.window-layout": "恢复可拖动菜单窗口的默认位置和大小。",
+  "web.menu.quit": "退出",
+  "web.menu.disconnect": "断开连接"
 }

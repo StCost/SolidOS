@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Credits-Menü",
   "settings.web.window-layout": "Menüfenster-Layout",
   "settings.web.reset-window-layouts": "Positionen zurücksetzen",
-  "settings.help.web.window-layout": "Stellt Standardpositionen und -größen der Menüfenster wieder her."
+  "settings.help.web.window-layout": "Stellt Standardpositionen und -größen der Menüfenster wieder her.",
+  "web.menu.quit": "Beenden",
+  "web.menu.disconnect": "Verbindung trennen"
 }

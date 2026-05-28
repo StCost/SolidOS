@@ -44,12 +44,32 @@
     menu.goToIndexPage();
   });
 
+  function updateMenuExitQuitButtons() {
+    var exitButton = document.getElementById("btnExit");
+    if (!exitButton) return;
+    var showDisconnect = isGameMode();
+    exitButton.hidden = !showDisconnect;
+    exitButton.setAttribute("aria-hidden", showDisconnect ? "false" : "true");
+  }
+
+  window.WebMenuActions = window.WebMenuActions || {};
+  window.WebMenuActions.updateExitQuitButtons = updateMenuExitQuitButtons;
+
   document.getElementById("btnExit").addEventListener("click", function () {
-    menu.dispatchMenuEvent("web-exit");
+    menu.dispatchMenuEvent("web-exit-to-menu");
+  });
+
+  document.getElementById("btnQuit").addEventListener("click", function () {
+    menu.dispatchMenuEvent("web-quit");
     if (!isGameMode() && window.close) {
       window.close();
     }
   });
+
+  window.addEventListener("web-locale-applied", updateMenuExitQuitButtons);
+  window.addEventListener("web-page-changed", updateMenuExitQuitButtons);
+  window.addEventListener("web-menu-mode-changed", updateMenuExitQuitButtons);
+  updateMenuExitQuitButtons();
 
   document.addEventListener("keydown", function (event) {
     if (event.key !== "Escape") return;

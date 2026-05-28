@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Creditsmeny",
   "settings.web.window-layout": "Menyfönsterlayout",
   "settings.web.reset-window-layouts": "Återställ positioner",
-  "settings.help.web.window-layout": "Återställer standardpositioner och storlekar för menyfönster."
+  "settings.help.web.window-layout": "Återställer standardpositioner och storlekar för menyfönster.",
+  "web.menu.quit": "Avsluta",
+  "web.menu.disconnect": "Koppla från"
 }

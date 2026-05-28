@@ -1,6 +1,7 @@
 (function () {
   var eventNames = [
-    "web-exit",
+    "web-exit-to-menu",
+    "web-quit",
     "web-start",
     "web-select-world",
     "web-select-server",

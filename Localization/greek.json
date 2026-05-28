@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Μενού credits",
   "settings.web.window-layout": "Διάταξη παραθύρων μενού",
   "settings.web.reset-window-layouts": "Επαναφορά θέσεων",
-  "settings.help.web.window-layout": "Επαναφέρει τις προεπιλεγμένες θέσεις και μεγέθη των παραθύρων μενού."
+  "settings.help.web.window-layout": "Επαναφέρει τις προεπιλεγμένες θέσεις και μεγέθη των παραθύρων μενού.",
+  "web.menu.quit": "Έξοδος",
+  "web.menu.disconnect": "Αποσύνδεση"
 }

@@ -1260,7 +1260,12 @@
     var exitButton = document.getElementById("btnExit");
     if (exitButton) {
       var exitLabel = exitButton.querySelector(".term-row-label");
-      if (exitLabel) exitLabel.textContent = getLocalized("web.menu.exit", "Exit");
+      if (exitLabel) exitLabel.textContent = getLocalized("web.menu.disconnect", "Disconnect");
+    }
+    var quitButton = document.getElementById("btnQuit");
+    if (quitButton) {
+      var quitLabel = quitButton.querySelector(".term-row-label");
+      if (quitLabel) quitLabel.textContent = getLocalized("web.menu.quit", "Quit");
     }
     var startButton = document.getElementById("btnStart");
     if (startButton) {

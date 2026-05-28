@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Menu napisów końcowych",
   "settings.web.window-layout": "Układ okien menu",
   "settings.web.reset-window-layouts": "Resetuj pozycje",
-  "settings.help.web.window-layout": "Przywraca domyślne pozycje i rozmiary okien menu."
+  "settings.help.web.window-layout": "Przywraca domyślne pozycje i rozmiary okien menu.",
+  "web.menu.quit": "Wyjdź",
+  "web.menu.disconnect": "Rozłącz"
 }

@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Menú de créditos",
   "settings.web.window-layout": "Disposición de ventanas",
   "settings.web.reset-window-layouts": "Restablecer posiciones",
-  "settings.help.web.window-layout": "Restaura posiciones y tamaños predeterminados de las ventanas del menú."
+  "settings.help.web.window-layout": "Restaura posiciones y tamaños predeterminados de las ventanas del menú.",
+  "web.menu.quit": "Salir",
+  "web.menu.disconnect": "Desconectar"
 }

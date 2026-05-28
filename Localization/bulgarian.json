@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Меню на екипа",
   "settings.web.window-layout": "Подредба на прозорците",
   "settings.web.reset-window-layouts": "Нулирай позициите",
-  "settings.help.web.window-layout": "Възстановява стандартните позиции и размери на прозорците в менюто."
+  "settings.help.web.window-layout": "Възстановява стандартните позиции и размери на прозорците в менюто.",
+  "web.menu.quit": "Изход",
+  "web.menu.disconnect": "Прекъсни връзката"
 }

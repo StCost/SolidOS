@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "크레딧 메뉴",
   "settings.web.window-layout": "메뉴 창 배치",
   "settings.web.reset-window-layouts": "위치 초기화",
-  "settings.help.web.window-layout": "드래그 가능한 메뉴 창의 기본 위치와 크기를 복원합니다."
+  "settings.help.web.window-layout": "드래그 가능한 메뉴 창의 기본 위치와 크기를 복원합니다.",
+  "web.menu.quit": "종료",
+  "web.menu.disconnect": "연결 해제"
 }

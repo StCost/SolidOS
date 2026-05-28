@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Menu ghi công",
   "settings.web.window-layout": "Bố cục cửa sổ menu",
   "settings.web.reset-window-layouts": "Đặt lại vị trí",
-  "settings.help.web.window-layout": "Khôi phục vị trí và kích thước mặc định của cửa sổ menu."
+  "settings.help.web.window-layout": "Khôi phục vị trí và kích thước mặc định của cửa sổ menu.",
+  "web.menu.quit": "Thoát",
+  "web.menu.disconnect": "Ngắt kết nối"
 }

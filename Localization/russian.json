@@ -134,6 +134,8 @@
   "web.connect.label.seed": "СИД=",
   "web.connect.prompt.cd-up": "cd ..",
   "web.menu.exit": "Выход",
+  "web.menu.disconnect": "Отключиться",
+  "web.menu.quit": "Выход",
   "web.aria.connection-menu": "Меню подключения",
   "web.window.cmd-nav": "cmd_nav.sys",
   "web.status.node": "NODE CM-LOCAL",

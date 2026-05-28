@@ -205,5 +205,7 @@
   "web.aria.credits-menu": "Jenerik menüsü",
   "settings.web.window-layout": "Menü pencere düzeni",
   "settings.web.reset-window-layouts": "Konumları sıfırla",
-  "settings.help.web.window-layout": "Sürüklenebilir menü pencerelerinin varsayılan konum ve boyutlarını geri yükler."
+  "settings.help.web.window-layout": "Sürüklenebilir menü pencerelerinin varsayılan konum ve boyutlarını geri yükler.",
+  "web.menu.quit": "Çıkış",
+  "web.menu.disconnect": "Bağlantıyı kes"
 }

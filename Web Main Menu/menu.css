@@ -2,6 +2,19 @@
   align-items: flex-start;
 }
 
+#device.menu-mode--menu #btnExit,
+#btnExit[hidden] {
+  display: none !important;
+}
+
+#device.menu-mode--game #btnExit:not([hidden]) {
+  display: flex;
+}
+
+#device.menu-mode--game .os-workspace--menu.os-workspace--wm {
+  --wm-menu-actions-slot: 17.75rem;
+}
+
 .os-window--splash .os-window-body-shell {
   container-type: size;
   container-name: splash-body;
