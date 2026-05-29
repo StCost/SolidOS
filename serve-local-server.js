@@ -90,6 +90,16 @@ const server = http.createServer(function (request, response) {
   });
 });
 
+server.on("error", function (error) {
+  if (error.code === "EADDRINUSE") {
+    console.error("Port " + port + " is already in use.");
+    console.error("Close the other server on this port, then run serve-local.bat again.");
+  } else {
+    console.error("Server error: " + error.message);
+  }
+  process.exit(1);
+});
+
 server.listen(port, function () {
   console.log("Serving " + rootDirectory);
   console.log("http://localhost:" + port);

@@ -53,7 +53,7 @@
       100% { opacity: 0; }
     }
 
-    #runnerWrap {
+    #runnerHerd {
       position: absolute;
       left: 0;
       top: 0;
@@ -64,8 +64,62 @@
       transition: opacity 0.15s linear;
     }
 
-    #runnerWrap.is-hit {
+    #runnerHerd.is-hit {
       animation: runner-hit 0.28s ease-out;
+    }
+
+    #runnerFollowers {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .runner-follower {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 84px;
+      height: 68px;
+      pointer-events: none;
+    }
+
+    .runner-follower-tilt {
+      width: 100%;
+      height: 100%;
+      transform-origin: 40px 62px;
+    }
+
+    .runner-follower-shake {
+      width: 100%;
+      height: 100%;
+      transform-origin: 40px 62px;
+    }
+
+    .runner-follower-shake.is-running {
+      animation: runner-run-bob 0.44s ease-in-out infinite;
+    }
+
+    .runner-follower-shake svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 2px 6px rgba(100, 50, 180, 0.4));
+    }
+
+    #runnerWrap {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 84px;
+      height: 68px;
+      pointer-events: none;
+      z-index: 8;
+    }
+
+    #runnerWrap.is-hit {
+      animation: none;
     }
 
     @keyframes runner-hit {
@@ -124,22 +178,31 @@
       text-shadow: 0 0 8px rgba(160, 100, 220, 0.45);
     }
 
-    #hudLives {
-      top: 12px;
-      left: 14px;
-      display: flex;
-      gap: 6px;
-      font-size: 1.35rem;
-      letter-spacing: 0.08em;
-    }
-
-    #hudDistance {
+    #hudScoreRow {
       top: 12px;
       left: 50%;
       transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
       font-size: 1.15rem;
       letter-spacing: 0.14em;
       color: #e8cfff;
+    }
+
+    #hudDistance {
+      font-size: inherit;
+      letter-spacing: inherit;
+      color: inherit;
+      line-height: 1.1;
+    }
+
+    #hudSpeed {
+      font-size: 0.78em;
+      letter-spacing: 0.12em;
+      color: #c9a8ff;
+      line-height: 1.1;
     }
 
     #hudPlaying.hidden {
@@ -283,7 +346,9 @@
   <div id="gameRoot">
     <canvas id="gameCanvas" aria-hidden="true"></canvas>
     <div id="damageFlash" aria-hidden="true"></div>
-    <div id="runnerWrap" aria-hidden="true">
+    <div id="runnerHerd" aria-hidden="true">
+      <div id="runnerFollowers"></div>
+      <div id="runnerWrap">
       <div id="runnerTilt">
         <div id="runnerShake">
           <svg id="runnerSvg" viewBox="0 0 84 68" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -306,10 +371,13 @@
           </svg>
         </div>
       </div>
+      </div>
     </div>
     <div id="hudPlaying">
-      <div id="hudLives" class="hud-panel" aria-live="polite"></div>
-      <div id="hudDistance" class="hud-panel">0m</div>
+      <div id="hudScoreRow" class="hud-panel">
+        <div id="hudDistance">0m</div>
+        <div id="hudSpeed">0 m/s</div>
+      </div>
     </div>
     <div id="hudHighScore" class="hud-panel">best 0m</div>
     <div id="clickHint" class="is-visible" aria-hidden="true"></div>
@@ -326,8 +394,11 @@
     var LOCALE_KEY_GAME_OVER = "web.game.midnight-run.game-over";
     var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
     var LOCALE_KEY_METERS_SUFFIX = "web.game.midnight-run.meters-suffix";
+    var LOCALE_KEY_SPEED_SUFFIX = "web.game.midnight-run.speed-suffix";
     var METERS_PER_UNIT = 0.12;
-    var MAX_LIVES = 3;
+    var MAX_HP = 10;
+    var START_HP = 1;
+    var HP_DISTANCE_PER_LIFE = 1000;
 
     var PHASE_START = "start";
     var PHASE_PLAYING = "playing";
@@ -336,12 +407,15 @@
     var canvas = document.getElementById("gameCanvas");
     var context = canvas.getContext("2d");
     var damageFlash = document.getElementById("damageFlash");
+    var runnerHerd = document.getElementById("runnerHerd");
+    var runnerFollowers = document.getElementById("runnerFollowers");
     var runnerWrap = document.getElementById("runnerWrap");
+    var runnerSvg = document.getElementById("runnerSvg");
     var runnerTilt = document.getElementById("runnerTilt");
     var runnerShake = document.getElementById("runnerShake");
     var hudPlaying = document.getElementById("hudPlaying");
-    var hudLives = document.getElementById("hudLives");
     var hudDistance = document.getElementById("hudDistance");
+    var hudSpeed = document.getElementById("hudSpeed");
     var gameScreen = document.getElementById("gameScreen");
     var hudHighScore = document.getElementById("hudHighScore");
     var screenTitle = document.getElementById("screenTitle");
@@ -357,11 +431,14 @@
     var pointerHeld = false;
 
     var worldScroll = 0;
+    var scrollSpeedBase = 280;
     var scrollSpeed = 280;
-    var scrollSpeedMax = 520;
+    var speedDoubleDistanceMeters = 10000;
     var distanceMeters = 0;
     var highScoreMeters = 0;
-    var deathWasNewRecord = false;
+
+    var WORLD_REBASE_THRESHOLD = 80000;
+    var WORLD_REBASE_TARGET = 40000;
 
     var playerScreenX = 0;
     var playerWorldX = 0;
@@ -371,22 +448,25 @@
     var jumpHoldTime = 0;
     var jumpLaunched = false;
 
-    var jumpTapImpulse = 420;
-    var jumpHoldLift = 340;
+    var jumpTapImpulse = 370;
+    var jumpHoldLift = 300;
     var jumpHoldMaxSeconds = 0.55;
     var gravity = 1180;
     var gravityRelease = 1450;
 
-    var lives = MAX_LIVES;
+    var herdHp = START_HP;
+    var hpMilestoneNext = HP_DISTANCE_PER_LIFE;
+    var herdShuffleTime = 0;
+    var herdFollowerElements = [];
     var invincibleTimer = 0;
     var screenShakeTimer = 0;
     var screenShakeStrength = 0;
 
-    var groundSegments = [];
-    var groundSegmentLength = 120;
     var obstacles = [];
     var flyingObstacles = [];
     var smokeParticles = [];
+    var dustParticles = [];
+    var dustParticleMax = 52;
     var trailCleanups = [];
     var damageParticles = [];
     var obstacleSpawnGap = 520;
@@ -413,15 +493,15 @@
     var parallaxOffsets = [0, 0, 0, 0];
     var parallaxSpeeds = [0.018, 0.028, 0.038, 0.052];
 
+    var GROUND_PEAK_Y_RATIO = 0.7;
+    var GROUND_VALLEY_Y_RATIO = 0.9;
+
     var SKY_TILE_WIDTH = 1280;
     var SKY_TILE_HEIGHT = 720;
     var SKY_MOON_X = SKY_TILE_WIDTH * 0.82;
     var SKY_MOON_Y = SKY_TILE_HEIGHT * 0.11;
     var SKY_MOON_BLOCK_RADIUS = 90;
     var skyStars = [];
-
-    var heartFull = "\u2665";
-    var heartEmpty = "\u2661";
 
     function isPlaying() {
       return gamePhase === PHASE_PLAYING;
@@ -466,6 +546,7 @@
       setHighScoreHud();
       if (isPlaying()) {
         hudDistance.textContent = formatMeters(distanceMeters);
+        setSpeedHud();
       }
     }
 
@@ -510,22 +591,107 @@
       return Math.floor(meters) + suffix;
     }
 
+    function formatSpeed(speedValue) {
+      var speedMetersPerSecond = speedValue * METERS_PER_UNIT;
+      var suffix = getLocalized(LOCALE_KEY_SPEED_SUFFIX, " m/s");
+      return Math.round(speedMetersPerSecond) + suffix;
+    }
+
+    function setSpeedHud() {
+      hudSpeed.textContent = formatSpeed(scrollSpeed);
+    }
+
     function setHighScoreHud() {
       var bestLabel = getLocalized(LOCALE_KEY_BEST_LABEL, "best");
       hudHighScore.textContent = bestLabel + " " + formatMeters(highScoreMeters);
     }
 
-    function setLivesHud() {
-      var html = "";
-      var index;
-      for (index = 0; index < MAX_LIVES; index++) {
-        if (index < lives) {
-          html += "<span style=\"color:#e86a9a\">" + heartFull + "</span>";
-        } else {
-          html += "<span style=\"color:#4a3558\">" + heartEmpty + "</span>";
+    function createHerdFollowerElement(followerIndex) {
+      var wrap = document.createElement("div");
+      wrap.className = "runner-follower";
+      var tilt = document.createElement("div");
+      tilt.className = "runner-follower-tilt";
+      var shake = document.createElement("div");
+      shake.className = "runner-follower-shake";
+      var delaySeconds = followerIndex * 0.09;
+      shake.style.animationDelay = (-delaySeconds) + "s";
+      var svgClone = runnerSvg.cloneNode(true);
+      svgClone.removeAttribute("id");
+      shake.appendChild(svgClone);
+      tilt.appendChild(shake);
+      wrap.appendChild(tilt);
+      return wrap;
+    }
+
+    function syncHerdFollowerElements() {
+      var targetCount = herdHp - 1;
+      if (targetCount < 0) {
+        targetCount = 0;
+      }
+      var followerIndex;
+      while (herdFollowerElements.length < targetCount) {
+        followerIndex = herdFollowerElements.length;
+        var element = createHerdFollowerElement(followerIndex);
+        if (isPlaying() || isGameOver()) {
+          element.querySelector(".runner-follower-shake").classList.add("is-running");
+        }
+        runnerFollowers.appendChild(element);
+        herdFollowerElements.push(element);
+      }
+      while (herdFollowerElements.length > targetCount) {
+        var removed = herdFollowerElements.pop();
+        if (removed && removed.parentNode === runnerFollowers) {
+          runnerFollowers.removeChild(removed);
         }
       }
-      hudLives.innerHTML = html;
+    }
+
+    function setHerdRunAnimation(isRunning) {
+      var followerIndex;
+      if (isRunning) {
+        runnerShake.classList.add("is-running");
+      } else {
+        runnerShake.classList.remove("is-running");
+      }
+      for (followerIndex = 0; followerIndex < herdFollowerElements.length; followerIndex++) {
+        var shakeNode = herdFollowerElements[followerIndex].querySelector(".runner-follower-shake");
+        if (isRunning) {
+          shakeNode.classList.add("is-running");
+        } else {
+          shakeNode.classList.remove("is-running");
+        }
+      }
+    }
+
+    function updateHerdMilestones() {
+      while (distanceMeters >= hpMilestoneNext && herdHp < MAX_HP) {
+        herdHp += 1;
+        hpMilestoneNext += HP_DISTANCE_PER_LIFE;
+        syncHerdFollowerElements();
+      }
+    }
+
+    function positionHerdFollowers(slope) {
+      var followerIndex;
+      var followerCount = herdFollowerElements.length;
+      for (followerIndex = 0; followerIndex < followerCount; followerIndex++) {
+        var element = herdFollowerElements[followerIndex];
+        var depth = followerIndex + 1;
+        var seed = followerIndex * 2.17 + 0.61;
+        var baseOffsetX = 14 + depth * 11;
+        var shuffleX = Math.sin(herdShuffleTime * 2.35 + seed) * (2.5 + depth * 0.9);
+        var shuffleY = Math.sin(herdShuffleTime * 1.85 + seed * 1.37) * (2 + depth * 0.55);
+        var scale = 1 - depth * 0.035;
+        element.style.left = (baseOffsetX + shuffleX) + "px";
+        element.style.top = shuffleY + "px";
+        element.style.zIndex = String(depth);
+        element.style.opacity = String(0.9 - depth * 0.07);
+        element.style.transform = "scale(" + scale + ")";
+        var tiltNode = element.firstChild;
+        if (tiltNode && !isGameOver()) {
+          tiltNode.style.transform = "rotate(" + (slope * 0.35) + "rad)";
+        }
+      }
     }
 
     function showStartScreen() {
@@ -539,8 +705,14 @@
       recordBurst.innerHTML = "";
       hudPlaying.classList.add("hidden");
       clickHint.classList.add("is-visible");
-      runnerShake.classList.remove("is-running");
+      herdHp = START_HP;
+      hpMilestoneNext = HP_DISTANCE_PER_LIFE;
+      herdShuffleTime = 0;
+      syncHerdFollowerElements();
+      setHerdRunAnimation(false);
+      runnerHerd.classList.remove("is-hit");
       runnerWrap.classList.remove("is-dead");
+      runnerFollowers.style.visibility = "visible";
       positionRunnerDom();
     }
 
@@ -552,7 +724,6 @@
       screenMeters.classList.remove("hidden");
       clickHint.classList.remove("is-visible");
       hudPlaying.classList.add("hidden");
-      deathWasNewRecord = newRecord;
       if (newRecord) {
         gameScreen.classList.add("is-record");
         hudHighScore.classList.add("is-record");
@@ -612,13 +783,27 @@
       clickHint.style.top = (groundY - 42) + "px";
     }
 
+    function groundHillNoise(worldX) {
+      var layerA = Math.sin(worldX * 0.0022);
+      var layerB = Math.sin(worldX * 0.00135 + 1.2);
+      var layerC = Math.sin(worldX * 0.00078 + 2.4);
+      return layerA * 0.42 + layerB * 0.34 + layerC * 0.29;
+    }
+
+    function groundBumpNoise(worldX) {
+      return (
+        Math.sin(worldX * 0.032) * 4 +
+        Math.sin(worldX * 0.064 + 1.8) * 2.8 +
+        Math.sin(worldX * 0.108 + 3.4) * 1.8
+      );
+    }
+
     function groundWave(worldX) {
-      var base = height * 0.78;
-      var wave =
-        Math.sin(worldX * 0.0028) * 22 +
-        Math.sin(worldX * 0.0065 + 1.2) * 14 +
-        Math.sin(worldX * 0.0016) * 32;
-      return base + wave;
+      var peakY = height * GROUND_PEAK_Y_RATIO;
+      var valleyY = height * GROUND_VALLEY_Y_RATIO;
+      var centerY = (peakY + valleyY) * 0.5;
+      var hillAmplitude = (valleyY - peakY) * 0.5;
+      return centerY + groundHillNoise(worldX) * hillAmplitude + groundBumpNoise(worldX);
     }
 
     function groundSlope(worldX) {
@@ -628,23 +813,36 @@
       return Math.atan2(y1 - y0, delta * 2);
     }
 
-    function initGroundSegments() {
-      groundSegments.length = 0;
-      var startX = worldScroll - groundSegmentLength * 2;
-      var endX = worldScroll + width + groundSegmentLength * 4;
-      var segmentX = Math.floor(startX / groundSegmentLength) * groundSegmentLength;
-      while (segmentX < endX) {
-        groundSegments.push({ x: segmentX });
-        segmentX += groundSegmentLength;
+    function getScrollSpeedForDistance(meters) {
+      var speedMultiplier = 1 + meters / speedDoubleDistanceMeters;
+      return scrollSpeedBase * speedMultiplier;
+    }
+
+    function rebaseWorldCoordinates() {
+      if (worldScroll < WORLD_REBASE_THRESHOLD) {
+        return;
+      }
+      var shift = worldScroll - WORLD_REBASE_TARGET;
+      var index;
+      worldScroll = WORLD_REBASE_TARGET;
+      nextObstacleAt -= shift;
+      for (index = 0; index < obstacles.length; index++) {
+        obstacles[index].x -= shift;
+      }
+      for (index = 0; index < flyingObstacles.length; index++) {
+        flyingObstacles[index].x -= shift;
+      }
+      for (index = 0; index < smokeParticles.length; index++) {
+        smokeParticles[index].worldX -= shift;
+      }
+      for (index = 0; index < trailCleanups.length; index++) {
+        trailCleanups[index].x -= shift;
       }
     }
 
     function cleanupBehindPlayer() {
       var removeBefore = worldScroll - width * 0.6;
       var index;
-      while (groundSegments.length > 0 && groundSegments[0].x + groundSegmentLength < removeBefore) {
-        groundSegments.shift();
-      }
       index = 0;
       while (index < obstacles.length) {
         if (obstacles[index].x < removeBefore - 80) {
@@ -676,20 +874,6 @@
         } else {
           index += 1;
         }
-      }
-    }
-
-    function ensureGroundAhead() {
-      var needUntil = worldScroll + width + groundSegmentLength * 3;
-      var lastX = 0;
-      if (groundSegments.length > 0) {
-        lastX = groundSegments[groundSegments.length - 1].x + groundSegmentLength;
-      } else {
-        lastX = Math.floor(worldScroll / groundSegmentLength) * groundSegmentLength;
-      }
-      while (lastX < needUntil) {
-        groundSegments.push({ x: lastX });
-        lastX += groundSegmentLength;
       }
     }
 
@@ -739,7 +923,12 @@
         width: size.width,
         height: size.height
       });
-      nextObstacleAt = spawnX + obstacleSpawnGap + Math.random() * 320;
+      var gapBase = obstacleSpawnGap + Math.random() * 320;
+      var gapMultiplier = 1;
+      if (Math.random() < 0.28) {
+        gapMultiplier = 0.38 + Math.random() * 0.32;
+      }
+      nextObstacleAt = spawnX + gapBase * gapMultiplier;
       obstacleSpawnGap = Math.max(420, obstacleSpawnGap - 0.35);
     }
 
@@ -764,9 +953,11 @@
 
     function resetGame() {
       worldScroll = 0;
-      scrollSpeed = 280;
+      scrollSpeed = scrollSpeedBase;
       distanceMeters = 0;
-      lives = MAX_LIVES;
+      herdHp = START_HP;
+      hpMilestoneNext = HP_DISTANCE_PER_LIFE;
+      herdShuffleTime = 0;
       invincibleTimer = 0;
       screenShakeTimer = 0;
       screenShakeStrength = 0;
@@ -778,6 +969,7 @@
       obstacles.length = 0;
       flyingObstacles.length = 0;
       smokeParticles.length = 0;
+      dustParticles.length = 0;
       trailCleanups.length = 0;
       damageParticles.length = 0;
       obstacleSpawnGap = 520;
@@ -787,12 +979,14 @@
       parallaxOffsets[2] = 0;
       parallaxOffsets[3] = 0;
       playerWorldX = playerScreenX;
-      initGroundSegments();
-      setLivesHud();
+      syncHerdFollowerElements();
       hudDistance.textContent = "0m";
+      setSpeedHud();
       gamePhase = PHASE_PLAYING;
+      runnerHerd.classList.remove("is-hit");
       runnerWrap.classList.remove("is-dead");
-      runnerShake.classList.add("is-running");
+      runnerFollowers.style.visibility = "visible";
+      setHerdRunAnimation(true);
       hideGameScreen();
     }
 
@@ -810,8 +1004,9 @@
         newRecord = true;
       }
       gamePhase = PHASE_GAME_OVER;
-      runnerShake.classList.remove("is-running");
+      setHerdRunAnimation(false);
       runnerWrap.classList.add("is-dead");
+      runnerFollowers.style.visibility = "hidden";
       pointerHeld = false;
       jumpLaunched = false;
       showGameOverScreen(newRecord);
@@ -824,9 +1019,9 @@
       damageFlash.classList.remove("is-active");
       void damageFlash.offsetWidth;
       damageFlash.classList.add("is-active");
-      runnerWrap.classList.remove("is-hit");
-      void runnerWrap.offsetWidth;
-      runnerWrap.classList.add("is-hit");
+      runnerHerd.classList.remove("is-hit");
+      void runnerHerd.offsetWidth;
+      runnerHerd.classList.add("is-hit");
       for (index = 0; index < 14; index++) {
         damageParticles.push({
           x: playerScreenX + (Math.random() - 0.5) * 36,
@@ -962,15 +1157,17 @@
         var obstacleBottom = groundY + 4;
         if (hitbox.right > obstacleLeft && hitbox.left < obstacleRight &&
             hitbox.bottom > obstacleTop && hitbox.top < obstacleBottom) {
-          lives -= 1;
-          setLivesHud();
-          invincibleTimer = 1.4;
+          herdHp -= 1;
           triggerDamageEffects();
           launchDestroyedObstacle(obstacle);
           obstacles.splice(index, 1);
-          if (lives <= 0) {
+          if (herdHp <= 0) {
+            syncHerdFollowerElements();
             endGame();
+            return;
           }
+          syncHerdFollowerElements();
+          invincibleTimer = 1.4;
           return;
         }
       }
@@ -1012,6 +1209,39 @@
       }
     }
 
+    function spawnDustParticle() {
+      dustParticles.push({
+        x: width + Math.random() * 60,
+        y: height * 0.08 + Math.random() * height * 0.78,
+        size: 0.8 + Math.random() * 2.4,
+        speedX: 24 + Math.random() * 48 + scrollSpeed * 0.06,
+        speedY: (Math.random() - 0.5) * 10,
+        alpha: 0.06 + Math.random() * 0.16,
+        life: 2.2 + Math.random() * 3.5,
+        age: 0
+      });
+    }
+
+    function updateDustParticles(deltaSeconds) {
+      var index = 0;
+      if (isPlaying() || isStart()) {
+        while (dustParticles.length < dustParticleMax && Math.random() < deltaSeconds * 7) {
+          spawnDustParticle();
+        }
+      }
+      while (index < dustParticles.length) {
+        var particle = dustParticles[index];
+        particle.age += deltaSeconds;
+        particle.x -= particle.speedX * deltaSeconds;
+        particle.y += particle.speedY * deltaSeconds;
+        if (particle.age >= particle.life || particle.x < -20) {
+          dustParticles.splice(index, 1);
+        } else {
+          index += 1;
+        }
+      }
+    }
+
     function updateDamageParticles(deltaSeconds) {
       var index = 0;
       while (index < damageParticles.length) {
@@ -1047,6 +1277,7 @@
       updateJump(deltaSeconds);
       updateFlyingObstacles(deltaSeconds);
       updateSmokeParticles(deltaSeconds);
+      updateDustParticles(deltaSeconds);
       updateDamageParticles(deltaSeconds);
       if (screenShakeTimer > 0) screenShakeTimer -= deltaSeconds;
       positionRunnerDom();
@@ -1054,6 +1285,7 @@
 
     function updateStart(deltaSeconds) {
       updateJump(deltaSeconds);
+      updateDustParticles(deltaSeconds);
       positionRunnerDom();
       positionClickHint();
     }
@@ -1068,23 +1300,31 @@
         return;
       }
 
+      scrollSpeed = getScrollSpeedForDistance(distanceMeters);
       worldScroll += scrollSpeed * deltaSeconds;
       playerWorldX = worldScroll + playerScreenX;
       distanceMeters += scrollSpeed * deltaSeconds * METERS_PER_UNIT;
       hudDistance.textContent = formatMeters(distanceMeters);
+      setSpeedHud();
+      updateHerdMilestones();
 
-      if (scrollSpeed < scrollSpeedMax) {
-        scrollSpeed += 8 * deltaSeconds;
-      }
+      herdShuffleTime += deltaSeconds;
 
       var layerIndex;
+      var parallaxWrap = width * 2;
       for (layerIndex = 0; layerIndex < parallaxOffsets.length; layerIndex++) {
         parallaxOffsets[layerIndex] += scrollSpeed * parallaxSpeeds[layerIndex] * deltaSeconds;
+        if (parallaxWrap > 0) {
+          parallaxOffsets[layerIndex] = ((parallaxOffsets[layerIndex] % parallaxWrap) + parallaxWrap) % parallaxWrap;
+        }
       }
+
+      rebaseWorldCoordinates();
 
       updateJump(deltaSeconds);
       updateFlyingObstacles(deltaSeconds);
       updateSmokeParticles(deltaSeconds);
+      updateDustParticles(deltaSeconds);
       updateTrailCleanups(deltaSeconds);
       updateDamageParticles(deltaSeconds);
 
@@ -1092,7 +1332,6 @@
 
       if (invincibleTimer > 0) invincibleTimer -= deltaSeconds;
 
-      ensureGroundAhead();
       cleanupBehindPlayer();
 
       if (worldScroll + width + 120 >= nextObstacleAt) {
@@ -1110,15 +1349,16 @@
       var runnerWidth = 84;
       var left = playerScreenX - runnerWidth * 0.48;
       var top = groundY - runnerHeight + 6;
-      runnerWrap.style.left = left + "px";
-      runnerWrap.style.top = top + "px";
+      runnerHerd.style.left = left + "px";
+      runnerHerd.style.top = top + "px";
       if (!isGameOver()) {
         runnerTilt.style.transform = "rotate(" + (slope * 0.35) + "rad)";
       }
+      positionHerdFollowers(slope);
       if (invincibleTimer > 0 && Math.floor(invincibleTimer * 10) % 2 === 0) {
-        runnerWrap.style.opacity = "0.45";
+        runnerHerd.style.opacity = "0.45";
       } else {
-        runnerWrap.style.opacity = "1";
+        runnerHerd.style.opacity = "1";
       }
     }
 
@@ -1263,11 +1503,15 @@
       }
     }
 
-    function drawParallaxHills(layerIndex, colorFill, colorStroke, amplitude, frequency, yBase) {
+    function drawParallaxHills(layerIndex, topColor, bottomColor, colorStroke, amplitude, frequency, yBase) {
       var shift = parallaxOffsets[layerIndex];
       var wrap = width * 2;
       if (wrap > 0) shift = ((shift % wrap) + wrap) % wrap;
-      context.fillStyle = colorFill;
+      var hillGradient = context.createLinearGradient(0, yBase - amplitude * 1.6, 0, height);
+      hillGradient.addColorStop(0, topColor);
+      hillGradient.addColorStop(0.55, bottomColor);
+      hillGradient.addColorStop(1, "rgba(8, 4, 18, 0.95)");
+      context.fillStyle = hillGradient;
       context.strokeStyle = colorStroke;
       context.lineWidth = 1;
       context.beginPath();
@@ -1309,15 +1553,21 @@
     function drawGround() {
       var startX = worldScroll - 20;
       var endX = worldScroll + width + 20;
-      context.fillStyle = "#2a1c3a";
-      context.strokeStyle = "#4a3568";
+      var groundTopY = height * GROUND_PEAK_Y_RATIO;
+      var groundGradient = context.createLinearGradient(0, groundTopY, 0, height);
+      groundGradient.addColorStop(0, "#4a3270");
+      groundGradient.addColorStop(0.18, "#352450");
+      groundGradient.addColorStop(0.55, "#221633");
+      groundGradient.addColorStop(1, "#0e0818");
+      context.fillStyle = groundGradient;
+      context.strokeStyle = "#5c4088";
       context.lineWidth = 2;
       context.beginPath();
       var x = startX;
       context.moveTo(startX - worldScroll, groundWave(startX));
       while (x <= endX) {
         context.lineTo(x - worldScroll, groundWave(x));
-        x += 8;
+        x += 5;
       }
       context.lineTo(endX - worldScroll, height + 40);
       context.lineTo(startX - worldScroll, height + 40);
@@ -1332,7 +1582,7 @@
       context.moveTo(startX - worldScroll, groundWave(startX) - 2);
       while (x <= endX) {
         context.lineTo(x - worldScroll, groundWave(x) - 2);
-        x += 8;
+        x += 5;
       }
       context.stroke();
     }
@@ -1531,6 +1781,19 @@
       context.globalAlpha = 1;
     }
 
+    function drawDustParticles() {
+      var index;
+      for (index = 0; index < dustParticles.length; index++) {
+        var particle = dustParticles[index];
+        var fade = 1 - particle.age / particle.life;
+        var alpha = particle.alpha * fade;
+        context.fillStyle = "rgba(210, 185, 240, " + alpha + ")";
+        context.beginPath();
+        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        context.fill();
+      }
+    }
+
     function drawSmokeParticles() {
       var index;
       for (index = 0; index < smokeParticles.length; index++) {
@@ -1566,10 +1829,11 @@
       drawSky();
       drawMoon();
       drawStars();
-      drawParallaxHills(0, "rgba(22, 14, 38, 0.9)", "rgba(50, 32, 72, 0.4)", 28, 0.0018, height * 0.58);
-      drawParallaxHills(1, "rgba(32, 20, 52, 0.92)", "rgba(62, 40, 88, 0.45)", 38, 0.0026, height * 0.64);
-      drawParallaxHills(2, "rgba(42, 26, 68, 0.95)", "rgba(78, 50, 108, 0.5)", 48, 0.0034, height * 0.7);
-      drawParallaxHills(3, "rgba(52, 34, 82, 0.98)", "rgba(92, 60, 128, 0.55)", 55, 0.0042, height * 0.74);
+      drawParallaxHills(0, "rgba(58, 38, 88, 0.92)", "rgba(28, 18, 48, 0.88)", "rgba(80, 52, 112, 0.45)", 42, 0.0014, height * 0.52);
+      drawParallaxHills(1, "rgba(72, 46, 108, 0.94)", "rgba(36, 22, 58, 0.9)", "rgba(96, 62, 132, 0.48)", 52, 0.002, height * 0.58);
+      drawParallaxHills(2, "rgba(88, 56, 128, 0.96)", "rgba(44, 28, 68, 0.92)", "rgba(112, 72, 152, 0.52)", 62, 0.0026, height * 0.64);
+      drawParallaxHills(3, "rgba(104, 68, 148, 0.98)", "rgba(52, 34, 82, 0.94)", "rgba(128, 84, 172, 0.55)", 72, 0.0032, height * 0.68);
+      drawDustParticles();
       drawTrailCleanups();
       drawGround();
       drawObstacles();
@@ -1604,9 +1868,9 @@
     initSkyStars();
     bindLocaleListener();
     loadHighScore();
-    setLivesHud();
+    herdHp = START_HP;
+    syncHerdFollowerElements();
     resizeCanvas();
-    initGroundSegments();
     showStartScreen();
     positionRunnerDom();
     render();

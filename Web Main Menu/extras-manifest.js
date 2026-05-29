@@ -10,6 +10,16 @@
         id: "midnight-run",
         title: "Midnight Run",
         path: "Extras/games/midnight-run/index.html"
+      },
+      {
+        id: "slope-golf",
+        title: "Slope Golf",
+        path: "Extras/games/slope-golf/index.html"
+      },
+      {
+        id: "miner-collapse",
+        title: "Miner Collapse",
+        path: "Extras/games/miner-collapse/index.html"
       }
     ],
     art: [
