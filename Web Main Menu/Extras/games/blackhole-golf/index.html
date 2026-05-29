@@ -101,7 +101,18 @@
       transition: none !important;
     }
 
+    #celebrationCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
     #congratsCard {
+      position: relative;
+      z-index: 1;
       text-align: center;
       padding: 0 16px;
     }
@@ -258,6 +269,7 @@
     <div id="fpsHud">fps <span id="fpsValue">--</span></div>
     <div id="finishFlash"></div>
     <div id="congratsOverlay" class="is-hidden">
+      <canvas id="celebrationCanvas" aria-hidden="true"></canvas>
       <div id="congratsCard">
         <div id="congratsTitle">LEVEL COMPLETE</div>
         <div id="congratsStats">0 m</div>
@@ -300,6 +312,8 @@
       var hudLabelHitsLeftEl = document.getElementById("hudLabelHitsLeft");
       var hudSuffixMeterEls = document.querySelectorAll(".hud-suffix-meters");
       var congratsOverlayEl = document.getElementById("congratsOverlay");
+      var celebrationCanvas = document.getElementById("celebrationCanvas");
+      var celebrationCtx = celebrationCanvas.getContext("2d");
       var congratsCardEl = document.getElementById("congratsCard");
       var congratsTitleEl = document.getElementById("congratsTitle");
       var congratsStatsEl = document.getElementById("congratsStats");
@@ -343,12 +357,13 @@
       var WALL_COLLIDER_HALF_WIDTH = 7;
       var KICK_POWER_DISPLAY_REFERENCE = 520;
       var MIN_KICK_SPEED = 40;
-      var FRICTION = 0.988;
+      var FRICTION = 0.989;
       var SLOPE_FORCE = 1320;
       var SLOPE_GRADIENT_SCALE = 2.75;
       var WALL_BOUNCE = 0.55;
-      var REST_SPEED = 6;
-      var REST_TIME = 0.55;
+      var REST_SPEED = 9;
+      var REST_TIME = 0.1;
+      var TRAJECTORY_PULL_STRENGTH_MIN = 0.04;
       var TERRAIN_CELL = 14;
       var TERRAIN_VISIBLE_PADDING = 52;
       var TERRAIN_EDGE_FADE = 96;
@@ -387,9 +402,12 @@
       var TRAJECTORY_DASH_FLOW_PIXELS_PER_MS = 0.042;
       var KICK_POWER_SCALE = 2.4;
       var CURSOR_PUSH_RADIUS = 105;
-      var CURSOR_PUSH_FORCE = 400;
-      var CURSOR_PUSH_DRAG_RATE = 7;
+      var CURSOR_PUSH_FORCE = 520;
+      var CURSOR_PUSH_SPEED_BOOST = 320;
+      var CURSOR_PUSH_CARRY_BOOST = 140;
+      var CURSOR_PUSH_FIELD_SHRINK_RATE = 0.4;
       var cursorPushHoldActive = false;
+      var cursorPushFieldStrength = 0;
       var touchAimHoldActive = false;
       var touchAimPointerId = -1;
       var physicsTimeAccumulator = 0;
@@ -398,15 +416,26 @@
       var CORRIDOR_LINE_DEPTH = 10;
       var CORRIDOR_LINE_WIDTH_SCALE = 0.9;
       var CORRIDOR_LINE_LABEL_OFFSET = 16;
+      var START_FLOOR_LABEL_OFFSET = 48;
+      var START_FLOOR_LABEL_PERSPECTIVE_SCALE = 0.84;
+      var START_FLOOR_LABEL_SIZE_SCALE = 0.78;
       var CONGRATS_FADE_IN_SECONDS = 0.18;
       var LEVEL_INTRO_FADE_IN_SECONDS = 0.22;
+      var CELEBRATION_PARTICLE_MAX = 220;
+      var CELEBRATION_CONFETTI_BURST_COUNT = 32;
+      var CELEBRATION_CONFETTI_BURST_INTERVAL = 0.32;
+      var CELEBRATION_CONFETTI_GRAVITY = 440;
+      var CELEBRATION_FIREWORK_SPARK_COUNT = 34;
+      var CELEBRATION_FIREWORK_INTERVAL_MIN = 0.42;
+      var CELEBRATION_FIREWORK_INTERVAL_MAX = 0.88;
+      var CELEBRATION_FIREWORK_GRAVITY = 300;
       var FINISH_PARTICLE_COUNT = 48;
       var BLACK_HOLE_COUNT_MIN = 6;
       var BLACK_HOLE_COUNT_EXTRA = 5;
       var BLACK_HOLE_EVENT_RADIUS = 16;
       var BLACK_HOLE_DRAW_RADIUS = 26;
       var BLACK_HOLE_PULL_RADIUS = 130;
-      var BLACK_HOLE_PULL_FORCE = 5800;
+      var BLACK_HOLE_PULL_FORCE = 100000;
       var HOLE_WARP_SINK_DURATION = 0.38;
       var HOLE_WARP_TRAVEL_DURATION = 1.05;
       var HOLE_WARP_SETTLE_DURATION = 0.45;
@@ -485,6 +514,11 @@
       var congratsLevelDistance = 0;
       var congratsLevelMaxSpeed = 0;
       var congratsCardOpacity = 0;
+      var celebrationParticles = [];
+      var celebrationWidth = 1;
+      var celebrationHeight = 1;
+      var celebrationConfettiBurstTimer = 0;
+      var celebrationFireworkTimer = 0.2;
       var levelIntroActive = false;
       var levelIntroTimer = 0;
       var levelIntroCardOpacity = 0;
@@ -1989,75 +2023,62 @@
         };
       }
 
+      function getBlackHolePullDisplayStrength(positionX, positionY, hole) {
+        var offsetX = hole.x - positionX;
+        var offsetY = hole.y - positionY;
+        var distanceSq = offsetX * offsetX + offsetY * offsetY;
+        if (distanceSq < 0.001) {
+          return 1;
+        }
+        var distance = Math.sqrt(distanceSq);
+        if (distance >= BLACK_HOLE_PULL_RADIUS) {
+          return 0;
+        }
+        var pullT = 1 - distance / BLACK_HOLE_PULL_RADIUS;
+        return pullT * pullT;
+      }
+
+      function collectTrajectoryPathPoints(path) {
+        var pathPoints = [];
+        var segmentIndex;
+        var pointIndex;
+        if (!path || !path.segments) {
+          return pathPoints;
+        }
+        for (segmentIndex = 0; segmentIndex < path.segments.length; segmentIndex += 1) {
+          var points = path.segments[segmentIndex].points;
+          for (pointIndex = 0; pointIndex < points.length; pointIndex += 1) {
+            var pathPoint = points[pointIndex];
+            pathPoints.push({ x: pathPoint.x, y: pathPoint.y });
+          }
+        }
+        return pathPoints;
+      }
+
       function buildTrajectoryHoleInfluences(path) {
         var influences = [];
-        if (!path || !path.segments) {
+        var pathPoints = collectTrajectoryPathPoints(path);
+        var holeIndex;
+        var pointIndex;
+        if (pathPoints.length < 1) {
           return influences;
         }
-        var pullRadiusSq = BLACK_HOLE_PULL_RADIUS * BLACK_HOLE_PULL_RADIUS;
-        var holeIndex;
-        for (holeIndex = 0; holeIndex < blackHoles.length; holeIndex += 1) {
-          var hole = blackHoles[holeIndex];
-          var bestDistanceSq = pullRadiusSq + 1;
-          var bestPointX = ballX;
-          var bestPointY = ballY;
-          var startOffsetX = hole.x - ballX;
-          var startOffsetY = hole.y - ballY;
-          var startDistanceSq = startOffsetX * startOffsetX + startOffsetY * startOffsetY;
-          if (startDistanceSq < bestDistanceSq) {
-            bestDistanceSq = startDistanceSq;
-            bestPointX = ballX;
-            bestPointY = ballY;
-          }
-          var segmentIndex;
-          for (segmentIndex = 0; segmentIndex < path.segments.length; segmentIndex += 1) {
-            var points = path.segments[segmentIndex].points;
-            var pointIndex;
-            for (pointIndex = 0; pointIndex < points.length; pointIndex += 1) {
-              var pathPoint = points[pointIndex];
-              var pointOffsetX = hole.x - pathPoint.x;
-              var pointOffsetY = hole.y - pathPoint.y;
-              var pointDistanceSq = pointOffsetX * pointOffsetX + pointOffsetY * pointOffsetY;
-              if (pointDistanceSq < bestDistanceSq) {
-                bestDistanceSq = pointDistanceSq;
-                bestPointX = pathPoint.x;
-                bestPointY = pathPoint.y;
-              }
+        for (pointIndex = 0; pointIndex < pathPoints.length; pointIndex += 1) {
+          var pathPoint = pathPoints[pointIndex];
+          for (holeIndex = 0; holeIndex < blackHoles.length; holeIndex += 1) {
+            var hole = blackHoles[holeIndex];
+            var strength = getBlackHolePullDisplayStrength(pathPoint.x, pathPoint.y, hole);
+            if (strength < TRAJECTORY_PULL_STRENGTH_MIN) {
+              continue;
             }
-            for (pointIndex = 0; pointIndex < points.length - 1; pointIndex += 1) {
-              var segmentStart = points[pointIndex];
-              var segmentEnd = points[pointIndex + 1];
-              var closestOnSegment = getClosestPointOnSegmentToPoint(
-                hole.x,
-                hole.y,
-                segmentStart.x,
-                segmentStart.y,
-                segmentEnd.x,
-                segmentEnd.y
-              );
-              if (closestOnSegment.distanceSq < bestDistanceSq) {
-                bestDistanceSq = closestOnSegment.distanceSq;
-                bestPointX = closestOnSegment.x;
-                bestPointY = closestOnSegment.y;
-              }
-            }
+            influences.push({
+              pointX: pathPoint.x,
+              pointY: pathPoint.y,
+              holeX: hole.x,
+              holeY: hole.y,
+              strength: strength
+            });
           }
-          if (bestDistanceSq > pullRadiusSq) {
-            continue;
-          }
-          var distance = Math.sqrt(bestDistanceSq);
-          var pullT = 1 - distance / BLACK_HOLE_PULL_RADIUS;
-          var pullStrength = pullT * pullT;
-          if (pullStrength < 0.04) {
-            continue;
-          }
-          influences.push({
-            pointX: bestPointX,
-            pointY: bestPointY,
-            holeX: hole.x,
-            holeY: hole.y,
-            strength: pullStrength
-          });
         }
         return influences;
       }
@@ -2251,6 +2272,207 @@
         canvas.width = Math.floor(width * ratio);
         canvas.height = Math.floor(height * ratio);
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        resizeCelebrationCanvas();
+      }
+
+      function resizeCelebrationCanvas() {
+        var rect = congratsOverlayEl.getBoundingClientRect();
+        var width = Math.max(1, Math.floor(rect.width));
+        var height = Math.max(1, Math.floor(rect.height));
+        var ratio = window.devicePixelRatio || 1;
+        celebrationWidth = width;
+        celebrationHeight = height;
+        celebrationCanvas.width = Math.floor(width * ratio);
+        celebrationCanvas.height = Math.floor(height * ratio);
+        celebrationCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      }
+
+      function trimCelebrationParticles() {
+        while (celebrationParticles.length > CELEBRATION_PARTICLE_MAX) {
+          celebrationParticles.shift();
+        }
+      }
+
+      function pushCelebrationParticle(particle) {
+        celebrationParticles.push(particle);
+        trimCelebrationParticles();
+      }
+
+      function pickCelebrationHue() {
+        var hueRoll = Math.floor(rand() * 6);
+        if (hueRoll === 0) {
+          return 42;
+        }
+        if (hueRoll === 1) {
+          return 118;
+        }
+        if (hueRoll === 2) {
+          return 188;
+        }
+        if (hueRoll === 3) {
+          return 268;
+        }
+        if (hueRoll === 4) {
+          return 328;
+        }
+        return 52;
+      }
+
+      function spawnCelebrationConfettiBurst(burstCount) {
+        var particleIndex;
+        var spawnX;
+        var spawnY;
+        var particle;
+        for (particleIndex = 0; particleIndex < burstCount; particleIndex += 1) {
+          spawnX = rand() * celebrationWidth;
+          spawnY = -12 - rand() * celebrationHeight * 0.35;
+          particle = {
+            kind: "confetti",
+            x: spawnX,
+            y: spawnY,
+            velX: (rand() - 0.5) * 140,
+            velY: 90 + rand() * 200,
+            width: 3 + rand() * 5,
+            height: 6 + rand() * 8,
+            angle: rand() * Math.PI * 2,
+            spin: (rand() - 0.5) * 9,
+            hue: pickCelebrationHue(),
+            life: 2.4 + rand() * 2.2,
+            maxLife: 4.6
+          };
+          pushCelebrationParticle(particle);
+        }
+      }
+
+      function spawnCelebrationFirework(screenX, screenY) {
+        var sparkIndex;
+        var angle;
+        var speed;
+        var particle;
+        for (sparkIndex = 0; sparkIndex < CELEBRATION_FIREWORK_SPARK_COUNT; sparkIndex += 1) {
+          angle = rand() * Math.PI * 2;
+          speed = 70 + rand() * 260;
+          particle = {
+            kind: "firework",
+            x: screenX,
+            y: screenY,
+            velX: Math.cos(angle) * speed,
+            velY: Math.sin(angle) * speed,
+            size: 1.5 + rand() * 3.5,
+            hue: pickCelebrationHue(),
+            life: 0.55 + rand() * 0.75,
+            maxLife: 1.3
+          };
+          pushCelebrationParticle(particle);
+        }
+      }
+
+      function clearCelebrationEffects() {
+        celebrationParticles.length = 0;
+        celebrationConfettiBurstTimer = 0;
+        celebrationFireworkTimer = 0;
+        celebrationCtx.clearRect(0, 0, celebrationWidth, celebrationHeight);
+      }
+
+      function startCelebrationEffects() {
+        var centerX = celebrationWidth * 0.5;
+        var centerY = celebrationHeight * 0.38;
+        var fireworkIndex;
+        resizeCelebrationCanvas();
+        celebrationParticles.length = 0;
+        celebrationConfettiBurstTimer = 0;
+        celebrationFireworkTimer = 0.12;
+        spawnCelebrationConfettiBurst(72);
+        spawnCelebrationFirework(centerX, centerY);
+        for (fireworkIndex = 0; fireworkIndex < 2; fireworkIndex += 1) {
+          spawnCelebrationFirework(
+            celebrationWidth * (0.2 + rand() * 0.6),
+            celebrationHeight * (0.18 + rand() * 0.28)
+          );
+        }
+      }
+
+      function updateCelebrationEffects(deltaSeconds) {
+        var particleIndex;
+        var particle;
+        var nextFireworkDelay;
+        if (!congratsScreenActive) {
+          return;
+        }
+        celebrationConfettiBurstTimer -= deltaSeconds;
+        if (celebrationConfettiBurstTimer <= 0) {
+          celebrationConfettiBurstTimer = CELEBRATION_CONFETTI_BURST_INTERVAL;
+          spawnCelebrationConfettiBurst(CELEBRATION_CONFETTI_BURST_COUNT);
+        }
+        celebrationFireworkTimer -= deltaSeconds;
+        if (celebrationFireworkTimer <= 0) {
+          nextFireworkDelay =
+            CELEBRATION_FIREWORK_INTERVAL_MIN +
+            rand() * (CELEBRATION_FIREWORK_INTERVAL_MAX - CELEBRATION_FIREWORK_INTERVAL_MIN);
+          celebrationFireworkTimer = nextFireworkDelay;
+          spawnCelebrationFirework(
+            celebrationWidth * (0.12 + rand() * 0.76),
+            celebrationHeight * (0.14 + rand() * 0.42)
+          );
+        }
+        for (particleIndex = celebrationParticles.length - 1; particleIndex >= 0; particleIndex -= 1) {
+          particle = celebrationParticles[particleIndex];
+          particle.life -= deltaSeconds;
+          if (particle.life <= 0) {
+            celebrationParticles.splice(particleIndex, 1);
+            continue;
+          }
+          if (particle.kind === "confetti") {
+            particle.velY += CELEBRATION_CONFETTI_GRAVITY * deltaSeconds;
+            particle.velX += Math.sin(particle.y * 0.04) * 18 * deltaSeconds;
+          } else {
+            particle.velY += CELEBRATION_FIREWORK_GRAVITY * deltaSeconds;
+            particle.velX *= 0.98;
+            particle.velY *= 0.98;
+          }
+          particle.x += particle.velX * deltaSeconds;
+          particle.y += particle.velY * deltaSeconds;
+          if (particle.kind === "confetti") {
+            particle.angle += particle.spin * deltaSeconds;
+          }
+        }
+      }
+
+      function drawCelebrationEffects() {
+        var particleIndex;
+        var particle;
+        var alpha;
+        var halfWidth;
+        var halfHeight;
+        if (!congratsScreenActive) {
+          return;
+        }
+        celebrationCtx.clearRect(0, 0, celebrationWidth, celebrationHeight);
+        for (particleIndex = 0; particleIndex < celebrationParticles.length; particleIndex += 1) {
+          particle = celebrationParticles[particleIndex];
+          alpha = particle.life / particle.maxLife;
+          if (alpha < 0) {
+            alpha = 0;
+          }
+          if (alpha > 1) {
+            alpha = 1;
+          }
+          if (particle.kind === "confetti") {
+            celebrationCtx.save();
+            celebrationCtx.translate(particle.x, particle.y);
+            celebrationCtx.rotate(particle.angle);
+            celebrationCtx.fillStyle = "hsla(" + particle.hue + ", 88%, 62%, " + alpha + ")";
+            halfWidth = particle.width * 0.5;
+            halfHeight = particle.height * 0.5;
+            celebrationCtx.fillRect(-halfWidth, -halfHeight, particle.width, particle.height);
+            celebrationCtx.restore();
+          } else {
+            celebrationCtx.fillStyle = "hsla(" + particle.hue + ", 95%, 72%, " + alpha + ")";
+            celebrationCtx.beginPath();
+            celebrationCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+            celebrationCtx.fill();
+          }
+        }
       }
 
       function getCameraBaseZoom() {
@@ -2571,7 +2793,7 @@
         holeWarpPhase = HOLE_WARP_PHASE_SINK;
         holeWarpTrailSpawnTimer = 0;
         holeWarpGlowStrength = 1;
-        cursorPushHoldActive = false;
+        setCursorPushHoldActive(false);
         physicsTimeAccumulator = 0;
         finishParticles.length = 0;
         updateDistanceHud();
@@ -2817,6 +3039,7 @@
         congratsOverlayEl.classList.remove("is-instant-hide");
         congratsOverlayEl.style.opacity = "";
         congratsOverlayEl.classList.add("is-hidden");
+        clearCelebrationEffects();
       }
 
       function hideCongratsScreenInstant() {
@@ -2826,6 +3049,7 @@
         congratsCardEl.style.opacity = "0";
         congratsOverlayEl.classList.add("is-instant-hide");
         congratsOverlayEl.classList.add("is-hidden");
+        clearCelebrationEffects();
       }
 
       function setCongratsContent(completedLevel, levelDistance, levelMaxSpeed, total, best) {
@@ -2933,6 +3157,7 @@
         gameState = stateAiming;
         hideLevelIntro();
         showCongratsScreen();
+        startCelebrationEffects();
         updateDistanceHud();
       }
 
@@ -2940,6 +3165,7 @@
         if (!congratsScreenActive) {
           return;
         }
+        updateCelebrationEffects(deltaSeconds);
         congratsTimer += deltaSeconds;
         if (congratsTimer < CONGRATS_FADE_IN_SECONDS) {
           congratsCardOpacity = congratsTimer / CONGRATS_FADE_IN_SECONDS;
@@ -2959,11 +3185,31 @@
         return isPositionInFinishZone(ballX, ballY);
       }
 
+      function setCursorPushHoldActive(isActive) {
+        cursorPushHoldActive = isActive;
+        if (!isActive) {
+          cursorPushFieldStrength = 0;
+        }
+      }
+
+      function updateCursorPushFieldStrength(deltaSeconds) {
+        if (!cursorPushHoldActive) {
+          return;
+        }
+        cursorPushFieldStrength -= CURSOR_PUSH_FIELD_SHRINK_RATE * deltaSeconds;
+        if (cursorPushFieldStrength <= 0) {
+          setCursorPushHoldActive(false);
+        }
+      }
+
       function applyCursorPushToBody(bodyX, bodyY, bodyVelX, bodyVelY, worldMouseX, worldMouseY, deltaSeconds, pushScale) {
+        if (pushScale <= 0.001) {
+          return { velX: bodyVelX, velY: bodyVelY };
+        }
         var offsetX = bodyX - worldMouseX;
         var offsetY = bodyY - worldMouseY;
         var distanceSq = offsetX * offsetX + offsetY * offsetY;
-        var radius = CURSOR_PUSH_RADIUS;
+        var radius = CURSOR_PUSH_RADIUS * pushScale;
         if (distanceSq >= radius * radius) {
           return { velX: bodyVelX, velY: bodyVelY };
         }
@@ -2975,21 +3221,39 @@
         falloff = falloff * falloff;
         var pushDirX = offsetX / distance;
         var pushDirY = offsetY / distance;
-        var pushStrength = CURSOR_PUSH_FORCE * falloff * deltaSeconds * pushScale;
+        var proximityScale = falloff * falloff;
+        var pushStrength = CURSOR_PUSH_FORCE * proximityScale * deltaSeconds * pushScale;
         bodyVelX += pushDirX * pushStrength;
         bodyVelY += pushDirY * pushStrength;
+        var speedBoost = CURSOR_PUSH_SPEED_BOOST * proximityScale * deltaSeconds * pushScale;
+        bodyVelX += pushDirX * speedBoost;
+        bodyVelY += pushDirY * speedBoost;
         var speed = Math.sqrt(bodyVelX * bodyVelX + bodyVelY * bodyVelY);
         if (speed > 0.001) {
-          var dragFactor = Math.exp(-CURSOR_PUSH_DRAG_RATE * falloff * deltaSeconds);
-          bodyVelX *= dragFactor;
-          bodyVelY *= dragFactor;
+          var motionDirX = bodyVelX / speed;
+          var motionDirY = bodyVelY / speed;
+          var awayDot = motionDirX * pushDirX + motionDirY * pushDirY;
+          if (awayDot > 0) {
+            var carryBoost = CURSOR_PUSH_CARRY_BOOST * proximityScale * deltaSeconds * pushScale;
+            bodyVelX += motionDirX * carryBoost;
+            bodyVelY += motionDirY * carryBoost;
+          }
         }
         return { velX: bodyVelX, velY: bodyVelY };
       }
 
       function applyCursorPushField(deltaSeconds) {
         var worldMouse = screenToWorld(screenMouseX, screenMouseY);
-        var ballPush = applyCursorPushToBody(ballX, ballY, ballVelX, ballVelY, worldMouse.x, worldMouse.y, deltaSeconds, 1);
+        var ballPush = applyCursorPushToBody(
+          ballX,
+          ballY,
+          ballVelX,
+          ballVelY,
+          worldMouse.x,
+          worldMouse.y,
+          deltaSeconds,
+          cursorPushFieldStrength
+        );
         ballVelX = ballPush.velX;
         ballVelY = ballPush.velY;
         var speed = Math.sqrt(ballVelX * ballVelX + ballVelY * ballVelY);
@@ -3000,12 +3264,13 @@
       }
 
       function drawCursorPushField() {
-        if (!cursorPushHoldActive || gameState !== stateRolling) {
+        if (!cursorPushHoldActive || gameState !== stateRolling || cursorPushFieldStrength <= 0.001) {
           return;
         }
         var worldMouse = screenToWorld(screenMouseX, screenMouseY);
         var screen = worldToScreen(worldMouse.x, worldMouse.y);
-        var screenRadius = CURSOR_PUSH_RADIUS * cameraZoom;
+        var screenRadius = CURSOR_PUSH_RADIUS * cameraZoom * cursorPushFieldStrength;
+        var pushRadiusWorld = CURSOR_PUSH_RADIUS * cursorPushFieldStrength;
         var time = Date.now() * 0.001;
         var pulse = 0.88 + Math.sin(time * 5.5) * 0.12;
         var ringIndex;
@@ -3036,10 +3301,10 @@
         var offsetX = ballX - worldMouse.x;
         var offsetY = ballY - worldMouse.y;
         var distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
-        if (distance < CURSOR_PUSH_RADIUS && distance > 0.001) {
+        if (distance < pushRadiusWorld && distance > 0.001) {
           var displayBall = getBallDisplayPosition();
           var ballScreen = worldToScreen(displayBall.x, displayBall.y);
-          var pushT = 1 - distance / CURSOR_PUSH_RADIUS;
+          var pushT = 1 - distance / pushRadiusWorld;
           var lineAlpha = 0.15 + pushT * pushT * 0.45;
           ctx.strokeStyle = "rgba(190, 235, 255, " + lineAlpha + ")";
           ctx.lineWidth = Math.max(1, (1.2 + pushT * 2) * cameraZoom);
@@ -3154,7 +3419,7 @@
         ballVelX = 0;
         ballVelY = 0;
         physicsTimeAccumulator = 0;
-        cursorPushHoldActive = false;
+        setCursorPushHoldActive(false);
         spawnBlackHoleParticles(holeX, holeY);
       }
 
@@ -3248,7 +3513,7 @@
             continue;
           }
           if (distance < BLACK_HOLE_PULL_RADIUS) {
-            var pullStrength = BLACK_HOLE_PULL_FORCE / (distanceSq * 0.045 + 7);
+            var pullStrength = BLACK_HOLE_PULL_FORCE / (distanceSq * 0.038 + 5);
             velocityX += (offsetX / distance) * pullStrength * deltaSeconds;
             velocityY += (offsetY / distance) * pullStrength * deltaSeconds;
           }
@@ -3323,7 +3588,7 @@
           return;
         }
         hitsLeft -= 1;
-        cursorPushHoldActive = false;
+        setCursorPushHoldActive(false);
         touchAimHoldActive = false;
         touchAimPointerId = -1;
         physicsTimeAccumulator = 0;
@@ -3353,6 +3618,7 @@
           physicsTimeAccumulator = 0;
           return;
         }
+        updateCursorPushFieldStrength(deltaSeconds);
         physicsTimeAccumulator += deltaSeconds;
         var maxAccumulator = PHYSICS_FIXED_STEP_SECONDS * PHYSICS_MAX_SUB_STEPS;
         if (physicsTimeAccumulator > maxAccumulator) {
@@ -3363,7 +3629,7 @@
         while (physicsTimeAccumulator >= PHYSICS_FIXED_STEP_SECONDS && subStepIndex < PHYSICS_MAX_SUB_STEPS) {
           physicsTimeAccumulator -= PHYSICS_FIXED_STEP_SECONDS;
           subStepIndex += 1;
-          if (cursorPushHoldActive) {
+          if (cursorPushHoldActive && cursorPushFieldStrength > 0.001) {
             applyCursorPushField(PHYSICS_FIXED_STEP_SECONDS);
           }
           var stepResult = stepBallPhysics(
@@ -3996,14 +4262,14 @@
         var sampleIndex;
         ctx.save();
         ctx.lineCap = "round";
-        ctx.setLineDash([4 * cameraZoom, 5 * cameraZoom]);
+        ctx.setLineDash([]);
         for (sampleIndex = 0; sampleIndex < samples.length; sampleIndex += 1) {
           var sample = samples[sampleIndex];
           var pointScreen = worldToScreen(sample.pointX, sample.pointY);
           var holeScreen = worldToScreen(sample.holeX, sample.holeY);
           var pullStrength = sample.strength;
-          ctx.strokeStyle = "rgba(190, 140, 255, " + (0.22 + pullStrength * 0.55) + ")";
-          ctx.lineWidth = Math.max(1.2, 1.8 * cameraZoom);
+          ctx.strokeStyle = "rgba(190, 140, 255, " + (0.12 + pullStrength * 0.38) + ")";
+          ctx.lineWidth = Math.max(0.8, 1.1 * cameraZoom);
           ctx.beginPath();
           ctx.moveTo(pointScreen.x, pointScreen.y);
           ctx.lineTo(holeScreen.x, holeScreen.y);
@@ -4315,17 +4581,51 @@
           ctx.closePath();
           ctx.fill();
         }
-        var labelOffset = halfDepth + CORRIDOR_LINE_LABEL_OFFSET;
+        if (markerKind === "finish") {
+          var labelOffset = halfDepth + CORRIDOR_LINE_LABEL_OFFSET;
+          var labelX = centerX - tangentX * labelOffset;
+          var labelY = centerY - tangentY * labelOffset;
+          var labelScreen = worldToScreen(labelX, labelY);
+          var labelText = getLocalized(LOCALE_KEY_MARKER_FINISH, "FINISH");
+          ctx.fillStyle = labelColor;
+          ctx.font = "11px Courier New, Courier, monospace";
+          ctx.fillText(labelText, labelScreen.x - 22, labelScreen.y - 4);
+        }
+      }
+
+      function drawStartFloorLabel(centerX, centerY, tangentX, tangentY, corridorHalfWidth) {
+        var perpX = -tangentY;
+        var perpY = tangentX;
+        var halfDepth = CORRIDOR_LINE_DEPTH * 0.5;
+        var labelOffset = halfDepth + START_FLOOR_LABEL_OFFSET;
         var labelX = centerX - tangentX * labelOffset;
         var labelY = centerY - tangentY * labelOffset;
         var labelScreen = worldToScreen(labelX, labelY);
         var labelText = getLocalized(LOCALE_KEY_MARKER_START, "START");
-        if (markerKind === "finish") {
-          labelText = getLocalized(LOCALE_KEY_MARKER_FINISH, "FINISH");
+        var lineAngle = Math.atan2(perpY, perpX);
+        var fontSize = corridorHalfWidth * cameraZoom * START_FLOOR_LABEL_SIZE_SCALE;
+        if (fontSize < 26) {
+          fontSize = 26;
         }
-        ctx.fillStyle = labelColor;
-        ctx.font = "11px Courier New, Courier, monospace";
-        ctx.fillText(labelText, labelScreen.x - 22, labelScreen.y - 4);
+        if (fontSize > 88) {
+          fontSize = 88;
+        }
+
+        ctx.save();
+        ctx.translate(labelScreen.x, labelScreen.y);
+        ctx.rotate(lineAngle);
+        ctx.scale(1, START_FLOOR_LABEL_PERSPECTIVE_SCALE);
+        ctx.font = "bold " + Math.floor(fontSize) + "px Courier New, Courier, monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "rgba(18, 22, 16, 0.62)";
+        ctx.fillText(labelText, 3, 5);
+        ctx.strokeStyle = "rgba(12, 16, 10, 0.75)";
+        ctx.lineWidth = Math.max(2, fontSize * 0.14);
+        ctx.strokeText(labelText, 0, 0);
+        ctx.fillStyle = "rgba(228, 236, 220, 0.94)";
+        ctx.fillText(labelText, 0, 0);
+        ctx.restore();
       }
 
       function drawStartFinishLineMarkers() {
@@ -4338,6 +4638,13 @@
             startLine.tangentY,
             startLine.halfWidth,
             "start"
+          );
+          drawStartFloorLabel(
+            startLine.centerX,
+            startLine.centerY,
+            startLine.tangentX,
+            startLine.tangentY,
+            startLine.halfWidth
           );
         }
         var finishLine = getFinishLineGeometry();
@@ -4539,6 +4846,7 @@
         updatePhysics(deltaSeconds);
         updateCamera(deltaSeconds);
         drawFrame();
+        drawCelebrationEffects();
         fpsSampleFrames += 1;
         fpsSampleTime += deltaSeconds;
         if (fpsSampleTime >= 0.35) {
@@ -4593,6 +4901,7 @@
           return;
         }
         if (gameState === stateRolling) {
+          cursorPushFieldStrength = 1;
           cursorPushHoldActive = true;
           if (canvas.setPointerCapture) {
             canvas.setPointerCapture(event.pointerId);
@@ -4631,7 +4940,7 @@
             kickBall(mouseX, mouseY);
           }
         }
-        cursorPushHoldActive = false;
+        setCursorPushHoldActive(false);
         if (canvas.releasePointerCapture) {
           try {
             canvas.releasePointerCapture(event.pointerId);
@@ -4650,7 +4959,7 @@
       canvas.addEventListener("pointerup", onPointerUp);
       canvas.addEventListener("pointercancel", onPointerCancel);
       window.addEventListener("blur", function () {
-        cursorPushHoldActive = false;
+        setCursorPushHoldActive(false);
         touchAimHoldActive = false;
         touchAimPointerId = -1;
       });
