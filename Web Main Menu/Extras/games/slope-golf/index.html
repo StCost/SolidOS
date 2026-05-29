@@ -34,6 +34,7 @@
       width: 100%;
       height: 100%;
       display: block;
+      touch-action: none;
     }
 
     #hud {
@@ -316,7 +317,6 @@
       var LOCALE_KEY_MARKER_FINISH = "web.game.marker.finish";
       var LOCALE_KEY_STATS_SEPARATOR = "web.game.stats-separator";
       var LOCALE_KEY_OUT_OF_HITS = "web.game.slope-golf.out-of-hits";
-      var LEVEL_SPAWN_DELAY_MS = 500;
       var levelReady = false;
 
       var BALL_RADIUS = 8;
@@ -370,6 +370,8 @@
       var CURSOR_PUSH_FORCE = 400;
       var CURSOR_PUSH_DRAG_RATE = 7;
       var cursorPushHoldActive = false;
+      var touchAimHoldActive = false;
+      var touchAimPointerId = -1;
       var physicsTimeAccumulator = 0;
       var FINISH_ZONE_RADIUS = 58;
       var CORRIDOR_LINE_STRIPE_COUNT = 11;
@@ -3009,6 +3011,8 @@
         }
         hitsLeft -= 1;
         cursorPushHoldActive = false;
+        touchAimHoldActive = false;
+        touchAimPointerId = -1;
         physicsTimeAccumulator = 0;
         ballVelX = kick.velX;
         ballVelY = kick.velY;
@@ -4089,7 +4093,11 @@
         window.requestAnimationFrame(loop);
       }
 
-      function onPointerMove(event) {
+      function isTouchPointer(event) {
+        return event.pointerType === "touch";
+      }
+
+      function updatePointerPosition(event) {
         var rect = canvas.getBoundingClientRect();
         screenMouseX = event.clientX - rect.left;
         screenMouseY = event.clientY - rect.top;
@@ -4098,13 +4106,18 @@
         mouseY = world.y;
       }
 
+      function onPointerMove(event) {
+        if (touchAimHoldActive && event.pointerId !== touchAimPointerId) {
+          return;
+        }
+        updatePointerPosition(event);
+      }
+
       function onPointerDown(event) {
         if (event.button !== 0) {
           return;
         }
-        var rect = canvas.getBoundingClientRect();
-        screenMouseX = event.clientX - rect.left;
-        screenMouseY = event.clientY - rect.top;
+        updatePointerPosition(event);
         if (holeWarpActive) {
           return;
         }
@@ -4131,14 +4144,36 @@
           return;
         }
         if (gameState === stateAiming && hitsLeft > 0) {
-          var world = screenToWorld(screenMouseX, screenMouseY);
-          kickBall(world.x, world.y);
+          if (isTouchPointer(event)) {
+            touchAimHoldActive = true;
+            touchAimPointerId = event.pointerId;
+            if (canvas.setPointerCapture) {
+              canvas.setPointerCapture(event.pointerId);
+            }
+            return;
+          }
+          kickBall(mouseX, mouseY);
         }
       }
 
       function onPointerUp(event) {
         if (event.button !== 0) {
           return;
+        }
+        if (touchAimHoldActive && event.pointerId === touchAimPointerId) {
+          touchAimHoldActive = false;
+          touchAimPointerId = -1;
+          updatePointerPosition(event);
+          if (
+            gameState === stateAiming &&
+            hitsLeft > 0 &&
+            !loseScreenActive &&
+            !levelIntroActive &&
+            !congratsScreenActive &&
+            !holeWarpActive
+          ) {
+            kickBall(mouseX, mouseY);
+          }
         }
         cursorPushHoldActive = false;
         if (canvas.releasePointerCapture) {
@@ -4160,19 +4195,15 @@
       canvas.addEventListener("pointercancel", onPointerCancel);
       window.addEventListener("blur", function () {
         cursorPushHoldActive = false;
+        touchAimHoldActive = false;
+        touchAimPointerId = -1;
       });
 
       bindLocaleListener();
       applyGameLocale();
       resize();
-      levelIndex = 1;
-      totalScore = 0;
-      bestDistance = 0;
-      showLevelIntro(true);
+      beginRun(hashSeed(Date.now()));
       window.requestAnimationFrame(loop);
-      window.setTimeout(function () {
-        beginRun(hashSeed(Date.now()));
-      }, LEVEL_SPAWN_DELAY_MS);
     })();
   </script>
 </body>
