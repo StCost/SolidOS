@@ -1,6 +1,12 @@
 (function () {
   var STORAGE_KEY = "web-settings-preview";
   var WEB_PREVIEW_HELP_SAMPLE_KEY = "settings.web.help.preview-sample";
+  var DEFAULT_LANGUAGE_CODE = "english";
+  var SETTINGS_SUCCESS_TOAST_MS = 2200;
+  var SETTINGS_SUCCESS_TOAST_GAP_PX = 12;
+  var SETTINGS_SUCCESS_TOAST_VIEWPORT_PADDING_PX = 12;
+  var LOCALE_KEY_RESET_DEFAULTS_DONE = "settings.web.reset-defaults-done";
+  var LOCALE_KEY_RESET_LAYOUTS_DONE = "settings.web.reset-window-layouts-done";
 
   function isGameMode() {
     if (window.WebMenuMode === "game") return true;
@@ -97,6 +103,8 @@
   var contentRoot;
   var tabsRoot;
   var helpTooltip;
+  var successToastEl;
+  var successToastTimer = 0;
 
   function copyState(source) {
     var target = {};
@@ -422,6 +430,100 @@
     );
   }
 
+  function applyMenuLanguage(languageCode) {
+    var code = languageCode || DEFAULT_LANGUAGE_CODE;
+    state.language = code;
+    if (isUnityHost()) {
+      notifyLanguageChanged();
+      return;
+    }
+    if (window.WebLocaleLoader && window.WebLocaleLoader.loadLanguage) {
+      window.WebLocaleLoader.loadLanguage(code, true);
+      return;
+    }
+    notifyLanguageChanged();
+  }
+
+  function hideSettingsSuccessToast() {
+    if (!successToastEl) {
+      successToastEl = document.getElementById("settingsSuccessToast");
+    }
+    if (!successToastEl) {
+      return;
+    }
+    successToastEl.classList.remove("is-visible");
+    successToastEl.classList.remove("is-below-cursor");
+    successToastEl.hidden = true;
+    successToastEl.style.left = "";
+    successToastEl.style.top = "";
+    successToastTimer = 0;
+  }
+
+  function clampSettingsSuccessToastPosition(anchorX, anchorY) {
+    var padding = SETTINGS_SUCCESS_TOAST_VIEWPORT_PADDING_PX;
+    var rect = successToastEl.getBoundingClientRect();
+    var shiftX = 0;
+    var shiftY = 0;
+
+    if (rect.left < padding) {
+      shiftX = padding - rect.left;
+    } else if (rect.right > window.innerWidth - padding) {
+      shiftX = window.innerWidth - padding - rect.right;
+    }
+
+    if (rect.top < padding) {
+      successToastEl.classList.add("is-below-cursor");
+      successToastEl.style.left = anchorX + shiftX + "px";
+      successToastEl.style.top = anchorY + "px";
+      rect = successToastEl.getBoundingClientRect();
+      if (rect.bottom > window.innerHeight - padding) {
+        shiftY = window.innerHeight - padding - rect.bottom;
+      }
+      if (shiftY !== 0) {
+        successToastEl.style.top = anchorY + shiftY + "px";
+      }
+      return;
+    }
+
+    if (rect.bottom > window.innerHeight - padding) {
+      shiftY = window.innerHeight - padding - rect.bottom;
+    }
+
+    if (shiftX !== 0) {
+      successToastEl.style.left = anchorX + shiftX + "px";
+    }
+    if (shiftY !== 0) {
+      successToastEl.style.top = anchorY + shiftY + "px";
+    }
+  }
+
+  function showSettingsSuccessToast(messageKey, fallback, clientX, clientY) {
+    if (!successToastEl) {
+      successToastEl = document.getElementById("settingsSuccessToast");
+    }
+    if (!successToastEl) {
+      return;
+    }
+    if (successToastTimer) {
+      window.clearTimeout(successToastTimer);
+      successToastTimer = 0;
+    }
+    if (clientX == null || isNaN(clientX)) {
+      clientX = window.innerWidth * 0.5;
+    }
+    if (clientY == null || isNaN(clientY)) {
+      clientY = window.innerHeight * 0.5;
+    }
+    successToastEl.classList.remove("is-below-cursor");
+    successToastEl.textContent = getLocalized(messageKey, fallback);
+    successToastEl.style.left = clientX + "px";
+    successToastEl.style.top = clientY + "px";
+    successToastEl.hidden = false;
+    successToastEl.classList.add("is-visible");
+    clampSettingsSuccessToastPosition(clientX, clientY);
+    successToastTimer = window.setTimeout(hideSettingsSuccessToast, SETTINGS_SUCCESS_TOAST_MS);
+  }
+
   function postChange(key, value) {
     if (isUnityHost() && window.WebSettingsBridge) {
       window.WebSettingsBridge.set(key, value);
@@ -490,6 +592,7 @@
     if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.clearRuntimeVolumes) {
       window.WebMenuAudioVolume.clearRuntimeVolumes();
     }
+    applyMenuLanguage(DEFAULT_LANGUAGE_CODE);
     renderAll();
     pushAudioVolumeStateToMenu();
   }
@@ -769,11 +872,17 @@
     switchButton.setAttribute("aria-checked", isOn ? "true" : "false");
   }
 
-  function onSettingsAction(actionId) {
+  function onSettingsAction(actionId, event) {
     if (actionId === "reset-window-layouts") {
       if (window.WebWindowManager && window.WebWindowManager.resetAllLayouts) {
         window.WebWindowManager.resetAllLayouts();
       }
+      showSettingsSuccessToast(
+        LOCALE_KEY_RESET_LAYOUTS_DONE,
+        "Window positions reset.",
+        event.clientX,
+        event.clientY
+      );
     }
   }
 
@@ -800,8 +909,8 @@
     buttonLabel.className = "term-row-label terminal-text";
     buttonLabel.textContent = getLocalized(buttonLabelKey, buttonLabelKey);
     actionButton.appendChild(buttonLabel);
-    actionButton.addEventListener("click", function () {
-      onSettingsAction(field.actionId);
+    actionButton.addEventListener("click", function (event) {
+      onSettingsAction(field.actionId, event);
     });
 
     controlBox.appendChild(actionButton);
@@ -1385,6 +1494,7 @@
 
   function applyState(payload) {
     if (!payload) return;
+    var previousLanguage = state.language;
     if (payload.localeStrings) {
       applyLocaleStringEntries(payload.localeStrings);
     }
@@ -1426,6 +1536,9 @@
       Object.prototype.hasOwnProperty.call(payload, "interfaceVolume")
     ) {
       pushAudioVolumeStateToMenu();
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "language") && state.language !== previousLanguage) {
+      applyMenuLanguage(state.language);
     }
     renderAll();
     updateNavLabels();
@@ -1507,12 +1620,24 @@
     var resetButton = document.getElementById("btnSettingsReset");
 
     if (resetButton) {
-      resetButton.addEventListener("click", function () {
+      resetButton.addEventListener("click", function (event) {
         if (window.WebSettingsBridge) {
           window.WebSettingsBridge.reset();
+          showSettingsSuccessToast(
+            LOCALE_KEY_RESET_DEFAULTS_DONE,
+            "Defaults restored.",
+            event.clientX,
+            event.clientY
+          );
           return;
         }
         resetLocalPreview();
+        showSettingsSuccessToast(
+          LOCALE_KEY_RESET_DEFAULTS_DONE,
+          "Defaults restored.",
+          event.clientX,
+          event.clientY
+        );
       });
     }
 

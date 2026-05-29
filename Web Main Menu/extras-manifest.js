@@ -23,17 +23,17 @@
         difficulty: 3
       },
       {
-        id: "slope-golf",
-        title: "Slope Golf",
-        path: "Extras/games/slope-golf/index.html",
-        image: "Extras/games/slope-golf/slope-golf-preview.png",
-        difficulty: 4
-      },
-      {
         id: "crystal-rush",
         title: "Crystal Rush",
         path: "Extras/games/crystal-rush/index.html",
         image: "Extras/games/crystal-rush/crystal-rush-preview.png",
+        difficulty: 4
+      },
+      {
+        id: "blackhole-golf",
+        title: "BlackHole Golf",
+        path: "Extras/games/blackhole-golf/index.html",
+        image: "Extras/games/blackhole-golf/blackhole-golf-preview.png",
         difficulty: 5
       }
     ],

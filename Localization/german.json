@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "Credits-Menü",
   "settings.web.window-layout": "Menüfenster-Layout",
   "settings.web.reset-window-layouts": "Positionen zurücksetzen",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "Stellt Standardpositionen und -größen der Menüfenster wieder her.",
   "web.menu.quit": "Beenden",
   "web.menu.disconnect": "Verbindung trennen",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "START",
   "web.game.marker.finish": "ZIEL",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "SCHLÄGE AUFgebraucht",
+  "web.game.blackhole-golf.out-of-hits": "SCHLÄGE AUFgebraucht",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "klicken und halten oder WASD"
 }

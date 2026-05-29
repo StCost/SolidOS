@@ -1,5 +1,20 @@
+.menu-screen,
+.menu-screen * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.menu-screen *::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 .menu-v-scroll {
   position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -20,12 +35,16 @@
   box-sizing: border-box;
 }
 
-.menu-v-scroll-view {
+.menu-v-scroll-view,
+.menu-v-scroll > :first-child:not(.menu-v-scrollbar) {
   scrollbar-gutter: auto;
 }
 
-.menu-v-scroll>.menu-v-scroll-view {
-  width: 100%;
+.menu-v-scroll > :first-child:not(.menu-v-scrollbar),
+.menu-v-scroll > .menu-v-scroll-view {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
   height: 100%;
   margin-bottom: 0;
   box-sizing: border-box;
@@ -34,27 +53,36 @@
   -ms-overflow-style: none;
 }
 
-.menu-v-scroll>.menu-v-scroll-view::-webkit-scrollbar {
+.menu-v-scroll > :first-child:not(.menu-v-scrollbar)::-webkit-scrollbar,
+.menu-v-scroll > .menu-v-scroll-view::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
 }
 
 .menu-v-scrollbar {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
+  flex: 0 0 var(--scrollbar-size);
+  align-self: stretch;
   width: var(--scrollbar-size);
+  height: auto;
   background: var(--scrollbar-track);
   cursor: var(--cursor-scroll);
   touch-action: none;
   z-index: 4;
   pointer-events: auto;
+  opacity: 1;
+}
+
+.menu-screen:not(.terminal-animations-off) .os-window--opening .menu-v-scrollbar,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .menu-v-scrollbar {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .menu-v-scrollbar.is-hidden {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .menu-v-scrollbar-thumb {
@@ -80,41 +108,56 @@
 
 .menu-h-scroll {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
   box-sizing: border-box;
 }
 
-.menu-h-scroll>.menu-h-scroll-view {
+.menu-h-scroll > :first-child:not(.menu-h-scrollbar),
+.menu-h-scroll > .menu-h-scroll-view {
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
-  height: 100%;
+  height: auto;
   box-sizing: border-box;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-.menu-h-scroll>.menu-h-scroll-view::-webkit-scrollbar {
+.menu-h-scroll > :first-child:not(.menu-h-scrollbar)::-webkit-scrollbar,
+.menu-h-scroll > .menu-h-scroll-view::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
 }
 
 .menu-h-scrollbar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
+  flex: 0 0 var(--scrollbar-size);
+  align-self: stretch;
+  width: 100%;
   height: var(--scrollbar-size);
   background: var(--scrollbar-track);
   cursor: var(--cursor-scroll-h);
   touch-action: none;
   z-index: 4;
   pointer-events: auto;
+  opacity: 1;
+}
+
+.menu-screen:not(.terminal-animations-off) .os-window--opening .menu-h-scrollbar,
+.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .menu-h-scrollbar {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .menu-h-scrollbar.is-hidden {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .menu-h-scrollbar-thumb {

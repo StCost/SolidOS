@@ -163,11 +163,152 @@
     updateThumbLayout(instance);
   }
 
-  var VERTICAL_SCROLL_WRAP_SELECTOR = ".menu-v-scroll-view";
+  var SCROLL_VIEW_CLASS = "menu-v-scroll-view";
+  var HORIZONTAL_SCROLL_VIEW_CLASS = "menu-h-scroll-view";
   var scrollViewScanTimer = 0;
 
+  function getMenuScreenRoot(rootElement) {
+    if (rootElement && rootElement.classList && rootElement.classList.contains("menu-screen")) {
+      return rootElement;
+    }
+    if (rootElement && rootElement.closest) {
+      var closestMenuScreen = rootElement.closest(".menu-screen");
+      if (closestMenuScreen) {
+        return closestMenuScreen;
+      }
+    }
+    return document.querySelector(".menu-screen");
+  }
+
+  function getElementDepth(element) {
+    var depth = 0;
+    var node = element;
+    while (node) {
+      depth += 1;
+      node = node.parentElement;
+    }
+    return depth;
+  }
+
+  function isVerticalScrollTrackElement(element) {
+    if (!element || !element.classList) {
+      return false;
+    }
+    if (element.classList.contains("menu-v-scrollbar") || element.classList.contains("menu-v-scrollbar-thumb")) {
+      return true;
+    }
+    if (element.classList.contains("menu-h-scrollbar") || element.classList.contains("menu-h-scrollbar-thumb")) {
+      return true;
+    }
+    return false;
+  }
+
+  function isWrappedVerticalScrollView(element) {
+    var parentElement = element.parentElement;
+    return !!(parentElement && parentElement.classList && parentElement.classList.contains("menu-v-scroll"));
+  }
+
+  function isWrappedHorizontalScrollView(element) {
+    var parentElement = element.parentElement;
+    return !!(parentElement && parentElement.classList && parentElement.classList.contains("menu-h-scroll"));
+  }
+
+  function isVerticalScrollElement(element) {
+    var tagName;
+    var computedStyle;
+    var overflowY;
+    if (!element || element.nodeType !== 1) {
+      return false;
+    }
+    if (isVerticalScrollTrackElement(element)) {
+      return false;
+    }
+    if (isWrappedVerticalScrollView(element)) {
+      return false;
+    }
+    tagName = element.tagName;
+    if (tagName === "HTML" || tagName === "BODY") {
+      return false;
+    }
+    computedStyle = window.getComputedStyle(element);
+    overflowY = computedStyle.overflowY;
+    if (overflowY !== "auto" && overflowY !== "scroll") {
+      return false;
+    }
+    return true;
+  }
+
+  function isHorizontalScrollElement(element) {
+    var tagName;
+    var computedStyle;
+    var overflowX;
+    if (!element || element.nodeType !== 1) {
+      return false;
+    }
+    if (isVerticalScrollTrackElement(element)) {
+      return false;
+    }
+    if (isWrappedHorizontalScrollView(element)) {
+      return false;
+    }
+    tagName = element.tagName;
+    if (tagName === "HTML" || tagName === "BODY") {
+      return false;
+    }
+    computedStyle = window.getComputedStyle(element);
+    overflowX = computedStyle.overflowX;
+    if (overflowX !== "auto" && overflowX !== "scroll") {
+      return false;
+    }
+    return true;
+  }
+
+  function collectVerticalScrollElements(rootElement) {
+    var menuScreen = getMenuScreenRoot(rootElement);
+    var nodes;
+    var results = [];
+    var index;
+    var node;
+    if (!menuScreen) {
+      return results;
+    }
+    nodes = menuScreen.getElementsByTagName("*");
+    for (index = 0; index < nodes.length; index += 1) {
+      node = nodes[index];
+      if (isVerticalScrollElement(node)) {
+        results.push(node);
+      }
+    }
+    results.sort(function (left, right) {
+      return getElementDepth(right) - getElementDepth(left);
+    });
+    return results;
+  }
+
+  function collectHorizontalScrollElements(rootElement) {
+    var menuScreen = getMenuScreenRoot(rootElement);
+    var nodes;
+    var results = [];
+    var index;
+    var node;
+    if (!menuScreen) {
+      return results;
+    }
+    nodes = menuScreen.getElementsByTagName("*");
+    for (index = 0; index < nodes.length; index += 1) {
+      node = nodes[index];
+      if (isHorizontalScrollElement(node)) {
+        results.push(node);
+      }
+    }
+    results.sort(function (left, right) {
+      return getElementDepth(right) - getElementDepth(left);
+    });
+    return results;
+  }
+
   function wrapVerticalScrollView(scrollElement) {
-    if (!scrollElement || scrollElement.closest(".menu-v-scroll")) {
+    if (!scrollElement || isWrappedVerticalScrollView(scrollElement)) {
       return;
     }
 
@@ -185,6 +326,7 @@
     scrollElement.parentNode.insertBefore(wrapperElement, scrollElement);
     wrapperElement.appendChild(scrollElement);
     wrapperElement.appendChild(trackElement);
+    scrollElement.classList.add(SCROLL_VIEW_CLASS);
 
     var instance = {
       listElement: scrollElement,
@@ -203,13 +345,11 @@
   }
 
   function shouldWrapScrollElement(scrollElement) {
-    if (!scrollElement) {
-      return false;
-    }
-    if (scrollElement.closest(".menu-v-scroll")) {
-      return false;
-    }
-    return true;
+    return isVerticalScrollElement(scrollElement);
+  }
+
+  function shouldWrapHorizontalScrollElement(scrollElement) {
+    return isHorizontalScrollElement(scrollElement);
   }
 
   function scheduleScrollViewScan() {
@@ -235,10 +375,9 @@
   }
 
   function initVerticalScrollViews(rootElement) {
-    var searchRoot = rootElement || document;
-    var scrollElements = searchRoot.querySelectorAll(VERTICAL_SCROLL_WRAP_SELECTOR);
+    var scrollElements = collectVerticalScrollElements(rootElement);
     var index;
-    for (index = 0; index < scrollElements.length; index++) {
+    for (index = 0; index < scrollElements.length; index += 1) {
       var scrollElement = scrollElements[index];
       if (!shouldWrapScrollElement(scrollElement)) {
         continue;
@@ -410,7 +549,7 @@
   }
 
   function wrapHorizontalScrollView(viewElement) {
-    if (!viewElement || viewElement.closest(".menu-h-scroll")) {
+    if (!viewElement || isWrappedHorizontalScrollView(viewElement)) {
       return;
     }
 
@@ -428,6 +567,7 @@
     viewElement.parentNode.insertBefore(wrapperElement, viewElement);
     wrapperElement.appendChild(viewElement);
     wrapperElement.appendChild(trackElement);
+    viewElement.classList.add(HORIZONTAL_SCROLL_VIEW_CLASS);
 
     var instance = {
       viewElement: viewElement,
@@ -447,11 +587,14 @@
 
   function initHorizontalScrollViews(rootElement) {
     horizontalScrollbarInstances = [];
-    var searchRoot = rootElement || document;
-    var viewElements = searchRoot.getElementsByClassName("menu-h-scroll-view");
+    var viewElements = collectHorizontalScrollElements(rootElement);
     var index = 0;
-    for (index = 0; index < viewElements.length; index++) {
-      wrapHorizontalScrollView(viewElements[index]);
+    for (index = 0; index < viewElements.length; index += 1) {
+      var viewElement = viewElements[index];
+      if (!shouldWrapHorizontalScrollElement(viewElement)) {
+        continue;
+      }
+      wrapHorizontalScrollView(viewElement);
     }
   }
 
@@ -464,13 +607,17 @@
 
   function getScrollCursorToken(clientX, clientY) {
     var element = document.elementFromPoint(clientX, clientY);
+    var horizontalTrack;
+    var verticalTrack;
     if (!element || !element.closest) {
       return null;
     }
-    if (element.closest(".menu-h-scrollbar") != null) {
+    horizontalTrack = element.closest(".menu-h-scrollbar");
+    if (horizontalTrack != null && !horizontalTrack.classList.contains("is-hidden")) {
       return "scroll-h";
     }
-    if (element.closest(".menu-v-scrollbar") != null) {
+    verticalTrack = element.closest(".menu-v-scrollbar");
+    if (verticalTrack != null && !verticalTrack.classList.contains("is-hidden")) {
       return "scroll";
     }
     return null;

@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "Credits-valikko",
   "settings.web.window-layout": "Valikkoikkunoiden asettelu",
   "settings.web.reset-window-layouts": "Palauta sijainnit",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "Palauttaa valikkoikkunoiden oletussijainnit ja -koot.",
   "web.menu.quit": "Lopeta",
   "web.menu.disconnect": "Katkaise yhteys",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "ALOITUS",
   "web.game.marker.finish": "MAALI",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "LYÖNNIT LOPPU",
+  "web.game.blackhole-golf.out-of-hits": "LYÖNNIT LOPPU",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "napauta ja pidä tai WASD"
 }

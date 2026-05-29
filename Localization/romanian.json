@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "Meniul creditelor",
   "settings.web.window-layout": "Aranjarea ferestrelor",
   "settings.web.reset-window-layouts": "Resetează pozițiile",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "Restabilește pozițiile și dimensiunile implicite ale ferestrelor meniului.",
   "web.menu.quit": "Ieșire",
   "web.menu.disconnect": "Deconectare",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "START",
   "web.game.marker.finish": "FINAL",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "LOVITURI EPUIZATE",
+  "web.game.blackhole-golf.out-of-hits": "LOVITURI EPUIZATE",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "clic și ține apăsat sau WASD"
 }

@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "Creditsmenu",
   "settings.web.window-layout": "Menuvindueslayout",
   "settings.web.reset-window-layouts": "Nulstil positioner",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "Gendanner standardpositioner og -størrelser for trækbare menuvinduer.",
   "web.menu.quit": "Afslut",
   "web.menu.disconnect": "Afbryd forbindelse",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "START",
   "web.game.marker.finish": "MÅL",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "SLUT PÅ SLAG",
+  "web.game.blackhole-golf.out-of-hits": "SLUT PÅ SLAG",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "klik og hold eller WASD"
 }

@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "Меню титрів",
   "settings.web.window-layout": "Розташування вікон меню",
   "settings.web.reset-window-layouts": "Скинути позиції",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "Відновлює стандартні позиції та розміри вікон меню.",
   "web.menu.quit": "Вийти",
   "web.menu.disconnect": "Від'єднатися",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "СТАРТ",
   "web.game.marker.finish": "ФІНІШ",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "УДАРИ ЗАКІНЧИЛИСЬ",
+  "web.game.blackhole-golf.out-of-hits": "УДАРИ ЗАКІНЧИЛИСЬ",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "клік і утримання або WASD"
 }

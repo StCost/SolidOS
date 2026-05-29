@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "Jenerik menüsü",
   "settings.web.window-layout": "Menü pencere düzeni",
   "settings.web.reset-window-layouts": "Konumları sıfırla",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "Sürüklenebilir menü pencerelerinin varsayılan konum ve boyutlarını geri yükler.",
   "web.menu.quit": "Çıkış",
   "web.menu.disconnect": "Bağlantıyı kes",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "BAŞLA",
   "web.game.marker.finish": "BİTİŞ",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "VURUŞLAR BİTTİ",
+  "web.game.blackhole-golf.out-of-hits": "VURUŞLAR BİTTİ",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "tıkla ve basılı tut veya WASD"
 }

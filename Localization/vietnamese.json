@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "Menu ghi công",
   "settings.web.window-layout": "Bố cục cửa sổ menu",
   "settings.web.reset-window-layouts": "Đặt lại vị trí",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "Khôi phục vị trí và kích thước mặc định của cửa sổ menu.",
   "web.menu.quit": "Thoát",
   "web.menu.disconnect": "Ngắt kết nối",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "BẮT ĐẦU",
   "web.game.marker.finish": "ĐÍCH",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "HẾT CÚ",
+  "web.game.blackhole-golf.out-of-hits": "HẾT CÚ",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "bấm giữ hoặc WASD"
 }

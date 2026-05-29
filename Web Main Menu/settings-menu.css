@@ -822,3 +822,33 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+
+.settings-success-toast {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 24;
+  transform: translate(-50%, calc(-100% - 12px));
+  max-width: min(92vw, 28rem);
+  padding: 0.65em 1.1em;
+  border: 1px solid rgba(255, 128, 0, 0.55);
+  background: rgba(6, 4, 15, 0.94);
+  color: #f0e8c8;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.settings-success-toast.is-below-cursor {
+  transform: translate(-50%, 12px);
+}
+
+.settings-success-toast.is-visible {
+  opacity: 1;
+}

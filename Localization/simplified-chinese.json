@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "制作人员菜单",
   "settings.web.window-layout": "菜单窗口布局",
   "settings.web.reset-window-layouts": "重置位置",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "恢复可拖动菜单窗口的默认位置和大小。",
   "web.menu.quit": "退出",
   "web.menu.disconnect": "断开连接",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "起点",
   "web.game.marker.finish": "终点",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "击球用尽",
+  "web.game.blackhole-golf.out-of-hits": "击球用尽",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "点击按住或 WASD"
 }

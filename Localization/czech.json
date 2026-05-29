@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "Menu titulků",
   "settings.web.window-layout": "Rozložení oken menu",
   "settings.web.reset-window-layouts": "Obnovit pozice",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "Obnoví výchozí pozice a velikosti přetahovatelných oken menu.",
   "web.menu.quit": "Ukončit",
   "web.menu.disconnect": "Odpojit",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "START",
   "web.game.marker.finish": "CÍL",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "DOŠLY RÁNY",
+  "web.game.blackhole-golf.out-of-hits": "DOŠLY RÁNY",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "klikněte a držte nebo WASD"
 }

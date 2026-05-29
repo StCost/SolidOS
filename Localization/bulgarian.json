@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "Меню на екипа",
   "settings.web.window-layout": "Подредба на прозорците",
   "settings.web.reset-window-layouts": "Нулирай позициите",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "Възстановява стандартните позиции и размери на прозорците в менюто.",
   "web.menu.quit": "Изход",
   "web.menu.disconnect": "Прекъсни връзката",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "СТАРТ",
   "web.game.marker.finish": "ФИНАЛ",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "УДАРИТЕ СВЪРШИХА",
+  "web.game.blackhole-golf.out-of-hits": "УДАРИТЕ СВЪРШИХА",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "клик и задържане или WASD"
 }

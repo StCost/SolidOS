@@ -392,7 +392,7 @@ var WebWindowManager = (function () {
     setBodyMaxVar(windowElement);
     dispatchWorkspaceLayoutSettled(windowElement);
     if (window.WebScrollbarCursor) {
-      window.WebScrollbarCursor.refreshAllScrollbars();
+      window.WebScrollbarCursor.scheduleScrollViewScan();
     }
   }
 
@@ -802,7 +802,7 @@ var WebWindowManager = (function () {
       setBodyMaxVar(windowElement);
       dispatchWorkspaceLayoutSettled(windowElement);
       if (window.WebScrollbarCursor) {
-        window.WebScrollbarCursor.refreshAllScrollbars();
+        window.WebScrollbarCursor.scheduleScrollViewScan();
       }
       return;
     }
@@ -845,7 +845,7 @@ var WebWindowManager = (function () {
       setBodyMaxVar(windowElement);
       dispatchWorkspaceLayoutSettled(windowElement);
       if (window.WebScrollbarCursor) {
-        window.WebScrollbarCursor.refreshAllScrollbars();
+        window.WebScrollbarCursor.scheduleScrollViewScan();
       }
       return;
     }
@@ -890,7 +890,7 @@ var WebWindowManager = (function () {
       setBodyMaxVar(windowElement);
       dispatchWorkspaceLayoutSettled(windowElement);
       if (window.WebScrollbarCursor) {
-        window.WebScrollbarCursor.refreshAllScrollbars();
+        window.WebScrollbarCursor.scheduleScrollViewScan();
       }
       return;
     }
@@ -911,7 +911,7 @@ var WebWindowManager = (function () {
       setBodyMaxVar(windowElement);
       dispatchWorkspaceLayoutSettled(windowElement);
       if (window.WebScrollbarCursor) {
-        window.WebScrollbarCursor.refreshAllScrollbars();
+        window.WebScrollbarCursor.scheduleScrollViewScan();
       }
     }, openDoneMs);
   }
