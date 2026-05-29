@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "Menu kredit",
   "settings.web.window-layout": "Tata letak jendela menu",
   "settings.web.reset-window-layouts": "Atur ulang posisi",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "Mengembalikan posisi dan ukuran default jendela menu yang dapat diseret.",
   "web.menu.quit": "Keluar",
   "web.menu.disconnect": "Putuskan",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "MULAI",
   "web.game.marker.finish": "FINISH",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "PUKULAN HABIS",
+  "web.game.blackhole-golf.out-of-hits": "PUKULAN HABIS",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "klik dan tahan atau WASD"
 }

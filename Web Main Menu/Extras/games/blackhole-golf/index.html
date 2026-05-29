@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Slope Golf</title>
+  <title>BlackHole Golf</title>
   <style>
     * {
       box-sizing: border-box;
@@ -183,6 +183,10 @@
       color: rgba(200, 210, 190, 0.65);
     }
 
+    #levelIntroPrompt.is-hidden {
+      visibility: hidden;
+    }
+
     #loseOverlay {
       position: absolute;
       inset: 0;
@@ -223,6 +227,17 @@
       letter-spacing: 0.14em;
       color: rgba(200, 190, 190, 0.72);
     }
+
+    #fpsHud {
+      position: absolute;
+      right: 12px;
+      bottom: 14px;
+      z-index: 2;
+      pointer-events: none;
+      font-size: 11px;
+      color: rgba(180, 170, 150, 0.55);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    }
   </style>
 </head>
 
@@ -240,6 +255,7 @@
       <div><span class="label" id="hudLabelHits">Hits </span><span class="value" id="hitsValue">10</span><span
           class="label" id="hudLabelHitsLeft"> left</span></div>
     </div>
+    <div id="fpsHud">fps <span id="fpsValue">--</span></div>
     <div id="finishFlash"></div>
     <div id="congratsOverlay" class="is-hidden">
       <div id="congratsCard">
@@ -254,7 +270,7 @@
         <div id="levelIntroTitle">LEVEL 1</div>
         <div id="levelIntroScore">Score 0 m</div>
         <div id="levelIntroBest">Best 0 m</div>
-        <div id="levelIntroPrompt">CLICK TO START</div>
+        <div id="levelIntroPrompt" class="is-hidden">CLICK TO START</div>
       </div>
     </div>
     <div id="loseOverlay" class="is-hidden">
@@ -275,6 +291,7 @@
       var levelValueEl = document.getElementById("levelValue");
       var totalValueEl = document.getElementById("totalValue");
       var finishFlashEl = document.getElementById("finishFlash");
+      var fpsValueEl = document.getElementById("fpsValue");
       var hudLabelDistanceEl = document.getElementById("hudLabelDistance");
       var hudLabelBestEl = document.getElementById("hudLabelBest");
       var hudLabelLevelEl = document.getElementById("hudLabelLevel");
@@ -316,16 +333,19 @@
       var LOCALE_KEY_MARKER_START = "web.game.marker.start";
       var LOCALE_KEY_MARKER_FINISH = "web.game.marker.finish";
       var LOCALE_KEY_STATS_SEPARATOR = "web.game.stats-separator";
-      var LOCALE_KEY_OUT_OF_HITS = "web.game.slope-golf.out-of-hits";
+      var LOCALE_KEY_OUT_OF_HITS = "web.game.blackhole-golf.out-of-hits";
       var levelReady = false;
 
       var BALL_RADIUS = 8;
+      var TERRAIN_HEIGHT_LOW = -0.35;
+      var TERRAIN_HEIGHT_HIGH = 0.55;
+      var BALL_HEIGHT_SIZE_BOOST = 0.1;
       var WALL_COLLIDER_HALF_WIDTH = 7;
       var KICK_POWER_DISPLAY_REFERENCE = 520;
       var MIN_KICK_SPEED = 40;
       var FRICTION = 0.988;
-      var SLOPE_FORCE = 960;
-      var SLOPE_GRADIENT_SCALE = 2.35;
+      var SLOPE_FORCE = 1320;
+      var SLOPE_GRADIENT_SCALE = 2.75;
       var WALL_BOUNCE = 0.55;
       var REST_SPEED = 6;
       var REST_TIME = 0.55;
@@ -338,7 +358,7 @@
       var SPACE_STAR_NEAR_COUNT = 110;
       var SPACE_NEBULA_COUNT = 7;
       var WORLD_HALF = 4200;
-      var NOISE_SCALE = 0.00085;
+      var NOISE_SCALE = 0.00015;
       var TERRAIN_CLOUD_SCALE = 0.00052;
       var TERRAIN_CLOUD_STRENGTH = 0.38;
       var TERRAIN_CLOUD_CONTRAST = 0.22;
@@ -396,10 +416,21 @@
       var HOLE_WARP_PHASE_TRAVEL = 1;
       var HOLE_WARP_PHASE_SETTLE = 2;
       var WARP_PARTICLE_MAX_COUNT = 140;
-      var TERRAIN_TOPO_GRID_STEP = 36;
-      var TERRAIN_TOPO_CONTOUR_STEP = 0.09;
-      var TERRAIN_TOPO_SLOPE_MIN = 0.04;
-      var TERRAIN_TOPO_FLOW_LENGTH = 10;
+      var TERRAIN_TOPO_GRID_STEP = 24;
+      var TERRAIN_TOPO_CONTOUR_STEP = 0.012;
+      var TERRAIN_TOPO_INDEX_EVERY = 3;
+      var TERRAIN_TOPO_TICK_LENGTH = 9;
+      var TERRAIN_TOPO_MINOR_LINE_WIDTH = 0.65;
+      var TERRAIN_TOPO_MAJOR_LINE_WIDTH = 0.9;
+      var TERRAIN_TOPO_TICK_LINE_WIDTH = 0.85;
+      var TERRAIN_TOPO_CACHE_BUCKET = 128;
+      var TERRAIN_TOPO_FLOW_GRID_STEP = 52;
+      var TERRAIN_TOPO_SLOPE_MIN = 0.032;
+      var TERRAIN_TOPO_FLOW_LENGTH = 12;
+      var FINISH_EDGE_HINT_MARGIN = 16;
+      var FINISH_EDGE_HINT_CLUSTER_INSET = 22;
+      var FINISH_EDGE_HINT_ARROW_SIZE = 6;
+      var FINISH_EDGE_HINT_ON_SCREEN_PADDING = 36;
       var LIGHT_DIR_X = -0.52;
       var LIGHT_DIR_Y = -0.48;
       var LIGHT_DIR_Z = 0.7;
@@ -407,12 +438,14 @@
       var HILL_NORMAL_STRENGTH = 24;
       var TERRAIN_GRADIENT_CLAMP = 0.48;
       var TERRAIN_CELL_HILLSHADE_OFFSET_SCALE = 0.14;
-      var TERRAIN_TOPO_MAX_EDGE_DELTA = 0.22;
       var ARROW_MAX_SCREEN_LENGTH = 88;
       var ARROW_MIN_SCREEN_LENGTH = 14;
       var CAMERA_LEAD_SPEED_SCALE = 0.16;
       var CAMERA_LEAD_MAX = 150;
       var CAMERA_ZOOM_MAX_BOOST = 0.34;
+      var CAMERA_BASE_ZOOM_REFERENCE = 820;
+      var CAMERA_BASE_ZOOM_MIN = 0.68;
+      var CAMERA_BASE_ZOOM_MAX = 1;
       var CAMERA_POSITION_SMOOTH = 7.5;
       var CAMERA_ZOOM_SMOOTH = 6;
 
@@ -485,6 +518,13 @@
       var collisionRadius = BALL_RADIUS + WALL_COLLIDER_HALF_WIDTH;
       var terrainCanvas = null;
       var terrainCtx = null;
+      var topoCacheKey = "";
+      var topoCacheMinorSegments = [];
+      var topoCacheMajorSegments = [];
+      var topoCacheTickSegments = [];
+      var topoCacheFlowSegments = [];
+      var fpsSampleTime = 0;
+      var fpsSampleFrames = 0;
       var spaceStarsFar = [];
       var spaceStarsNear = [];
       var spaceNebulaSpots = [];
@@ -577,7 +617,7 @@
 
       function heightAt(worldX, worldY) {
         var base = fractalHeight(worldX, worldY);
-        var ridge = Math.abs(fractalHeight(worldX + 400, worldY - 280)) * 0.52;
+        var ridge = Math.abs(fractalHeight(worldX + 820, worldY - 560)) * 0.52;
         return base * 0.68 + ridge;
       }
 
@@ -695,16 +735,25 @@
         };
       }
 
+      function getTerrainHeightBlend(height) {
+        var blend = (height - TERRAIN_HEIGHT_LOW) / (TERRAIN_HEIGHT_HIGH - TERRAIN_HEIGHT_LOW);
+        if (blend < 0) {
+          return 0;
+        }
+        if (blend > 1) {
+          return 1;
+        }
+        return blend;
+      }
+
+      function getBallDrawRadius(worldX, worldY) {
+        var height = heightAt(worldX, worldY);
+        var blend = getTerrainHeightBlend(height);
+        return BALL_RADIUS * (1 + blend * BALL_HEIGHT_SIZE_BOOST);
+      }
+
       function heightColor(height) {
-        var low = -0.35;
-        var high = 0.55;
-        var t = (height - low) / (high - low);
-        if (t < 0) {
-          t = 0;
-        }
-        if (t > 1) {
-          t = 1;
-        }
+        var t = getTerrainHeightBlend(height);
         var greenR = 38;
         var greenG = 98;
         var greenB = 48;
@@ -843,6 +892,20 @@
         }
       }
 
+      function getTerrainViewBounds() {
+        var width = canvas.clientWidth;
+        var height = canvas.clientHeight;
+        var viewHalfWidth = width * 0.5 / cameraZoom;
+        var viewHalfHeight = height * 0.5 / cameraZoom;
+        var viewMargin = TERRAIN_VISIBLE_PADDING + TERRAIN_EDGE_FADE + TERRAIN_EDGE_BLEND_EXTRA + CORRIDOR_HALF_WIDTH_MAX;
+        return {
+          left: cameraCenterX - viewHalfWidth - viewMargin,
+          top: cameraCenterY - viewHalfHeight - viewMargin,
+          right: cameraCenterX + viewHalfWidth + viewMargin,
+          bottom: cameraCenterY + viewHalfHeight + viewMargin
+        };
+      }
+
       function drawTerrainNearTunnel() {
         if (!terrainCanvas || tunnelPath.length < 2) {
           return;
@@ -850,13 +913,11 @@
         var worldStart = -WORLD_HALF;
         var width = canvas.clientWidth;
         var height = canvas.clientHeight;
-        var viewHalfWidth = width * 0.5 / cameraZoom;
-        var viewHalfHeight = height * 0.5 / cameraZoom;
-        var viewMargin = TERRAIN_VISIBLE_PADDING + TERRAIN_EDGE_FADE + TERRAIN_EDGE_BLEND_EXTRA + CORRIDOR_HALF_WIDTH_MAX;
-        var viewLeft = cameraCenterX - viewHalfWidth - viewMargin;
-        var viewTop = cameraCenterY - viewHalfHeight - viewMargin;
-        var viewRight = cameraCenterX + viewHalfWidth + viewMargin;
-        var viewBottom = cameraCenterY + viewHalfHeight + viewMargin;
+        var terrainViewBounds = getTerrainViewBounds();
+        var viewLeft = terrainViewBounds.left;
+        var viewTop = terrainViewBounds.top;
+        var viewRight = terrainViewBounds.right;
+        var viewBottom = terrainViewBounds.bottom;
         var cellStartX = Math.floor((viewLeft - worldStart) / TERRAIN_CELL);
         var cellEndX = Math.ceil((viewRight - worldStart) / TERRAIN_CELL);
         var cellStartY = Math.floor((viewTop - worldStart) / TERRAIN_CELL);
@@ -912,99 +973,311 @@
           }
         }
         ctx.imageSmoothingEnabled = previousSmoothing;
-        drawTerrainTopography(viewLeft, viewTop, viewRight, viewBottom);
       }
 
-      function drawTerrainTopography(viewLeft, viewTop, viewRight, viewBottom) {
+      function getContourEdgeBlend(targetHeight, heightStart, heightEnd) {
+        var heightDelta = heightEnd - heightStart;
+        if (Math.abs(heightDelta) < 0.00001) {
+          return 0.5;
+        }
+        return (targetHeight - heightStart) / heightDelta;
+      }
+
+      function getContourEdgePoint(edgeIndex, worldX, worldY, gridStep, cornerHeights, targetHeight) {
+        var blend;
+        if (edgeIndex === 0) {
+          blend = getContourEdgeBlend(targetHeight, cornerHeights[0], cornerHeights[1]);
+          return { x: worldX + blend * gridStep, y: worldY };
+        }
+        if (edgeIndex === 1) {
+          blend = getContourEdgeBlend(targetHeight, cornerHeights[1], cornerHeights[2]);
+          return { x: worldX + gridStep, y: worldY + blend * gridStep };
+        }
+        if (edgeIndex === 2) {
+          blend = getContourEdgeBlend(targetHeight, cornerHeights[3], cornerHeights[2]);
+          return { x: worldX + blend * gridStep, y: worldY + gridStep };
+        }
+        blend = getContourEdgeBlend(targetHeight, cornerHeights[0], cornerHeights[3]);
+        return { x: worldX, y: worldY + blend * gridStep };
+      }
+
+      function getMarchingSquaresSegments(worldX, worldY, gridStep, cornerHeights, targetHeight) {
+        var caseIndex = 0;
+        if (cornerHeights[0] >= targetHeight) {
+          caseIndex |= 1;
+        }
+        if (cornerHeights[1] >= targetHeight) {
+          caseIndex |= 2;
+        }
+        if (cornerHeights[2] >= targetHeight) {
+          caseIndex |= 4;
+        }
+        if (cornerHeights[3] >= targetHeight) {
+          caseIndex |= 8;
+        }
+        if (caseIndex === 0 || caseIndex === 15) {
+          return [];
+        }
+        var edgePairs = [];
+        if (caseIndex === 1) {
+          edgePairs = [3, 0];
+        } else if (caseIndex === 2) {
+          edgePairs = [0, 1];
+        } else if (caseIndex === 3) {
+          edgePairs = [3, 1];
+        } else if (caseIndex === 4) {
+          edgePairs = [1, 2];
+        } else if (caseIndex === 5) {
+          var centerHeight = (cornerHeights[0] + cornerHeights[1] + cornerHeights[2] + cornerHeights[3]) * 0.25;
+          if (centerHeight >= targetHeight) {
+            edgePairs = [3, 0, 1, 2];
+          } else {
+            edgePairs = [3, 1, 0, 2];
+          }
+        } else if (caseIndex === 6) {
+          edgePairs = [0, 2];
+        } else if (caseIndex === 7) {
+          edgePairs = [3, 2];
+        } else if (caseIndex === 8) {
+          edgePairs = [3, 2];
+        } else if (caseIndex === 9) {
+          edgePairs = [0, 2];
+        } else if (caseIndex === 10) {
+          var centerHeightTen = (cornerHeights[0] + cornerHeights[1] + cornerHeights[2] + cornerHeights[3]) * 0.25;
+          if (centerHeightTen >= targetHeight) {
+            edgePairs = [0, 1, 3, 2];
+          } else {
+            edgePairs = [0, 3, 1, 2];
+          }
+        } else if (caseIndex === 11) {
+          edgePairs = [1, 2];
+        } else if (caseIndex === 12) {
+          edgePairs = [3, 1];
+        } else if (caseIndex === 13) {
+          edgePairs = [0, 1];
+        } else if (caseIndex === 14) {
+          edgePairs = [3, 0];
+        }
+        var segments = [];
+        var pairIndex;
+        for (pairIndex = 0; pairIndex < edgePairs.length; pairIndex += 2) {
+          var pointStart = getContourEdgePoint(
+            edgePairs[pairIndex],
+            worldX,
+            worldY,
+            gridStep,
+            cornerHeights,
+            targetHeight
+          );
+          var pointEnd = getContourEdgePoint(
+            edgePairs[pairIndex + 1],
+            worldX,
+            worldY,
+            gridStep,
+            cornerHeights,
+            targetHeight
+          );
+          segments.push({
+            x0: pointStart.x,
+            y0: pointStart.y,
+            x1: pointEnd.x,
+            y1: pointEnd.y
+          });
+        }
+        return segments;
+      }
+
+      function invalidateTopoCache() {
+        topoCacheKey = "";
+        topoCacheMinorSegments.length = 0;
+        topoCacheMajorSegments.length = 0;
+        topoCacheTickSegments.length = 0;
+        topoCacheFlowSegments.length = 0;
+      }
+
+      function getTopoCacheKey(viewLeft, viewTop, viewRight, viewBottom) {
+        var bucket = TERRAIN_TOPO_CACHE_BUCKET;
+        return worldSeed + "|" +
+          Math.floor(viewLeft / bucket) + "|" +
+          Math.floor(viewTop / bucket) + "|" +
+          Math.floor(viewRight / bucket) + "|" +
+          Math.floor(viewBottom / bucket);
+      }
+
+      function buildTopoWorldCache(viewLeft, viewTop, viewRight, viewBottom) {
         var gridStep = TERRAIN_TOPO_GRID_STEP;
         var contourStep = TERRAIN_TOPO_CONTOUR_STEP;
         var startX = Math.floor(viewLeft / gridStep) * gridStep;
         var startY = Math.floor(viewTop / gridStep) * gridStep;
         var worldX;
         var worldY;
-        ctx.lineCap = "round";
+        topoCacheMinorSegments.length = 0;
+        topoCacheMajorSegments.length = 0;
+        topoCacheTickSegments.length = 0;
+        topoCacheFlowSegments.length = 0;
         for (worldY = startY; worldY <= viewBottom + gridStep; worldY += gridStep) {
           for (worldX = startX; worldX <= viewRight + gridStep; worldX += gridStep) {
             var sampleX = worldX + gridStep * 0.5;
             var sampleY = worldY + gridStep * 0.5;
             var visibility = getTerrainVisibility(sampleX, sampleY);
-            if (visibility < 0.12) {
+            if (visibility < 0.04) {
               continue;
             }
-            var heightCenter = heightAt(sampleX, sampleY);
-            var gradient = heightGradient(sampleX, sampleY);
-            var slopeLength = Math.sqrt(gradient.x * gradient.x + gradient.y * gradient.y);
-            var screenCenter = worldToScreen(sampleX, sampleY);
-            var topoAlpha = visibility * 0.38;
-            if (slopeLength > TERRAIN_TOPO_SLOPE_MIN) {
-              var downhillX = -gradient.x / slopeLength;
-              var downhillY = -gradient.y / slopeLength;
-              var flowLength = TERRAIN_TOPO_FLOW_LENGTH * cameraZoom;
-              var flowEndX = screenCenter.x + downhillX * flowLength;
-              var flowEndY = screenCenter.y + downhillY * flowLength;
-              ctx.strokeStyle = "rgba(72, 58, 42, " + (topoAlpha * 0.55) + ")";
-              ctx.lineWidth = Math.max(0.8, 1 * cameraZoom);
-              ctx.beginPath();
-              ctx.moveTo(screenCenter.x, screenCenter.y);
-              ctx.lineTo(flowEndX, flowEndY);
-              ctx.stroke();
-            }
-            var heightLeft = heightAt(worldX, sampleY);
-            var heightRight = heightAt(worldX + gridStep, sampleY);
-            var heightTop = heightAt(sampleX, worldY);
-            var heightBottom = heightAt(sampleX, worldY + gridStep);
-            var edgeIndex;
-            var edges = [
-              { h0: heightLeft, h1: heightRight, x0: worldX, y0: sampleY, x1: worldX + gridStep, y1: sampleY },
-              { h0: heightTop, h1: heightBottom, x0: sampleX, y0: worldY, x1: sampleX, y1: worldY + gridStep }
+            var cornerHeights = [
+              heightAt(worldX, worldY),
+              heightAt(worldX + gridStep, worldY),
+              heightAt(worldX + gridStep, worldY + gridStep),
+              heightAt(worldX, worldY + gridStep)
             ];
-            ctx.strokeStyle = "rgba(58, 48, 36, " + (topoAlpha * 0.42) + ")";
-            ctx.lineWidth = Math.max(0.6, 0.75 * cameraZoom);
-            for (edgeIndex = 0; edgeIndex < edges.length; edgeIndex += 1) {
-              var edge = edges[edgeIndex];
-              var levelStart = Math.floor(edge.h0 / contourStep);
-              var levelEnd = Math.floor(edge.h1 / contourStep);
-              if (levelStart === levelEnd) {
-                continue;
+            var minHeight = cornerHeights[0];
+            var maxHeight = cornerHeights[0];
+            var cornerIndex;
+            for (cornerIndex = 1; cornerIndex < 4; cornerIndex += 1) {
+              if (cornerHeights[cornerIndex] < minHeight) {
+                minHeight = cornerHeights[cornerIndex];
               }
-              var heightDelta = edge.h1 - edge.h0;
-              if (Math.abs(heightDelta) < 0.0001) {
-                continue;
+              if (cornerHeights[cornerIndex] > maxHeight) {
+                maxHeight = cornerHeights[cornerIndex];
               }
-              if (Math.abs(heightDelta) > TERRAIN_TOPO_MAX_EDGE_DELTA) {
-                continue;
-              }
-              var crossLevel = levelStart < levelEnd ? levelStart + 1 : levelEnd + 1;
-              var targetHeight = crossLevel * contourStep;
-              var blend = (targetHeight - edge.h0) / heightDelta;
-              if (blend < 0 || blend > 1) {
-                continue;
-              }
-              var contourWorldX = edge.x0 + (edge.x1 - edge.x0) * blend;
-              var contourWorldY = edge.y0 + (edge.y1 - edge.y0) * blend;
-              var contourScreen = worldToScreen(contourWorldX, contourWorldY);
-              var tangentX = edge.x1 - edge.x0;
-              var tangentY = edge.y1 - edge.y0;
-              var tangentLength = Math.sqrt(tangentX * tangentX + tangentY * tangentY);
-              if (tangentLength < 0.001) {
-                continue;
-              }
-              tangentX /= tangentLength;
-              tangentY /= tangentLength;
-              var halfSpan = gridStep * 0.22 * cameraZoom;
-              ctx.beginPath();
-              ctx.moveTo(
-                contourScreen.x - tangentY * halfSpan,
-                contourScreen.y + tangentX * halfSpan
+            }
+            var levelStart = Math.ceil(minHeight / contourStep);
+            var levelEnd = Math.floor(maxHeight / contourStep);
+            var contourLevel;
+            for (contourLevel = levelStart; contourLevel <= levelEnd; contourLevel += 1) {
+              var targetHeight = contourLevel * contourStep;
+              var cellSegments = getMarchingSquaresSegments(
+                worldX,
+                worldY,
+                gridStep,
+                cornerHeights,
+                targetHeight
               );
-              ctx.lineTo(
-                contourScreen.x + tangentY * halfSpan,
-                contourScreen.y - tangentX * halfSpan
-              );
-              ctx.stroke();
+              var segmentIndex;
+              var isMajorContour = contourLevel % TERRAIN_TOPO_INDEX_EVERY === 0;
+              var segmentBucket = isMajorContour ? topoCacheMajorSegments : topoCacheMinorSegments;
+              for (segmentIndex = 0; segmentIndex < cellSegments.length; segmentIndex += 1) {
+                var segment = cellSegments[segmentIndex];
+                segmentBucket.push(segment);
+                if (!isMajorContour) {
+                  continue;
+                }
+                var midX = (segment.x0 + segment.x1) * 0.5;
+                var midY = (segment.y0 + segment.y1) * 0.5;
+                var midVisibility = getTerrainVisibility(midX, midY);
+                if (midVisibility < 0.04) {
+                  continue;
+                }
+                var segmentLength = Math.sqrt(
+                  (segment.x1 - segment.x0) * (segment.x1 - segment.x0) +
+                  (segment.y1 - segment.y0) * (segment.y1 - segment.y0)
+                );
+                if (segmentLength < 0.001) {
+                  continue;
+                }
+                var gradient = heightGradient(midX, midY);
+                var slopeLength = Math.sqrt(gradient.x * gradient.x + gradient.y * gradient.y);
+                if (slopeLength < 0.001) {
+                  continue;
+                }
+                var downhillX = -gradient.x / slopeLength;
+                var downhillY = -gradient.y / slopeLength;
+                var tangentX = (segment.x1 - segment.x0) / segmentLength;
+                var tangentY = (segment.y1 - segment.y0) / segmentLength;
+                var perpX = -tangentY;
+                var perpY = tangentX;
+                if (perpX * downhillX + perpY * downhillY < 0) {
+                  perpX = -perpX;
+                  perpY = -perpY;
+                }
+                var tickLength = TERRAIN_TOPO_TICK_LENGTH;
+                topoCacheTickSegments.push({
+                  x0: midX,
+                  y0: midY,
+                  x1: midX + perpX * tickLength,
+                  y1: midY + perpY * tickLength
+                });
+              }
             }
           }
         }
+        var flowStep = TERRAIN_TOPO_FLOW_GRID_STEP;
+        var flowStartX = Math.floor(viewLeft / flowStep) * flowStep;
+        var flowStartY = Math.floor(viewTop / flowStep) * flowStep;
+        for (worldY = flowStartY; worldY <= viewBottom + flowStep; worldY += flowStep) {
+          for (worldX = flowStartX; worldX <= viewRight + flowStep; worldX += flowStep) {
+            var flowSampleX = worldX + flowStep * 0.5;
+            var flowSampleY = worldY + flowStep * 0.5;
+            var flowVisibility = getTerrainVisibility(flowSampleX, flowSampleY);
+            if (flowVisibility < 0.04) {
+              continue;
+            }
+            var flowGradient = heightGradient(flowSampleX, flowSampleY);
+            var flowSlopeLength = Math.sqrt(flowGradient.x * flowGradient.x + flowGradient.y * flowGradient.y);
+            if (flowSlopeLength < TERRAIN_TOPO_SLOPE_MIN) {
+              continue;
+            }
+            var flowDownhillX = -flowGradient.x / flowSlopeLength;
+            var flowDownhillY = -flowGradient.y / flowSlopeLength;
+            var flowLength = TERRAIN_TOPO_FLOW_LENGTH;
+            topoCacheFlowSegments.push({
+              x0: flowSampleX,
+              y0: flowSampleY,
+              x1: flowSampleX + flowDownhillX * flowLength,
+              y1: flowSampleY + flowDownhillY * flowLength
+            });
+          }
+        }
+      }
+
+      function ensureTopoWorldCache(viewLeft, viewTop, viewRight, viewBottom) {
+        var margin = TERRAIN_TOPO_CACHE_BUCKET;
+        var expandedLeft = viewLeft - margin;
+        var expandedTop = viewTop - margin;
+        var expandedRight = viewRight + margin;
+        var expandedBottom = viewBottom + margin;
+        var cacheKey = getTopoCacheKey(expandedLeft, expandedTop, expandedRight, expandedBottom);
+        if (cacheKey === topoCacheKey) {
+          return;
+        }
+        topoCacheKey = cacheKey;
+        buildTopoWorldCache(expandedLeft, expandedTop, expandedRight, expandedBottom);
+      }
+
+      function drawCachedTopoSegmentList(segmentList) {
+        var segmentIndex;
+        for (segmentIndex = 0; segmentIndex < segmentList.length; segmentIndex += 1) {
+          var segment = segmentList[segmentIndex];
+          var segmentStart = worldToScreen(segment.x0, segment.y0);
+          var segmentEnd = worldToScreen(segment.x1, segment.y1);
+          ctx.moveTo(segmentStart.x, segmentStart.y);
+          ctx.lineTo(segmentEnd.x, segmentEnd.y);
+        }
+      }
+
+      function drawTerrainTopography(viewLeft, viewTop, viewRight, viewBottom) {
+        ensureTopoWorldCache(viewLeft, viewTop, viewRight, viewBottom);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "rgba(38, 32, 24, 0.36)";
+        ctx.lineWidth = 0.95;
+        ctx.beginPath();
+        drawCachedTopoSegmentList(topoCacheFlowSegments);
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(36, 30, 24, 0.22)";
+        ctx.lineWidth = TERRAIN_TOPO_MINOR_LINE_WIDTH;
+        ctx.beginPath();
+        drawCachedTopoSegmentList(topoCacheMinorSegments);
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(32, 26, 20, 0.34)";
+        ctx.lineWidth = TERRAIN_TOPO_MAJOR_LINE_WIDTH;
+        ctx.beginPath();
+        drawCachedTopoSegmentList(topoCacheMajorSegments);
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(34, 28, 22, 0.46)";
+        ctx.lineWidth = TERRAIN_TOPO_TICK_LINE_WIDTH;
+        ctx.beginPath();
+        drawCachedTopoSegmentList(topoCacheTickSegments);
+        ctx.stroke();
       }
 
       function drawCorridorEdgeBlendAlongEdge(edgePoints, outwardSign) {
@@ -1980,6 +2253,23 @@
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       }
 
+      function getCameraBaseZoom() {
+        var width = canvas.clientWidth;
+        var height = canvas.clientHeight;
+        var minDimension = width;
+        if (height < minDimension) {
+          minDimension = height;
+        }
+        var zoom = minDimension / CAMERA_BASE_ZOOM_REFERENCE;
+        if (zoom < CAMERA_BASE_ZOOM_MIN) {
+          zoom = CAMERA_BASE_ZOOM_MIN;
+        }
+        if (zoom > CAMERA_BASE_ZOOM_MAX) {
+          zoom = CAMERA_BASE_ZOOM_MAX;
+        }
+        return zoom;
+      }
+
       function getCameraLeadDistance(speed) {
         var leadDistance = speed * CAMERA_LEAD_SPEED_SCALE;
         if (leadDistance > CAMERA_LEAD_MAX) {
@@ -2029,7 +2319,8 @@
         var displayBall = getBallDisplayPosition();
         var targetCenterX = displayBall.x;
         var targetCenterY = displayBall.y;
-        var targetZoom = 1;
+        var baseZoom = getCameraBaseZoom();
+        var targetZoom = baseZoom;
         if (gameState !== stateRolling) {
           return {
             centerX: targetCenterX,
@@ -2052,7 +2343,7 @@
         targetCenterX = displayBall.x + dirX * leadDistance;
         targetCenterY = displayBall.y + dirY * leadDistance;
         var zoomBoost = getCameraZoomFromSpeed(speed) - 1;
-        targetZoom = 1 + zoomBoost * speedModifier;
+        targetZoom = baseZoom + zoomBoost * speedModifier;
         return {
           centerX: targetCenterX,
           centerY: targetCenterY,
@@ -2062,20 +2353,21 @@
 
       function updateCamera(deltaSeconds) {
         var target = getCameraTarget();
+        var baseZoom = getCameraBaseZoom();
         var positionBlend = 1 - Math.exp(-CAMERA_POSITION_SMOOTH * deltaSeconds);
         var zoomBlend = 1 - Math.exp(-CAMERA_ZOOM_SMOOTH * deltaSeconds);
         cameraCenterX += (target.centerX - cameraCenterX) * positionBlend;
         cameraCenterY += (target.centerY - cameraCenterY) * positionBlend;
         cameraZoom += (target.zoom - cameraZoom) * zoomBlend;
-        if (cameraZoom < 1) {
-          cameraZoom = 1;
+        if (cameraZoom < baseZoom) {
+          cameraZoom = baseZoom;
         }
       }
 
       function setCameraToBall() {
         cameraCenterX = ballX;
         cameraCenterY = ballY;
-        cameraZoom = 1;
+        cameraZoom = getCameraBaseZoom();
       }
 
       function worldToScreen(worldX, worldY) {
@@ -2192,6 +2484,19 @@
         localeTarget.addEventListener("web-locale-applied", applyGameLocale);
       }
 
+      function hideLevelIntroPrompt() {
+        if (levelIntroPromptEl) {
+          levelIntroPromptEl.classList.add("is-hidden");
+        }
+      }
+
+      function showLevelIntroPrompt() {
+        if (levelIntroPromptEl) {
+          levelIntroPromptEl.textContent = getLocalized(LOCALE_KEY_PROMPT_START, "CLICK TO START");
+          levelIntroPromptEl.classList.remove("is-hidden");
+        }
+      }
+
       function refreshLevelIntroText() {
         levelIntroTitleEl.textContent = formatLocalized(LOCALE_KEY_LEVEL_TITLE, "LEVEL {0}", levelIndex);
         levelIntroScoreEl.textContent =
@@ -2254,11 +2559,11 @@
         buildPermutation(seed);
         buildWalls(seed);
         buildTerrainTexture();
+        invalidateTopoCache();
         buildSpaceBackdrop(seed);
         placeBallAtTunnelStart();
         buildBlackHoles(seed);
         hideLoseScreen();
-        hideLevelIntro();
         hitsLeft = HITS_PER_RUN;
         gameState = stateAiming;
         holeWarpActive = false;
@@ -2278,9 +2583,13 @@
         totalScore = 0;
         bestDistance = 0;
         finishParticles.length = 0;
-        loadLevel(seed);
+        levelReady = false;
         applyGameLocale();
         showLevelIntro(true);
+        window.requestAnimationFrame(function () {
+          loadLevel(seed);
+          showLevelIntroPrompt();
+        });
       }
 
       function showLoseScreen() {
@@ -2538,9 +2847,11 @@
         }
         hideCongratsScreenInstant();
         levelIndex += 1;
+        levelReady = false;
+        showLevelIntro(false);
         window.requestAnimationFrame(function () {
           loadNextLevel();
-          showLevelIntro(false);
+          showLevelIntroPrompt();
         });
       }
 
@@ -2548,6 +2859,7 @@
         levelIntroActive = true;
         levelIntroTimer = 0;
         refreshLevelIntroText();
+        hideLevelIntroPrompt();
         if (showImmediately) {
           levelIntroCardOpacity = 1;
           levelIntroCardEl.style.opacity = "1";
@@ -2565,6 +2877,7 @@
         levelIntroCardOpacity = 0;
         levelIntroCardEl.style.opacity = "0";
         levelIntroOverlayEl.classList.add("is-hidden");
+        hideLevelIntroPrompt();
       }
 
       function updateLevelIntro(deltaSeconds) {
@@ -3551,22 +3864,22 @@
           var drawRadius = getBlackHoleScreenRadius(BLACK_HOLE_DRAW_RADIUS);
           var gravityPulse = 0.72 + Math.sin(time * 1.8 + holeIndex * 0.9) * 0.28;
           var gravityFill = ctx.createRadialGradient(screen.x, screen.y, eventRadius, screen.x, screen.y, pullRadius);
-          gravityFill.addColorStop(0, "rgba(90, 40, 140, 0)");
-          gravityFill.addColorStop(0.55, "rgba(100, 50, 160, " + (0.06 * gravityPulse) + ")");
-          gravityFill.addColorStop(0.88, "rgba(140, 90, 200, " + (0.14 * gravityPulse) + ")");
-          gravityFill.addColorStop(1, "rgba(180, 130, 255, " + (0.22 * gravityPulse) + ")");
+          gravityFill.addColorStop(0, "rgba(20, 8, 36, 0)");
+          gravityFill.addColorStop(0.55, "rgba(48, 18, 78, " + (0.08 * gravityPulse) + ")");
+          gravityFill.addColorStop(0.88, "rgba(72, 28, 112, " + (0.16 * gravityPulse) + ")");
+          gravityFill.addColorStop(1, "rgba(96, 42, 140, " + (0.24 * gravityPulse) + ")");
           ctx.fillStyle = gravityFill;
           ctx.beginPath();
           ctx.arc(screen.x, screen.y, pullRadius, 0, Math.PI * 2);
           ctx.fill();
-          ctx.strokeStyle = "rgba(150, 100, 230, " + (0.2 + gravityPulse * 0.25) + ")";
+          ctx.strokeStyle = "rgba(110, 60, 170, " + (0.22 + gravityPulse * 0.28) + ")";
           ctx.lineWidth = Math.max(1, cameraZoom);
           ctx.setLineDash([3 * cameraZoom, 7 * cameraZoom]);
           ctx.beginPath();
           ctx.arc(screen.x, screen.y, pullRadius * 0.55, spin, spin + Math.PI * 2);
           ctx.stroke();
           ctx.setLineDash([]);
-          ctx.strokeStyle = "rgba(190, 150, 255, " + (0.35 + gravityPulse * 0.35) + ")";
+          ctx.strokeStyle = "rgba(130, 80, 190, " + (0.3 + gravityPulse * 0.32) + ")";
           ctx.lineWidth = Math.max(1.5, 1.5 * cameraZoom);
           ctx.setLineDash([8 * cameraZoom, 6 * cameraZoom]);
           ctx.beginPath();
@@ -3574,7 +3887,7 @@
           ctx.stroke();
           ctx.setLineDash([]);
           var capturePulse = 0.8 + Math.sin(time * 3.2 + holeIndex) * 0.2;
-          ctx.strokeStyle = "rgba(255, 160, 90, " + (0.45 * capturePulse) + ")";
+          ctx.strokeStyle = "rgba(88, 48, 140, " + (0.42 * capturePulse) + ")";
           ctx.lineWidth = Math.max(1.2, 1.2 * cameraZoom);
           ctx.beginPath();
           ctx.arc(screen.x, screen.y, eventRadius * 1.15, 0, Math.PI * 2);
@@ -3583,13 +3896,13 @@
           var gradient = ctx.createRadialGradient(screen.x, screen.y, 0, screen.x, screen.y, outerRadius * 1.35);
           gradient.addColorStop(0, "rgba(0, 0, 0, 1)");
           gradient.addColorStop(0.35, "rgba(8, 4, 18, 0.98)");
-          gradient.addColorStop(0.65, "rgba(70, 30, 110, 0.45)");
-          gradient.addColorStop(1, "rgba(120, 80, 180, 0)");
+          gradient.addColorStop(0.65, "rgba(52, 20, 88, 0.5)");
+          gradient.addColorStop(1, "rgba(72, 32, 112, 0)");
           ctx.fillStyle = gradient;
           ctx.beginPath();
           ctx.arc(screen.x, screen.y, outerRadius * 1.35, 0, Math.PI * 2);
           ctx.fill();
-          ctx.strokeStyle = "rgba(160, 120, 255, 0.55)";
+          ctx.strokeStyle = "rgba(120, 70, 180, 0.55)";
           ctx.lineWidth = Math.max(2, 2 * cameraZoom);
           ctx.beginPath();
           ctx.arc(screen.x, screen.y, outerRadius * 0.72, 0, Math.PI * 2);
@@ -3597,7 +3910,7 @@
           var ringIndex;
           for (ringIndex = 0; ringIndex < 3; ringIndex += 1) {
             var ringRadius = outerRadius * (0.45 + ringIndex * 0.18);
-            ctx.strokeStyle = "rgba(200, 150, 255, " + (0.35 - ringIndex * 0.08) + ")";
+            ctx.strokeStyle = "rgba(140, 90, 200, " + (0.32 - ringIndex * 0.07) + ")";
             ctx.lineWidth = Math.max(1.2, 1.2 * cameraZoom);
             ctx.beginPath();
             ctx.arc(screen.x, screen.y, ringRadius, spin + ringIndex, spin + ringIndex + Math.PI * 1.35);
@@ -3608,18 +3921,18 @@
           var coreSpin = spin * 2.8;
           var streakIndex;
           var streakColors = [
-            "rgba(255, 130, 55, ",
-            "rgba(180, 70, 220, ",
-            "rgba(255, 95, 40, ",
-            "rgba(140, 55, 200, ",
-            "rgba(255, 160, 70, "
+            "rgba(90, 40, 140, ",
+            "rgba(120, 60, 180, ",
+            "rgba(70, 30, 120, ",
+            "rgba(100, 50, 160, ",
+            "rgba(80, 35, 130, "
           ];
           ctx.save();
           ctx.translate(screen.x, screen.y);
           ctx.rotate(coreSpin);
           for (streakIndex = 0; streakIndex < 5; streakIndex += 1) {
             var streakAngle = streakIndex * (Math.PI * 2 / 5);
-            var streakAlpha = (0.16 + corePulse * 0.38) * coreFlicker;
+            var streakAlpha = (0.14 + corePulse * 0.34) * coreFlicker;
             ctx.strokeStyle = streakColors[streakIndex] + streakAlpha + ")";
             ctx.lineWidth = Math.max(1.4, 1.4 * cameraZoom);
             ctx.beginPath();
@@ -3635,9 +3948,9 @@
             screen.y,
             eventRadius * 1.2
           );
-          innerGlow.addColorStop(0, "rgba(255, 120, 45, " + (0.55 * corePulse * coreFlicker) + ")");
-          innerGlow.addColorStop(0.35, "rgba(200, 80, 210, " + (0.42 * corePulse) + ")");
-          innerGlow.addColorStop(0.7, "rgba(110, 40, 170, " + (0.28 * corePulse) + ")");
+          innerGlow.addColorStop(0, "rgba(72, 32, 120, " + (0.48 * corePulse * coreFlicker) + ")");
+          innerGlow.addColorStop(0.35, "rgba(58, 24, 100, " + (0.38 * corePulse) + ")");
+          innerGlow.addColorStop(0.7, "rgba(36, 12, 68, " + (0.28 * corePulse) + ")");
           innerGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
           ctx.fillStyle = innerGlow;
           ctx.beginPath();
@@ -3651,21 +3964,21 @@
             screen.y,
             eventRadius * 1.05
           );
-          holeCore.addColorStop(0, "rgba(255, 155, 60, " + (0.92 * coreFlicker) + ")");
-          holeCore.addColorStop(0.18, "rgba(255, 105, 35, " + (0.78 * corePulse) + ")");
-          holeCore.addColorStop(0.42, "rgba(190, 70, 200, " + (0.62 * corePulse) + ")");
-          holeCore.addColorStop(0.68, "rgba(120, 40, 160, " + (0.48 * corePulse) + ")");
-          holeCore.addColorStop(0.88, "rgba(40, 10, 70, " + (0.55 * corePulse) + ")");
+          holeCore.addColorStop(0, "rgba(12, 4, 24, " + (0.98 * coreFlicker) + ")");
+          holeCore.addColorStop(0.22, "rgba(28, 10, 52, " + (0.92 * corePulse) + ")");
+          holeCore.addColorStop(0.48, "rgba(52, 20, 88, " + (0.72 * corePulse) + ")");
+          holeCore.addColorStop(0.72, "rgba(68, 28, 108, " + (0.45 * corePulse) + ")");
+          holeCore.addColorStop(0.9, "rgba(24, 8, 44, " + (0.62 * corePulse) + ")");
           holeCore.addColorStop(1, "rgba(0, 0, 0, 0.98)");
           ctx.fillStyle = holeCore;
           ctx.beginPath();
           ctx.arc(screen.x, screen.y, eventRadius * 0.95, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillStyle = "rgba(8, 2, 18, " + (0.5 + (1 - corePulse) * 0.42) + ")";
+          ctx.fillStyle = "rgba(4, 0, 12, " + (0.62 + (1 - corePulse) * 0.32) + ")";
           ctx.beginPath();
           ctx.arc(screen.x, screen.y, eventRadius * 0.42, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillStyle = "rgba(255, 110, 40, " + (0.22 * coreFlicker * corePulse) + ")";
+          ctx.fillStyle = "rgba(88, 40, 140, " + (0.18 * coreFlicker * corePulse) + ")";
           ctx.beginPath();
           ctx.arc(screen.x, screen.y, eventRadius * 0.18, 0, Math.PI * 2);
           ctx.fill();
@@ -3835,16 +4148,16 @@
         }
       }
 
-      function drawWarpBallGlow(screenX, screenY) {
+      function drawWarpBallGlow(screenX, screenY, drawRadius) {
         if (holeWarpGlowStrength <= 0.01) {
           return;
         }
         var pulse = 0.82 + Math.sin(Date.now() * 0.012) * 0.18;
-        var glowRadius = BALL_RADIUS * (2.4 + pulse * 0.8);
+        var glowRadius = drawRadius * (2.4 + pulse * 0.8);
         var glowGradient = ctx.createRadialGradient(
           screenX,
           screenY,
-          BALL_RADIUS * 0.2,
+          drawRadius * 0.2,
           screenX,
           screenY,
           glowRadius
@@ -3872,15 +4185,16 @@
       function drawBall() {
         var displayBall = getBallDisplayPosition();
         var screen = worldToScreen(displayBall.x, displayBall.y);
+        var drawRadius = getBallDrawRadius(displayBall.x, displayBall.y);
         if (holeWarpActive) {
-          drawWarpBallGlow(screen.x, screen.y);
+          drawWarpBallGlow(screen.x, screen.y, drawRadius);
         }
         var terrainGradient = heightGradient(displayBall.x, displayBall.y);
         var shadowOffset = 5 + terrainGradient.height * 8;
-        var shadowWidth = BALL_RADIUS * (1.15 + terrainGradient.height * 0.15);
+        var shadowWidth = drawRadius * (1.15 + terrainGradient.height * 0.15);
         ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
         ctx.beginPath();
-        ctx.ellipse(screen.x + 3, screen.y + shadowOffset, shadowWidth, BALL_RADIUS * 0.5, 0, 0, Math.PI * 2);
+        ctx.ellipse(screen.x + 3, screen.y + shadowOffset, shadowWidth, drawRadius * 0.5, 0, 0, Math.PI * 2);
         ctx.fill();
 
         var motion = getBallMotionVector();
@@ -3898,13 +4212,13 @@
         ctx.strokeStyle = "#2a2824";
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(0, 0, BALL_RADIUS, 0, Math.PI * 2);
+        ctx.arc(0, 0, drawRadius, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
-        drawBallPattern(BALL_RADIUS, spinSpeed);
+        drawBallPattern(drawRadius, spinSpeed);
         ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
         ctx.beginPath();
-        ctx.arc(-BALL_RADIUS * 0.28, -BALL_RADIUS * 0.32, BALL_RADIUS * 0.22, 0, Math.PI * 2);
+        ctx.arc(-drawRadius * 0.28, -drawRadius * 0.32, drawRadius * 0.22, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
@@ -4056,6 +4370,131 @@
         ctx.stroke();
       }
 
+      function isFinishVisibleOnScreen() {
+        var width = canvas.clientWidth;
+        var height = canvas.clientHeight;
+        var finishScreen = worldToScreen(finishX, finishY);
+        var padding = FINISH_EDGE_HINT_ON_SCREEN_PADDING;
+        if (finishScreen.x < padding) {
+          return false;
+        }
+        if (finishScreen.y < padding) {
+          return false;
+        }
+        if (finishScreen.x > width - padding) {
+          return false;
+        }
+        if (finishScreen.y > height - padding) {
+          return false;
+        }
+        return true;
+      }
+
+      function getFinishEdgeHintPlacement() {
+        var width = canvas.clientWidth;
+        var height = canvas.clientHeight;
+        var centerX = width * 0.5;
+        var centerY = height * 0.5;
+        var finishScreen = worldToScreen(finishX, finishY);
+        var directionX = finishScreen.x - centerX;
+        var directionY = finishScreen.y - centerY;
+        var directionLength = Math.sqrt(directionX * directionX + directionY * directionY);
+        if (directionLength < 0.001) {
+          directionX = 0;
+          directionY = -1;
+          directionLength = 1;
+        }
+        directionX /= directionLength;
+        directionY /= directionLength;
+        var margin = FINISH_EDGE_HINT_MARGIN;
+        var rayDistance = Infinity;
+        if (directionX > 0.0001) {
+          var rightDistance = (width - margin - centerX) / directionX;
+          if (rightDistance < rayDistance) {
+            rayDistance = rightDistance;
+          }
+        } else if (directionX < -0.0001) {
+          var leftDistance = (margin - centerX) / directionX;
+          if (leftDistance < rayDistance) {
+            rayDistance = leftDistance;
+          }
+        }
+        if (directionY > 0.0001) {
+          var bottomDistance = (height - margin - centerY) / directionY;
+          if (bottomDistance < rayDistance) {
+            rayDistance = bottomDistance;
+          }
+        } else if (directionY < -0.0001) {
+          var topDistance = (margin - centerY) / directionY;
+          if (topDistance < rayDistance) {
+            rayDistance = topDistance;
+          }
+        }
+        if (!isFinite(rayDistance) || rayDistance <= 0) {
+          rayDistance = margin;
+        }
+        return {
+          edgeX: centerX + directionX * rayDistance,
+          edgeY: centerY + directionY * rayDistance,
+          directionX: directionX,
+          directionY: directionY
+        };
+      }
+
+      function drawFinishEdgeHint() {
+        if (!levelReady || levelIntroActive || congratsScreenActive || loseScreenActive || holeWarpActive) {
+          return;
+        }
+        if (isFinishVisibleOnScreen()) {
+          return;
+        }
+        var placement = getFinishEdgeHintPlacement();
+        var labelText = getLocalized(LOCALE_KEY_MARKER_FINISH, "FINISH");
+        var clusterCenterX = placement.edgeX - placement.directionX * FINISH_EDGE_HINT_CLUSTER_INSET;
+        var clusterCenterY = placement.edgeY - placement.directionY * FINISH_EDGE_HINT_CLUSTER_INSET;
+        var arrowSize = FINISH_EDGE_HINT_ARROW_SIZE;
+        ctx.save();
+        ctx.translate(clusterCenterX, clusterCenterY);
+        ctx.rotate(Math.atan2(placement.directionY, placement.directionX));
+        ctx.font = "10px Courier New, Courier, monospace";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        var labelWidth = ctx.measureText(labelText).width;
+        var arrowTipLocalX = 16;
+        var textLocalX = -labelWidth - 10;
+        var badgePaddingX = 8;
+        var badgePaddingY = 7;
+        var badgeLeft = textLocalX - badgePaddingX;
+        var badgeRight = arrowTipLocalX + arrowSize + badgePaddingX;
+        var badgeTop = -badgePaddingY - arrowSize * 0.55;
+        var badgeBottom = badgePaddingY + arrowSize * 0.55;
+        ctx.fillStyle = "rgba(12, 8, 4, 0.78)";
+        ctx.strokeStyle = "rgba(255, 210, 90, 0.78)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.rect(badgeLeft, badgeTop, badgeRight - badgeLeft, badgeBottom - badgeTop);
+        ctx.fill();
+        ctx.stroke();
+        var arrowBaseLocalX = arrowTipLocalX - arrowSize * 1.7;
+        ctx.fillStyle = "rgba(255, 220, 96, 1)";
+        ctx.strokeStyle = "rgba(48, 32, 8, 0.95)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(arrowTipLocalX, 0);
+        ctx.lineTo(arrowBaseLocalX, arrowSize * 0.62);
+        ctx.lineTo(arrowBaseLocalX, -arrowSize * 0.62);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255, 248, 210, 0.98)";
+        ctx.strokeStyle = "rgba(24, 16, 4, 0.85)";
+        ctx.lineWidth = 2.5;
+        ctx.strokeText(labelText, textLocalX, 0);
+        ctx.lineWidth = 1;
+        ctx.fillText(labelText, textLocalX, 0);
+        ctx.restore();
+      }
+
       function drawFrame() {
         if (!levelReady) {
           var width = canvas.clientWidth;
@@ -4067,6 +4506,15 @@
         drawCosmicBackground();
         drawTerrainNearTunnel();
         drawCorridorEdgeBlend();
+        if (terrainCanvas && tunnelPath.length >= 2) {
+          var terrainViewBounds = getTerrainViewBounds();
+          drawTerrainTopography(
+            terrainViewBounds.left,
+            terrainViewBounds.top,
+            terrainViewBounds.right,
+            terrainViewBounds.bottom
+          );
+        }
         drawBlackHoles();
         drawWalls();
         drawStartFinishLineMarkers();
@@ -4075,6 +4523,7 @@
         drawAimLine();
         drawCursorPushField();
         drawBall();
+        drawFinishEdgeHint();
       }
 
       var lastTime = 0;
@@ -4090,6 +4539,13 @@
         updatePhysics(deltaSeconds);
         updateCamera(deltaSeconds);
         drawFrame();
+        fpsSampleFrames += 1;
+        fpsSampleTime += deltaSeconds;
+        if (fpsSampleTime >= 0.35) {
+          fpsValueEl.textContent = String(Math.round(fpsSampleFrames / fpsSampleTime));
+          fpsSampleFrames = 0;
+          fpsSampleTime = 0;
+        }
         window.requestAnimationFrame(loop);
       }
 

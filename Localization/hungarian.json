@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "Stáblista menü",
   "settings.web.window-layout": "Menüablak-elrendezés",
   "settings.web.reset-window-layouts": "Pozíciók visszaállítása",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "Visszaállítja a húzható menüablakok alapértelmezett helyzetét és méretét.",
   "web.menu.quit": "Kilépés",
   "web.menu.disconnect": "Kapcsolat bontása",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "RAJT",
   "web.game.marker.finish": "CÉL",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "ELFOGYTAK AZ ÜTÉSEK",
+  "web.game.blackhole-golf.out-of-hits": "ELFOGYTAK AZ ÜTÉSEK",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "kattints és tartsd vagy WASD"
 }

@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "크레딧 메뉴",
   "settings.web.window-layout": "메뉴 창 배치",
   "settings.web.reset-window-layouts": "위치 초기화",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "드래그 가능한 메뉴 창의 기본 위치와 크기를 복원합니다.",
   "web.menu.quit": "종료",
   "web.menu.disconnect": "연결 해제",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "시작",
   "web.game.marker.finish": "골",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "타수 소진",
+  "web.game.blackhole-golf.out-of-hits": "타수 소진",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "클릭 유지 또는 WASD"
 }

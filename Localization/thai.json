@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "เมนูเครดิต",
   "settings.web.window-layout": "การจัดวางหน้าต่างเมนู",
   "settings.web.reset-window-layouts": "รีเซ็ตตำแหน่ง",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "คืนค่าตำแหน่งและขนาดเริ่มต้นของหน้าต่างเมนูที่ลากได้",
   "web.menu.quit": "ออก",
   "web.menu.disconnect": "ตัดการเชื่อมต่อ",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "เริ่ม",
   "web.game.marker.finish": "เส้นชัย",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "หมดครั้ง",
+  "web.game.blackhole-golf.out-of-hits": "หมดครั้ง",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "คลิกค้างหรือ WASD"
 }

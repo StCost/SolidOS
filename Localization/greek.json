@@ -205,6 +205,8 @@
   "web.aria.credits-menu": "Μενού credits",
   "settings.web.window-layout": "Διάταξη παραθύρων μενού",
   "settings.web.reset-window-layouts": "Επαναφορά θέσεων",
+  "settings.web.reset-defaults-done": "Defaults restored.",
+  "settings.web.reset-window-layouts-done": "Window positions reset.",
   "settings.help.web.window-layout": "Επαναφέρει τις προεπιλεγμένες θέσεις και μεγέθη των παραθύρων μενού.",
   "web.menu.quit": "Έξοδος",
   "web.menu.disconnect": "Αποσύνδεση",
@@ -268,7 +270,7 @@
   "web.game.marker.start": "ΕΚΚΙΝΗΣΗ",
   "web.game.marker.finish": "ΤΕΡΜΑ",
   "web.game.stats-separator": " · ",
-  "web.game.slope-golf.out-of-hits": "ΤΕΛΕΙΩΣΑΝ ΤΑ ΧΤΥΠΗΜΑΤΑ",
+  "web.game.blackhole-golf.out-of-hits": "ΤΕΛΕΙΩΣΑΝ ΤΑ ΧΤΥΠΗΜΑΤΑ",
   "web.game.crystal-rush.start": "Crystal Rush",
   "web.game.crystal-rush.start-hint": "κλικ και κράτημα ή WASD"
 }
