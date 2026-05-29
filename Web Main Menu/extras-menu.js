@@ -19,6 +19,14 @@
   var ART_MODAL_OPEN_MS_DEFAULT = 340;
   var STORAGE_KEY_SKIP_EXTERNAL_LINK_CONFIRM = "cm-skip-external-link-confirm";
   var STORAGE_VALUE_TRUE = "1";
+  var IFRAME_EMBED_RESET_STYLE_ID = "cm-iframe-embed-reset";
+  var IFRAME_EMBED_RESET_LINK_ID = "cm-iframe-embed-reset-link";
+  var IFRAME_EMBED_RESET_HREF = "../../iframe-embed-reset.css";
+  var IFRAME_EMBED_RESET_INLINE =
+    "html,body{-webkit-tap-highlight-color:transparent;tap-highlight-color:transparent}" +
+    "*,*::before,*::after{-webkit-tap-highlight-color:transparent;tap-highlight-color:transparent}" +
+    "*:focus,*:focus-visible,*:active{outline:none}" +
+    "html{touch-action:manipulation}";
 
   var contentRoot = document.getElementById("extrasContent");
   var viewArt = document.getElementById("extrasViewArt");
@@ -294,6 +302,40 @@
       if (games[index].id === gameId) return games[index];
     }
     return null;
+  }
+
+  function injectIframeEmbedResetIntoFrame(frame) {
+    var doc;
+    try {
+      doc = frame.contentDocument;
+    } catch (error) {
+      return;
+    }
+    if (!doc || !doc.head) return;
+
+    if (!doc.getElementById(IFRAME_EMBED_RESET_LINK_ID)) {
+      var link = doc.createElement("link");
+      link.id = IFRAME_EMBED_RESET_LINK_ID;
+      link.rel = "stylesheet";
+      link.href = IFRAME_EMBED_RESET_HREF;
+      doc.head.appendChild(link);
+    }
+
+    if (!doc.getElementById(IFRAME_EMBED_RESET_STYLE_ID)) {
+      var style = doc.createElement("style");
+      style.id = IFRAME_EMBED_RESET_STYLE_ID;
+      style.textContent = IFRAME_EMBED_RESET_INLINE;
+      doc.head.insertBefore(style, doc.head.firstChild);
+    }
+  }
+
+  function bindIframeEmbedReset(frame) {
+    if (!frame) return;
+    if (frame.getAttribute("data-embed-reset-bound") === "1") return;
+    frame.setAttribute("data-embed-reset-bound", "1");
+    frame.addEventListener("load", function () {
+      injectIframeEmbedResetIntoFrame(frame);
+    });
   }
 
   function openGame(gameId) {
@@ -636,6 +678,8 @@
 
   var btnArtViewerClose = document.getElementById("extrasArtViewerClose");
   if (btnArtViewerClose) btnArtViewerClose.addEventListener("click", closeArtViewer);
+
+  bindIframeEmbedReset(gameFrame);
 
   if (gamesListRoot) gamesListRoot.addEventListener("click", onGamesListClick);
   if (linksListRoot) linksListRoot.addEventListener("click", onLinksListClick);
