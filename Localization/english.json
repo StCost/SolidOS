@@ -231,6 +231,7 @@
   "web.game.best-label": "best",
   "web.game.midnight-run.game-over": "Game Over",
   "web.game.midnight-run.meters-suffix": "m",
+  "web.game.midnight-run.speed-suffix": " m/s",
   "web.game.midnight-run.start": "Start",
   "web.extras.game.back": "Back to games",
   "web.extras.art.background-01": "Background 01",

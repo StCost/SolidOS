@@ -12,23 +12,16 @@ echo   Press Ctrl+C to stop.
 echo.
 
 set "NODE_EXE="
-set "NPX_CMD="
 
 where node >nul 2>&1
-if not errorlevel 1 (
-  set "NODE_EXE=node"
-  where npx >nul 2>&1
-  if not errorlevel 1 set "NPX_CMD=npx"
-)
+if not errorlevel 1 set "NODE_EXE=node"
 
 if not defined NODE_EXE if exist "%ProgramFiles%\nodejs\node.exe" (
   set "NODE_EXE=%ProgramFiles%\nodejs\node.exe"
-  if exist "%ProgramFiles%\nodejs\npx.cmd" set "NPX_CMD=%ProgramFiles%\nodejs\npx.cmd"
 )
 
 if not defined NODE_EXE if exist "%LOCALAPPDATA%\Programs\node\node.exe" (
   set "NODE_EXE=%LOCALAPPDATA%\Programs\node\node.exe"
-  if exist "%LOCALAPPDATA%\Programs\node\npx.cmd" set "NPX_CMD=%LOCALAPPDATA%\Programs\node\npx.cmd"
 )
 
 if not defined NODE_EXE if exist "%ProgramFiles%\cursor\resources\app\resources\helpers\node.exe" (
@@ -42,18 +35,23 @@ if not defined NODE_EXE (
   exit /b 1
 )
 
-if defined NPX_CMD (
-  "%NPX_CMD%" --yes serve . -p 8765
-  if not errorlevel 1 exit /b 0
-  echo.
-  echo npx serve failed, using built-in static server...
-  echo.
+if /I "%USE_NPX_SERVE%"=="1" (
+  where npx >nul 2>&1
+  if not errorlevel 1 (
+    call npx --yes serve . -p 8765
+    if not errorlevel 1 exit /b 0
+    echo.
+    echo npx serve failed, using built-in static server...
+    echo.
+  )
 )
 
 "%NODE_EXE%" "%~dp0serve-local-server.js"
 if errorlevel 1 (
   echo.
   echo Server exited with an error.
+  echo If port 8765 is busy, close the other server or run: taskkill /F /IM node.exe
+  echo.
   pause
   exit /b 1
 )

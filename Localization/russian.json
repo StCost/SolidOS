@@ -211,6 +211,7 @@
   "web.game.best-label": "рек.",
   "web.game.midnight-run.game-over": "Игра окончена",
   "web.game.midnight-run.meters-suffix": "м",
+  "web.game.midnight-run.speed-suffix": " м/с",
   "web.game.midnight-run.start": "Старт",
   "web.status.extras": "extras.exe",
   "web.window.extras-data": "extras.dat",

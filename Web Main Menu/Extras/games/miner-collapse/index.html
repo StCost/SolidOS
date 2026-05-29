@@ -1,0 +1,2536 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Miner Collapse</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #0a0806;
+      color: #e8dcc8;
+      font-family: "Courier New", Courier, monospace;
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+    }
+
+    #gameRoot,
+    #gameCanvas {
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+    }
+
+    #gameRoot {
+      position: absolute;
+      inset: 0;
+    }
+
+    #gameCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #hud {
+      position: absolute;
+      left: 50%;
+      top: 10px;
+      z-index: 2;
+      pointer-events: none;
+      text-align: center;
+      transform: translateX(-50%);
+      font-size: 14px;
+      line-height: 1.45;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+      white-space: nowrap;
+    }
+
+    #bestHud {
+      position: absolute;
+      right: 12px;
+      top: 10px;
+      z-index: 2;
+      pointer-events: none;
+      text-align: right;
+      font-size: 12px;
+      color: rgba(200, 180, 150, 0.65);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+    }
+
+    #bestHud #bestValue {
+      display: block;
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff4d8;
+    }
+
+    #scoreValue {
+      font-size: 22px;
+      font-weight: bold;
+      color: #fff4d8;
+      transition: transform 0.12s ease-out;
+    }
+
+    #scoreValue.is-pop {
+      transform: scale(1.12);
+    }
+
+    #hud .dim {
+      color: rgba(200, 180, 150, 0.65);
+      font-size: 12px;
+    }
+
+    #bottomHud {
+      position: absolute;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      z-index: 2;
+      pointer-events: none;
+      text-align: center;
+    }
+
+    #multiplierHud {
+      font-size: 15px;
+      font-weight: bold;
+      color: rgba(255, 210, 140, 0.95);
+      margin-bottom: 6px;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+    }
+
+    #multiplierBarWrap {
+      width: min(280px, 60vw);
+      margin: 0 auto;
+    }
+
+    #multiplierBarLabels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      letter-spacing: 0.04em;
+      color: rgba(180, 170, 150, 0.55);
+      margin-bottom: 4px;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    }
+
+    #multiplierBar {
+      height: 4px;
+      background: rgba(0, 0, 0, 0.45);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    #multiplierFill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #4488ff, #aa44ff, #ff8844);
+      border-radius: 2px;
+      transition: width 0.08s linear;
+    }
+
+    #fpsHud {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      z-index: 2;
+      pointer-events: none;
+      font-size: 11px;
+      color: rgba(180, 170, 150, 0.55);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="gameRoot">
+    <canvas id="gameCanvas"></canvas>
+    <div id="fpsHud">fps <span id="fpsValue">--</span></div>
+    <div id="hud">
+      <div id="scoreValue">0t</div>
+    </div>
+    <div id="bestHud">best <span id="bestValue">0t</span></div>
+    <div id="bottomHud">
+      <div id="multiplierHud">100%</div>
+      <div id="multiplierBarWrap">
+        <div id="multiplierBarLabels">
+          <span>100%</span>
+          <span>99900%</span>
+        </div>
+        <div id="multiplierBar">
+          <div id="multiplierFill"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var canvas = document.getElementById("gameCanvas");
+      var ctx = canvas.getContext("2d");
+      var scoreValueEl = document.getElementById("scoreValue");
+      var bestValueEl = document.getElementById("bestValue");
+      var multiplierHudEl = document.getElementById("multiplierHud");
+      var multiplierFillEl = document.getElementById("multiplierFill");
+      var fpsValueEl = document.getElementById("fpsValue");
+
+      var PIXEL = 5;
+      var CELL_EMPTY = 0;
+      var CELL_DIRT = 1;
+      var CELL_CRYSTAL_BASE = 2;
+      var CRYSTAL_COUNT = 5;
+      var CELL_ROCK = 7;
+
+      var RARITY_COLORS = [
+        [48, 198, 82],
+        [72, 140, 255],
+        [180, 90, 255],
+        [255, 160, 64],
+        [255, 72, 72]
+      ];
+      var RARITY_SCORE = [8, 22, 55, 140, 380];
+      var RARITY_GLOW = [0.35, 0.5, 0.7, 0.9, 1.15];
+      var RARITY_SPEED_GAIN = [0.012, 0.034, 0.088, 0.21, 0.52];
+      var RARITY_POWER_GAIN = [0.003, 0.006, 0.011, 0.019, 0.032];
+      var RARITY_PIXEL_MIN = [92, 158, 268, 435, 700];
+      var RARITY_PIXEL_MAX = [230, 390, 660, 1050, 1650];
+      var VEIN_ATTEMPTS_PER_CHUNK = 3;
+      var VEIN_ATTEMPT_CHANCE = 0.125;
+      var VEIN_DEPTH_CHANCE = 0.0006;
+      var VEIN_PATTERN_COUNT = 6;
+      var GOLDEN_ANGLE = 2.399963229728653;
+      var GROW_DIRECTIONS = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+        [1, 1],
+        [-1, 1],
+        [1, -1],
+        [-1, -1]
+      ];
+
+      var BASE_GROWTH_SPEED = 42;
+      var MIN_COLLAPSE_RADIUS = 18;
+      var MULTIPLIER_DECAY_PERCENT = 0.09;
+      var MAX_SPEED_MULTIPLIER = 999;
+      var CHUNK_ROWS = 48;
+      var PRUNE_KEEP_ROWS_ABOVE_CAMERA = 48;
+      var PRUNE_MIN_GRID_ROWS = 192;
+      var BURN_DECAY = 1.8;
+      var PARTICLE_MERGE_AFTER = 0.14;
+      var PARTICLE_MERGE_DIST = 16;
+      var PARTICLE_MERGE_DIST_SCORE = 22;
+      var SCORE_ARRIVE_DIST = 14;
+      var SCORE_PARTICLE_TRAVEL_TIME = 0.5;
+      var CRYSTAL_GLOSS_SPEED = 2;
+      var BEST_SCORE_STORAGE_KEY = "miner-collapse-best-score";
+      var MAX_DIRT_PARTICLES = 90;
+      var MAX_SCORE_PARTICLES_FROM_CLUSTER = 20;
+      var MAX_DIRTY_CELLS_PER_COLLAPSE = 14000;
+      var DEBRIS_SPAWN_CHANCE = 0.1;
+      var SKY_TOP = [8, 10, 22];
+      var SKY_PATTERN = [14, 12, 28];
+      var SKY_MID = [72, 48, 58];
+      var SKY_HORIZON = [255, 168, 88];
+      var SUN_CORE = [255, 228, 140];
+      var SUN_GLOW = [255, 140, 60];
+
+      var surfaceRowByCol = null;
+      var gridCols = 0;
+      var gridRows = 0;
+      var cells = null;
+      var dirtShade = null;
+      var crystalClusterId = null;
+      var horizonWorldY = 0;
+      var horizonRow = 0;
+      var sunWorldX = 0;
+      var sunWorldY = 0;
+      var sunDestroyed = false;
+      var sunDestroyLife = 0;
+      var nextClusterId = 1;
+      var cameraY = 0;
+      var targetCameraY = 0;
+      var deepestRow = 0;
+      var gridRowBase = 0;
+      var seed = 90210;
+
+      var pointerX = 0;
+      var pointerY = 0;
+      var holeX = 0;
+      var holeY = 0;
+      var holeRadius = 0;
+      var holeGrowing = true;
+      var baseMaxHoleRadius = 120;
+
+      var score = 0;
+      var bestScore = 0;
+      var growthBoost = 1;
+
+      var burns = [];
+      var particles = [];
+      var floatingLabels = [];
+      var collapseRings = [];
+      var screenShake = 0;
+
+      var scorePopTimer = 0;
+      var lastTime = 0;
+      var glossPhase = 0;
+      var fpsSampleTime = 0;
+      var fpsSampleFrames = 0;
+      var staticBgCanvas = null;
+      var staticBgCtx = null;
+      var worldLayerCanvas = null;
+      var worldLayerCtx = null;
+      var worldLayerCols = 0;
+      var worldLayerRows = 0;
+      var crystalMarksBuffer = null;
+      var clusterStackCol = null;
+      var clusterStackRow = null;
+      var dirtyPaintCols = null;
+      var dirtyPaintRows = null;
+      var dirtParticleCount = 0;
+
+      function rand() {
+        seed = (seed * 16807 + 0) % 2147483647;
+        return (seed & 2147483647) / 2147483647;
+      }
+
+      function randRange(min, max) {
+        return min + rand() * (max - min);
+      }
+
+      function hashNoise(x, y) {
+        var n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+        return n - Math.floor(n);
+      }
+
+      function getMaterialSampleX(col) {
+        return col * PIXEL / Math.max(1, window.innerWidth);
+      }
+
+      function getMaterialSampleY(row) {
+        return row * PIXEL / Math.max(1, window.innerHeight);
+      }
+
+      function isCrystalCell(cell) {
+        return cell >= CELL_CRYSTAL_BASE && cell < CELL_CRYSTAL_BASE + CRYSTAL_COUNT;
+      }
+
+      function getPatternWave(col, row) {
+        var sampleX = getMaterialSampleX(col);
+        var sampleY = getMaterialSampleY(row);
+        var drift = hashNoise(sampleX * 1.4, sampleY * 1.1) * 0.35;
+        var layerX = Math.sin((sampleX + drift) * Math.PI * 2);
+        var layerY = Math.sin((sampleY + drift * 0.7) * Math.PI * 2 + 1.4);
+        return (layerX + layerY) * 0.25 + 0.5;
+      }
+
+      function getDirtColor(col, row, shade) {
+        var coarse = hashNoise(col * 0.31, row * 0.17);
+        var fine = hashNoise(col * 0.63, row * 0.44);
+        var wave = getPatternWave(col, row);
+        var lightRed = 98 + shade * 0.62 + coarse * 12 + fine * 6;
+        var lightGreen = 68 + shade * 0.38 + coarse * 8 + fine * 4;
+        var lightBlue = 42 + shade * 0.22 + coarse * 5 + fine * 3;
+        var darkRed = 58 + shade * 0.46 + coarse * 10 + fine * 5;
+        var darkGreen = 38 + shade * 0.27 + coarse * 6 + fine * 3;
+        var darkBlue = 24 + shade * 0.15 + coarse * 4 + fine * 2;
+        return [
+          Math.floor(lightRed + (darkRed - lightRed) * wave),
+          Math.floor(lightGreen + (darkGreen - lightGreen) * wave),
+          Math.floor(lightBlue + (darkBlue - lightBlue) * wave)
+        ];
+      }
+
+      function getCaveColor(col, row) {
+        var dirt = getDirtColor(col, row, 28);
+        return [
+          Math.floor(dirt[0] * 0.28),
+          Math.floor(dirt[1] * 0.26),
+          Math.floor(dirt[2] * 0.24)
+        ];
+      }
+
+      function getRockColor(col, row, shade) {
+        var coarse = hashNoise(col * 0.22, row * 0.16);
+        var fine = hashNoise(col * 0.58, row * 0.41);
+        var wave = getPatternWave(col + 19, row + 13);
+        var lightBase = 78 + shade * 0.2;
+        var darkBase = 46 + shade * 0.14;
+        var base = lightBase + (darkBase - lightBase) * wave;
+        return [
+          Math.floor(base + coarse * 12 + fine * 5),
+          Math.floor(base - 4 + coarse * 10 + fine * 4),
+          Math.floor(base - 8 + coarse * 9 + fine * 4)
+        ];
+      }
+
+      function getGroundType(col, row, depth) {
+        if (depth < 4) {
+          return CELL_DIRT;
+        }
+        var sampleX = getMaterialSampleX(col);
+        var sampleY = getMaterialSampleY(row);
+        var rockBand = hashNoise(sampleX * 1.15, sampleY * 0.95);
+        var rockMix = hashNoise(sampleX * 0.72 + 5.4, sampleY * 0.58 + 2.8);
+        if (rockBand > 0.54 && rockMix > 0.36) {
+          return CELL_ROCK;
+        }
+        return CELL_DIRT;
+      }
+
+      function resize() {
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+        var dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        gridCols = Math.ceil(width / PIXEL) + 2;
+        baseMaxHoleRadius = Math.min(width, height) * 0.5;
+        rebuildStaticBackground(width, height);
+        initWorld();
+      }
+
+      function rebuildStaticBackground(width, height) {
+        var block = 28;
+        var col;
+        var row;
+        var px;
+        var py;
+        var noise;
+        var red;
+        var green;
+        var blue;
+        var stripeStep = 36;
+        var stripeIndex;
+        if (!staticBgCanvas) {
+          staticBgCanvas = document.createElement("canvas");
+          staticBgCtx = staticBgCanvas.getContext("2d");
+        }
+        staticBgCanvas.width = width;
+        staticBgCanvas.height = height;
+        staticBgCtx.fillStyle = "#06040c";
+        staticBgCtx.fillRect(0, 0, width, height);
+        for (row = 0; row < height + block; row += block) {
+          for (col = 0; col < width + block; col += block) {
+            px = col + block * 0.5;
+            py = row + block * 0.5;
+            noise = hashNoise(px * 0.07, py * 0.05);
+            red = SKY_PATTERN[0] + noise * 18;
+            green = SKY_PATTERN[1] + noise * 12;
+            blue = SKY_PATTERN[2] + noise * 22;
+            staticBgCtx.fillStyle = "rgba(" + Math.floor(red) + "," + Math.floor(green) + "," + Math.floor(blue) + ",0.55)";
+            staticBgCtx.fillRect(col, row, block - 2, block - 2);
+          }
+        }
+        staticBgCtx.strokeStyle = "rgba(20, 14, 32, 0.35)";
+        staticBgCtx.lineWidth = 1;
+        for (stripeIndex = -height; stripeIndex < width + height; stripeIndex += stripeStep) {
+          staticBgCtx.beginPath();
+          staticBgCtx.moveTo(stripeIndex, 0);
+          staticBgCtx.lineTo(stripeIndex + height, height);
+          staticBgCtx.stroke();
+        }
+      }
+
+      function ensureWorldLayerCanvas() {
+        var pixelWidth = gridCols * PIXEL;
+        var pixelHeight = gridRows * PIXEL;
+        var oldCanvas;
+        var oldPixelWidth;
+        var oldPixelHeight;
+        if (!worldLayerCanvas) {
+          worldLayerCanvas = document.createElement("canvas");
+          worldLayerCtx = worldLayerCanvas.getContext("2d");
+          worldLayerCols = 0;
+          worldLayerRows = 0;
+        }
+        if (worldLayerCols !== gridCols || worldLayerRows !== gridRows) {
+          oldCanvas = worldLayerCanvas;
+          oldPixelWidth = worldLayerCols * PIXEL;
+          oldPixelHeight = worldLayerRows * PIXEL;
+          worldLayerCanvas = document.createElement("canvas");
+          worldLayerCtx = worldLayerCanvas.getContext("2d");
+          worldLayerCanvas.width = pixelWidth;
+          worldLayerCanvas.height = pixelHeight;
+          if (worldLayerRows > 0) {
+            worldLayerCtx.drawImage(oldCanvas, 0, 0, oldPixelWidth, oldPixelHeight);
+          }
+          worldLayerCols = gridCols;
+          worldLayerRows = gridRows;
+        }
+      }
+
+      function getSurfaceRow(col) {
+        if (!surfaceRowByCol || col < 0 || col >= gridCols) {
+          return horizonRow;
+        }
+        return surfaceRowByCol[col];
+      }
+
+      function buildSurfaceRows() {
+        var col;
+        var wave;
+        var row;
+        surfaceRowByCol = new Uint16Array(gridCols);
+        for (col = 0; col < gridCols; col += 1) {
+          wave = Math.sin(col * 0.09) * 2.5 + Math.sin(col * 0.031 + 1.7) * 1.8 + hashNoise(col * 0.15, 42) * 2.2;
+          row = Math.floor(horizonRow + wave);
+          if (row < 3) {
+            row = 3;
+          }
+          if (row > horizonRow + 6) {
+            row = horizonRow + 6;
+          }
+          surfaceRowByCol[col] = row;
+        }
+      }
+
+      function getMaxHoleRadius() {
+        var mult = getSpeedMultiplier();
+        var scale = Math.log(Math.max(1, mult)) / Math.log(MAX_SPEED_MULTIPLIER);
+        if (scale < 0) {
+          scale = 0;
+        }
+        if (scale > 1) {
+          scale = 1;
+        }
+        return baseMaxHoleRadius * (0.35 + scale * 0.65);
+      }
+
+      function getMultiplierCapPercent() {
+        return MAX_SPEED_MULTIPLIER * 100;
+      }
+
+      function paintWorldCell(col, row) {
+        var index;
+        var cell;
+        var x;
+        var y;
+        var terrainColor;
+        var shade;
+        var rarity;
+        var surfaceRow;
+        if (row < 0 || row >= gridRows || col < 0 || col >= gridCols) {
+          return;
+        }
+        surfaceRow = getSurfaceRow(col);
+        index = cellIndex(col, row);
+        cell = cells[index];
+        if (cell === CELL_EMPTY && getWorldRow(row) < surfaceRow) {
+          ensureWorldLayerCanvas();
+          worldLayerCtx.clearRect(col * PIXEL, row * PIXEL, PIXEL, PIXEL);
+          return;
+        }
+        if (getWorldRow(row) < surfaceRow && !isCrystalCell(cell)) {
+          return;
+        }
+        x = col * PIXEL;
+        y = row * PIXEL;
+        if (cell === CELL_EMPTY) {
+          terrainColor = getCaveColor(col, row);
+        } else if (isCrystalCell(cell)) {
+          rarity = cell - CELL_CRYSTAL_BASE;
+          terrainColor = RARITY_COLORS[rarity];
+        } else {
+          shade = dirtShade[index];
+          if (cell === CELL_ROCK) {
+            terrainColor = getRockColor(col, row, shade);
+          } else {
+            terrainColor = getDirtColor(col, row, shade);
+          }
+        }
+        ensureWorldLayerCanvas();
+        worldLayerCtx.fillStyle = "rgb(" + terrainColor[0] + "," + terrainColor[1] + "," + terrainColor[2] + ")";
+        worldLayerCtx.fillRect(x, y, PIXEL, PIXEL);
+      }
+
+      function paintWorldCellRegion(minCol, minRow, maxCol, maxRow) {
+        var col;
+        var row;
+        if (minCol < 0) {
+          minCol = 0;
+        }
+        if (minRow < 0) {
+          minRow = 0;
+        }
+        if (maxCol >= gridCols) {
+          maxCol = gridCols - 1;
+        }
+        if (maxRow >= gridRows) {
+          maxRow = gridRows - 1;
+        }
+        for (row = minRow; row <= maxRow; row += 1) {
+          for (col = minCol; col <= maxCol; col += 1) {
+            paintWorldCell(col, row);
+          }
+        }
+      }
+
+      function rebuildWorldLayer() {
+        var col;
+        var row;
+        ensureWorldLayerCanvas();
+        for (row = 0; row < gridRows; row += 1) {
+          for (col = 0; col < gridCols; col += 1) {
+            paintWorldCell(col, row);
+          }
+        }
+      }
+
+      function initWorld() {
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+        horizonWorldY = height * 0.5;
+        horizonRow = Math.floor(horizonWorldY / PIXEL);
+        sunWorldX = width * 0.68;
+        sunWorldY = horizonWorldY - height * 0.22;
+        nextClusterId = 1;
+        gridRowBase = 0;
+
+        gridRows = horizonRow + CHUNK_ROWS * 3;
+        ensureGridWorkBuffers();
+        cells = new Uint8Array(gridCols * gridRows);
+        dirtShade = new Uint8Array(gridCols * gridRows);
+        crystalClusterId = new Uint16Array(gridCols * gridRows);
+
+        buildSurfaceRows();
+
+        var index;
+        var col;
+        var row;
+        var surfaceRow;
+        for (row = 0; row < gridRows; row += 1) {
+          for (col = 0; col < gridCols; col += 1) {
+            index = cellIndex(col, row);
+            crystalClusterId[index] = 0;
+            surfaceRow = getSurfaceRow(col);
+            if (row < surfaceRow) {
+              cells[index] = CELL_EMPTY;
+              dirtShade[index] = 0;
+            } else {
+              setDirtCell(col, row, true);
+            }
+          }
+        }
+        deepestRow = gridRows - 1;
+        cameraY = 0;
+        targetCameraY = 0;
+        generateChunkBelow();
+        spawnSurfaceCrystalPlants();
+        rebuildWorldLayer();
+      }
+
+      function placeSurfaceCrystal(col, row, cellType, clusterId) {
+        var index;
+        if (col < 0 || col >= gridCols || row < 0 || row >= gridRows) {
+          return;
+        }
+        if (getWorldRow(row) >= getSurfaceRow(col)) {
+          return;
+        }
+        index = cellIndex(col, row);
+        if (cells[index] !== CELL_EMPTY) {
+          return;
+        }
+        cells[index] = cellType;
+        crystalClusterId[index] = clusterId;
+        paintWorldCell(col, row);
+      }
+
+      function growSurfaceCactus(baseCol, surfaceRow, clusterId, rarity) {
+        var height = 3 + Math.floor(rand() * 14);
+        var row;
+        var armRow;
+        var cellType = CELL_CRYSTAL_BASE + rarity;
+        for (row = 1; row <= height; row += 1) {
+          placeSurfaceCrystal(baseCol, surfaceRow - row, cellType, clusterId);
+        }
+        if (height >= 5 && rand() < 0.55) {
+          armRow = surfaceRow - height + 2;
+          placeSurfaceCrystal(baseCol - 1, armRow, cellType, clusterId);
+          if (rand() < 0.5) {
+            placeSurfaceCrystal(baseCol + 1, armRow + 2, cellType, clusterId);
+          }
+        }
+        if (height >= 9 && rand() < 0.4) {
+          armRow = surfaceRow - Math.floor(height * 0.55);
+          placeSurfaceCrystal(baseCol + 1, armRow, cellType, clusterId);
+        }
+      }
+
+      function growSurfaceMushroom(baseCol, surfaceRow, clusterId, rarity) {
+        var stemHeight = 2 + Math.floor(rand() * 11);
+        var capRow;
+        var cellType = CELL_CRYSTAL_BASE + rarity;
+        var row;
+        for (row = 1; row <= stemHeight; row += 1) {
+          placeSurfaceCrystal(baseCol, surfaceRow - row, cellType, clusterId);
+        }
+        capRow = surfaceRow - stemHeight - 1;
+        placeSurfaceCrystal(baseCol, capRow, cellType, clusterId);
+        placeSurfaceCrystal(baseCol - 1, capRow, cellType, clusterId);
+        placeSurfaceCrystal(baseCol + 1, capRow, cellType, clusterId);
+        if (stemHeight >= 4 && rand() < 0.45) {
+          placeSurfaceCrystal(baseCol, capRow - 1, cellType, clusterId);
+        }
+        if (stemHeight >= 7 && rand() < 0.3) {
+          placeSurfaceCrystal(baseCol - 1, capRow - 1, cellType, clusterId);
+          placeSurfaceCrystal(baseCol + 1, capRow - 1, cellType, clusterId);
+        }
+      }
+
+      function spawnSurfaceCrystalPlants() {
+        var col;
+        var clusterId;
+        var surfaceRow;
+        var plantKind;
+        var plantRarity;
+        var nextGap;
+        col = 6;
+        nextGap = 9 + Math.floor(rand() * 9);
+        while (col < gridCols - 6) {
+          if (rand() > 0.58) {
+            col += 1;
+            continue;
+          }
+          surfaceRow = getSurfaceRow(col);
+          if (surfaceRow < 3) {
+            col += 1;
+            continue;
+          }
+          clusterId = nextClusterId;
+          nextClusterId += 1;
+          if (nextClusterId > 65000) {
+            nextClusterId = 1;
+          }
+          plantRarity = Math.floor(rand() * CRYSTAL_COUNT);
+          plantKind = rand() < 0.5 ? 0 : 1;
+          if (plantKind === 0) {
+            growSurfaceCactus(col, surfaceRow, clusterId, plantRarity);
+          } else {
+            growSurfaceMushroom(col, surfaceRow, clusterId, plantRarity);
+          }
+          col += nextGap;
+          nextGap = 9 + Math.floor(rand() * 9);
+        }
+      }
+
+      function getHorizonScreenY() {
+        return horizonWorldY - cameraY;
+      }
+
+      function getScoreTargetX() {
+        return window.innerWidth * 0.5;
+      }
+
+      function getScoreTargetY() {
+        return 22;
+      }
+
+      function getSpeedMultiplier() {
+        if (growthBoost > MAX_SPEED_MULTIPLIER) {
+          return MAX_SPEED_MULTIPLIER;
+        }
+        return growthBoost;
+      }
+
+      function getMultiplierBarFillPercent(mult) {
+        var scale = Math.log(Math.max(1, mult)) / Math.log(MAX_SPEED_MULTIPLIER);
+        if (scale < 0) {
+          scale = 0;
+        }
+        if (scale > 1) {
+          scale = 1;
+        }
+        return scale * 100;
+      }
+
+      function getCrystalSpeedBoostGain(crystal) {
+        var rarity = crystal.rarity;
+        var pixelCount = crystal.pixelCount || 1;
+        var rarityGain = RARITY_SPEED_GAIN[rarity];
+        var powerGain = Math.sqrt(pixelCount) * RARITY_POWER_GAIN[rarity];
+        return rarityGain + powerGain;
+      }
+
+      function formatScoreTons(value) {
+        if (value >= 1000000) {
+          return (value / 1000000).toFixed(2) + "Mt";
+        }
+        if (value >= 1000) {
+          return (value / 1000).toFixed(1) + "kt";
+        }
+        return value.toFixed(0) + "t";
+      }
+
+      function formatScoreGainLabel(earned) {
+        return "+" + formatScoreTons(earned);
+      }
+
+      function formatMultiplierPercent(mult) {
+        var percent = mult * 100;
+        if (percent >= getMultiplierCapPercent() - 0.05) {
+          return "99900%";
+        }
+        if (percent >= 1000) {
+          return Math.floor(percent) + "%";
+        }
+        if (percent >= 100) {
+          return percent.toFixed(0) + "%";
+        }
+        return percent.toFixed(1) + "%";
+      }
+
+      function formatBoostGainPercentLabel(gain) {
+        var percent = gain * 100;
+        if (percent >= 100) {
+          return "+" + percent.toFixed(0) + "%";
+        }
+        if (percent >= 10) {
+          return "+" + percent.toFixed(1) + "%";
+        }
+        return "+" + percent.toFixed(2) + "%";
+      }
+
+      function updateHudDisplay() {
+        var mult = getSpeedMultiplier();
+        scoreValueEl.textContent = formatScoreTons(score);
+        multiplierHudEl.textContent = formatMultiplierPercent(mult);
+        multiplierFillEl.style.width = String(getMultiplierBarFillPercent(mult)) + "%";
+      }
+
+      function loadBestScore() {
+        var stored = localStorage.getItem(BEST_SCORE_STORAGE_KEY);
+        var parsed;
+        if (stored === null) {
+          return 0;
+        }
+        parsed = parseInt(stored, 10);
+        if (isNaN(parsed) || parsed < 0) {
+          return 0;
+        }
+        return parsed;
+      }
+
+      function saveBestScore() {
+        localStorage.setItem(BEST_SCORE_STORAGE_KEY, String(bestScore));
+      }
+
+      function setBestScoreIfHigher(value) {
+        if (value > bestScore) {
+          bestScore = value;
+          bestValueEl.textContent = formatScoreTons(bestScore);
+          saveBestScore();
+        }
+      }
+
+      function pushImplodeRing(worldX, worldY, startRadius, life, red, green, blue) {
+        collapseRings.push({
+          worldX: worldX,
+          worldY: worldY,
+          radius: startRadius,
+          startRadius: startRadius,
+          implode: true,
+          life: life,
+          red: red,
+          green: green,
+          blue: blue
+        });
+      }
+
+      function spawnCollapseBoostEffect(totalGain, totalScoreEarned, worldX, worldY) {
+        var intensity;
+        var fontSize;
+        var hasBoost;
+        var hasScore;
+        hasBoost = totalGain > 0.001;
+        hasScore = totalScoreEarned > 0;
+        if (!hasBoost && !hasScore) {
+          return;
+        }
+        intensity = Math.min(1, totalGain / 3 + totalScoreEarned / 1200);
+        fontSize = Math.floor(16 + intensity * 26);
+        if (hasBoost) {
+          floatingLabels.push({
+            worldX: worldX,
+            worldY: worldY,
+            screenOffsetY: -18,
+            text: formatBoostGainPercentLabel(totalGain),
+            life: 1.2 + intensity * 0.8,
+            maxLife: 1.2 + intensity * 0.8,
+            red: 80 + Math.floor(intensity * 140),
+            green: 230 + Math.floor(intensity * 25),
+            blue: 70 + Math.floor(intensity * 30),
+            fontSize: fontSize,
+            scale: 1 + intensity * 0.45
+          });
+        }
+        if (hasScore) {
+          floatingLabels.push({
+            worldX: worldX,
+            worldY: worldY,
+            screenOffsetY: 8,
+            text: formatScoreGainLabel(totalScoreEarned),
+            life: 1.2 + intensity * 0.8,
+            maxLife: 1.2 + intensity * 0.8,
+            red: 255,
+            green: 244,
+            blue: 216,
+            fontSize: Math.floor(14 + intensity * 18),
+            scale: 1 + intensity * 0.3
+          });
+        }
+        screenShake = Math.min(6, 1.5 + intensity * 4);
+        pushImplodeRing(
+          worldX,
+          worldY,
+          10 + intensity * 38,
+          1,
+          60 + Math.floor(intensity * 80),
+          255,
+          90 + Math.floor(intensity * 40)
+        );
+      }
+
+      function spawnBoostLabel(screenX, screenY, gain, red, green, blue) {
+        floatingLabels.push({
+          x: screenX + (rand() - 0.5) * 24,
+          y: screenY - 8,
+          text: formatBoostGainPercentLabel(gain),
+          life: 1.15,
+          maxLife: 1.15,
+          red: red,
+          green: green,
+          blue: blue
+        });
+      }
+
+      function addCrystalSpeedBoost(crystal) {
+        var gain = getCrystalSpeedBoostGain(crystal);
+        growthBoost += gain;
+        return gain;
+      }
+
+      function isBelowHorizonRow(worldRow) {
+        return worldRow >= horizonRow;
+      }
+
+      function cellIndex(col, gridRow) {
+        return gridRow * gridCols + col;
+      }
+
+      function getWorldRow(gridRow) {
+        return gridRow + gridRowBase;
+      }
+
+      function getGridRow(worldRow) {
+        return worldRow - gridRowBase;
+      }
+
+      function ensureGridWorkBuffers() {
+        var cellCount = gridCols * gridRows;
+        if (!crystalMarksBuffer || crystalMarksBuffer.length < cellCount) {
+          crystalMarksBuffer = new Uint8Array(cellCount);
+        }
+        if (!clusterStackCol || clusterStackCol.length < cellCount) {
+          clusterStackCol = new Int16Array(cellCount);
+          clusterStackRow = new Int16Array(cellCount);
+        }
+        if (!dirtyPaintCols || dirtyPaintCols.length < MAX_DIRTY_CELLS_PER_COLLAPSE) {
+          dirtyPaintCols = new Int16Array(MAX_DIRTY_CELLS_PER_COLLAPSE);
+          dirtyPaintRows = new Int16Array(MAX_DIRTY_CELLS_PER_COLLAPSE);
+        }
+      }
+
+      function clearCrystalMarksRegion(minCol, minRow, maxCol, maxRow) {
+        var col;
+        var row;
+        var index;
+        for (row = minRow; row <= maxRow; row += 1) {
+          for (col = minCol; col <= maxCol; col += 1) {
+            if (col < 0 || col >= gridCols || row < 0 || row >= gridRows) {
+              continue;
+            }
+            index = cellIndex(col, row);
+            crystalMarksBuffer[index] = 0;
+          }
+        }
+      }
+
+      function markDirtyPaintCell(col, row, dirtyCount) {
+        if (dirtyCount < MAX_DIRTY_CELLS_PER_COLLAPSE) {
+          dirtyPaintCols[dirtyCount] = col;
+          dirtyPaintRows[dirtyCount] = row;
+          dirtyCount += 1;
+        }
+        return dirtyCount;
+      }
+
+      function paintDirtyCells(dirtyCount) {
+        var paintIndex;
+        for (paintIndex = 0; paintIndex < dirtyCount; paintIndex += 1) {
+          paintWorldCell(dirtyPaintCols[paintIndex], dirtyPaintRows[paintIndex]);
+        }
+      }
+
+      function getCellFast(col, row) {
+        if (col < 0 || col >= gridCols || row < 0 || row >= gridRows) {
+          return CELL_EMPTY;
+        }
+        return cells[cellIndex(col, row)];
+      }
+
+      function getCell(col, row) {
+        if (col < 0 || col >= gridCols || row < 0 || row >= gridRows) {
+          return CELL_EMPTY;
+        }
+        return cells[cellIndex(col, row)];
+      }
+
+      function setDirtCell(col, row, isNew) {
+        var index = cellIndex(col, row);
+        var depth = getWorldRow(row) - getSurfaceRow(col);
+        crystalClusterId[index] = 0;
+        cells[index] = getGroundType(col, row, depth);
+        var noise = hashNoise(col * 0.31, row * 0.17);
+        dirtShade[index] = Math.floor(40 + depth * 1.2 + noise * 55);
+        paintWorldCell(col, row);
+      }
+
+      function pickVeinRarity(depth) {
+        var roll = rand();
+        if (depth > 80 && roll < 0.014) {
+          return 4;
+        }
+        if (depth > 50 && roll < 0.035) {
+          return 3;
+        }
+        if (depth > 30 && roll < 0.065) {
+          return 2;
+        }
+        if (depth > 12 && roll < 0.12) {
+          return 1;
+        }
+        return 0;
+      }
+
+      function pickDirtSeedInChunk(chunkStartRow, chunkEndRow) {
+        var tryIndex;
+        var seedCol;
+        var seedRow;
+        var fallbackCol;
+        var fallbackRow;
+        for (tryIndex = 0; tryIndex < 18; tryIndex += 1) {
+          seedCol = Math.floor(rand() * gridCols);
+          seedRow = Math.floor(randRange(chunkStartRow + 4, chunkEndRow - 4));
+          if (getWorldRow(seedRow) < getSurfaceRow(seedCol)) {
+            continue;
+          }
+          if (getCell(seedCol, seedRow) === CELL_DIRT) {
+            return { col: seedCol, row: seedRow };
+          }
+        }
+        fallbackCol = Math.floor(rand() * gridCols);
+        fallbackRow = Math.floor(randRange(chunkStartRow + 6, chunkEndRow - 6));
+        return findVeinSeedColRow(fallbackCol, fallbackRow);
+      }
+
+      function findVeinSeedColRow(preferredCol, preferredRow) {
+        var ring;
+        var angleStep;
+        var angleIndex;
+        var offsetCol;
+        var offsetRow;
+        var testCol;
+        var testRow;
+        if (getCell(preferredCol, preferredRow) === CELL_DIRT) {
+          return { col: preferredCol, row: preferredRow };
+        }
+        for (ring = 1; ring <= 14; ring += 1) {
+          angleStep = Math.max(6, Math.floor(18 / ring));
+          for (angleIndex = 0; angleIndex < angleStep; angleIndex += 1) {
+            offsetCol = Math.round(Math.cos(angleIndex / angleStep * Math.PI * 2) * ring);
+            offsetRow = Math.round(Math.sin(angleIndex / angleStep * Math.PI * 2) * ring);
+            testCol = preferredCol + offsetCol;
+            testRow = preferredRow + offsetRow;
+            if (getCell(testCol, testRow) === CELL_DIRT) {
+              return { col: testCol, row: testRow };
+            }
+          }
+        }
+        return null;
+      }
+
+      function tryPlaceVeinInChunk(chunkStartRow, chunkEndRow, depth) {
+        var seed;
+        var rarity;
+        seed = pickDirtSeedInChunk(chunkStartRow, chunkEndRow);
+        if (seed === null) {
+          return;
+        }
+        rarity = pickVeinRarity(depth);
+        growCrystalVein(seed.col, seed.row, rarity);
+      }
+
+      function getVeinPatternPoints(patternType, targetPixels) {
+        var points = [];
+        var seen = {};
+        var radius = Math.ceil(Math.sqrt(targetPixels) * 3.35) + 20;
+        var pointCount = 0;
+        var key;
+        var curvePoints = [];
+        var pathIndex;
+        var fromPoint;
+        var toPoint;
+        var lineCol;
+        var lineRow;
+        var deltaCol;
+        var deltaRow;
+        var stepCol;
+        var stepRow;
+        var lineError;
+        var lineErrorDouble;
+        var thicknessPass;
+        var thicknessLimit;
+        var angle;
+        var growth;
+        var step;
+        var spiralRadius;
+        var ampX;
+        var ampY;
+        var freqA;
+        var freqB;
+        var phase;
+        var waveFreqA;
+        var waveFreqB;
+        var waveMix;
+        var wavePhase;
+        var phyllotaxisIndex;
+        var phyllotaxisRadius;
+        var phyllotaxisAngle;
+        var phyllotaxisScale;
+        var timeMax;
+        var normalizedTime;
+        var petalCount;
+        var roseRadius;
+        var gridCol;
+        var gridRow;
+        var waveValue;
+        var timeIndex;
+        var juliaX;
+        var juliaY;
+        var juliaReal;
+        var juliaImag;
+        var juliaIter;
+        var juliaEscape;
+        var juliaConstantReal;
+        var juliaConstantImag;
+        var thicknessIndex;
+        var basePoint;
+        var directionIndex;
+        var direction;
+        var neighborCol;
+        var neighborRow;
+
+        function addPoint(col, row) {
+          if (col < -radius || col > radius || row < -radius || row > radius) {
+            return;
+          }
+          key = (col + 4096) * 8192 + (row + 4096);
+          if (seen[key]) {
+            return;
+          }
+          seen[key] = 1;
+          points.push({ col: col, row: row });
+          pointCount += 1;
+        }
+
+        function addCurvePoint(col, row) {
+          addPoint(col, row);
+          curvePoints.push({ col: col, row: row });
+        }
+
+        function addLine(fromCol, fromRow, toCol, toRow) {
+          lineCol = fromCol;
+          lineRow = fromRow;
+          deltaCol = Math.abs(toCol - fromCol);
+          deltaRow = Math.abs(toRow - fromRow);
+          stepCol = fromCol < toCol ? 1 : -1;
+          stepRow = fromRow < toRow ? 1 : -1;
+          lineError = deltaCol - deltaRow;
+          addPoint(lineCol, lineRow);
+          while (lineCol !== toCol || lineRow !== toRow) {
+            lineErrorDouble = lineError * 2;
+            if (lineErrorDouble > -deltaRow) {
+              lineError -= deltaRow;
+              lineCol += stepCol;
+            }
+            if (lineErrorDouble < deltaCol) {
+              lineError += deltaCol;
+              lineRow += stepRow;
+            }
+            addPoint(lineCol, lineRow);
+            if (pointCount >= targetPixels * 2) {
+              break;
+            }
+          }
+        }
+
+        function connectCurvePath() {
+          if (curvePoints.length < 2) {
+            return;
+          }
+          for (pathIndex = 0; pathIndex < curvePoints.length - 1; pathIndex += 1) {
+            fromPoint = curvePoints[pathIndex];
+            toPoint = curvePoints[pathIndex + 1];
+            addLine(fromPoint.col, fromPoint.row, toPoint.col, toPoint.row);
+          }
+        }
+
+        if (patternType === 0) {
+          angle = rand() * Math.PI * 2;
+          growth = 0.34 + targetPixels * 0.0024;
+          step = 0;
+          while (pointCount < targetPixels && step < targetPixels * 5) {
+            spiralRadius = growth * angle * 0.42;
+            addCurvePoint(Math.round(Math.cos(angle) * spiralRadius), Math.round(Math.sin(angle) * spiralRadius));
+            angle += 0.22 + rand() * 0.05;
+            step += 1;
+          }
+          connectCurvePath();
+        } else if (patternType === 1) {
+          ampX = radius * 0.78;
+          ampY = radius * 0.72;
+          freqA = 3 + Math.floor(rand() * 3);
+          freqB = 2 + Math.floor(rand() * 4);
+          phase = rand() * Math.PI * 2;
+          timeMax = targetPixels * 3;
+          for (timeIndex = 0; timeIndex <= timeMax; timeIndex += 1) {
+            normalizedTime = timeIndex / timeMax * Math.PI * 2;
+            addCurvePoint(
+              Math.round(Math.sin(freqA * normalizedTime + phase) * ampX),
+              Math.round(Math.sin(freqB * normalizedTime) * ampY)
+            );
+            if (curvePoints.length >= targetPixels) {
+              break;
+            }
+          }
+          connectCurvePath();
+        } else if (patternType === 2) {
+          petalCount = 3 + Math.floor(rand() * 6);
+          timeMax = targetPixels * 4;
+          for (timeIndex = 0; timeIndex <= timeMax; timeIndex += 1) {
+            normalizedTime = timeIndex / timeMax * Math.PI * 2;
+            roseRadius = radius * 0.82 * Math.abs(Math.cos(petalCount * normalizedTime));
+            addCurvePoint(
+              Math.round(Math.cos(normalizedTime) * roseRadius),
+              Math.round(Math.sin(normalizedTime) * roseRadius)
+            );
+            if (curvePoints.length >= targetPixels) {
+              break;
+            }
+          }
+          connectCurvePath();
+        } else if (patternType === 3) {
+          waveFreqA = 0.22 + rand() * 0.12;
+          waveFreqB = 0.14 + rand() * 0.1;
+          waveMix = 0.09 + rand() * 0.07;
+          wavePhase = rand() * Math.PI * 2;
+          for (gridRow = -radius; gridRow <= radius; gridRow += 1) {
+            for (gridCol = -radius; gridCol <= radius; gridCol += 1) {
+              waveValue = Math.sin(gridCol * waveFreqA + gridRow * waveMix + wavePhase) *
+                Math.cos(gridCol * waveMix - gridRow * waveFreqB);
+              if (Math.abs(waveValue) > 0.58) {
+                addPoint(gridCol, gridRow);
+              }
+              if (pointCount >= targetPixels) {
+                break;
+              }
+            }
+            if (pointCount >= targetPixels) {
+              break;
+            }
+          }
+        } else if (patternType === 4) {
+          juliaConstantReal = -0.6 + rand() * 0.35;
+          juliaConstantImag = 0.45 + rand() * 0.35;
+          for (gridRow = -radius; gridRow <= radius; gridRow += 1) {
+            for (gridCol = -radius; gridCol <= radius; gridCol += 1) {
+              juliaX = gridCol * 0.065;
+              juliaY = gridRow * 0.065;
+              juliaReal = juliaX;
+              juliaImag = juliaY;
+              juliaEscape = 0;
+              for (juliaIter = 0; juliaIter < 9; juliaIter += 1) {
+                if (juliaReal * juliaReal + juliaImag * juliaImag > 4) {
+                  juliaEscape = juliaIter + 1;
+                  break;
+                }
+                juliaX = juliaReal * juliaReal - juliaImag * juliaImag + juliaConstantReal;
+                juliaY = 2 * juliaReal * juliaImag + juliaConstantImag;
+                juliaReal = juliaX;
+                juliaImag = juliaY;
+              }
+              if (juliaEscape >= 4 && juliaEscape <= 9) {
+                addPoint(gridCol, gridRow);
+              }
+              if (pointCount >= targetPixels) {
+                break;
+              }
+            }
+            if (pointCount >= targetPixels) {
+              break;
+            }
+          }
+        } else {
+          phyllotaxisScale = 0.82 + targetPixels * 0.0078;
+          for (phyllotaxisIndex = 0; phyllotaxisIndex < targetPixels * 4; phyllotaxisIndex += 1) {
+            phyllotaxisRadius = phyllotaxisScale * Math.sqrt(phyllotaxisIndex + 1);
+            phyllotaxisAngle = phyllotaxisIndex * GOLDEN_ANGLE;
+            addCurvePoint(
+              Math.round(Math.cos(phyllotaxisAngle) * phyllotaxisRadius),
+              Math.round(Math.sin(phyllotaxisAngle) * phyllotaxisRadius)
+            );
+            if (curvePoints.length >= targetPixels) {
+              break;
+            }
+          }
+          connectCurvePath();
+        }
+
+        thicknessLimit = targetPixels + Math.floor(targetPixels * 0.62);
+        for (thicknessPass = 0; thicknessPass < 2; thicknessPass += 1) {
+          thicknessIndex = 0;
+          while (thicknessIndex < points.length && pointCount < thicknessLimit) {
+            basePoint = points[thicknessIndex];
+            directionIndex = Math.floor(rand() * GROW_DIRECTIONS.length);
+            direction = GROW_DIRECTIONS[directionIndex];
+            neighborCol = basePoint.col + direction[0];
+            neighborRow = basePoint.row + direction[1];
+            if (rand() < 0.56) {
+              addPoint(neighborCol, neighborRow);
+            }
+            thicknessIndex += 1;
+          }
+        }
+
+        return points;
+      }
+
+      function growCrystalVein(seedCol, seedRow, rarity) {
+        var targetPixels = Math.floor(randRange(RARITY_PIXEL_MIN[rarity], RARITY_PIXEL_MAX[rarity] + 1));
+        var clusterId = nextClusterId;
+        nextClusterId += 1;
+        if (nextClusterId > 65000) {
+          nextClusterId = 1;
+        }
+
+        var patternType = Math.floor(rand() * VEIN_PATTERN_COUNT);
+        var patternPoints = getVeinPatternPoints(patternType, targetPixels);
+        var cellType = CELL_CRYSTAL_BASE + rarity;
+        var pointIndex;
+        var point;
+        var worldCol;
+        var worldRow;
+        var index;
+
+        for (pointIndex = 0; pointIndex < patternPoints.length; pointIndex += 1) {
+          point = patternPoints[pointIndex];
+          worldCol = seedCol + point.col;
+          worldRow = seedRow + point.row;
+          if (worldCol < 0 || worldCol >= gridCols || worldRow < 0 || worldRow >= gridRows) {
+            continue;
+          }
+          if (getWorldRow(worldRow) < getSurfaceRow(worldCol)) {
+            continue;
+          }
+          index = cellIndex(worldCol, worldRow);
+          if (cells[index] !== CELL_DIRT) {
+            continue;
+          }
+          cells[index] = cellType;
+          crystalClusterId[index] = clusterId;
+          paintWorldCell(worldCol, worldRow);
+        }
+      }
+
+      function maybePlaceVeinsInChunk(chunkStartRow, chunkEndRow) {
+        var depth = getWorldRow(chunkStartRow) - horizonRow;
+        var veinChance = VEIN_ATTEMPT_CHANCE + depth * VEIN_DEPTH_CHANCE;
+        var attemptIndex;
+        for (attemptIndex = 0; attemptIndex < VEIN_ATTEMPTS_PER_CHUNK; attemptIndex += 1) {
+          if (rand() < veinChance) {
+            tryPlaceVeinInChunk(chunkStartRow, chunkEndRow, depth);
+          }
+        }
+      }
+
+      function generateChunkBelow() {
+        var addRows = CHUNK_ROWS;
+        var oldRows = gridRows;
+        var newRows = oldRows + addRows;
+        var newCells = new Uint8Array(gridCols * newRows);
+        var newShade = new Uint8Array(gridCols * newRows);
+        var newClusterIds = new Uint16Array(gridCols * newRows);
+        var index;
+        var col;
+        var row;
+        for (row = 0; row < oldRows; row += 1) {
+          for (col = 0; col < gridCols; col += 1) {
+            index = row * gridCols + col;
+            newCells[index] = cells[index];
+            newShade[index] = dirtShade[index];
+            newClusterIds[index] = crystalClusterId[index];
+          }
+        }
+        cells = newCells;
+        dirtShade = newShade;
+        crystalClusterId = newClusterIds;
+        gridRows = newRows;
+        ensureGridWorkBuffers();
+        for (row = oldRows; row < gridRows; row += 1) {
+          for (col = 0; col < gridCols; col += 1) {
+            setDirtCell(col, row, true);
+          }
+        }
+        maybePlaceVeinsInChunk(oldRows, gridRows);
+        deepestRow = gridRows - 1;
+        paintWorldCellRegion(0, oldRows, gridCols - 1, gridRows - 1);
+      }
+
+      function pruneGridChunksAboveCamera() {
+        var cameraWorldRow = Math.floor(cameraY / PIXEL);
+        var worldRowToKeepMin = cameraWorldRow - PRUNE_KEEP_ROWS_ABOVE_CAMERA;
+        var gridRowToKeepMin = getGridRow(worldRowToKeepMin);
+        var removeRows;
+        var newRows;
+        var newCells;
+        var newShade;
+        var newClusterIds;
+        var oldCanvas;
+        var oldPixelHeight;
+        var newPixelHeight;
+        var layerWidth;
+        var row;
+        var col;
+        var sourceIndex;
+        var destIndex;
+        var burnIndex;
+        var pixelShiftY;
+
+        if (gridRowToKeepMin < CHUNK_ROWS) {
+          return;
+        }
+        removeRows = Math.floor(gridRowToKeepMin / CHUNK_ROWS) * CHUNK_ROWS;
+        if (removeRows < CHUNK_ROWS) {
+          return;
+        }
+        if (gridRows - removeRows < PRUNE_MIN_GRID_ROWS) {
+          return;
+        }
+
+        newRows = gridRows - removeRows;
+        newCells = new Uint8Array(gridCols * newRows);
+        newShade = new Uint8Array(gridCols * newRows);
+        newClusterIds = new Uint16Array(gridCols * newRows);
+        for (row = 0; row < newRows; row += 1) {
+          for (col = 0; col < gridCols; col += 1) {
+            sourceIndex = (row + removeRows) * gridCols + col;
+            destIndex = row * gridCols + col;
+            newCells[destIndex] = cells[sourceIndex];
+            newShade[destIndex] = dirtShade[sourceIndex];
+            newClusterIds[destIndex] = crystalClusterId[sourceIndex];
+          }
+        }
+        cells = newCells;
+        dirtShade = newShade;
+        crystalClusterId = newClusterIds;
+        gridRows = newRows;
+        gridRowBase += removeRows;
+        pixelShiftY = removeRows * PIXEL;
+        deepestRow = gridRows - 1;
+
+        for (burnIndex = burns.length - 1; burnIndex >= 0; burnIndex -= 1) {
+          burns[burnIndex].row -= removeRows;
+          if (burns[burnIndex].row < 0) {
+            burns.splice(burnIndex, 1);
+          }
+        }
+
+        if (worldLayerCanvas && worldLayerRows > 0) {
+          oldCanvas = worldLayerCanvas;
+          oldPixelWidth = gridCols * PIXEL;
+          oldPixelHeight = worldLayerRows * PIXEL;
+          newPixelHeight = gridRows * PIXEL;
+          layerWidth = gridCols * PIXEL;
+          worldLayerCanvas = document.createElement("canvas");
+          worldLayerCtx = worldLayerCanvas.getContext("2d");
+          worldLayerCanvas.width = layerWidth;
+          worldLayerCanvas.height = newPixelHeight;
+          worldLayerCtx.drawImage(
+            oldCanvas,
+            0, pixelShiftY, layerWidth, oldPixelHeight - pixelShiftY,
+            0, 0, layerWidth, newPixelHeight
+          );
+          worldLayerRows = gridRows;
+          worldLayerCols = gridCols;
+        }
+      }
+
+      function screenToWorld(screenX, screenY) {
+        return {
+          x: screenX,
+          y: screenY + cameraY
+        };
+      }
+
+      function worldToScreen(worldX, worldY) {
+        return {
+          x: worldX,
+          y: worldY - cameraY
+        };
+      }
+
+      function updatePointer(screenX, screenY) {
+        pointerX = screenX;
+        pointerY = screenY;
+        var world = screenToWorld(screenX, screenY);
+        holeX = world.x;
+        holeY = world.y;
+      }
+
+      function addBurn(col, row, heat, red, green, blue) {
+        burns.push({
+          col: col,
+          row: row,
+          heat: heat,
+          red: red,
+          green: green,
+          blue: blue
+        });
+      }
+
+      function tryDestroySun(collapseX, collapseY, collapseRadius) {
+        var sunDx;
+        var sunDy;
+        var dist;
+        var hitRadius;
+        var sunScreen;
+        var particleIndex;
+        var angle;
+        var speed;
+        if (sunDestroyed) {
+          return;
+        }
+        sunDx = collapseX - sunWorldX;
+        sunDy = collapseY - sunWorldY;
+        dist = Math.sqrt(sunDx * sunDx + sunDy * sunDy);
+        hitRadius = collapseRadius + Math.min(window.innerWidth, window.innerHeight) * 0.14;
+        if (dist > hitRadius) {
+          return;
+        }
+        sunDestroyed = true;
+        sunDestroyLife = 1.1;
+        screenShake = Math.min(14, screenShake + 8);
+        pushImplodeRing(sunWorldX, sunWorldY, 48, 1, 255, 230, 120);
+        pushImplodeRing(sunWorldX, sunWorldY, 110, 0.92, 255, 170, 50);
+        pushImplodeRing(sunWorldX, sunWorldY, 190, 0.78, 255, 90, 25);
+        sunScreen = worldToScreen(sunWorldX, sunWorldY);
+        for (particleIndex = 0; particleIndex < 28; particleIndex += 1) {
+          if (dirtParticleCount >= MAX_DIRT_PARTICLES) {
+            break;
+          }
+          angle = rand() * Math.PI * 2;
+          speed = 80 + rand() * 200;
+          particles.push({
+            kind: "dirt",
+            x: sunScreen.x,
+            y: sunScreen.y,
+            velX: Math.cos(angle) * speed,
+            velY: Math.sin(angle) * speed,
+            life: 0.45 + rand() * 0.35,
+            maxLife: 0.8,
+            age: 0,
+            mergeCount: 1,
+            red: 255,
+            green: 150 + Math.floor(rand() * 90),
+            blue: 30 + Math.floor(rand() * 50),
+            size: 2 + Math.floor(rand() * 2),
+          gravity: 30
+        });
+        dirtParticleCount += 1;
+      }
+      }
+
+      function triggerCollapse() {
+        if (holeRadius < MIN_COLLAPSE_RADIUS) {
+          return;
+        }
+        var collapseX = holeX;
+        var collapseY = holeY;
+        var radius = holeRadius;
+        var radiusSq = radius * radius;
+        var centerCol = Math.floor(collapseX / PIXEL);
+        var centerWorldRow = Math.floor(collapseY / PIXEL);
+        var centerRow = getGridRow(centerWorldRow);
+        var radiusCells = Math.ceil(radius / PIXEL) + 1;
+        var minCol = centerCol - radiusCells;
+        var maxCol = centerCol + radiusCells;
+        var minRow = centerRow - radiusCells;
+        var maxRow = centerRow + radiusCells;
+        var col;
+        var row;
+        var dx;
+        var dy;
+        var distSq;
+        var cell;
+        var index;
+        var rarity;
+        var crystalsFound = [];
+        var crystalMarks;
+        var totalBoostGain = 0;
+        var totalScoreEarned = 0;
+        var dirtyCount = 0;
+        var normalizedDist;
+        var cellHeat;
+        var burnRed;
+        var burnGreen;
+        var burnBlue;
+        var clusterPickup;
+
+        ensureGridWorkBuffers();
+        clearCrystalMarksRegion(minCol, minRow, maxCol, maxRow);
+        crystalMarks = crystalMarksBuffer;
+
+        screenShake = Math.min(2.5, radius * 0.012);
+
+        pushImplodeRing(collapseX, collapseY, radius, 1, 180, 60, 255);
+        pushImplodeRing(collapseX, collapseY, radius * 0.72, 0.85, 255, 120, 200);
+        pushImplodeRing(collapseX, collapseY, radius * 0.45, 0.65, 140, 80, 255);
+
+        tryDestroySun(collapseX, collapseY, radius);
+
+        for (row = minRow; row <= maxRow; row += 1) {
+          for (col = minCol; col <= maxCol; col += 1) {
+            if (col < 0 || col >= gridCols || row < 0 || row >= gridRows) {
+              continue;
+            }
+            dx = col * PIXEL + PIXEL * 0.5 - collapseX;
+            dy = getWorldRow(row) * PIXEL + PIXEL * 0.5 - collapseY;
+            distSq = dx * dx + dy * dy;
+            if (distSq > radiusSq) {
+              continue;
+            }
+            index = cellIndex(col, row);
+            cell = cells[index];
+            if (cell >= CELL_CRYSTAL_BASE && cell < CELL_CRYSTAL_BASE + CRYSTAL_COUNT) {
+              if (crystalMarks[index] === 0) {
+                rarity = cell - CELL_CRYSTAL_BASE;
+                clusterPickup = collectCrystalCluster(col, row, rarity, crystalMarks, dirtyCount);
+                dirtyCount = clusterPickup.dirtyCount;
+                crystalsFound.push(clusterPickup);
+              }
+            }
+            if (cell !== CELL_EMPTY) {
+              cells[index] = CELL_EMPTY;
+              crystalClusterId[index] = 0;
+              dirtyCount = markDirtyPaintCell(col, row, dirtyCount);
+              normalizedDist = Math.sqrt(distSq) / radius;
+              spawnDebris(
+                col * PIXEL + PIXEL * 0.5,
+                getWorldRow(row) * PIXEL + PIXEL * 0.5,
+                normalizedDist,
+                collapseX,
+                collapseY
+              );
+            }
+          }
+        }
+
+        for (row = minRow; row <= maxRow; row += 1) {
+          for (col = minCol; col <= maxCol; col += 1) {
+            if (col < 0 || col >= gridCols || row < 0 || row >= gridRows) {
+              continue;
+            }
+            if (cells[cellIndex(col, row)] !== CELL_EMPTY) {
+              continue;
+            }
+            if (getCellFast(col - 1, row) !== CELL_EMPTY ||
+                getCellFast(col + 1, row) !== CELL_EMPTY ||
+                getCellFast(col, row - 1) !== CELL_EMPTY ||
+                getCellFast(col, row + 1) !== CELL_EMPTY) {
+              cellHeat = 0.7 + rand() * 0.3;
+              burnRed = 255;
+              burnGreen = 90 + Math.floor(rand() * 80);
+              burnBlue = 30 + Math.floor(rand() * 40);
+              addBurn(col, row, cellHeat, burnRed, burnGreen, burnBlue);
+            }
+          }
+        }
+
+        var crystalIndex;
+        var collectResult;
+        for (crystalIndex = 0; crystalIndex < crystalsFound.length; crystalIndex += 1) {
+          crystal = crystalsFound[crystalIndex];
+          collectResult = collectCrystal(crystal);
+          totalBoostGain += collectResult.boostGain;
+          totalScoreEarned += collectResult.earned;
+        }
+
+        if (totalBoostGain > 0.001 || totalScoreEarned > 0) {
+          spawnCollapseBoostEffect(totalBoostGain, totalScoreEarned, collapseX, collapseY);
+        }
+
+        paintDirtyCells(dirtyCount);
+
+        if (centerWorldRow > getWorldRow(deepestRow) - CHUNK_ROWS * 2) {
+          generateChunkBelow();
+        }
+        targetCameraY = Math.max(targetCameraY, centerWorldRow * PIXEL - window.innerHeight * 0.35);
+
+        holeRadius = MIN_COLLAPSE_RADIUS * 0.5;
+        holeGrowing = true;
+      }
+
+      function collectCrystalCluster(startCol, startRow, rarity, crystalMarks, dirtyCount) {
+        var clusterId = crystalClusterId[cellIndex(startCol, startRow)];
+        var sumX = 0;
+        var sumY = 0;
+        var count = 0;
+        var stackSize = 1;
+        var currentCol;
+        var currentRow;
+        var index;
+        var directionIndex;
+        var direction;
+        var neighborCol;
+        var neighborRow;
+        var neighborIndex;
+
+        clusterStackCol[0] = startCol;
+        clusterStackRow[0] = startRow;
+
+        while (stackSize > 0) {
+          stackSize -= 1;
+          currentCol = clusterStackCol[stackSize];
+          currentRow = clusterStackRow[stackSize];
+          index = cellIndex(currentCol, currentRow);
+          if (crystalMarks[index] !== 0) {
+            continue;
+          }
+          if (crystalClusterId[index] !== clusterId) {
+            continue;
+          }
+          if (cells[index] < CELL_CRYSTAL_BASE) {
+            continue;
+          }
+
+          crystalMarks[index] = 1;
+          cells[index] = CELL_EMPTY;
+          crystalClusterId[index] = 0;
+          dirtyCount = markDirtyPaintCell(currentCol, currentRow, dirtyCount);
+          sumX += currentCol * PIXEL + PIXEL * 0.5;
+          sumY += getWorldRow(currentRow) * PIXEL + PIXEL * 0.5;
+          count += 1;
+
+          for (directionIndex = 0; directionIndex < 4; directionIndex += 1) {
+            direction = GROW_DIRECTIONS[directionIndex];
+            neighborCol = currentCol + direction[0];
+            neighborRow = currentRow + direction[1];
+            if (neighborCol < 0 || neighborCol >= gridCols || neighborRow < 0 || neighborRow >= gridRows) {
+              continue;
+            }
+            neighborIndex = cellIndex(neighborCol, neighborRow);
+            if (crystalMarks[neighborIndex] !== 0) {
+              continue;
+            }
+            if (crystalClusterId[neighborIndex] !== clusterId) {
+              continue;
+            }
+            clusterStackCol[stackSize] = neighborCol;
+            clusterStackRow[stackSize] = neighborRow;
+            stackSize += 1;
+          }
+        }
+
+        return {
+          rarity: rarity,
+          worldX: sumX / Math.max(1, count),
+          worldY: sumY / Math.max(1, count),
+          pixelCount: count,
+          dirtyCount: dirtyCount
+        };
+      }
+
+      function collectCrystal(crystal) {
+        var rarity = crystal.rarity;
+        var points = RARITY_SCORE[rarity];
+        var sizeBonus = 1 + (crystal.pixelCount || 1) * 0.04;
+        var earned = Math.floor(points * sizeBonus);
+        var boostGain;
+        var screen;
+        var targetX;
+        var targetY;
+        var color;
+        var count;
+        var particleIndex;
+        var offsetX;
+        var offsetY;
+        var startX;
+        var startY;
+        var travelTime;
+        score += earned;
+        setBestScoreIfHigher(score);
+        updateHudDisplay();
+        scorePopTimer = 0.18;
+        boostGain = addCrystalSpeedBoost(crystal);
+
+        screen = worldToScreen(crystal.worldX, crystal.worldY);
+        targetX = getScoreTargetX();
+        targetY = getScoreTargetY();
+        color = RARITY_COLORS[rarity];
+        count = 4 + rarity * 3 + Math.floor(Math.sqrt(crystal.pixelCount || 1) * 0.8);
+        if (count > MAX_SCORE_PARTICLES_FROM_CLUSTER) {
+          count = MAX_SCORE_PARTICLES_FROM_CLUSTER;
+        }
+        travelTime = SCORE_PARTICLE_TRAVEL_TIME;
+        for (particleIndex = 0; particleIndex < count; particleIndex += 1) {
+          offsetX = (rand() - 0.5) * 14;
+          offsetY = (rand() - 0.5) * 14;
+          startX = screen.x + offsetX;
+          startY = screen.y + offsetY;
+          particles.push({
+            kind: "score",
+            x: startX,
+            y: startY,
+            velX: (targetX - startX) / travelTime,
+            velY: (targetY - startY) / travelTime,
+            targetX: targetX,
+            targetY: targetY,
+            travelTime: travelTime,
+            age: 0,
+            mergeCount: 1,
+            red: color[0],
+            green: color[1],
+            blue: color[2],
+            size: 2 + rarity
+          });
+        }
+
+        return {
+          boostGain: boostGain,
+          earned: earned
+        };
+      }
+
+      function spawnDebris(worldX, worldY, normalizedDist, centerWorldX, centerWorldY) {
+        if (rand() > DEBRIS_SPAWN_CHANCE) {
+          return;
+        }
+        if (dirtParticleCount >= MAX_DIRT_PARTICLES) {
+          return;
+        }
+        var screen = worldToScreen(worldX, worldY);
+        var centerScreen = worldToScreen(centerWorldX, centerWorldY);
+        var toCenterX = centerScreen.x - screen.x;
+        var toCenterY = centerScreen.y - screen.y;
+        var centerDist = Math.sqrt(toCenterX * toCenterX + toCenterY * toCenterY);
+        var speed = 100 + (1 - normalizedDist) * 320;
+        var velX;
+        var velY;
+        if (centerDist > 0.5) {
+          velX = toCenterX / centerDist * speed;
+          velY = toCenterY / centerDist * speed;
+        } else {
+          velX = (rand() - 0.5) * 30;
+          velY = (rand() - 0.5) * 30;
+        }
+        particles.push({
+          kind: "dirt",
+          x: screen.x,
+          y: screen.y,
+          velX: velX,
+          velY: velY,
+          life: 0.4 + rand() * 0.35,
+          maxLife: 0.75,
+          age: 0,
+          mergeCount: 1,
+          red: 90 + Math.floor(rand() * 50),
+          green: 55 + Math.floor(rand() * 30),
+          blue: 35 + Math.floor(rand() * 20),
+          size: 2,
+          gravity: 40
+        });
+      }
+
+      function mergeTwoParticles(primary, secondary) {
+        var totalWeight = primary.mergeCount + secondary.mergeCount;
+        var weightA = primary.mergeCount / totalWeight;
+        var weightB = secondary.mergeCount / totalWeight;
+        primary.x = primary.x * weightA + secondary.x * weightB;
+        primary.y = primary.y * weightA + secondary.y * weightB;
+        primary.velX = primary.velX * weightA + secondary.velX * weightB;
+        primary.velY = primary.velY * weightA + secondary.velY * weightB;
+        primary.red = Math.floor(primary.red * weightA + secondary.red * weightB);
+        primary.green = Math.floor(primary.green * weightA + secondary.green * weightB);
+        primary.blue = Math.floor(primary.blue * weightA + secondary.blue * weightB);
+        primary.mergeCount = totalWeight;
+        if (primary.kind === "dirt") {
+          primary.life = Math.max(primary.life, secondary.life);
+          primary.maxLife = Math.max(primary.maxLife, secondary.maxLife);
+          primary.size = Math.min(6, 2 + Math.sqrt(totalWeight) * 0.55);
+        } else {
+          primary.size = Math.min(10, primary.size + Math.sqrt(totalWeight) * 0.35);
+          primary.age = Math.max(primary.age, secondary.age);
+          primary.travelTime = SCORE_PARTICLE_TRAVEL_TIME;
+        }
+      }
+
+      function mergeParticles() {
+        var indexA;
+        var indexB;
+        var particleA;
+        var particleB;
+        var deltaX;
+        var deltaY;
+        var dist;
+        var mergeDist;
+
+        for (indexA = 0; indexA < particles.length; indexA += 1) {
+          particleA = particles[indexA];
+          if (particleA.age < PARTICLE_MERGE_AFTER) {
+            continue;
+          }
+          mergeDist = particleA.kind === "score" ? PARTICLE_MERGE_DIST_SCORE : PARTICLE_MERGE_DIST;
+          for (indexB = indexA + 1; indexB < particles.length; indexB += 1) {
+            particleB = particles[indexB];
+            if (particleB.kind !== particleA.kind) {
+              continue;
+            }
+            if (particleB.age < PARTICLE_MERGE_AFTER) {
+              continue;
+            }
+            deltaX = particleA.x - particleB.x;
+            deltaY = particleA.y - particleB.y;
+            dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            if (dist > mergeDist) {
+              continue;
+            }
+            mergeTwoParticles(particleA, particleB);
+            particles.splice(indexB, 1);
+            indexB -= 1;
+          }
+        }
+      }
+
+      function cleanupBurns() {
+        var height = window.innerHeight;
+        var margin = PIXEL * 8;
+        var burnIndex = burns.length - 1;
+        var screenY;
+        while (burnIndex >= 0) {
+          screenY = getWorldRow(burns[burnIndex].row) * PIXEL - cameraY;
+          if (screenY < -margin || screenY > height + margin || burns[burnIndex].heat <= 0) {
+            burns.splice(burnIndex, 1);
+          }
+          burnIndex -= 1;
+        }
+      }
+
+      function cleanupParticles() {
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+        var margin = 48;
+        var particleIndex = particles.length - 1;
+        var particle;
+        var dist;
+        while (particleIndex >= 0) {
+          particle = particles[particleIndex];
+          if (particle.kind === "dirt") {
+            if (particle.life <= 0 ||
+              particle.x < -margin ||
+              particle.x > width + margin ||
+              particle.y < -margin ||
+              particle.y > height + margin) {
+              particles.splice(particleIndex, 1);
+              dirtParticleCount -= 1;
+              if (dirtParticleCount < 0) {
+                dirtParticleCount = 0;
+              }
+            }
+          }
+          particleIndex -= 1;
+        }
+      }
+
+      function restartSession() {
+        score = 0;
+        growthBoost = 1;
+        burns = [];
+        particles = [];
+        floatingLabels = [];
+        collapseRings = [];
+        dirtParticleCount = 0;
+        sunDestroyed = false;
+        sunDestroyLife = 0;
+        holeRadius = MIN_COLLAPSE_RADIUS * 0.5;
+        scoreValueEl.textContent = formatScoreTons(0);
+        multiplierHudEl.textContent = formatMultiplierPercent(1);
+        updateHudDisplay();
+        fpsSampleFrames = 0;
+        fpsSampleTime = 0;
+        fpsValueEl.textContent = "--";
+        initWorld();
+      }
+
+      function update(dt) {
+        if (holeGrowing) {
+          var growthRate = BASE_GROWTH_SPEED * getSpeedMultiplier();
+          holeRadius += growthRate * dt;
+          if (holeRadius > getMaxHoleRadius()) {
+            holeRadius = getMaxHoleRadius();
+          }
+        }
+
+        var decayFactor = Math.pow(1 - MULTIPLIER_DECAY_PERCENT, dt);
+        growthBoost = Math.max(1, growthBoost * decayFactor);
+
+        updateHudDisplay();
+
+        cameraY += (targetCameraY - cameraY) * Math.min(1, dt * 2.5);
+        pruneGridChunksAboveCamera();
+
+        if (getWorldRow(deepestRow) * PIXEL - cameraY < window.innerHeight * 2) {
+          generateChunkBelow();
+        }
+
+        var burnIndex;
+        for (burnIndex = 0; burnIndex < burns.length; burnIndex += 1) {
+          burns[burnIndex].heat -= BURN_DECAY * dt;
+        }
+        cleanupBurns();
+
+        if (sunDestroyLife > 0) {
+          sunDestroyLife -= dt * 1.6;
+          if (sunDestroyLife <= 0) {
+            sunDestroyLife = 0;
+          }
+        }
+
+        if (particles.length > 12) {
+          mergeParticles();
+        }
+
+        var particleIndex;
+        var targetX = getScoreTargetX();
+        var targetY = getScoreTargetY();
+        var dist;
+        var timeLeft;
+        for (particleIndex = particles.length - 1; particleIndex >= 0; particleIndex -= 1) {
+          var particle = particles[particleIndex];
+          particle.age += dt;
+          if (particle.kind === "score") {
+            particle.targetX = targetX;
+            particle.targetY = targetY;
+            var toTargetX = particle.targetX - particle.x;
+            var toTargetY = particle.targetY - particle.y;
+            dist = Math.sqrt(toTargetX * toTargetX + toTargetY * toTargetY);
+            if (dist < SCORE_ARRIVE_DIST) {
+              particles.splice(particleIndex, 1);
+              continue;
+            }
+            timeLeft = particle.travelTime - particle.age;
+            if (timeLeft < 0.04) {
+              timeLeft = 0.04;
+            }
+            particle.velX = toTargetX / timeLeft;
+            particle.velY = toTargetY / timeLeft;
+          } else {
+            particle.life -= dt;
+            particle.velY += (particle.gravity || 0) * dt;
+            particle.velX *= 0.96;
+            particle.velY *= 0.96;
+          }
+          particle.x += particle.velX * dt;
+          particle.y += particle.velY * dt;
+        }
+        cleanupParticles();
+
+        var labelIndex;
+        var label;
+        for (labelIndex = floatingLabels.length - 1; labelIndex >= 0; labelIndex -= 1) {
+          label = floatingLabels[labelIndex];
+          label.life -= dt;
+          if (label.screenOffsetY !== undefined) {
+            label.screenOffsetY -= 32 * dt;
+          } else {
+            label.y -= 32 * dt;
+          }
+          if (label.life <= 0) {
+            floatingLabels.splice(labelIndex, 1);
+          }
+        }
+
+        var ringIndex;
+        var height = window.innerHeight;
+        var width = window.innerWidth;
+        var ringMargin = 80;
+        var ringScreen;
+        for (ringIndex = collapseRings.length - 1; ringIndex >= 0; ringIndex -= 1) {
+          var ring = collapseRings[ringIndex];
+          ring.life -= dt * 1.4;
+          if (ring.startRadius === undefined) {
+            ring.startRadius = ring.radius;
+          }
+          ring.radius = ring.startRadius * Math.max(0, ring.life);
+          ringScreen = worldToScreen(ring.worldX, ring.worldY);
+          if (ring.life <= 0 ||
+            ringScreen.x < -ringMargin ||
+            ringScreen.x > width + ringMargin ||
+            ringScreen.y < -ringMargin ||
+            ringScreen.y > height + ringMargin) {
+            collapseRings.splice(ringIndex, 1);
+          }
+        }
+
+        if (screenShake > 0) {
+          screenShake = Math.max(0, screenShake - dt * 14);
+        }
+
+        if (scorePopTimer > 0) {
+          scorePopTimer -= dt;
+          if (scorePopTimer <= 0) {
+            scoreValueEl.classList.remove("is-pop");
+          } else {
+            scoreValueEl.classList.add("is-pop");
+          }
+        }
+      }
+
+      function getSkyColorAtScreenY(screenY, horizonScreenY, width) {
+        var t = screenY / Math.max(1, horizonScreenY);
+        if (t < 0) {
+          t = 0;
+        }
+        if (t > 1) {
+          t = 1;
+        }
+        var red;
+        var green;
+        var blue;
+        if (t < 0.55) {
+          var upperT = t / 0.55;
+          red = SKY_TOP[0] + (SKY_MID[0] - SKY_TOP[0]) * upperT;
+          green = SKY_TOP[1] + (SKY_MID[1] - SKY_TOP[1]) * upperT;
+          blue = SKY_TOP[2] + (SKY_MID[2] - SKY_TOP[2]) * upperT;
+        } else {
+          var lowerT = (t - 0.55) / 0.45;
+          red = SKY_MID[0] + (SKY_HORIZON[0] - SKY_MID[0]) * lowerT;
+          green = SKY_MID[1] + (SKY_HORIZON[1] - SKY_MID[1]) * lowerT;
+          blue = SKY_MID[2] + (SKY_HORIZON[2] - SKY_MID[2]) * lowerT;
+        }
+        var sunScreen = worldToScreen(sunWorldX, sunWorldY);
+        if (!sunDestroyed) {
+          var sunDx = width * 0.5 - sunScreen.x;
+          var sunDy = screenY - sunScreen.y;
+          var sunDist = Math.sqrt(sunDx * sunDx + sunDy * sunDy);
+          var sunWarm = Math.max(0, 1 - sunDist / (width * 0.55));
+          red += sunWarm * 40;
+          green += sunWarm * 22;
+        }
+        return {
+          red: Math.floor(Math.min(255, red)),
+          green: Math.floor(Math.min(255, green)),
+          blue: Math.floor(Math.min(255, blue))
+        };
+      }
+
+      function drawWorldLayerSlice(width, height) {
+        var startRow;
+        var endRow;
+        var sourceY;
+        var sliceHeight;
+        var destY;
+        var layerWidth;
+        if (!worldLayerCanvas) {
+          return;
+        }
+        startRow = Math.max(0, getGridRow(Math.floor((cameraY - PIXEL) / PIXEL)));
+        endRow = Math.min(gridRows, startRow + Math.ceil(height / PIXEL) + 4);
+        sourceY = startRow * PIXEL;
+        sliceHeight = (endRow - startRow) * PIXEL;
+        destY = getWorldRow(startRow) * PIXEL - cameraY;
+        layerWidth = gridCols * PIXEL;
+        if (sliceHeight <= 0) {
+          return;
+        }
+        ctx.drawImage(
+          worldLayerCanvas,
+          0, sourceY, layerWidth, sliceHeight,
+          0, destY, layerWidth, sliceHeight
+        );
+      }
+
+      function drawCrystalOverlay(width, height) {
+        var startRow = Math.max(0, getGridRow(Math.floor((cameraY - PIXEL) / PIXEL)));
+        var endRow = Math.min(gridRows, startRow + Math.ceil(height / PIXEL) + 4);
+        var col;
+        var row;
+        var index;
+        var cell;
+        var screenY;
+        var rarity;
+        var color;
+        var pulse;
+        var innerRed;
+        var innerGreen;
+        var innerBlue;
+        var red;
+        var green;
+        var blue;
+        for (row = startRow; row < endRow; row += 1) {
+          screenY = getWorldRow(row) * PIXEL - cameraY;
+          if (screenY > height + PIXEL || screenY + PIXEL < 0) {
+            continue;
+          }
+          for (col = 0; col < gridCols; col += 1) {
+            index = cellIndex(col, row);
+            cell = cells[index];
+            if (!isCrystalCell(cell)) {
+              continue;
+            }
+            rarity = cell - CELL_CRYSTAL_BASE;
+            color = RARITY_COLORS[rarity];
+            pulse = 0.85 + Math.sin((row + col) * 0.4 + glossPhase * CRYSTAL_GLOSS_SPEED) * 0.15;
+            red = Math.floor(color[0] * pulse);
+            green = Math.floor(color[1] * pulse);
+            blue = Math.floor(color[2] * pulse);
+            ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
+            ctx.fillRect(col * PIXEL, screenY, PIXEL, PIXEL);
+            innerRed = Math.min(255, red + 40);
+            innerGreen = Math.min(255, green + 40);
+            innerBlue = Math.min(255, blue + 40);
+            ctx.fillStyle = "rgb(" + innerRed + "," + innerGreen + "," + innerBlue + ")";
+            ctx.fillRect(col * PIXEL + 1, screenY + 1, PIXEL - 2, PIXEL - 2);
+          }
+        }
+      }
+
+      function drawBurnOverlay(width, height) {
+        var burnIndex;
+        var burn;
+        var screenY;
+        var heat;
+        for (burnIndex = 0; burnIndex < burns.length; burnIndex += 1) {
+          burn = burns[burnIndex];
+          screenY = getWorldRow(burn.row) * PIXEL - cameraY;
+          if (screenY > height + PIXEL || screenY + PIXEL < 0) {
+            continue;
+          }
+          heat = burn.heat;
+          if (heat <= 0.01) {
+            continue;
+          }
+          ctx.fillStyle = "rgba(" + burn.red + "," + burn.green + "," + burn.blue + "," + (heat * 0.85) + ")";
+          ctx.fillRect(burn.col * PIXEL, screenY, PIXEL, PIXEL);
+        }
+      }
+
+      function drawSky(width, height) {
+        var horizonScreenY = getHorizonScreenY();
+        var gradient = ctx.createLinearGradient(0, 0, 0, Math.max(height, horizonScreenY + 40));
+        gradient.addColorStop(0, "rgba(" + SKY_TOP[0] + "," + SKY_TOP[1] + "," + SKY_TOP[2] + ",0.92)");
+        gradient.addColorStop(0.55, "rgba(" + SKY_MID[0] + "," + SKY_MID[1] + "," + SKY_MID[2] + ",0.88)");
+        gradient.addColorStop(1, "rgba(" + SKY_HORIZON[0] + "," + SKY_HORIZON[1] + "," + SKY_HORIZON[2] + ",0.85)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      function drawSunDestroyFlash(width, height) {
+        var sunScreen;
+        var alpha;
+        var burstRadius;
+        var gradient;
+        if (sunDestroyLife <= 0) {
+          return;
+        }
+        sunScreen = worldToScreen(sunWorldX, sunWorldY);
+        if (sunScreen.y > height + 200 || sunScreen.y < -200) {
+          return;
+        }
+        alpha = sunDestroyLife / 1.1;
+        burstRadius = (1.1 - sunDestroyLife) * Math.min(width, height) * 0.28 + 20;
+        gradient = ctx.createRadialGradient(
+          sunScreen.x, sunScreen.y, 0,
+          sunScreen.x, sunScreen.y, burstRadius
+        );
+        gradient.addColorStop(0, "rgba(255, 240, 180, " + (alpha * 0.7) + ")");
+        gradient.addColorStop(0.35, "rgba(255, 140, 50, " + (alpha * 0.35) + ")");
+        gradient.addColorStop(1, "rgba(255, 60, 10, 0)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(sunScreen.x - burstRadius, sunScreen.y - burstRadius, burstRadius * 2, burstRadius * 2);
+      }
+
+      function drawSun(width, height) {
+        if (sunDestroyed) {
+          drawSunDestroyFlash(width, height);
+          return;
+        }
+        var sunScreen = worldToScreen(sunWorldX, sunWorldY);
+        if (sunScreen.y > height + 120 || sunScreen.y < -120) {
+          return;
+        }
+
+        var glowRadius = Math.min(width, height) * 0.22;
+        var glow = ctx.createRadialGradient(
+          sunScreen.x, sunScreen.y, 0,
+          sunScreen.x, sunScreen.y, glowRadius
+        );
+        glow.addColorStop(0, "rgba(" + SUN_CORE[0] + "," + SUN_CORE[1] + "," + SUN_CORE[2] + ",0.55)");
+        glow.addColorStop(0.2, "rgba(" + SUN_GLOW[0] + "," + SUN_GLOW[1] + "," + SUN_GLOW[2] + ",0.28)");
+        glow.addColorStop(0.55, "rgba(" + SUN_GLOW[0] + "," + SUN_GLOW[1] + "," + SUN_GLOW[2] + ",0.08)");
+        glow.addColorStop(1, "rgba(" + SUN_GLOW[0] + "," + SUN_GLOW[1] + "," + SUN_GLOW[2] + ",0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(sunScreen.x - glowRadius, sunScreen.y - glowRadius, glowRadius * 2, glowRadius * 2);
+
+        var coreRadius = 14 + Math.sin(lastTime * 0.8) * 1.5;
+        var core = ctx.createRadialGradient(
+          sunScreen.x, sunScreen.y, 0,
+          sunScreen.x, sunScreen.y, coreRadius
+        );
+        core.addColorStop(0, "rgb(255, 248, 220)");
+        core.addColorStop(0.45, "rgb(" + SUN_CORE[0] + "," + SUN_CORE[1] + "," + SUN_CORE[2] + ")");
+        core.addColorStop(1, "rgba(" + SUN_GLOW[0] + "," + SUN_GLOW[1] + "," + SUN_GLOW[2] + ",0)");
+        ctx.fillStyle = core;
+        ctx.beginPath();
+        ctx.arc(sunScreen.x, sunScreen.y, coreRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawHorizonLine(width) {
+        var horizonScreenY = getHorizonScreenY();
+        if (horizonScreenY < -4 || horizonScreenY > window.innerHeight + 4) {
+          return;
+        }
+        ctx.strokeStyle = "rgba(255, 200, 120, 0.2)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, horizonScreenY);
+        ctx.lineTo(width, horizonScreenY);
+        ctx.stroke();
+      }
+
+      function drawBlackHole(width, height) {
+        var screen = worldToScreen(holeX, holeY);
+
+        var warningAlpha = 0.25 + Math.sin(lastTime * 5) * 0.08;
+        ctx.strokeStyle = "rgba(180, 60, 255, " + warningAlpha + ")";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(screen.x, screen.y, holeRadius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(255, 120, 200, " + (warningAlpha * 0.6) + ")";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(screen.x, screen.y, holeRadius * 0.72, 0, Math.PI * 2);
+        ctx.stroke();
+
+        var coreGrad = ctx.createRadialGradient(
+          screen.x, screen.y, 0,
+          screen.x, screen.y, holeRadius * 0.5
+        );
+        coreGrad.addColorStop(0, "rgba(0, 0, 0, 0.95)");
+        coreGrad.addColorStop(0.5, "rgba(40, 0, 60, 0.7)");
+        coreGrad.addColorStop(1, "rgba(80, 20, 120, 0)");
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath();
+        ctx.arc(screen.x, screen.y, holeRadius * 0.55, 0, Math.PI * 2);
+        ctx.fill();
+
+        var maxRing = getMaxHoleRadius();
+        var limitAlpha = 0.08 + (holeRadius / maxRing) * 0.12;
+        ctx.strokeStyle = "rgba(255, 80, 40, " + limitAlpha + ")";
+        ctx.setLineDash([6, 8]);
+        ctx.beginPath();
+        ctx.arc(screen.x, screen.y, maxRing, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      function drawCollapseRings() {
+        var ringIndex;
+        var ring;
+        var screen;
+        var alpha;
+        var red;
+        var green;
+        var blue;
+        for (ringIndex = 0; ringIndex < collapseRings.length; ringIndex += 1) {
+          ring = collapseRings[ringIndex];
+          screen = worldToScreen(ring.worldX, ring.worldY);
+          alpha = ring.life;
+          red = ring.red !== undefined ? ring.red : 120;
+          green = ring.green !== undefined ? ring.green : 60;
+          blue = ring.blue !== undefined ? ring.blue : 200;
+          ctx.strokeStyle = "rgba(" + red + "," + green + "," + blue + "," + alpha + ")";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, ring.radius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      function drawFloatingLabels() {
+        var labelIndex;
+        var label;
+        var alpha;
+        var fontSize;
+        var scale;
+        var screen;
+        var drawX;
+        var drawY;
+        for (labelIndex = 0; labelIndex < floatingLabels.length; labelIndex += 1) {
+          label = floatingLabels[labelIndex];
+          alpha = label.life / label.maxLife;
+          fontSize = label.fontSize || 14;
+          scale = label.scale || 1;
+          if (label.worldX !== undefined) {
+            screen = worldToScreen(label.worldX, label.worldY);
+            drawX = screen.x;
+            drawY = screen.y + (label.screenOffsetY || 0);
+          } else {
+            drawX = label.x;
+            drawY = label.y;
+          }
+          ctx.save();
+          ctx.translate(drawX, drawY);
+          ctx.scale(scale, scale);
+          ctx.font = "bold " + fontSize + "px Courier New, monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "rgba(0, 0, 0, " + (alpha * 0.55) + ")";
+          ctx.fillText(label.text, 1, 1);
+          ctx.fillStyle = "rgba(" + label.red + "," + label.green + "," + label.blue + "," + alpha + ")";
+          ctx.fillText(label.text, 0, 0);
+          ctx.restore();
+        }
+      }
+
+      function drawParticles() {
+        var particleIndex;
+        var particle;
+        var alpha;
+        for (particleIndex = 0; particleIndex < particles.length; particleIndex += 1) {
+          particle = particles[particleIndex];
+          alpha = 1;
+          if (particle.kind === "dirt") {
+            alpha = particle.life / particle.maxLife;
+          }
+          if (particle.kind === "score") {
+            ctx.shadowColor = "rgba(" + particle.red + "," + particle.green + "," + particle.blue + ",0.9)";
+            ctx.shadowBlur = 8;
+          }
+          ctx.fillStyle = "rgba(" + particle.red + "," + particle.green + "," + particle.blue + "," + alpha + ")";
+          ctx.fillRect(
+            particle.x - particle.size * 0.5,
+            particle.y - particle.size * 0.5,
+            particle.size,
+            particle.size
+          );
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      function draw() {
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+        var shakeX = 0;
+        var shakeY = 0;
+        if (screenShake > 0) {
+          shakeX = (rand() - 0.5) * screenShake * 1.1;
+          shakeY = (rand() - 0.5) * screenShake * 1.1;
+        }
+
+        ctx.save();
+        ctx.translate(shakeX, shakeY);
+        if (staticBgCanvas) {
+          ctx.drawImage(staticBgCanvas, 0, 0, width, height);
+        }
+        drawSky(width, height);
+        drawSun(width, height);
+        drawHorizonLine(width);
+        drawWorldLayerSlice(width, height);
+        drawCrystalOverlay(width, height);
+        drawBurnOverlay(width, height);
+        drawBlackHole(width, height);
+        drawCollapseRings();
+        drawParticles();
+        drawFloatingLabels();
+        ctx.restore();
+      }
+
+      function frame(timestamp) {
+        if (!lastTime) {
+          lastTime = timestamp;
+        }
+        var dt = Math.min(0.05, (timestamp - lastTime) / 1000);
+        lastTime = timestamp;
+        glossPhase += dt;
+        fpsSampleFrames += 1;
+        fpsSampleTime += dt;
+        if (fpsSampleTime >= 0.35) {
+          fpsValueEl.textContent = String(Math.round(fpsSampleFrames / fpsSampleTime));
+          fpsSampleFrames = 0;
+          fpsSampleTime = 0;
+        }
+        update(dt);
+        draw();
+        requestAnimationFrame(frame);
+      }
+
+      canvas.addEventListener("mousemove", function (event) {
+        updatePointer(event.clientX, event.clientY);
+      });
+
+      window.addEventListener("mousemove", function (event) {
+        updatePointer(event.clientX, event.clientY);
+      });
+
+      canvas.addEventListener("mousedown", function (event) {
+        if (event.button !== 0) {
+          return;
+        }
+        updatePointer(event.clientX, event.clientY);
+        triggerCollapse();
+      });
+
+      window.addEventListener("keydown", function (event) {
+        if (event.key === "r" || event.key === "R") {
+          restartSession();
+        }
+      });
+
+      window.addEventListener("resize", resize);
+      bestScore = loadBestScore();
+      bestValueEl.textContent = formatScoreTons(bestScore);
+      resize();
+      updatePointer(window.innerWidth * 0.5, window.innerHeight * 0.65);
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+
+</html>
