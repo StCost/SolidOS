@@ -77,7 +77,6 @@
 .menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .worlds-column .worlds-list {
   scrollbar-gutter: stable;
   scrollbar-color: transparent transparent;
-  pointer-events: none;
 }
 
 .menu-screen:not(.terminal-animations-off) .os-window--opening .os-window-body--terminal::-webkit-scrollbar-thumb,
