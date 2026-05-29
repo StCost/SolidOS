@@ -28,6 +28,13 @@
         path: "Extras/games/slope-golf/index.html",
         image: "Extras/games/slope-golf/slope-golf-preview.png",
         difficulty: 4
+      },
+      {
+        id: "crystal-rush",
+        title: "Crystal Rush",
+        path: "Extras/games/crystal-rush/index.html",
+        image: "Extras/games/crystal-rush/crystal-rush-preview.png",
+        difficulty: 5
       }
     ],
     art: [

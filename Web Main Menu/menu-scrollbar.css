@@ -1,5 +1,4 @@
-.menu-v-scroll,
-.worlds-list-scroll {
+.menu-v-scroll {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
@@ -7,31 +6,41 @@
   box-sizing: border-box;
 }
 
-.menu-v-scroll > .settings-scroll,
-.menu-v-scroll > .settings-tabs,
-.menu-v-scroll > .credits-scroll,
-.menu-v-scroll > .worlds-list,
-.worlds-list-scroll > .worlds-list {
+.os-window--managed .os-window-body--terminal:has(> .menu-v-scroll) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.os-window--managed .os-window-body--terminal > .menu-v-scroll,
+.os-window--managed > .menu-v-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.menu-v-scroll-view {
+  scrollbar-gutter: auto;
+}
+
+.menu-v-scroll > .menu-v-scroll-view {
   width: 100%;
   height: 100%;
   margin-bottom: 0;
   box-sizing: border-box;
   scrollbar-width: none;
+  scrollbar-gutter: auto;
   -ms-overflow-style: none;
 }
 
-.menu-v-scroll > .settings-scroll::-webkit-scrollbar,
-.menu-v-scroll > .settings-tabs::-webkit-scrollbar,
-.menu-v-scroll > .credits-scroll::-webkit-scrollbar,
-.menu-v-scroll > .worlds-list::-webkit-scrollbar,
-.worlds-list-scroll > .worlds-list::-webkit-scrollbar {
+.menu-v-scroll > .menu-v-scroll-view::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
 }
 
-.menu-v-scrollbar,
-.worlds-list-scrollbar {
+.menu-v-scrollbar {
   position: absolute;
   top: 0;
   right: 0;
@@ -44,13 +53,11 @@
   pointer-events: auto;
 }
 
-.menu-v-scrollbar.is-hidden,
-.worlds-list-scrollbar.is-hidden {
+.menu-v-scrollbar.is-hidden {
   display: none;
 }
 
-.menu-v-scrollbar-thumb,
-.worlds-list-scrollbar-thumb {
+.menu-v-scrollbar-thumb {
   position: absolute;
   left: 0;
   right: 0;
@@ -66,9 +73,7 @@
 }
 
 .menu-v-scrollbar-thumb:hover,
-.menu-v-scrollbar-thumb.is-dragging,
-.worlds-list-scrollbar-thumb:hover,
-.worlds-list-scrollbar-thumb.is-dragging {
+.menu-v-scrollbar-thumb.is-dragging {
   background-color: var(--scrollbar-thumb-hover);
   border-color: rgba(255, 128, 0, 0.22);
 }
