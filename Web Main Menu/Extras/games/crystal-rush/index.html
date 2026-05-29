@@ -47,12 +47,13 @@
       z-index: 3;
       pointer-events: none;
       opacity: 0;
-      background: radial-gradient(circle at 50% 50%, transparent var(--vignette-inner, 62%), rgba(40, 8, 4, 0.92) 100%);
+      background: radial-gradient(circle at 50% 50%, transparent var(--vignette-inner, 62%), var(--vignette-edge, rgba(40, 8, 4, 0.92)) 100%);
       transition: opacity 0.35s ease, --vignette-inner 0.45s ease;
+      opacity: 0;
     }
 
     #damageVignette.is-visible {
-      opacity: 1;
+      opacity: var(--vignette-opacity, 1);
     }
 
     #damageVignette.is-flash {
@@ -136,6 +137,134 @@
     #carSvg {
       width: 100%;
       height: 100%;
+    }
+
+    #carCracks {
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+
+    #carWrap.is-damaged-light #carCracks {
+      opacity: 0.62;
+    }
+
+    #carWrap.is-damaged-light #carCracks .crack-heavy {
+      display: none;
+    }
+
+    #carWrap.is-damaged-critical #carCracks {
+      opacity: 0.95;
+    }
+
+    #carWrap.is-damaged-critical #carCracks .crack-heavy {
+      display: block;
+    }
+
+    .car-wheel {
+      fill: #525a64;
+      stroke: #1a2028;
+      stroke-width: 1.2;
+    }
+
+    .car-wheel-rear {
+      stroke: #141820;
+      stroke-width: 1.35;
+    }
+
+    #carWrap.is-dead {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    #hudDashboard {
+      position: absolute;
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+      z-index: 6;
+      pointer-events: none;
+    }
+
+    #hudDashboard.hidden {
+      display: none;
+    }
+
+    #speedGaugeSvg {
+      width: 148px;
+      height: 88px;
+      display: block;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.65));
+    }
+
+    .speed-gauge-arc-bg {
+      fill: none;
+      stroke: rgba(12, 14, 18, 0.92);
+      stroke-width: 9;
+      stroke-linecap: round;
+    }
+
+    .speed-gauge-arc-face {
+      fill: none;
+      stroke: rgba(48, 54, 64, 0.98);
+      stroke-width: 5;
+      stroke-linecap: round;
+    }
+
+    .speed-gauge-arc-fill {
+      fill: none;
+      stroke-width: 9;
+      stroke-linecap: round;
+      transition: stroke-dasharray 0.07s linear;
+    }
+
+    .speed-gauge-tick {
+      stroke: rgba(120, 132, 148, 0.42);
+      stroke-width: 1.2;
+      stroke-linecap: round;
+    }
+
+    #speedGaugeNeedle {
+      transition: transform 0.07s linear;
+    }
+
+    #speedGaugeNeedle line {
+      stroke: #dce8f4;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 4px rgba(180, 210, 255, 0.35));
+    }
+
+    #speedGaugeNeedle circle {
+      fill: #5c6874;
+      stroke: #222830;
+      stroke-width: 1.1;
+    }
+
+    #checkEngineIcon {
+      pointer-events: none;
+    }
+
+    #checkEngineShape {
+      transition: fill 0.35s ease, filter 0.35s ease, opacity 0.35s ease;
+    }
+
+    #checkEngineIcon.check-engine-off #checkEngineShape {
+      fill: rgba(110, 118, 128, 0.42);
+      filter: none;
+      opacity: 0.55;
+    }
+
+    #checkEngineIcon.check-engine-warn #checkEngineShape {
+      fill: #e89428;
+      opacity: 1;
+      filter: drop-shadow(0 0 5px rgba(255, 160, 50, 0.75)) drop-shadow(0 0 12px rgba(255, 120, 30, 0.45));
+    }
+
+    #checkEngineIcon.check-engine-crit #checkEngineShape {
+      fill: #e83828;
+      opacity: 1;
+      filter: drop-shadow(0 0 6px rgba(255, 70, 40, 0.9)) drop-shadow(0 0 14px rgba(255, 40, 20, 0.55));
     }
 
     #hudScore {
@@ -279,47 +408,6 @@
       animation: record-glow 0.8s ease-in-out infinite alternate;
     }
 
-    #hudSpeed {
-      position: absolute;
-      left: 50%;
-      bottom: 16px;
-      transform: translateX(-50%);
-      z-index: 6;
-      pointer-events: none;
-      width: min(300px, 72vw);
-    }
-
-    #speedGaugeLabels {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.62rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: rgba(180, 170, 150, 0.55);
-      margin-bottom: 4px;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
-    }
-
-    #speedGaugeTrack {
-      height: 5px;
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 3px;
-      overflow: hidden;
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
-    }
-
-    #speedGaugeFill {
-      height: 100%;
-      width: 0%;
-      border-radius: 3px;
-      background: linear-gradient(90deg, #88a8c8, #c8e8ff, #ffaa66);
-      transition: width 0.06s linear;
-    }
-
-    #hudSpeed.hidden {
-      display: none;
-    }
-
     #fpsHud {
       position: absolute;
       right: 12px;
@@ -354,20 +442,78 @@
             </linearGradient>
           </defs>
           <ellipse cx="28" cy="58" rx="20" ry="8" fill="rgba(0,0,0,0.22)" />
+          <g id="carWheels">
+            <g transform="translate(9, 58) rotate(180)">
+              <rect class="car-wheel car-wheel-rear" x="-3.5" y="-7" width="7" height="14" rx="1.8" />
+            </g>
+            <g transform="translate(47, 58) rotate(180)">
+              <rect class="car-wheel car-wheel-rear" x="-3.5" y="-7" width="7" height="14" rx="1.8" />
+            </g>
+            <g id="carFrontWheelLeft" transform="translate(11, 12)">
+              <rect class="car-wheel" x="-3.5" y="-7" width="7" height="14" rx="1.8" />
+            </g>
+            <g id="carFrontWheelRight" transform="translate(45, 12)">
+              <rect class="car-wheel" x="-3.5" y="-7" width="7" height="14" rx="1.8" />
+            </g>
+          </g>
           <rect x="10" y="14" width="36" height="46" rx="8" fill="url(#carBodyGrad)" stroke="#3a4048"
             stroke-width="1.4" />
           <rect x="14" y="18" width="28" height="18" rx="4" fill="url(#carAccentGrad)" opacity="0.85" stroke="#506878"
             stroke-width="1" />
           <rect x="12" y="38" width="10" height="18" rx="3" fill="#505860" stroke="#2a3038" stroke-width="1" />
           <rect x="34" y="38" width="10" height="18" rx="3" fill="#505860" stroke="#2a3038" stroke-width="1" />
-          <rect x="22" y="6" width="12" height="10" rx="3" fill="#687078" stroke="#3a4048" stroke-width="1" />
-          <circle cx="28" cy="11" r="2.5" fill="#a8e8ff" opacity="0.9" />
+          <rect x="19" y="6" width="8" height="10" rx="3" fill="#687078" stroke="#3a4048" stroke-width="1" />
+          <rect x="29" y="6" width="8" height="10" rx="3" fill="#687078" stroke="#3a4048" stroke-width="1" />
+          <circle cx="23" cy="11" r="2.5" fill="#a8e8ff" opacity="0.9" />
+          <circle cx="33" cy="11" r="2.5" fill="#a8e8ff" opacity="0.9" />
           <path d="M18 52 L14 66 M38 52 L42 66" stroke="#2a3038" stroke-width="3" stroke-linecap="round" />
           <path d="M20 52 L16 64 M36 52 L40 64" stroke="#687078" stroke-width="2" stroke-linecap="round" />
           <line x1="28" y1="72" x2="28" y2="62" stroke="#ff8844" stroke-width="2" stroke-linecap="round"
             opacity="0.7" />
+          <g id="carCracks">
+            <path class="crack crack-light" d="M18 20 L26 30 L22 38" fill="none" stroke="#1a1008" stroke-width="1.3"
+              stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+            <path class="crack crack-light" d="M38 22 L32 34 L36 44" fill="none" stroke="#1a1008" stroke-width="1.2"
+              stroke-linecap="round" opacity="0.7" />
+            <path class="crack crack-light" d="M24 24 L28 32" fill="none" stroke="#2a1810" stroke-width="1"
+              stroke-linecap="round" opacity="0.55" />
+            <path class="crack crack-heavy" d="M14 28 L22 42 L18 52" fill="none" stroke="#120a06" stroke-width="1.6"
+              stroke-linecap="round" stroke-linejoin="round" />
+            <path class="crack crack-heavy" d="M42 26 L34 40 L38 50" fill="none" stroke="#120a06" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round" />
+            <path class="crack crack-heavy" d="M20 16 L28 26 L24 36 M36 18 L30 28" fill="none" stroke="#1a1008"
+              stroke-width="1.2" stroke-linecap="round" opacity="0.85" />
+            <path class="crack crack-heavy" d="M28 20 L28 48" fill="none" stroke="#0e0804" stroke-width="1.1"
+              stroke-linecap="round" opacity="0.65" />
+          </g>
         </svg>
       </div>
+    </div>
+    <div id="hudDashboard" class="hidden">
+      <svg id="speedGaugeSvg" viewBox="0 0 140 84" aria-hidden="true">
+        <defs>
+          <linearGradient id="speedGaugeArcGradient" gradientUnits="userSpaceOnUse" x1="16" y1="72" x2="124"
+            y2="72">
+            <stop offset="0%" stop-color="#42d45e" />
+            <stop offset="50%" stop-color="#f0a028" />
+            <stop offset="100%" stop-color="#e83828" />
+          </linearGradient>
+        </defs>
+        <path class="speed-gauge-arc-bg" d="M 16 72 A 54 54 0 0 1 124 72" />
+        <path id="speedGaugeArcFill" class="speed-gauge-arc-fill" stroke="url(#speedGaugeArcGradient)"
+          d="M 16 72 A 54 54 0 0 1 124 72" />
+        <path class="speed-gauge-arc-face" d="M 22 72 A 48 48 0 0 1 118 72" />
+        <g id="speedGaugeTicks" aria-hidden="true"></g>
+        <g id="checkEngineIcon" class="check-engine-off" transform="translate(70 49) scale(0.74) translate(-12 -12)"
+          aria-hidden="true">
+          <path id="checkEngineShape"
+            d="M2 10h3.2l1.1-2.2h11.4l1.1 2.2H22v6H2v-6zm5.2 0h9.6v3.2H7.2V10zm2.2 5.6h1.2v2.4H9.4v-2.4zm7.2 0h1.2v2.4h-1.2v-2.4z" />
+        </g>
+        <g id="speedGaugeNeedle" transform="rotate(-90 70 72)">
+          <line x1="70" y1="72" x2="70" y2="24" />
+          <circle cx="70" cy="72" r="5" />
+        </g>
+      </svg>
     </div>
     <div id="hudDistance">
       <div id="distanceValue">0m</div>
@@ -378,15 +524,6 @@
       <div id="scoreLabel">score</div>
     </div>
     <div id="hudBest">best<span id="bestValue">0</span></div>
-    <div id="hudSpeed" class="hidden">
-      <div id="speedGaugeLabels">
-        <span id="speedMinLabel">min</span>
-        <span id="speedMaxLabel">max</span>
-      </div>
-      <div id="speedGaugeTrack">
-        <div id="speedGaugeFill"></div>
-      </div>
-    </div>
     <div id="fpsHud">fps <span id="fpsValue">--</span></div>
     <div id="gameScreen">
       <h1 id="screenTitle">Crystal Rush</h1>
@@ -418,7 +555,16 @@
     var WORLD_REBASE_THRESHOLD = 80000;
     var WORLD_REBASE_TARGET = 0;
     var DUST_PARTICLE_MAX = 140;
-    var IMPACT_PARTICLE_MAX = 48;
+    var COLLISION_KIND_ROCK = "rock";
+    var COLLISION_KIND_VEHICLE = "vehicle";
+    var COLLISION_FLASH_DURATION = 0.38;
+    var COLLISION_FLASH_RADIUS_ROCK = 74;
+    var COLLISION_FLASH_RADIUS_VEHICLE = 92;
+    var COLLISION_SPARK_COUNT = 24;
+    var COLLISION_DEBRIS_COUNT = 12;
+    var COLLISION_DUST_COUNT = 10;
+    var COLLISION_SCRAPE_STREAK_COUNT = 6;
+    var IMPACT_PARTICLE_MAX = 96;
     var SCORE_PARTICLE_MAX = 64;
     var COLLECT_SPARK_MAX = 80;
     var COLLECT_STREAK_MAX = 56;
@@ -447,9 +593,71 @@
     var WALL_SEGMENT_COUNT_MIN = 1;
     var WALL_SEGMENT_COUNT_MAX = 6;
     var ROCK_PUSH_EXTRA = 14;
-    var ROCK_DEFLECT_STRENGTH = 0.72;
-    var TIRE_TRACK_LATERAL_OFFSET = 13;
-    var TIRE_TRACK_REAR_OFFSET = 20;
+    var ROCK_DEFLECT_STRENGTH = 0.38;
+    var ROCK_DEFLECT_STREAK_WINDOW = 0.6;
+    var ROCK_DEFLECT_STREAK_STEP = 0.24;
+    var ROCK_DEFLECT_STREAK_MAX = 0.95;
+    var ENEMY_CAR_RADIUS_MIN = 26;
+    var ENEMY_CAR_RADIUS_MAX = 38;
+    var ENEMY_CAR_DRAW_REFERENCE_RADIUS = 21;
+    var ENEMY_CAR_MAX_COUNT = 4;
+    var ENEMY_SPAWN_COOLDOWN_MIN = 7;
+    var ENEMY_SPAWN_COOLDOWN_MAX = 13;
+    var ENEMY_SIGHT_RANGE = 460;
+    var ENEMY_SIGHT_DOT_MIN = 0.32;
+    var ENEMY_LOS_PROBE_RADIUS = 11;
+    var ENEMY_LOS_STEP_SIZE = 26;
+    var ENEMY_REMEMBER_PLAYER_SECONDS = 2;
+    var ENEMY_HIT_DEFLECT_STRENGTH = 0.52;
+    var ENEMY_COLLISION_TURN_LOCK_SECONDS = 0.2;
+    var ENEMY_SPEED_MIN = 95;
+    var ENEMY_SPEED_MAX = 265;
+    var ENEMY_WANDER_TURN_SMOOTH = 4.2;
+    var ENEMY_CHASE_TURN_SMOOTH = 7.5;
+    var ENEMY_SPEED_AT_SMALL_SIZE = 0.95;
+    var ENEMY_SPEED_AT_LARGE_SIZE = 0.8;
+    var ENEMY_WANDER_SPEED_MAX_FRACTION = 0.72;
+    var ENEMY_LARGE_SIZE_DESATURATE_AMOUNT = 0.1;
+    var ENEMY_CHASE_SPEED_SPREAD = 0.82;
+    var ENEMY_WANDER_TURN_MIN = 0.8;
+    var ENEMY_WANDER_TURN_MAX = 2.4;
+    var ENEMY_SIGHT_CONE_SEGMENTS = 18;
+    var ENEMY_SIGHT_CONE_FILL_ALPHA = 0.08;
+    var ENEMY_SIGHT_CONE_FILL_ALPHA_ALERT = 0.14;
+    var ENEMY_SIGHT_CONE_STROKE_ALPHA = 0.18;
+    var ENEMY_SIGHT_CONE_STROKE_ALPHA_ALERT = 0.28;
+    var ENEMY_SIGHT_CONE_SCAN_SPEED = 0.55;
+    var ENEMY_SIGHT_CONE_ATTACK_SCAN_SPEED = 1.2;
+    var ENEMY_SIGHT_CONE_FLICKER_SPEED = 10.5;
+    var ENEMY_SIGHT_CONE_STRIPE_COUNT = 9;
+    var ENEMY_ATTACK_LIGHT_ROTATION_SPEED = 10.5;
+    var ENEMY_ATTACK_LIGHT_RADIUS = 3.6;
+    var ENEMY_ATTACK_LIGHT_LEFT_X = -6.5;
+    var ENEMY_ATTACK_LIGHT_RIGHT_X = 6.5;
+    var ENEMY_ATTACK_LIGHT_Y = -12;
+    var ENEMY_ATTACK_LIGHT_BEAM_LENGTH = 17;
+    var CAR_FRONT_STEER_MAX = 0.46;
+    var CAR_FRONT_STEER_SMOOTH = 13;
+    var HEALTH_VIGNETTE_FRACTION = 0.5;
+    var CHECK_ENGINE_WARN_HEALTH_FRACTION = 0.5;
+    var CHECK_ENGINE_CRIT_HEALTH_FRACTION = 0.3;
+    var SPEED_GAUGE_PIVOT_X = 70;
+    var SPEED_GAUGE_PIVOT_Y = 72;
+    var SPEED_GAUGE_NEEDLE_ANGLE_MIN = -90;
+    var SPEED_GAUGE_NEEDLE_ANGLE_MAX = 90;
+    var SPEED_GAUGE_ARC_BG_RADIUS = 54;
+    var SPEED_GAUGE_ARC_FILL_LENGTH = Math.PI * SPEED_GAUGE_ARC_BG_RADIUS;
+    var CAR_SVG_CENTER_X = 28;
+    var CAR_SVG_CENTER_Y = 36;
+    var CAR_REAR_WHEEL_LEFT_SVG_X = 9;
+    var CAR_REAR_WHEEL_RIGHT_SVG_X = 47;
+    var CAR_REAR_WHEEL_SVG_Y = 58;
+    var CAR_WHEEL_HALF_LENGTH_SVG = 7;
+    var CAR_WHEEL_SVG_TO_WORLD = 1;
+    var CAR_FRONT_WHEEL_LEFT_X = 11;
+    var CAR_FRONT_WHEEL_LEFT_Y = 12;
+    var CAR_FRONT_WHEEL_RIGHT_X = 45;
+    var CAR_FRONT_WHEEL_RIGHT_Y = 12;
     var TIRE_TRACK_STEP_DISTANCE = 7;
     var TIRE_TRACK_MAX_PATH_LENGTH = 520;
     var TIRE_TRACK_MIN_SPEED = 28;
@@ -468,6 +676,11 @@
     var RARITY_GLOW_RADIUS = [2.0, 2.7, 3.5, 4.4, 5.5];
     var RARITY_WEIGHTS = [0.42, 0.28, 0.17, 0.09, 0.04];
     var CRYSTAL_RARITY_COUNT = 5;
+    var CRYSTAL_DEPOSIT_PATTERN_BLOB = 0;
+    var CRYSTAL_DEPOSIT_PATTERN_LINE = 1;
+    var CRYSTAL_DEPOSIT_PATTERN_ARC = 2;
+    var CRYSTAL_DEPOSIT_PATTERN_RING = 3;
+    var CRYSTAL_DEPOSIT_PATTERN_VEIN = 4;
     var COLLECT_ARC_DURATION = 0.42;
     var COLLECT_ARC_RADIUS = 52;
     var COLLECT_FLASH_DURATION = 0.38;
@@ -487,15 +700,23 @@
     var COAST_DRAG = 18;
     var POINTER_HOLD_CRUISE_ACCEL = 43;
     var POINTER_STEER_ALIGNED_ANGLE = 0.11;
-    var TURN_RATE_AT_MIN_CAR_SPEED = 3.2;
-    var TURN_RATE_SPEED_DROP = 1.6;
+    var TURN_RATE_AT_MIN_CAR_SPEED = 2.75;
+    var TURN_RATE_SPEED_DROP = 1.35;
     var TURN_RATE_AT_MAX_CAR_SPEED = TURN_RATE_AT_MIN_CAR_SPEED - TURN_RATE_SPEED_DROP;
+    var CAMERA_LOOK_AHEAD_SECONDS = 0.22;
+    var CAMERA_SMOOTH = 7.5;
     var ROCK_SPEED_PENALTY = 95;
     var ROCK_HIT_COOLDOWN = 0.55;
 
-    var MAX_HEALTH = 5;
-    var HEALTH_REGEN_DELAY = 3.5;
-    var HEALTH_REGEN_RATE = 0.55;
+    var MAX_HEALTH = 10;
+    var ENEMY_MAX_HEALTH = MAX_HEALTH * 3;
+    var CRYSTAL_HEAL_BASE = 0.1;
+    var CRYSTAL_HEAL_PER_SIZE = 0.05;
+    var DEATH_EXPLOSION_SPARK_COUNT = 36;
+    var DEATH_EXPLOSION_EMBER_COUNT = 22;
+    var DEATH_EXPLOSION_SMOKE_COUNT = 14;
+    var DEATH_EXPLOSION_FLASH_DURATION = 0.42;
+    var DEATH_EXPLOSION_FLASH_RADIUS = 118;
     var SCORE_ARRIVE_DIST = 14;
     var SCORE_LABEL_ARRIVE_DIST = 18;
     var SCORE_LABEL_RISE_MIN = 36;
@@ -511,16 +732,19 @@
     var damageVignette = document.getElementById("damageVignette");
     var carWrap = document.getElementById("carWrap");
     var carShake = document.getElementById("carShake");
+    var carFrontWheelLeft = document.getElementById("carFrontWheelLeft");
+    var carFrontWheelRight = document.getElementById("carFrontWheelRight");
+    var hudDashboard = document.getElementById("hudDashboard");
+    var speedGaugeNeedle = document.getElementById("speedGaugeNeedle");
+    var speedGaugeArcFill = document.getElementById("speedGaugeArcFill");
+    var speedGaugeTicks = document.getElementById("speedGaugeTicks");
+    var checkEngineIcon = document.getElementById("checkEngineIcon");
     var scoreValue = document.getElementById("scoreValue");
     var scoreLabel = document.getElementById("scoreLabel");
     var distanceValue = document.getElementById("distanceValue");
     var distanceLabel = document.getElementById("distanceLabel");
     var hudBest = document.getElementById("hudBest");
     var bestValue = document.getElementById("bestValue");
-    var hudSpeed = document.getElementById("hudSpeed");
-    var speedGaugeFill = document.getElementById("speedGaugeFill");
-    var speedMinLabel = document.getElementById("speedMinLabel");
-    var speedMaxLabel = document.getElementById("speedMaxLabel");
     var gameScreen = document.getElementById("gameScreen");
     var screenTitle = document.getElementById("screenTitle");
     var screenDistance = document.getElementById("screenDistance");
@@ -536,17 +760,25 @@
     var keysDown = { w: false, a: false, s: false, d: false };
     var pointerHeld = false;
     var pointerSteeringTurning = false;
+    var carFrontSteerAngle = 0;
+    var carFrontSteerTarget = 0;
     var lastPointerX = 0;
     var lastPointerY = 0;
 
     var carWorldX = 0;
     var carWorldY = 0;
+    var cameraWorldX = 0;
+    var cameraWorldY = 0;
     var carAngle = -Math.PI / 2;
     var carSpeed = 0;
 
     var health = MAX_HEALTH;
-    var healthRegenTimer = 0;
+    var crystalHealBuffer = 0;
     var rockHitCooldown = 0;
+    var carRockDeflectEntity = { rockDeflectStreak: 0, rockDeflectStreakTimer: 0 };
+    var enemyCars = [];
+    var enemySpawnCooldown = 3;
+    var worldSeed = 1;
 
     var score = 0;
     var bestScore = 0;
@@ -570,6 +802,7 @@
     var collectEffectsDebounceTimer = 0;
 
     var lastFrameTime = 0;
+    var gameAnimTime = 0;
     var fpsSampleTime = 0;
     var fpsSampleFrames = 0;
     var chunkSurfaceCanvasPool = [];
@@ -596,6 +829,14 @@
       seed = ((seed << 13) ^ seed) | 0;
       seed = (seed * (seed * seed * 15731 + 789221) + 1376312589) | 0;
       return (seed & 2147483647) / 2147483647;
+    }
+
+    function pickWorldSeed() {
+      var seed = Date.now() | 0;
+      seed = ((seed << 13) ^ seed) | 0;
+      seed = (seed * (seed * seed * 15731 + 789221) + 1376312589) | 0;
+      seed = seed ^ ((performance.now() * 1000) | 0);
+      return seed | 0;
     }
 
     function chunkKey(chunkX, chunkY) {
@@ -632,7 +873,7 @@
       if (dustParticlePool.length > 0) {
         return dustParticlePool.pop();
       }
-      return { x: 0, y: 0, velX: 0, velY: 0, life: 0, size: 0, alpha: 0 };
+      return { worldX: 0, worldY: 0, velX: 0, velY: 0, life: 0, size: 0, alpha: 0 };
     }
 
     function releaseDustParticle(particle) {
@@ -643,10 +884,17 @@
       if (impactParticlePool.length > 0) {
         return impactParticlePool.pop();
       }
-      return { x: 0, y: 0, velX: 0, velY: 0, life: 0, size: 0 };
+      return { worldX: 0, worldY: 0, velX: 0, velY: 0, life: 0, size: 0 };
     }
 
     function releaseImpactParticle(particle) {
+      particle.kind = undefined;
+      particle.maxLife = 0;
+      particle.drag = undefined;
+      particle.glow = false;
+      particle.red = undefined;
+      particle.green = undefined;
+      particle.blue = undefined;
       impactParticlePool.push(particle);
     }
 
@@ -768,6 +1016,8 @@
 
       carWorldX = WORLD_REBASE_TARGET;
       carWorldY = WORLD_REBASE_TARGET;
+      cameraWorldX -= shiftX;
+      cameraWorldY -= shiftY;
 
       for (keyIndex = 0; keyIndex < chunkKeys.length; keyIndex += 1) {
         key = chunkKeys[keyIndex];
@@ -813,10 +1063,36 @@
         tireTrailRight[trailIndex].x -= shiftX;
         tireTrailRight[trailIndex].y -= shiftY;
       }
+
+      var enemyIndex;
+      for (enemyIndex = 0; enemyIndex < enemyCars.length; enemyIndex += 1) {
+        enemyCars[enemyIndex].x -= shiftX;
+        enemyCars[enemyIndex].y -= shiftY;
+      }
+
+      var dustIndex;
+      for (dustIndex = 0; dustIndex < dustParticles.length; dustIndex += 1) {
+        dustParticles[dustIndex].worldX -= shiftX;
+        dustParticles[dustIndex].worldY -= shiftY;
+      }
+
+      var impactIndex;
+      for (impactIndex = 0; impactIndex < impactParticles.length; impactIndex += 1) {
+        impactParticles[impactIndex].worldX -= shiftX;
+        impactParticles[impactIndex].worldY -= shiftY;
+      }
+
+      var flashIndex;
+      for (flashIndex = 0; flashIndex < collectFlashes.length; flashIndex += 1) {
+        if (collectFlashes[flashIndex].worldX !== undefined) {
+          collectFlashes[flashIndex].worldX -= shiftX;
+          collectFlashes[flashIndex].worldY -= shiftY;
+        }
+      }
     }
 
     function createChunkRandom(chunkX, chunkY) {
-      var state = (chunkX * 73856093) ^ (chunkY * 19349663) ^ 83492791;
+      var state = (chunkX * 73856093) ^ (chunkY * 19349663) ^ worldSeed;
       return function () {
         state = (state * 1664525 + 1013904223) | 0;
         return (state >>> 0) / 4294967296;
@@ -1166,11 +1442,11 @@
       return TURN_RATE_AT_MIN_CAR_SPEED + (TURN_RATE_AT_MAX_CAR_SPEED - TURN_RATE_AT_MIN_CAR_SPEED) * speedFactor;
     }
 
-    function getBoulderCarCollision(rock) {
-      var deltaX = carWorldX - rock.x;
-      var deltaY = carWorldY - rock.y;
+    function getBoulderCarCollisionAt(bodyX, bodyY, bodyAngle, bodyRadius, rock) {
+      var deltaX = bodyX - rock.x;
+      var deltaY = bodyY - rock.y;
       var dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-      var hitRadius = CAR_RADIUS + rock.radius * 0.72;
+      var hitRadius = bodyRadius + rock.radius * 0.72;
       var normalX;
       var normalY;
 
@@ -1181,8 +1457,8 @@
         normalX = deltaX / dist;
         normalY = deltaY / dist;
       } else {
-        normalX = Math.cos(carAngle);
-        normalY = Math.sin(carAngle);
+        normalX = Math.cos(bodyAngle);
+        normalY = Math.sin(bodyAngle);
         dist = 1;
       }
       return {
@@ -1194,9 +1470,9 @@
       };
     }
 
-    function getWallCarCollision(rock) {
-      var deltaX = carWorldX - rock.x;
-      var deltaY = carWorldY - rock.y;
+    function getWallCarCollisionAt(bodyX, bodyY, bodyRadius, rock) {
+      var deltaX = bodyX - rock.x;
+      var deltaY = bodyY - rock.y;
       var cosR = Math.cos(rock.rotation);
       var sinR = Math.sin(rock.rotation);
       var localX = deltaX * cosR + deltaY * sinR;
@@ -1229,7 +1505,7 @@
       distX = localX - closestX;
       distY = localY - closestY;
       distSq = distX * distX + distY * distY;
-      if (distSq >= CAR_RADIUS * CAR_RADIUS) {
+      if (distSq >= bodyRadius * bodyRadius) {
         return null;
       }
       dist = Math.sqrt(distSq);
@@ -1249,15 +1525,274 @@
         normalY: normalY,
         closestWorldX: closestWorldX,
         closestWorldY: closestWorldY,
-        penetration: CAR_RADIUS - dist
+        penetration: bodyRadius - dist
       };
     }
 
-    function getRockCarCollision(rock) {
+    function getRockCarCollisionAt(bodyX, bodyY, bodyAngle, bodyRadius, rock) {
       if (rock.kind === "boulder") {
-        return getBoulderCarCollision(rock);
+        return getBoulderCarCollisionAt(bodyX, bodyY, bodyAngle, bodyRadius, rock);
       }
-      return getWallCarCollision(rock);
+      return getWallCarCollisionAt(bodyX, bodyY, bodyRadius, rock);
+    }
+
+    function getRockCarCollision(rock) {
+      return getRockCarCollisionAt(carWorldX, carWorldY, carAngle, CAR_RADIUS, rock);
+    }
+
+    function getEnemyCarCollision(enemy) {
+      return getBoulderCarCollisionAt(carWorldX, carWorldY, carAngle, CAR_RADIUS, {
+        x: enemy.x,
+        y: enemy.y,
+        radius: enemy.radius
+      });
+    }
+
+    function getEnemySizeSpeedMultiplier(sizeScale) {
+      return ENEMY_SPEED_AT_LARGE_SIZE +
+        (1 - sizeScale) * (ENEMY_SPEED_AT_SMALL_SIZE - ENEMY_SPEED_AT_LARGE_SIZE);
+    }
+
+    function getEnemyChaseSpeedMax(enemy) {
+      return MAX_SPEED * getEnemySizeSpeedMultiplier(enemy.sizeScale);
+    }
+
+    function getEnemyChaseSpeedMin(enemy) {
+      return getEnemyChaseSpeedMax(enemy) * ENEMY_CHASE_SPEED_SPREAD;
+    }
+
+    function setEnemyWanderTargetSpeed(enemy) {
+      var speedMin = getEnemyChaseSpeedMin(enemy);
+      var speedMax = getEnemyChaseSpeedMax(enemy) * ENEMY_WANDER_SPEED_MAX_FRACTION;
+      if (speedMax < speedMin) {
+        speedMax = speedMin;
+      }
+      enemy.targetSpeed = speedMin + Math.random() * (speedMax - speedMin);
+    }
+
+    function setEnemyChaseTargetSpeed(enemy) {
+      var chaseMin = getEnemyChaseSpeedMin(enemy);
+      var chaseMax = getEnemyChaseSpeedMax(enemy);
+      enemy.targetSpeed = chaseMin + Math.random() * (chaseMax - chaseMin);
+    }
+
+    function setEnemyPlayerCollisionTurnLock(enemy) {
+      if (enemy.turnLockTimer < ENEMY_COLLISION_TURN_LOCK_SECONDS) {
+        enemy.turnLockTimer = ENEMY_COLLISION_TURN_LOCK_SECONDS;
+      }
+    }
+
+    function applyEnemyDamage(enemy, collision, collisionKind) {
+      if (enemy.rockHitCooldown > 0) {
+        return false;
+      }
+      enemy.health -= 1;
+      enemy.rockHitCooldown = ROCK_HIT_COOLDOWN;
+      enemy.speed = Math.max(ENEMY_SPEED_MIN * 0.55, enemy.speed - ROCK_SPEED_PENALTY);
+      spawnCollisionEffectsAtWorld(
+        collision.closestWorldX,
+        collision.closestWorldY,
+        collision.normalX,
+        collision.normalY,
+        collisionKind
+      );
+      if (enemy.health <= 0) {
+        spawnDeathExplosionAtWorld(enemy.x, enemy.y, true);
+        return true;
+      }
+      return false;
+    }
+
+    function pickCrystalDepositPattern(random, depositIndex) {
+      var roll = random() + depositIndex * 0.173;
+      while (roll >= 1) {
+        roll -= 1;
+      }
+      while (roll < 0) {
+        roll += 1;
+      }
+      if (roll < 0.3) {
+        return CRYSTAL_DEPOSIT_PATTERN_BLOB;
+      }
+      if (roll < 0.5) {
+        return CRYSTAL_DEPOSIT_PATTERN_LINE;
+      }
+      if (roll < 0.67) {
+        return CRYSTAL_DEPOSIT_PATTERN_ARC;
+      }
+      if (roll < 0.82) {
+        return CRYSTAL_DEPOSIT_PATTERN_RING;
+      }
+      return CRYSTAL_DEPOSIT_PATTERN_VEIN;
+    }
+
+    function isCrystalLocalInChunkBounds(localX, localY) {
+      if (localX < 8 || localY < 8) {
+        return false;
+      }
+      if (localX > CHUNK_SIZE - 8 || localY > CHUNK_SIZE - 8) {
+        return false;
+      }
+      return true;
+    }
+
+    function collectCrystalSparkLocations(random, centerLocalX, centerLocalY, depositRadius, sparkCount, pattern) {
+      var locations = [];
+      var sparkIndex;
+      var angle;
+      var distance;
+      var localX;
+      var localY;
+      var lineAngle;
+      var lineLength;
+      var cosA;
+      var sinA;
+      var perpX;
+      var perpY;
+      var alongT;
+      var along;
+      var perp;
+      var arcSpan;
+      var startAngle;
+      var arcRadius;
+      var ringRadius;
+      var segmentCount;
+      var veinHeading;
+      var segmentIndex;
+      var segmentLength;
+      var pointCount;
+      var pointIndex;
+      var pointsX;
+      var pointsY;
+      var totalLength;
+      var targetDistance;
+      var walked;
+      var segIndex;
+      var segDx;
+      var segDy;
+      var segLength;
+
+      if (pattern === CRYSTAL_DEPOSIT_PATTERN_LINE) {
+        lineAngle = random() * Math.PI * 2;
+        lineLength = depositRadius * (1.35 + random() * 0.95);
+        cosA = Math.cos(lineAngle);
+        sinA = Math.sin(lineAngle);
+        perpX = -sinA;
+        perpY = cosA;
+        for (sparkIndex = 0; sparkIndex < sparkCount; sparkIndex += 1) {
+          alongT = sparkCount > 1 ? sparkIndex / (sparkCount - 1) : 0.5;
+          along = (alongT - 0.5) * lineLength;
+          perp = (random() - 0.5) * 18;
+          localX = centerLocalX + cosA * along + perpX * perp;
+          localY = centerLocalY + sinA * along + perpY * perp;
+          if (!isCrystalLocalInChunkBounds(localX, localY)) {
+            continue;
+          }
+          locations.push({ localX: localX, localY: localY });
+        }
+        return locations;
+      }
+
+      if (pattern === CRYSTAL_DEPOSIT_PATTERN_ARC) {
+        arcSpan = Math.PI * (0.5 + random() * 0.85);
+        startAngle = random() * Math.PI * 2;
+        arcRadius = depositRadius * (0.72 + random() * 0.38);
+        for (sparkIndex = 0; sparkIndex < sparkCount; sparkIndex += 1) {
+          alongT = sparkCount > 1 ? sparkIndex / (sparkCount - 1) : 0.5;
+          angle = startAngle + alongT * arcSpan;
+          distance = arcRadius * (0.86 + random() * 0.18);
+          localX = centerLocalX + Math.cos(angle) * distance;
+          localY = centerLocalY + Math.sin(angle) * distance;
+          if (!isCrystalLocalInChunkBounds(localX, localY)) {
+            continue;
+          }
+          locations.push({ localX: localX, localY: localY });
+        }
+        return locations;
+      }
+
+      if (pattern === CRYSTAL_DEPOSIT_PATTERN_RING) {
+        ringRadius = depositRadius * (0.55 + random() * 0.42);
+        for (sparkIndex = 0; sparkIndex < sparkCount; sparkIndex += 1) {
+          angle = (sparkIndex / sparkCount) * Math.PI * 2 + random() * 0.22;
+          distance = ringRadius + (random() - 0.5) * 14;
+          localX = centerLocalX + Math.cos(angle) * distance;
+          localY = centerLocalY + Math.sin(angle) * distance;
+          if (!isCrystalLocalInChunkBounds(localX, localY)) {
+            continue;
+          }
+          locations.push({ localX: localX, localY: localY });
+        }
+        return locations;
+      }
+
+      if (pattern === CRYSTAL_DEPOSIT_PATTERN_VEIN) {
+        segmentCount = 2 + Math.floor(random() * 2);
+        veinHeading = random() * Math.PI * 2;
+        pointCount = segmentCount + 1;
+        pointsX = [];
+        pointsY = [];
+        pointsX[0] = centerLocalX;
+        pointsY[0] = centerLocalY;
+        localX = centerLocalX;
+        localY = centerLocalY;
+        for (segmentIndex = 0; segmentIndex < segmentCount; segmentIndex += 1) {
+          segmentLength = depositRadius * (0.3 + random() * 0.26);
+          localX += Math.cos(veinHeading) * segmentLength;
+          localY += Math.sin(veinHeading) * segmentLength;
+          pointsX[segmentIndex + 1] = localX;
+          pointsY[segmentIndex + 1] = localY;
+          if (random() < 0.5) {
+            veinHeading -= 0.95 + random() * 0.65;
+          } else {
+            veinHeading += 0.95 + random() * 0.65;
+          }
+        }
+        totalLength = 0;
+        for (pointIndex = 1; pointIndex < pointCount; pointIndex += 1) {
+          segDx = pointsX[pointIndex] - pointsX[pointIndex - 1];
+          segDy = pointsY[pointIndex] - pointsY[pointIndex - 1];
+          totalLength += Math.sqrt(segDx * segDx + segDy * segDy);
+        }
+        if (totalLength < 1) {
+          return locations;
+        }
+        for (sparkIndex = 0; sparkIndex < sparkCount; sparkIndex += 1) {
+          targetDistance = (sparkIndex / sparkCount) * totalLength;
+          walked = 0;
+          for (segIndex = 1; segIndex < pointCount; segIndex += 1) {
+            segDx = pointsX[segIndex] - pointsX[segIndex - 1];
+            segDy = pointsY[segIndex] - pointsY[segIndex - 1];
+            segLength = Math.sqrt(segDx * segDx + segDy * segDy);
+            if (segLength < 0.001) {
+              continue;
+            }
+            if (walked + segLength >= targetDistance) {
+              alongT = (targetDistance - walked) / segLength;
+              localX = pointsX[segIndex - 1] + segDx * alongT + (random() - 0.5) * 8;
+              localY = pointsY[segIndex - 1] + segDy * alongT + (random() - 0.5) * 8;
+              if (isCrystalLocalInChunkBounds(localX, localY)) {
+                locations.push({ localX: localX, localY: localY });
+              }
+              break;
+            }
+            walked += segLength;
+          }
+        }
+        return locations;
+      }
+
+      for (sparkIndex = 0; sparkIndex < sparkCount; sparkIndex += 1) {
+        angle = random() * Math.PI * 2;
+        distance = Math.pow(random(), 1.85) * depositRadius;
+        localX = centerLocalX + Math.cos(angle) * distance;
+        localY = centerLocalY + Math.sin(angle) * distance;
+        if (!isCrystalLocalInChunkBounds(localX, localY)) {
+          continue;
+        }
+        locations.push({ localX: localX, localY: localY });
+      }
+      return locations;
     }
 
     function buildCrystalDeposit(random, chunkX, chunkY, depositIndex, entities, rocks) {
@@ -1271,10 +1806,10 @@
       var sparkCount = Math.floor((90 + random() * 110) * densityMultiplier);
       var rarityPrimary = pickCrystalRarity(random);
       var raritySecondary = pickSecondCrystalRarity(random, rarityPrimary);
+      var pattern = pickCrystalDepositPattern(random, depositIndex);
+      var locations = [];
+      var locationIndex;
       var crystals = [];
-      var sparkIndex;
-      var angle;
-      var distance;
       var localX;
       var localY;
       var worldX;
@@ -1302,15 +1837,18 @@
       }
 
       entities.push({ x: centerWorldX, y: centerWorldY });
+      locations = collectCrystalSparkLocations(
+        random,
+        centerLocalX,
+        centerLocalY,
+        depositRadius,
+        sparkCount,
+        pattern
+      );
 
-      for (sparkIndex = 0; sparkIndex < sparkCount; sparkIndex += 1) {
-        angle = random() * Math.PI * 2;
-        distance = Math.pow(random(), 1.85) * depositRadius;
-        localX = centerLocalX + Math.cos(angle) * distance;
-        localY = centerLocalY + Math.sin(angle) * distance;
-        if (localX < 8 || localY < 8 || localX > CHUNK_SIZE - 8 || localY > CHUNK_SIZE - 8) {
-          continue;
-        }
+      for (locationIndex = 0; locationIndex < locations.length; locationIndex += 1) {
+        localX = locations[locationIndex].localX;
+        localY = locations[locationIndex].localY;
         worldX = chunkX * CHUNK_SIZE + localX;
         worldY = chunkY * CHUNK_SIZE + localY;
         tooCloseToRock = false;
@@ -1399,11 +1937,15 @@
       return {
         chunkX: chunkX,
         chunkY: chunkY,
-        seed: hashSeed(chunkX * 991 + chunkY * 997),
+        seed: hashSeed(chunkX * 991 + chunkY * 997 + worldSeed),
         crystals: crystals,
         rocks: rocks,
         surfaceCanvas: null
       };
+    }
+
+    function getLoadedChunk(chunkX, chunkY) {
+      return chunks[chunkKey(chunkX, chunkY)] || null;
     }
 
     function getChunk(chunkX, chunkY) {
@@ -1709,28 +2251,137 @@
       distanceValue.textContent = formatMeters(distanceMeters);
     }
 
-    function getVignetteInnerPercent() {
-      if (health >= 3) {
-        return 62;
+    function getHealthDamageFraction() {
+      var halfHealth;
+      if (health <= 0) {
+        return 1;
       }
-      if (health === 2) {
-        return 38;
+      halfHealth = MAX_HEALTH * HEALTH_VIGNETTE_FRACTION;
+      if (health > halfHealth) {
+        return 0;
       }
-      if (health === 1) {
-        return 14;
+      return 1 - health / halfHealth;
+    }
+
+    function getVignetteInnerPercent(damageFraction) {
+      return 58 - damageFraction * 54;
+    }
+
+    function getVignetteOpacity(damageFraction) {
+      return 0.68 + damageFraction * 0.3;
+    }
+
+    function getVignetteEdgeColor(damageFraction) {
+      var red = Math.floor(48 + damageFraction * 72);
+      var alpha = 0.86 + damageFraction * 0.13;
+      return "rgba(" + red + ", 8, 4, " + alpha + ")";
+    }
+
+    function updateCheckEngineHud() {
+      var healthFraction = health / MAX_HEALTH;
+      checkEngineIcon.classList.remove("check-engine-off", "check-engine-warn", "check-engine-crit");
+      if (healthFraction <= CHECK_ENGINE_CRIT_HEALTH_FRACTION) {
+        checkEngineIcon.classList.add("check-engine-crit");
+      } else if (healthFraction <= CHECK_ENGINE_WARN_HEALTH_FRACTION) {
+        checkEngineIcon.classList.add("check-engine-warn");
+      } else {
+        checkEngineIcon.classList.add("check-engine-off");
       }
-      return 0;
+    }
+
+    function buildSpeedGaugeTicks() {
+      var tickIndex;
+      var tickCount = 9;
+      var tickAngle;
+      var tickRadians;
+      var innerRadius = 40;
+      var outerRadius = 46;
+      var centerX = SPEED_GAUGE_PIVOT_X;
+      var centerY = SPEED_GAUGE_PIVOT_Y;
+      var tickLine;
+      var angleStep = (SPEED_GAUGE_NEEDLE_ANGLE_MAX - SPEED_GAUGE_NEEDLE_ANGLE_MIN) / (tickCount - 1);
+      speedGaugeTicks.textContent = "";
+      for (tickIndex = 0; tickIndex < tickCount; tickIndex += 1) {
+        tickAngle = SPEED_GAUGE_NEEDLE_ANGLE_MIN + angleStep * tickIndex;
+        tickRadians = tickAngle * Math.PI / 180;
+        tickLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        tickLine.setAttribute("class", "speed-gauge-tick");
+        tickLine.setAttribute(
+          "x1",
+          String(centerX + Math.sin(tickRadians) * innerRadius)
+        );
+        tickLine.setAttribute(
+          "y1",
+          String(centerY - Math.cos(tickRadians) * innerRadius)
+        );
+        tickLine.setAttribute(
+          "x2",
+          String(centerX + Math.sin(tickRadians) * outerRadius)
+        );
+        tickLine.setAttribute(
+          "y2",
+          String(centerY - Math.cos(tickRadians) * outerRadius)
+        );
+        speedGaugeTicks.appendChild(tickLine);
+      }
+    }
+
+    function updateCarDamageVisuals() {
+      var damageFraction = getHealthDamageFraction();
+      carWrap.classList.remove("is-damaged-light", "is-damaged-critical");
+      if (damageFraction <= 0) {
+        return;
+      }
+      if (damageFraction < 0.55) {
+        carWrap.classList.add("is-damaged-light");
+      } else {
+        carWrap.classList.add("is-damaged-critical");
+      }
+    }
+
+    function updateCarFrontWheelSteer(deltaSeconds) {
+      var steerBlend;
+      var steerDegrees;
+      if (carFrontSteerTarget > CAR_FRONT_STEER_MAX) {
+        carFrontSteerTarget = CAR_FRONT_STEER_MAX;
+      }
+      if (carFrontSteerTarget < -CAR_FRONT_STEER_MAX) {
+        carFrontSteerTarget = -CAR_FRONT_STEER_MAX;
+      }
+      steerBlend = 1 - Math.exp(-CAR_FRONT_STEER_SMOOTH * deltaSeconds);
+      if (steerBlend > 1) {
+        steerBlend = 1;
+      }
+      carFrontSteerAngle += (carFrontSteerTarget - carFrontSteerAngle) * steerBlend;
+      steerDegrees = carFrontSteerAngle * (180 / Math.PI);
+      carFrontWheelLeft.setAttribute(
+        "transform",
+        "translate(" + CAR_FRONT_WHEEL_LEFT_X + ", " + CAR_FRONT_WHEEL_LEFT_Y + ") rotate(" + steerDegrees + ")"
+      );
+      carFrontWheelRight.setAttribute(
+        "transform",
+        "translate(" + CAR_FRONT_WHEEL_RIGHT_X + ", " + CAR_FRONT_WHEEL_RIGHT_Y + ") rotate(" + steerDegrees + ")"
+      );
     }
 
     function updateDamageVignette(flash) {
-      var innerPercent = getVignetteInnerPercent();
-      if (health <= 2 && health > 0) {
+      var damageFraction = getHealthDamageFraction();
+      var innerPercent = getVignetteInnerPercent(damageFraction);
+      var vignetteOpacity = getVignetteOpacity(damageFraction);
+      var vignetteEdge = getVignetteEdgeColor(damageFraction);
+
+      updateCarDamageVisuals();
+      updateCheckEngineHud();
+
+      if (damageFraction > 0) {
         damageVignette.style.setProperty("--vignette-inner", innerPercent + "%");
-        damageVignette.style.setProperty("--vignette-opacity", "0.82");
+        damageVignette.style.setProperty("--vignette-opacity", String(vignetteOpacity));
+        damageVignette.style.setProperty("--vignette-edge", vignetteEdge);
         damageVignette.classList.add("is-visible");
       } else if (health <= 0) {
         damageVignette.style.setProperty("--vignette-inner", "0%");
         damageVignette.style.setProperty("--vignette-opacity", "1");
+        damageVignette.style.setProperty("--vignette-edge", getVignetteEdgeColor(1));
         damageVignette.classList.add("is-visible");
       } else {
         damageVignette.classList.remove("is-visible");
@@ -1739,6 +2390,10 @@
         damageVignette.classList.remove("is-flash");
         void damageVignette.offsetWidth;
         damageVignette.classList.add("is-flash");
+      } else {
+        damageVignette.classList.remove("is-flash");
+        damageVignette.style.removeProperty("opacity");
+        damageVignette.style.removeProperty("filter");
       }
     }
 
@@ -1747,10 +2402,26 @@
     }
 
     function getCarScreenCenter() {
-      return {
-        x: width * 0.5,
-        y: height * 0.5
-      };
+      return worldToScreen(carWorldX, carWorldY);
+    }
+
+    function setCarWrapTransform() {
+      var screenPos = worldToScreen(carWorldX, carWorldY);
+      var offsetX = screenPos.x - width * 0.5;
+      var offsetY = screenPos.y - height * 0.5;
+      carWrap.style.transform =
+        "translate(" + offsetX + "px, " + offsetY + "px) rotate(" + (carAngle + Math.PI / 2) + "rad)";
+    }
+
+    function updateCamera(deltaSeconds) {
+      var targetX = carWorldX + Math.cos(carAngle) * carSpeed * CAMERA_LOOK_AHEAD_SECONDS;
+      var targetY = carWorldY + Math.sin(carAngle) * carSpeed * CAMERA_LOOK_AHEAD_SECONDS;
+      var smooth = 1 - Math.exp(-CAMERA_SMOOTH * deltaSeconds);
+      if (smooth > 1) {
+        smooth = 1;
+      }
+      cameraWorldX += (targetX - cameraWorldX) * smooth;
+      cameraWorldY += (targetY - cameraWorldY) * smooth;
     }
 
     function focusGameInput() {
@@ -1785,19 +2456,35 @@
 
     function updateSpeedGauge() {
       var speedRange = MAX_SPEED - MIN_SPEED;
-      var fillPercent = 0;
+      var speedFactor = 0;
+      var needleAngle;
+      var arcFillLength = 0;
+      var arcGapLength = SPEED_GAUGE_ARC_FILL_LENGTH;
       if (speedRange > 0) {
-        fillPercent = ((carSpeed - MIN_SPEED) / speedRange) * 100;
+        speedFactor = (carSpeed - MIN_SPEED) / speedRange;
       }
-      if (fillPercent < 0) {
-        fillPercent = 0;
+      if (speedFactor < 0) {
+        speedFactor = 0;
       }
-      if (fillPercent > 100) {
-        fillPercent = 100;
+      if (speedFactor > 1) {
+        speedFactor = 1;
       }
-      speedGaugeFill.style.width = fillPercent + "%";
-      speedMinLabel.textContent = String(MIN_SPEED);
-      speedMaxLabel.textContent = String(MAX_SPEED);
+      needleAngle =
+        SPEED_GAUGE_NEEDLE_ANGLE_MIN +
+        (SPEED_GAUGE_NEEDLE_ANGLE_MAX - SPEED_GAUGE_NEEDLE_ANGLE_MIN) * speedFactor;
+      speedGaugeNeedle.setAttribute(
+        "transform",
+        "rotate(" + needleAngle + " " + SPEED_GAUGE_PIVOT_X + " " + SPEED_GAUGE_PIVOT_Y + ")"
+      );
+      arcFillLength = SPEED_GAUGE_ARC_FILL_LENGTH * speedFactor;
+      arcGapLength = SPEED_GAUGE_ARC_FILL_LENGTH - arcFillLength;
+      if (arcGapLength < 0) {
+        arcGapLength = 0;
+      }
+      speedGaugeArcFill.setAttribute(
+        "stroke-dasharray",
+        String(arcFillLength) + " " + String(arcGapLength)
+      );
     }
 
     function spawnCollectArc(crystal) {
@@ -1991,55 +2678,209 @@
       spawnScoreParticles(carCenterX, carCenterY, red, green, blue, RARITY_SIZE[rarity], 3 + rarity * 2);
     }
 
-    function spawnImpactParticles(worldX, worldY) {
-      var count = 10;
+    function pushCollisionImpact(worldX, worldY, angle, speed, life, size, red, green, blue, drag, glow) {
+      var impact;
+      if (impactParticles.length >= IMPACT_PARTICLE_MAX) {
+        releaseImpactParticle(impactParticles.shift());
+      }
+      impact = acquireImpactParticle();
+      impact.worldX = worldX + (Math.random() - 0.5) * 14;
+      impact.worldY = worldY + (Math.random() - 0.5) * 14;
+      impact.velX = Math.cos(angle) * speed;
+      impact.velY = Math.sin(angle) * speed;
+      impact.life = life;
+      impact.maxLife = life;
+      impact.size = size;
+      impact.red = red;
+      impact.green = green;
+      impact.blue = blue;
+      impact.drag = drag;
+      impact.glow = glow;
+      impact.kind = "collision";
+      impactParticles.push(impact);
+    }
+
+    function spawnCollisionEffectsAtWorld(worldX, worldY, normalX, normalY, collisionKind) {
+      var flashRed;
+      var flashGreen;
+      var flashBlue;
+      var sparkRed;
+      var sparkGreen;
+      var sparkBlue;
+      var debrisRed;
+      var debrisGreen;
+      var debrisBlue;
+      var flashRadius;
+      var biasAngle;
+      var tangentAngle;
       var particleIndex;
       var angle;
       var speed;
-      var screenPos = worldToScreen(worldX, worldY);
-      var impact;
-      for (particleIndex = 0; particleIndex < count; particleIndex += 1) {
-        angle = Math.random() * Math.PI * 2;
-        speed = 60 + Math.random() * 180;
-        if (impactParticles.length >= IMPACT_PARTICLE_MAX) {
-          releaseImpactParticle(impactParticles.shift());
-        }
-        impact = acquireImpactParticle();
-        impact.x = screenPos.x;
-        impact.y = screenPos.y;
-        impact.velX = Math.cos(angle) * speed;
-        impact.velY = Math.sin(angle) * speed;
-        impact.life = 0.35 + Math.random() * 0.35;
-        impact.size = 2 + Math.random() * 5;
-        impactParticles.push(impact);
-      }
-    }
-
-    function spawnDustTrail(deltaSeconds) {
-      if (carSpeed < 40) {
-        return;
-      }
-      var spawnCount = Math.floor(carSpeed / 120);
-      var spawnIndex;
-      var backAngle = carAngle + Math.PI;
-      var offsetDist = 22;
-      var originWorldX = carWorldX + Math.cos(backAngle) * offsetDist;
-      var originWorldY = carWorldY + Math.sin(backAngle) * offsetDist;
-      var screenPos = worldToScreen(originWorldX, originWorldY);
+      var life;
+      var size;
+      var red;
+      var green;
+      var blue;
       var dust;
-      for (spawnIndex = 0; spawnIndex < spawnCount; spawnIndex += 1) {
+      var ringIndex;
+      var burstRadius;
+      var burstScreen;
+
+      if (collisionKind === COLLISION_KIND_VEHICLE) {
+        flashRed = 255;
+        flashGreen = 75;
+        flashBlue = 35;
+        sparkRed = 255;
+        sparkGreen = 130;
+        sparkBlue = 45;
+        debrisRed = 210;
+        debrisGreen = 70;
+        debrisBlue = 35;
+        flashRadius = COLLISION_FLASH_RADIUS_VEHICLE;
+      } else {
+        flashRed = 235;
+        flashGreen = 185;
+        flashBlue = 125;
+        sparkRed = 255;
+        sparkGreen = 210;
+        sparkBlue = 130;
+        debrisRed = 150;
+        debrisGreen = 115;
+        debrisBlue = 85;
+        flashRadius = COLLISION_FLASH_RADIUS_ROCK;
+      }
+
+      collectFlashes.push({
+        worldX: worldX,
+        worldY: worldY,
+        age: 0,
+        duration: COLLISION_FLASH_DURATION,
+        maxRadius: flashRadius,
+        red: flashRed,
+        green: flashGreen,
+        blue: flashBlue,
+        isCollision: true
+      });
+      collectFlashes.push({
+        worldX: worldX,
+        worldY: worldY,
+        age: 0,
+        duration: COLLISION_FLASH_DURATION * 0.68,
+        maxRadius: flashRadius * 0.58,
+        red: 255,
+        green: 245,
+        blue: 220,
+        isCollision: true
+      });
+
+      burstScreen = worldToScreen(worldX, worldY);
+      for (ringIndex = 0; ringIndex < 2; ringIndex += 1) {
+        burstRadius = 24 + ringIndex * 20;
+        if (collisionKind === COLLISION_KIND_VEHICLE) {
+          burstRadius += 8;
+        }
+        collectBursts.push({
+          x: burstScreen.x,
+          y: burstScreen.y,
+          age: ringIndex * 0.045,
+          duration: 0.44,
+          maxRadius: burstRadius,
+          red: sparkRed,
+          green: sparkGreen,
+          blue: sparkBlue
+        });
+      }
+
+      biasAngle = Math.atan2(normalY, normalX);
+      tangentAngle = biasAngle + Math.PI * 0.5;
+      for (particleIndex = 0; particleIndex < COLLISION_SPARK_COUNT; particleIndex += 1) {
+        if (particleIndex % 3 === 0) {
+          angle = biasAngle + Math.PI + (Math.random() - 0.5) * 0.95;
+        } else if (particleIndex % 3 === 1) {
+          angle = biasAngle + (Math.random() - 0.5) * 0.75;
+        } else {
+          angle = tangentAngle + (Math.random() - 0.5) * 1.1;
+        }
+        speed = 140 + Math.random() * 320;
+        life = 0.18 + Math.random() * 0.32;
+        size = 2 + Math.random() * 4.5;
+        red = sparkRed + Math.floor(Math.random() * 25);
+        green = sparkGreen + Math.floor(Math.random() * 40);
+        blue = sparkBlue + Math.floor(Math.random() * 25);
+        pushCollisionImpact(worldX, worldY, angle, speed, life, size, red, green, blue, 0.88, true);
+      }
+
+      for (particleIndex = 0; particleIndex < COLLISION_DEBRIS_COUNT; particleIndex += 1) {
+        angle = biasAngle + (Math.random() - 0.5) * 1.6;
+        speed = 55 + Math.random() * 140;
+        life = 0.35 + Math.random() * 0.45;
+        size = 4 + Math.random() * 9;
+        red = debrisRed + Math.floor(Math.random() * 35);
+        green = debrisGreen + Math.floor(Math.random() * 30);
+        blue = debrisBlue + Math.floor(Math.random() * 25);
+        pushCollisionImpact(worldX, worldY, angle, speed, life, size, red, green, blue, 0.92, false);
+      }
+
+      for (particleIndex = 0; particleIndex < COLLISION_SCRAPE_STREAK_COUNT; particleIndex += 1) {
+        angle = tangentAngle + (Math.random() - 0.5) * 0.55;
+        speed = 90 + Math.random() * 180;
+        life = 0.12 + Math.random() * 0.16;
+        size = 1.5 + Math.random() * 2.5;
+        red = 255;
+        green = 230 + Math.floor(Math.random() * 25);
+        blue = 170 + Math.floor(Math.random() * 40);
+        pushCollisionImpact(worldX, worldY, angle, speed, life, size, red, green, blue, 0.82, true);
+      }
+
+      for (particleIndex = 0; particleIndex < COLLISION_DUST_COUNT; particleIndex += 1) {
         if (dustParticles.length >= DUST_PARTICLE_MAX) {
           releaseDustParticle(dustParticles.shift());
         }
         dust = acquireDustParticle();
-        dust.x = screenPos.x + (Math.random() - 0.5) * 16;
-        dust.y = screenPos.y + (Math.random() - 0.5) * 16;
-        dust.velX = (Math.random() - 0.5) * 30 - Math.cos(carAngle) * 20;
-        dust.velY = (Math.random() - 0.5) * 30 - Math.sin(carAngle) * 20;
-        dust.life = 0.4 + Math.random() * 0.5;
-        dust.size = 4 + Math.random() * 10;
-        dust.alpha = 0.25 + Math.random() * 0.35;
+        angle = biasAngle + (Math.random() - 0.5) * 1.4;
+        speed = 20 + Math.random() * 70;
+        dust.worldX = worldX + normalX * (Math.random() * 10) + (Math.random() - 0.5) * 12;
+        dust.worldY = worldY + normalY * (Math.random() * 10) + (Math.random() - 0.5) * 12;
+        dust.velX = Math.cos(angle) * speed;
+        dust.velY = Math.sin(angle) * speed;
+        dust.life = 0.45 + Math.random() * 0.55;
+        dust.size = 8 + Math.random() * 16;
+        dust.alpha = 0.35 + Math.random() * 0.4;
         dustParticles.push(dust);
+      }
+    }
+
+    function spawnDustAtWheel(isLeftWheel) {
+      var wheelCenter = getCarWheelWorldPosition(
+        isLeftWheel ? CAR_REAR_WHEEL_LEFT_SVG_X : CAR_REAR_WHEEL_RIGHT_SVG_X,
+        CAR_REAR_WHEEL_SVG_Y
+      );
+      var wheelBack = getCarRearWheelTrailPosition(isLeftWheel);
+      var dust;
+      if (dustParticles.length >= DUST_PARTICLE_MAX) {
+        releaseDustParticle(dustParticles.shift());
+      }
+      dust = acquireDustParticle();
+      dust.worldX = wheelBack.x + (wheelCenter.x - wheelBack.x) * 0.35 + (Math.random() - 0.5) * 4;
+      dust.worldY = wheelBack.y + (wheelCenter.y - wheelBack.y) * 0.35 + (Math.random() - 0.5) * 4;
+      dust.velX = (Math.random() - 0.5) * 18 - Math.cos(carAngle) * 42;
+      dust.velY = (Math.random() - 0.5) * 18 - Math.sin(carAngle) * 42;
+      dust.life = 0.4 + Math.random() * 0.5;
+      dust.size = 4 + Math.random() * 10;
+      dust.alpha = 0.25 + Math.random() * 0.35;
+      dustParticles.push(dust);
+    }
+
+    function spawnDustTrail(deltaSeconds) {
+      var spawnCount;
+      var spawnIndex;
+      if (carSpeed < 40) {
+        return;
+      }
+      spawnCount = Math.floor(carSpeed / 120);
+      for (spawnIndex = 0; spawnIndex < spawnCount; spawnIndex += 1) {
+        spawnDustAtWheel(true);
+        spawnDustAtWheel(false);
       }
     }
 
@@ -2062,20 +2903,41 @@
       }
     }
 
-    function appendTireTrailPoints() {
+    function getCarWheelWorldPosition(wheelSvgX, wheelSvgY) {
+      var lateralSvg = wheelSvgX - CAR_SVG_CENTER_X;
+      var rearSvg = wheelSvgY - CAR_SVG_CENTER_Y;
       var backAngle = carAngle + Math.PI;
-      var leftAngle = carAngle - Math.PI * 0.5;
       var rightAngle = carAngle + Math.PI * 0.5;
-      var rearWorldX = Math.cos(backAngle) * TIRE_TRACK_REAR_OFFSET;
-      var rearWorldY = Math.sin(backAngle) * TIRE_TRACK_REAR_OFFSET;
+      var rearWorldDistance = rearSvg * CAR_WHEEL_SVG_TO_WORLD;
+      var lateralWorldDistance = lateralSvg * CAR_WHEEL_SVG_TO_WORLD;
+      return {
+        x: carWorldX + Math.cos(backAngle) * rearWorldDistance + Math.cos(rightAngle) * lateralWorldDistance,
+        y: carWorldY + Math.sin(backAngle) * rearWorldDistance + Math.sin(rightAngle) * lateralWorldDistance
+      };
+    }
+
+    function getCarRearWheelTrailPosition(isLeftWheel) {
+      var wheelSvgX = isLeftWheel ? CAR_REAR_WHEEL_LEFT_SVG_X : CAR_REAR_WHEEL_RIGHT_SVG_X;
+      var wheelCenter = getCarWheelWorldPosition(wheelSvgX, CAR_REAR_WHEEL_SVG_Y);
+      var backAngle = carAngle + Math.PI;
+      var halfWheelBack = CAR_WHEEL_HALF_LENGTH_SVG * CAR_WHEEL_SVG_TO_WORLD;
+      return {
+        x: wheelCenter.x + Math.cos(backAngle) * halfWheelBack,
+        y: wheelCenter.y + Math.sin(backAngle) * halfWheelBack
+      };
+    }
+
+    function appendTireTrailPoints() {
+      var leftWheelCenter = getCarWheelWorldPosition(CAR_REAR_WHEEL_LEFT_SVG_X, CAR_REAR_WHEEL_SVG_Y);
+      var rightWheelCenter = getCarWheelWorldPosition(CAR_REAR_WHEEL_RIGHT_SVG_X, CAR_REAR_WHEEL_SVG_Y);
 
       tireTrailLeft.push({
-        x: carWorldX + rearWorldX + Math.cos(leftAngle) * TIRE_TRACK_LATERAL_OFFSET,
-        y: carWorldY + rearWorldY + Math.sin(leftAngle) * TIRE_TRACK_LATERAL_OFFSET
+        x: leftWheelCenter.x,
+        y: leftWheelCenter.y
       });
       tireTrailRight.push({
-        x: carWorldX + rearWorldX + Math.cos(rightAngle) * TIRE_TRACK_LATERAL_OFFSET,
-        y: carWorldY + rearWorldY + Math.sin(rightAngle) * TIRE_TRACK_LATERAL_OFFSET
+        x: rightWheelCenter.x,
+        y: rightWheelCenter.y
       });
     }
 
@@ -2131,9 +2993,134 @@
 
     function worldToScreen(worldX, worldY) {
       return {
-        x: width * 0.5 + (worldX - carWorldX),
-        y: height * 0.5 + (worldY - carWorldY)
+        x: width * 0.5 + (worldX - cameraWorldX),
+        y: height * 0.5 + (worldY - cameraWorldY)
       };
+    }
+
+    function applyCrystalHeal(crystal) {
+      var healAmount = CRYSTAL_HEAL_BASE + crystal.size * CRYSTAL_HEAL_PER_SIZE;
+      var previousHealth = health;
+
+      crystalHealBuffer += healAmount;
+      while (crystalHealBuffer >= 1 && health < MAX_HEALTH) {
+        health += 1;
+        crystalHealBuffer -= 1;
+      }
+      if (health > previousHealth) {
+        updateDamageVignette(false);
+      }
+    }
+
+    function pushDeathExplosionImpact(worldX, worldY, angle, speed, life, size, red, green, blue, drag, glow) {
+      var impact;
+      if (impactParticles.length >= IMPACT_PARTICLE_MAX) {
+        releaseImpactParticle(impactParticles.shift());
+      }
+      impact = acquireImpactParticle();
+      impact.worldX = worldX + (Math.random() - 0.5) * 16;
+      impact.worldY = worldY + (Math.random() - 0.5) * 16;
+      impact.velX = Math.cos(angle) * speed;
+      impact.velY = Math.sin(angle) * speed;
+      impact.life = life;
+      impact.maxLife = life;
+      impact.size = size;
+      impact.red = red;
+      impact.green = green;
+      impact.blue = blue;
+      impact.drag = drag;
+      impact.glow = glow;
+      impact.kind = "death";
+      impactParticles.push(impact);
+    }
+
+    function spawnDeathExplosionAtWorld(worldX, worldY, isEnemy) {
+      var particleIndex;
+      var angle;
+      var speed;
+      var life;
+      var size;
+      var red;
+      var green;
+      var blue;
+      var flashRed;
+      var flashGreen;
+      var flashBlue;
+
+      if (isEnemy) {
+        flashRed = 255;
+        flashGreen = 70;
+        flashBlue = 35;
+      } else {
+        flashRed = 255;
+        flashGreen = 175;
+        flashBlue = 70;
+      }
+      collectFlashes.push({
+        worldX: worldX,
+        worldY: worldY,
+        age: 0,
+        duration: DEATH_EXPLOSION_FLASH_DURATION,
+        maxRadius: DEATH_EXPLOSION_FLASH_RADIUS,
+        red: flashRed,
+        green: flashGreen,
+        blue: flashBlue
+      });
+      collectFlashes.push({
+        worldX: worldX,
+        worldY: worldY,
+        age: 0,
+        duration: DEATH_EXPLOSION_FLASH_DURATION * 0.72,
+        maxRadius: DEATH_EXPLOSION_FLASH_RADIUS * 0.62,
+        red: 255,
+        green: 240,
+        blue: 210
+      });
+
+      for (particleIndex = 0; particleIndex < DEATH_EXPLOSION_SPARK_COUNT; particleIndex += 1) {
+        angle = Math.random() * Math.PI * 2;
+        speed = 180 + Math.random() * 340;
+        life = 0.22 + Math.random() * 0.38;
+        size = 2 + Math.random() * 4;
+        if (isEnemy) {
+          red = 255;
+          green = 90 + Math.floor(Math.random() * 70);
+          blue = 35 + Math.floor(Math.random() * 40);
+        } else {
+          red = 255;
+          green = 150 + Math.floor(Math.random() * 90);
+          blue = 50 + Math.floor(Math.random() * 50);
+        }
+        pushDeathExplosionImpact(worldX, worldY, angle, speed, life, size, red, green, blue, 0.86, true);
+      }
+
+      for (particleIndex = 0; particleIndex < DEATH_EXPLOSION_EMBER_COUNT; particleIndex += 1) {
+        angle = Math.random() * Math.PI * 2;
+        speed = 70 + Math.random() * 200;
+        life = 0.55 + Math.random() * 0.85;
+        size = 5 + Math.random() * 12;
+        if (isEnemy) {
+          red = 220 + Math.floor(Math.random() * 35);
+          green = 25 + Math.floor(Math.random() * 45);
+          blue = 15 + Math.floor(Math.random() * 25);
+        } else {
+          red = 230 + Math.floor(Math.random() * 25);
+          green = 70 + Math.floor(Math.random() * 90);
+          blue = 25 + Math.floor(Math.random() * 35);
+        }
+        pushDeathExplosionImpact(worldX, worldY, angle, speed, life, size, red, green, blue, 0.9, true);
+      }
+
+      for (particleIndex = 0; particleIndex < DEATH_EXPLOSION_SMOKE_COUNT; particleIndex += 1) {
+        angle = Math.random() * Math.PI * 2;
+        speed = 25 + Math.random() * 90;
+        life = 0.9 + Math.random() * 1.1;
+        size = 10 + Math.random() * 18;
+        red = 55 + Math.floor(Math.random() * 35);
+        green = 50 + Math.floor(Math.random() * 30);
+        blue = 48 + Math.floor(Math.random() * 28);
+        pushDeathExplosionImpact(worldX, worldY, angle, speed, life, size, red, green, blue, 0.94, false);
+      }
     }
 
     function beginCrystalCollect(crystal) {
@@ -2149,6 +3136,7 @@
       score += points;
       updateScoreHud();
       setScoreHudPop();
+      applyCrystalHeal(crystal);
       spawnScoreFlyLabel(carCenter.x, carCenter.y, points, rgb[0], rgb[1], rgb[2]);
       spawnCollectEffects(carCenter.x, carCenter.y, crystalScreen.x, crystalScreen.y, rgb[0], rgb[1], rgb[2], crystal.rarity);
       spawnCollectArc(crystal);
@@ -2219,6 +3207,59 @@
       }
     }
 
+    function normalizeAngleDiff(angleDiff) {
+      while (angleDiff > Math.PI) {
+        angleDiff -= Math.PI * 2;
+      }
+      while (angleDiff < -Math.PI) {
+        angleDiff += Math.PI * 2;
+      }
+      return angleDiff;
+    }
+
+    function registerRockDeflectStreakEntity(entity) {
+      if (entity.rockDeflectStreakTimer > 0) {
+        entity.rockDeflectStreak += 1;
+      } else {
+        entity.rockDeflectStreak = 1;
+      }
+      entity.rockDeflectStreakTimer = ROCK_DEFLECT_STREAK_WINDOW;
+    }
+
+    function getRockDeflectStrengthForStreak(streakCount, baseStrength) {
+      var extraSteps = streakCount - 1;
+      var extra;
+      if (extraSteps < 0) {
+        extraSteps = 0;
+      }
+      extra = extraSteps * ROCK_DEFLECT_STREAK_STEP;
+      if (extra > ROCK_DEFLECT_STREAK_MAX) {
+        extra = ROCK_DEFLECT_STREAK_MAX;
+      }
+      return baseStrength + extra;
+    }
+
+    function getRockDeflectStrengthOnEntity(entity, baseStrength) {
+      registerRockDeflectStreakEntity(entity);
+      return getRockDeflectStrengthForStreak(entity.rockDeflectStreak, baseStrength);
+    }
+
+    function updateRockDeflectStreakEntity(entity, deltaSeconds) {
+      if (entity.rockDeflectStreakTimer <= 0) {
+        return;
+      }
+      entity.rockDeflectStreakTimer -= deltaSeconds;
+      if (entity.rockDeflectStreakTimer <= 0) {
+        entity.rockDeflectStreakTimer = 0;
+        entity.rockDeflectStreak = 0;
+      }
+    }
+
+    function applyRockAngleDeflection(entity, currentAngle, angleDiff, baseStrength) {
+      var deflectStrength = getRockDeflectStrengthOnEntity(entity, baseStrength);
+      return currentAngle + angleDiff * deflectStrength;
+    }
+
     function resolveRockCollision(collision) {
       var normalX = collision.normalX;
       var normalY = collision.normalY;
@@ -2230,29 +3271,898 @@
       carWorldY += normalY * pushDist;
 
       pushAngle = Math.atan2(normalY, normalX);
-      angleDiff = pushAngle - carAngle;
-      while (angleDiff > Math.PI) {
-        angleDiff -= Math.PI * 2;
-      }
-      while (angleDiff < -Math.PI) {
-        angleDiff += Math.PI * 2;
-      }
-      carAngle += angleDiff * ROCK_DEFLECT_STRENGTH;
-      carWrap.style.transform = "rotate(" + (carAngle + Math.PI / 2) + "rad)";
+      angleDiff = normalizeAngleDiff(pushAngle - carAngle);
+      carAngle = applyRockAngleDeflection(carRockDeflectEntity, carAngle, angleDiff, ROCK_DEFLECT_STRENGTH);
+      setCarWrapTransform();
     }
 
-    function applyRockDamage(collision) {
+    function resolveEnemyRockCollision(enemy, collision) {
+      var normalX = collision.normalX;
+      var normalY = collision.normalY;
+      var pushDist = collision.penetration + ROCK_PUSH_EXTRA;
+      var pushAngle;
+      var angleDiff;
+
+      enemy.x += normalX * pushDist;
+      enemy.y += normalY * pushDist;
+
+      pushAngle = Math.atan2(normalY, normalX);
+      angleDiff = normalizeAngleDiff(pushAngle - enemy.angle);
+      enemy.angle = applyRockAngleDeflection(enemy, enemy.angle, angleDiff, ROCK_DEFLECT_STRENGTH);
+    }
+
+    function isRockBlockingPoint(worldX, worldY, probeRadius) {
+      var chunkX = worldToChunk(worldX);
+      var chunkY = worldToChunk(worldY);
+      var offsetX;
+      var offsetY;
+      var chunk;
+      var rockIndex;
+      var rock;
+      var collision;
+
+      for (offsetY = -1; offsetY <= 1; offsetY += 1) {
+        for (offsetX = -1; offsetX <= 1; offsetX += 1) {
+          chunk = getLoadedChunk(chunkX + offsetX, chunkY + offsetY);
+          if (!chunk) {
+            continue;
+          }
+          for (rockIndex = 0; rockIndex < chunk.rocks.length; rockIndex += 1) {
+            rock = chunk.rocks[rockIndex];
+            collision = getRockCarCollisionAt(worldX, worldY, 0, probeRadius, rock);
+            if (collision) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    function shouldDespawnEnemy(enemy) {
+      var enemyChunkX = worldToChunk(enemy.x);
+      var enemyChunkY = worldToChunk(enemy.y);
+      var carChunkX = worldToChunk(carWorldX);
+      var carChunkY = worldToChunk(carWorldY);
+
+      if (Math.abs(enemyChunkX - carChunkX) > CHUNK_UNLOAD_RADIUS) {
+        return true;
+      }
+      if (Math.abs(enemyChunkY - carChunkY) > CHUNK_UNLOAD_RADIUS) {
+        return true;
+      }
+      return !getLoadedChunk(enemyChunkX, enemyChunkY);
+    }
+
+    function isEnemyWorldBeyondLoadRadius(worldX, worldY) {
+      var worldChunkX = worldToChunk(worldX);
+      var worldChunkY = worldToChunk(worldY);
+      var carChunkX = worldToChunk(carWorldX);
+      var carChunkY = worldToChunk(carWorldY);
+
+      if (Math.abs(worldChunkX - carChunkX) > CHUNK_LOAD_RADIUS) {
+        return true;
+      }
+      if (Math.abs(worldChunkY - carChunkY) > CHUNK_LOAD_RADIUS) {
+        return true;
+      }
+      return false;
+    }
+
+    function enemyHasClearSightToPlayer(enemy) {
+      var deltaX = carWorldX - enemy.x;
+      var deltaY = carWorldY - enemy.y;
+      var dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      var stepCount;
+      var stepIndex;
+      var probeX;
+      var probeY;
+      var t;
+
+      if (dist < 1) {
+        return true;
+      }
+      stepCount = Math.floor(dist / ENEMY_LOS_STEP_SIZE);
+      if (stepCount < 2) {
+        return !isRockBlockingPoint(
+          enemy.x + deltaX * 0.5,
+          enemy.y + deltaY * 0.5,
+          ENEMY_LOS_PROBE_RADIUS
+        );
+      }
+      for (stepIndex = 1; stepIndex < stepCount; stepIndex += 1) {
+        t = stepIndex / stepCount;
+        probeX = enemy.x + deltaX * t;
+        probeY = enemy.y + deltaY * t;
+        if (isRockBlockingPoint(probeX, probeY, ENEMY_LOS_PROBE_RADIUS)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function enemyCanSeePlayer(enemy) {
+      var deltaX = carWorldX - enemy.x;
+      var deltaY = carWorldY - enemy.y;
+      var dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      var forwardX;
+      var forwardY;
+      var dot;
+
+      if (dist > ENEMY_SIGHT_RANGE || dist < 1) {
+        return false;
+      }
+      forwardX = Math.cos(enemy.angle);
+      forwardY = Math.sin(enemy.angle);
+      dot = (deltaX * forwardX + deltaY * forwardY) / dist;
+      if (dot < ENEMY_SIGHT_DOT_MIN) {
+        return false;
+      }
+      return enemyHasClearSightToPlayer(enemy);
+    }
+
+    function isPlayerInEnemySightCone(enemy) {
+      var deltaX = carWorldX - enemy.x;
+      var deltaY = carWorldY - enemy.y;
+      var dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      var forwardX;
+      var forwardY;
+      var dot;
+
+      if (dist > ENEMY_SIGHT_RANGE || dist < 1) {
+        return false;
+      }
+      forwardX = Math.cos(enemy.angle);
+      forwardY = Math.sin(enemy.angle);
+      dot = (deltaX * forwardX + deltaY * forwardY) / dist;
+      return dot >= ENEMY_SIGHT_DOT_MIN;
+    }
+
+    function isEnemySpawnClear(worldX, worldY) {
+      var chunkX = worldToChunk(worldX);
+      var chunkY = worldToChunk(worldY);
+      var offsetX;
+      var offsetY;
+      var chunk;
+      var rockIndex;
+      var rock;
+      var collision;
+      var distToPlayer;
+      var deltaX;
+      var deltaY;
+
+      deltaX = worldX - carWorldX;
+      deltaY = worldY - carWorldY;
+      distToPlayer = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      if (distToPlayer < CAR_RADIUS + ENEMY_CAR_RADIUS_MAX + 48) {
+        return false;
+      }
+
+      if (isEnemyWorldBeyondLoadRadius(worldX, worldY)) {
+        return false;
+      }
+
+      for (offsetY = -1; offsetY <= 1; offsetY += 1) {
+        for (offsetX = -1; offsetX <= 1; offsetX += 1) {
+          chunk = getLoadedChunk(chunkX + offsetX, chunkY + offsetY);
+          if (!chunk) {
+            continue;
+          }
+          for (rockIndex = 0; rockIndex < chunk.rocks.length; rockIndex += 1) {
+            rock = chunk.rocks[rockIndex];
+            collision = getRockCarCollisionAt(worldX, worldY, 0, ENEMY_CAR_RADIUS_MAX, rock);
+            if (collision) {
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    }
+
+    function trySpawnEnemyCar() {
+      var attemptIndex;
+      var side;
+      var inset;
+      var spawnScreenX;
+      var spawnScreenY;
+      var spawnX;
+      var spawnY;
+      var enemy;
+
+      if (enemyCars.length >= ENEMY_CAR_MAX_COUNT) {
+        return;
+      }
+
+      for (attemptIndex = 0; attemptIndex < 10; attemptIndex += 1) {
+        side = Math.floor(Math.random() * 4);
+        inset = 50 + Math.random() * 70;
+        if (side === 0) {
+          spawnScreenX = -inset;
+          spawnScreenY = Math.random() * height;
+        } else if (side === 1) {
+          spawnScreenX = width + inset;
+          spawnScreenY = Math.random() * height;
+        } else if (side === 2) {
+          spawnScreenX = Math.random() * width;
+          spawnScreenY = -inset;
+        } else {
+          spawnScreenX = Math.random() * width;
+          spawnScreenY = height + inset;
+        }
+        spawnX = cameraWorldX + spawnScreenX - width * 0.5;
+        spawnY = cameraWorldY + spawnScreenY - height * 0.5;
+        if (!isEnemySpawnClear(spawnX, spawnY)) {
+          continue;
+        }
+        enemy = {
+          x: spawnX,
+          y: spawnY,
+          angle: Math.random() * Math.PI * 2,
+          speed: 0,
+          targetSpeed: 0,
+          wanderTimer: ENEMY_WANDER_TURN_MIN + Math.random() * (ENEMY_WANDER_TURN_MAX - ENEMY_WANDER_TURN_MIN),
+          chasing: false,
+          rememberPlayerTimer: 0,
+          sizeScale: Math.random(),
+          radius: 0,
+          health: ENEMY_MAX_HEALTH,
+          rockHitCooldown: 0,
+          rockDeflectStreak: 0,
+          rockDeflectStreakTimer: 0,
+          turnLockTimer: 0,
+          frontSteerAngle: 0,
+          frontSteerTarget: 0
+        };
+        enemy.radius = ENEMY_CAR_RADIUS_MIN +
+          enemy.sizeScale * (ENEMY_CAR_RADIUS_MAX - ENEMY_CAR_RADIUS_MIN);
+        setEnemyWanderTargetSpeed(enemy);
+        enemy.speed = enemy.targetSpeed;
+        enemyCars.push(enemy);
+        return;
+      }
+    }
+
+    function checkEnemyRockCollisions(enemy) {
+      var enemyChunkX = worldToChunk(enemy.x);
+      var enemyChunkY = worldToChunk(enemy.y);
+      var offsetX;
+      var offsetY;
+      var chunk;
+      var rockIndex;
+      var rock;
+      var collision;
+      var tookDamage = false;
+      var enemyDied = false;
+
+      for (offsetY = -1; offsetY <= 1; offsetY += 1) {
+        for (offsetX = -1; offsetX <= 1; offsetX += 1) {
+          chunk = getLoadedChunk(enemyChunkX + offsetX, enemyChunkY + offsetY);
+          if (!chunk) {
+            continue;
+          }
+          for (rockIndex = 0; rockIndex < chunk.rocks.length; rockIndex += 1) {
+            rock = chunk.rocks[rockIndex];
+            collision = getRockCarCollisionAt(enemy.x, enemy.y, enemy.angle, enemy.radius, rock);
+            if (!collision) {
+              continue;
+            }
+            resolveEnemyRockCollision(enemy, collision);
+            if (!tookDamage) {
+              enemyDied = applyEnemyDamage(enemy, collision, COLLISION_KIND_ROCK);
+              tookDamage = true;
+            }
+          }
+        }
+      }
+      return enemyDied;
+    }
+
+    function updateEnemyCars(deltaSeconds) {
+      var enemyIndex;
+      var enemy;
+      var targetAngle;
+      var angleDiff;
+      var speedLerp;
+      var turnBlend;
+      var enemyDied;
+
+      enemySpawnCooldown -= deltaSeconds;
+      if (enemySpawnCooldown <= 0) {
+        trySpawnEnemyCar();
+        enemySpawnCooldown = ENEMY_SPAWN_COOLDOWN_MIN +
+          Math.random() * (ENEMY_SPAWN_COOLDOWN_MAX - ENEMY_SPAWN_COOLDOWN_MIN);
+      }
+
+      for (enemyIndex = enemyCars.length - 1; enemyIndex >= 0; enemyIndex -= 1) {
+        enemy = enemyCars[enemyIndex];
+
+        if (shouldDespawnEnemy(enemy)) {
+          enemyCars.splice(enemyIndex, 1);
+          continue;
+        }
+
+        if (enemy.health <= 0) {
+          enemyCars.splice(enemyIndex, 1);
+          continue;
+        }
+
+        if (enemy.rockHitCooldown > 0) {
+          enemy.rockHitCooldown -= deltaSeconds;
+          if (enemy.rockHitCooldown < 0) {
+            enemy.rockHitCooldown = 0;
+          }
+        }
+        updateRockDeflectStreakEntity(enemy, deltaSeconds);
+
+        if (enemyCanSeePlayer(enemy)) {
+          enemy.rememberPlayerTimer = ENEMY_REMEMBER_PLAYER_SECONDS;
+        }
+
+        if (enemy.rememberPlayerTimer > 0) {
+          enemy.rememberPlayerTimer -= deltaSeconds;
+          if (enemy.rememberPlayerTimer < 0) {
+            enemy.rememberPlayerTimer = 0;
+          }
+        }
+
+        if (enemy.turnLockTimer > 0) {
+          enemy.turnLockTimer -= deltaSeconds;
+          if (enemy.turnLockTimer < 0) {
+            enemy.turnLockTimer = 0;
+          }
+        }
+
+        if (enemy.turnLockTimer <= 0) {
+          if (enemy.rememberPlayerTimer > 0) {
+            targetAngle = Math.atan2(carWorldY - enemy.y, carWorldX - enemy.x);
+            if (!enemy.chasing) {
+              enemy.chasing = true;
+              setEnemyChaseTargetSpeed(enemy);
+            }
+          } else {
+            if (enemy.chasing) {
+              enemy.chasing = false;
+            }
+            enemy.wanderTimer -= deltaSeconds;
+            if (enemy.wanderTimer <= 0) {
+              enemy.wanderTimer = ENEMY_WANDER_TURN_MIN +
+                Math.random() * (ENEMY_WANDER_TURN_MAX - ENEMY_WANDER_TURN_MIN);
+              enemy.angle += (Math.random() - 0.5) * 1.35;
+              setEnemyWanderTargetSpeed(enemy);
+            }
+            targetAngle = enemy.angle;
+          }
+
+          angleDiff = normalizeAngleDiff(targetAngle - enemy.angle);
+          if (enemy.chasing) {
+            turnBlend = 1 - Math.exp(-ENEMY_CHASE_TURN_SMOOTH * deltaSeconds);
+          } else {
+            turnBlend = 1 - Math.exp(-ENEMY_WANDER_TURN_SMOOTH * deltaSeconds);
+          }
+          if (turnBlend > 1) {
+            turnBlend = 1;
+          }
+          enemy.angle += angleDiff * turnBlend;
+
+          enemy.frontSteerTarget = angleDiff * 0.58;
+          if (enemy.frontSteerTarget > CAR_FRONT_STEER_MAX) {
+            enemy.frontSteerTarget = CAR_FRONT_STEER_MAX;
+          }
+          if (enemy.frontSteerTarget < -CAR_FRONT_STEER_MAX) {
+            enemy.frontSteerTarget = -CAR_FRONT_STEER_MAX;
+          }
+          enemy.frontSteerAngle += (enemy.frontSteerTarget - enemy.frontSteerAngle) * turnBlend;
+        } else {
+          enemy.frontSteerTarget = 0;
+          turnBlend = 1 - Math.exp(-CAR_FRONT_STEER_SMOOTH * deltaSeconds);
+          if (turnBlend > 1) {
+            turnBlend = 1;
+          }
+          enemy.frontSteerAngle += (enemy.frontSteerTarget - enemy.frontSteerAngle) * turnBlend;
+        }
+
+        if (enemy.chasing) {
+          speedLerp = Math.min(1, deltaSeconds * 4.2);
+        } else {
+          speedLerp = Math.min(1, deltaSeconds * 2.4);
+        }
+        enemy.speed += (enemy.targetSpeed - enemy.speed) * speedLerp;
+        if (enemy.speed < ENEMY_SPEED_MIN * 0.55) {
+          enemy.speed = ENEMY_SPEED_MIN * 0.55;
+        }
+
+        var moveDistance = enemy.speed * deltaSeconds;
+        var nextX = enemy.x + Math.cos(enemy.angle) * moveDistance;
+        var nextY = enemy.y + Math.sin(enemy.angle) * moveDistance;
+        if (!isEnemyWorldBeyondLoadRadius(nextX, nextY)) {
+          enemy.x = nextX;
+          enemy.y = nextY;
+        }
+        enemyDied = checkEnemyRockCollisions(enemy);
+        if (enemyDied) {
+          enemyCars.splice(enemyIndex, 1);
+        }
+      }
+    }
+
+    function resolveEnemyPlayerCollision(enemy, collision) {
+      var normalX = collision.normalX;
+      var normalY = collision.normalY;
+      var pushDist = collision.penetration + ROCK_PUSH_EXTRA;
+      var pushAngle;
+      var angleDiff;
+
+      enemy.x -= normalX * pushDist;
+      enemy.y -= normalY * pushDist;
+
+      pushAngle = Math.atan2(-normalY, -normalX);
+      angleDiff = normalizeAngleDiff(pushAngle - enemy.angle);
+      enemy.angle = applyRockAngleDeflection(enemy, enemy.angle, angleDiff, ENEMY_HIT_DEFLECT_STRENGTH);
+      enemy.chasing = true;
+      enemy.rememberPlayerTimer = ENEMY_REMEMBER_PLAYER_SECONDS;
+      if (enemy.targetSpeed < getEnemyChaseSpeedMin(enemy)) {
+        setEnemyChaseTargetSpeed(enemy);
+      }
+      setEnemyPlayerCollisionTurnLock(enemy);
+    }
+
+    function checkEnemyPlayerCollisions() {
+      var enemyIndex;
+      var enemy;
+      var collision;
+      var tookPlayerDamage = false;
+      var tookEnemyDamage = false;
+      var enemyDied = false;
+
+      for (enemyIndex = enemyCars.length - 1; enemyIndex >= 0; enemyIndex -= 1) {
+        enemy = enemyCars[enemyIndex];
+        collision = getEnemyCarCollision(enemy);
+        if (!collision) {
+          continue;
+        }
+        resolveRockCollision(collision);
+        resolveEnemyPlayerCollision(enemy, collision);
+        if (!tookPlayerDamage && rockHitCooldown <= 0) {
+          applyRockDamage(collision, COLLISION_KIND_VEHICLE);
+          tookPlayerDamage = true;
+        }
+        if (!tookEnemyDamage) {
+          enemyDied = applyEnemyDamage(enemy, collision, COLLISION_KIND_VEHICLE);
+          tookEnemyDamage = true;
+          if (enemyDied) {
+            enemyCars.splice(enemyIndex, 1);
+          }
+        }
+      }
+    }
+
+    function getEnemySightScanProgress(enemyPhase, scanSpeed) {
+      var phase = enemyPhase * scanSpeed;
+      phase = phase - Math.floor(phase);
+      if (phase < 0.5) {
+        return phase * 2;
+      }
+      return (1 - phase) * 2;
+    }
+
+    function drawVehicleWheelsCanvas(frontSteerAngle, isEnemy) {
+      var wheelFill = "#424a54";
+      var wheelStroke = "#222830";
+      var rearY = 17;
+      var frontY = -11;
+      var rearX = 14;
+      var frontX = 13;
+      var wheelHalfW = 3.5;
+      var wheelHalfH = 7;
+
+      if (isEnemy) {
+        wheelFill = "#3a3030";
+        wheelStroke = "#1a1010";
+      }
+
+      context.fillStyle = wheelFill;
+      context.strokeStyle = wheelStroke;
+      context.lineWidth = 1;
+
+      context.fillRect(-rearX - wheelHalfW, rearY - wheelHalfH, wheelHalfW * 2, wheelHalfH * 2);
+      context.strokeRect(-rearX - wheelHalfW, rearY - wheelHalfH, wheelHalfW * 2, wheelHalfH * 2);
+      context.fillRect(rearX - wheelHalfW, rearY - wheelHalfH, wheelHalfW * 2, wheelHalfH * 2);
+      context.strokeRect(rearX - wheelHalfW, rearY - wheelHalfH, wheelHalfW * 2, wheelHalfH * 2);
+
+      context.save();
+      context.translate(-frontX, frontY);
+      context.rotate(frontSteerAngle);
+      context.fillRect(-wheelHalfW, -wheelHalfH, wheelHalfW * 2, wheelHalfH * 2);
+      context.strokeRect(-wheelHalfW, -wheelHalfH, wheelHalfW * 2, wheelHalfH * 2);
+      context.restore();
+
+      context.save();
+      context.translate(frontX, frontY);
+      context.rotate(frontSteerAngle);
+      context.fillRect(-wheelHalfW, -wheelHalfH, wheelHalfW * 2, wheelHalfH * 2);
+      context.strokeRect(-wheelHalfW, -wheelHalfH, wheelHalfW * 2, wheelHalfH * 2);
+      context.restore();
+    }
+
+    function buildEnemySightConePath(enemy, halfAngle, range) {
+      var segmentIndex;
+      var worldAngle;
+      var worldX;
+      var worldY;
+      var apexScreen = worldToScreen(enemy.x, enemy.y);
+      var pointScreen;
+
+      context.beginPath();
+      context.moveTo(apexScreen.x, apexScreen.y);
+      for (segmentIndex = 0; segmentIndex <= ENEMY_SIGHT_CONE_SEGMENTS; segmentIndex += 1) {
+        worldAngle = enemy.angle - halfAngle +
+          (segmentIndex / ENEMY_SIGHT_CONE_SEGMENTS) * (halfAngle * 2);
+        worldX = enemy.x + Math.cos(worldAngle) * range;
+        worldY = enemy.y + Math.sin(worldAngle) * range;
+        pointScreen = worldToScreen(worldX, worldY);
+        context.lineTo(pointScreen.x, pointScreen.y);
+      }
+      context.closePath();
+    }
+
+    function drawEnemySightConeHazardStripes(enemy, halfAngle, range, isAttack) {
+      var stripeIndex;
+      var stripeAngle;
+      var innerDist;
+      var outerDist;
+      var innerScreen;
+      var outerScreen;
+      var stripeSpacing = (halfAngle * 2) / ENEMY_SIGHT_CONE_STRIPE_COUNT;
+      var lightAlpha = isAttack ? 0.1 : 0.14;
+      var darkAlpha = isAttack ? 0.05 : 0.07;
+
+      context.save();
+      buildEnemySightConePath(enemy, halfAngle, range);
+      context.clip();
+
+      for (stripeIndex = 0; stripeIndex <= ENEMY_SIGHT_CONE_STRIPE_COUNT; stripeIndex += 1) {
+        stripeAngle = enemy.angle - halfAngle + stripeIndex * stripeSpacing;
+        innerDist = range * 0.12;
+        outerDist = range * 0.96;
+        innerScreen = worldToScreen(
+          enemy.x + Math.cos(stripeAngle) * innerDist,
+          enemy.y + Math.sin(stripeAngle) * innerDist
+        );
+        outerScreen = worldToScreen(
+          enemy.x + Math.cos(stripeAngle) * outerDist,
+          enemy.y + Math.sin(stripeAngle) * outerDist
+        );
+        if (stripeIndex % 2 === 0) {
+          context.strokeStyle = "rgba(255, 210, 120, " + lightAlpha + ")";
+        } else {
+          context.strokeStyle = "rgba(40, 28, 12, " + darkAlpha + ")";
+        }
+        context.lineWidth = isAttack ? 2.2 : 1.6;
+        context.beginPath();
+        context.moveTo(innerScreen.x, innerScreen.y);
+        context.lineTo(outerScreen.x, outerScreen.y);
+        context.stroke();
+      }
+      context.restore();
+    }
+
+    function drawEnemySightCones() {
+      var enemyIndex;
+      var enemy;
+      var halfAngle = Math.acos(ENEMY_SIGHT_DOT_MIN);
+      var range = ENEMY_SIGHT_RANGE;
+      var segmentIndex;
+      var worldAngle;
+      var worldX;
+      var worldY;
+      var apexScreen;
+      var pointScreen;
+      var coneTipScreen;
+      var gradientRadius;
+      var gradient;
+      var fillAlpha;
+      var strokeAlpha;
+      var playerInCone;
+      var enemyPhase;
+      var flicker;
+      var scanProgress;
+      var scanAngle;
+      var scanEndScreen;
+      var scanLineAlpha;
+      var isAttack;
+      var scanSpeed;
+      var fillInnerR;
+      var fillInnerG;
+      var fillInnerB;
+      var fillOuterR;
+      var fillOuterG;
+      var fillOuterB;
+      var strokeR;
+      var strokeG;
+      var strokeB;
+
+      for (enemyIndex = 0; enemyIndex < enemyCars.length; enemyIndex += 1) {
+        enemy = enemyCars[enemyIndex];
+        apexScreen = worldToScreen(enemy.x, enemy.y);
+        if (apexScreen.x < -range || apexScreen.x > width + range ||
+          apexScreen.y < -range || apexScreen.y > height + range) {
+          continue;
+        }
+
+        isAttack = enemy.chasing || enemy.rememberPlayerTimer > 0;
+        enemyPhase = gameAnimTime + enemyIndex * 1.37;
+        flicker = 0.88 + Math.sin(enemyPhase * ENEMY_SIGHT_CONE_FLICKER_SPEED) * 0.1 +
+          Math.sin(enemyPhase * ENEMY_SIGHT_CONE_FLICKER_SPEED * 2.15) * 0.05;
+
+        playerInCone = isPlayerInEnemySightCone(enemy);
+        if (isAttack) {
+          fillAlpha = ENEMY_SIGHT_CONE_FILL_ALPHA_ALERT * flicker;
+          strokeAlpha = ENEMY_SIGHT_CONE_STROKE_ALPHA_ALERT * flicker;
+          fillInnerR = 255;
+          fillInnerG = 70;
+          fillInnerB = 45;
+          fillOuterR = 170;
+          fillOuterG = 25;
+          fillOuterB = 18;
+          strokeR = 255;
+          strokeG = 55;
+          strokeB = 40;
+          scanSpeed = ENEMY_SIGHT_CONE_ATTACK_SCAN_SPEED;
+        } else {
+          fillAlpha = ENEMY_SIGHT_CONE_FILL_ALPHA * flicker;
+          strokeAlpha = ENEMY_SIGHT_CONE_STROKE_ALPHA * flicker;
+          fillInnerR = 255;
+          fillInnerG = 155;
+          fillInnerB = 55;
+          fillOuterR = 200;
+          fillOuterG = 95;
+          fillOuterB = 25;
+          strokeR = 255;
+          strokeG = 130;
+          strokeB = 50;
+          scanSpeed = ENEMY_SIGHT_CONE_SCAN_SPEED;
+        }
+        if (playerInCone) {
+          fillAlpha = fillAlpha * 1.25;
+          strokeAlpha = strokeAlpha * 1.2;
+        }
+
+        buildEnemySightConePath(enemy, halfAngle, range);
+
+        coneTipScreen = worldToScreen(
+          enemy.x + Math.cos(enemy.angle) * range * 0.72,
+          enemy.y + Math.sin(enemy.angle) * range * 0.72
+        );
+        gradientRadius = Math.sqrt(
+          (coneTipScreen.x - apexScreen.x) * (coneTipScreen.x - apexScreen.x) +
+          (coneTipScreen.y - apexScreen.y) * (coneTipScreen.y - apexScreen.y)
+        );
+        if (gradientRadius < 8) {
+          gradientRadius = 8;
+        }
+        gradient = context.createRadialGradient(
+          apexScreen.x,
+          apexScreen.y,
+          0,
+          apexScreen.x,
+          apexScreen.y,
+          gradientRadius
+        );
+        gradient.addColorStop(0, "rgba(" + fillInnerR + "," + fillInnerG + "," + fillInnerB + "," + (fillAlpha * 1.35) + ")");
+        gradient.addColorStop(1, "rgba(" + fillOuterR + "," + fillOuterG + "," + fillOuterB + ",0)");
+        context.fillStyle = gradient;
+        context.fill();
+
+        drawEnemySightConeHazardStripes(enemy, halfAngle, range, isAttack);
+
+        buildEnemySightConePath(enemy, halfAngle, range);
+        context.strokeStyle = "rgba(" + strokeR + "," + strokeG + "," + strokeB + "," + strokeAlpha + ")";
+        context.lineWidth = 1.2;
+        context.stroke();
+
+        scanProgress = getEnemySightScanProgress(enemyPhase, scanSpeed);
+        scanAngle = enemy.angle - halfAngle + scanProgress * (halfAngle * 2);
+        scanEndScreen = worldToScreen(
+          enemy.x + Math.cos(scanAngle) * range,
+          enemy.y + Math.sin(scanAngle) * range
+        );
+        scanLineAlpha = 0.2 + Math.sin(enemyPhase * 14) * 0.1;
+        if (isAttack) {
+          scanLineAlpha = 0.38 + Math.sin(enemyPhase * 18) * 0.14;
+        } else if (playerInCone) {
+          scanLineAlpha = 0.3 + Math.sin(enemyPhase * 14) * 0.12;
+        }
+        context.beginPath();
+        context.moveTo(apexScreen.x, apexScreen.y);
+        context.lineTo(scanEndScreen.x, scanEndScreen.y);
+        if (isAttack) {
+          context.strokeStyle = "rgba(255, 90, 70, " + scanLineAlpha + ")";
+        } else {
+          context.strokeStyle = "rgba(255, 190, 90, " + scanLineAlpha + ")";
+        }
+        context.lineWidth = isAttack ? 2.4 : 2;
+        context.stroke();
+        context.beginPath();
+        context.moveTo(apexScreen.x, apexScreen.y);
+        context.lineTo(scanEndScreen.x, scanEndScreen.y);
+        context.strokeStyle = "rgba(255, 240, 210, " + (scanLineAlpha * 0.45) + ")";
+        context.lineWidth = 0.8;
+        context.stroke();
+      }
+    }
+
+    function drawEnemyRotatingBeacon(centerX, centerY, spinAngle, isLit) {
+      var housingRadius = ENEMY_ATTACK_LIGHT_RADIUS;
+      var lensAlpha;
+      var beamAlpha;
+      var hotAlpha;
+      var mirrorAlpha;
+
+      context.save();
+      context.translate(centerX, centerY);
+
+      context.fillStyle = "#1a0505";
+      context.beginPath();
+      context.arc(0, 0, housingRadius + 0.7, 0, Math.PI * 2);
+      context.fill();
+
+      context.fillStyle = "#320808";
+      context.beginPath();
+      context.arc(0, 0, housingRadius, 0, Math.PI * 2);
+      context.fill();
+
+      context.rotate(spinAngle);
+
+      if (isLit) {
+        lensAlpha = 1;
+        beamAlpha = 0.42;
+        hotAlpha = 0.95;
+        mirrorAlpha = 0.14;
+        context.shadowColor = "rgba(255, 45, 30, 0.95)";
+        context.shadowBlur = 16;
+      } else {
+        lensAlpha = 0.28;
+        beamAlpha = 0.07;
+        hotAlpha = 0.2;
+        mirrorAlpha = 0.38;
+        context.shadowBlur = 0;
+      }
+
+      context.fillStyle = "rgba(255, 55, 38, " + beamAlpha + ")";
+      context.beginPath();
+      context.moveTo(0, 0);
+      context.arc(0, 0, ENEMY_ATTACK_LIGHT_BEAM_LENGTH, -0.58, 0.58);
+      context.closePath();
+      context.fill();
+
+      context.fillStyle = "rgba(255, 58, 40, " + (beamAlpha * 0.55) + ")";
+      context.beginPath();
+      context.moveTo(0, 0);
+      context.arc(0, 0, ENEMY_ATTACK_LIGHT_BEAM_LENGTH, Math.PI - 0.58, Math.PI + 0.58);
+      context.closePath();
+      context.fill();
+
+      context.fillStyle = "rgba(255, " + (isLit ? "70" : "35") + ", " + (isLit ? "50" : "28") + ", " + lensAlpha + ")";
+      context.beginPath();
+      context.arc(0, 0, housingRadius * 0.92, -Math.PI * 0.4, Math.PI * 0.4);
+      context.lineTo(0, 0);
+      context.closePath();
+      context.fill();
+
+      context.fillStyle = "rgba(255, " + (isLit ? "220" : "120") + ", " + (isLit ? "190" : "90") + ", " + hotAlpha + ")";
+      context.beginPath();
+      context.arc(0, -housingRadius * 0.12, housingRadius * 0.52, 0, Math.PI * 2);
+      context.fill();
+
+      context.shadowBlur = 0;
+
+      context.fillStyle = "rgba(220, 200, 190, " + mirrorAlpha + ")";
+      context.beginPath();
+      context.arc(0, 0, housingRadius * 0.88, Math.PI * 0.55, Math.PI * 1.45);
+      context.lineTo(0, 0);
+      context.closePath();
+      context.fill();
+
+      context.restore();
+    }
+
+    function drawEnemyAttackLights(enemyIndex) {
+      var enemyPhase = gameAnimTime + enemyIndex * 1.37;
+      var leftSpin = enemyPhase * ENEMY_ATTACK_LIGHT_ROTATION_SPEED;
+      var rightSpin = -enemyPhase * ENEMY_ATTACK_LIGHT_ROTATION_SPEED;
+      var leftLit = Math.sin(leftSpin * 2) > 0;
+      var rightLit = Math.sin(rightSpin * 2) > 0;
+      var roofGlowAlpha = 0;
+
+      context.fillStyle = "#180404";
+      context.fillRect(-9, -13.8, 18, 2.8);
+
+      drawEnemyRotatingBeacon(ENEMY_ATTACK_LIGHT_LEFT_X, ENEMY_ATTACK_LIGHT_Y, leftSpin, leftLit);
+      drawEnemyRotatingBeacon(ENEMY_ATTACK_LIGHT_RIGHT_X, ENEMY_ATTACK_LIGHT_Y, rightSpin, rightLit);
+
+      if (leftLit) {
+        roofGlowAlpha += 0.24;
+      }
+      if (rightLit) {
+        roofGlowAlpha += 0.24;
+      }
+      if (roofGlowAlpha > 0) {
+        context.fillStyle = "rgba(255, 50, 35, " + roofGlowAlpha + ")";
+        context.fillRect(-12, -13, 24, 6);
+      }
+    }
+
+    function drawEnemyCars() {
+      var enemyIndex;
+      var enemy;
+      var screenPos;
+
+      for (enemyIndex = 0; enemyIndex < enemyCars.length; enemyIndex += 1) {
+        enemy = enemyCars[enemyIndex];
+        screenPos = worldToScreen(enemy.x, enemy.y);
+        if (screenPos.x < -80 || screenPos.x > width + 80 ||
+          screenPos.y < -80 || screenPos.y > height + 80) {
+          continue;
+        }
+        var drawScale = enemy.radius / ENEMY_CAR_DRAW_REFERENCE_RADIUS;
+        var enemySaturation = 1 - enemy.sizeScale * ENEMY_LARGE_SIZE_DESATURATE_AMOUNT;
+
+        context.save();
+        context.translate(screenPos.x, screenPos.y);
+        context.rotate(enemy.angle + Math.PI / 2);
+        context.scale(drawScale, drawScale);
+        context.filter = "saturate(" + enemySaturation + ")";
+        drawVehicleWheelsCanvas(enemy.frontSteerAngle, true);
+        context.shadowColor = "rgba(240, 50, 35, 0.65)";
+        context.shadowBlur = 20;
+        context.fillStyle = "#3a0606";
+        context.beginPath();
+        context.moveTo(0, -24);
+        context.lineTo(17, 15);
+        context.lineTo(0, 7);
+        context.lineTo(-17, 15);
+        context.closePath();
+        context.fill();
+        context.shadowBlur = 0;
+        context.fillStyle = "#9c1414";
+        context.fillRect(-14, -7, 28, 21);
+        context.fillStyle = "#c82018";
+        context.fillRect(-11, -11, 22, 8);
+        context.fillStyle = "#120303";
+        context.fillRect(-8, 2, 16, 8);
+        context.fillStyle = "#ff3a28";
+        context.beginPath();
+        context.arc(-10, 17, 4, 0, Math.PI * 2);
+        context.arc(10, 17, 4, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "rgba(255, 80, 60, 0.45)";
+        context.fillRect(-14, 14, 28, 4);
+        if (enemy.chasing || enemy.rememberPlayerTimer > 0) {
+          drawEnemyAttackLights(enemyIndex);
+        }
+        context.restore();
+      }
+    }
+
+    function applyRockDamage(collision, collisionKind) {
       health -= 1;
-      healthRegenTimer = 0;
       rockHitCooldown = ROCK_HIT_COOLDOWN;
       carSpeed = Math.max(MIN_SPEED, carSpeed - ROCK_SPEED_PENALTY);
       carShake.classList.remove("is-hit");
       void carShake.offsetWidth;
       carShake.classList.add("is-hit");
-      spawnImpactParticles(collision.closestWorldX, collision.closestWorldY);
+      spawnCollisionEffectsAtWorld(
+        collision.closestWorldX,
+        collision.closestWorldY,
+        collision.normalX,
+        collision.normalY,
+        collisionKind
+      );
       updateDamageVignette(true);
 
       if (health <= 0) {
+        spawnDeathExplosionAtWorld(carWorldX, carWorldY, false);
         triggerGameOver();
       }
     }
@@ -2280,19 +4190,22 @@
             }
             resolveRockCollision(collision);
             if (!tookDamage && rockHitCooldown <= 0) {
-              applyRockDamage(collision);
+              applyRockDamage(collision, COLLISION_KIND_ROCK);
               tookDamage = true;
             }
           }
         }
       }
+
+      checkEnemyPlayerCollisions();
     }
 
     function triggerGameOver() {
       gamePhase = PHASE_GAME_OVER;
       carSpeed = 0;
+      carWrap.classList.add("is-dead");
       clearKeysDown();
-      hudSpeed.classList.add("hidden");
+      hudDashboard.classList.add("hidden");
       saveHighScoreIfNeeded();
       saveBestDistanceIfNeeded();
       gameScreen.classList.remove("hidden");
@@ -2315,11 +4228,12 @@
     function startGame() {
       gamePhase = PHASE_PLAYING;
       gameScreen.classList.add("hidden");
-      hudSpeed.classList.remove("hidden");
+      hudDashboard.classList.remove("hidden");
       if (carSpeed < MIN_SPEED) {
         carSpeed = START_SPEED;
       }
       updateSpeedGauge();
+      updateCheckEngineHud();
       focusGameInput();
     }
 
@@ -2380,15 +4294,22 @@
     }
 
     function resetGame() {
+      worldSeed = pickWorldSeed();
       gamePhase = PHASE_START;
       setPointerHeld(false);
       carWorldX = 0;
       carWorldY = 0;
+      cameraWorldX = 0;
+      cameraWorldY = 0;
       carAngle = -Math.PI / 2;
       carSpeed = 0;
       health = MAX_HEALTH;
-      healthRegenTimer = 0;
+      crystalHealBuffer = 0;
       rockHitCooldown = 0;
+      carRockDeflectEntity.rockDeflectStreak = 0;
+      carRockDeflectEntity.rockDeflectStreakTimer = 0;
+      enemyCars = [];
+      enemySpawnCooldown = 3;
       score = 0;
       distanceMeters = 0;
       releaseAllScoreParticles();
@@ -2419,14 +4340,18 @@
       updateDamageVignette(false);
       damageVignette.classList.remove("is-visible", "is-flash");
       carShake.classList.remove("is-hit");
-      carWrap.classList.remove("is-collect");
+      carWrap.classList.remove("is-collect", "is-damaged-light", "is-damaged-critical", "is-dead");
+      carWrap.style.opacity = "";
+      carWrap.style.visibility = "";
       gameScreen.classList.remove("hidden", "is-record");
-      hudSpeed.classList.add("hidden");
+      hudDashboard.classList.add("hidden");
       screenDistance.classList.add("hidden");
       screenScore.classList.add("hidden");
       screenTitle.textContent = getLocalized(LOCALE_KEY_START, "Crystal Rush");
       controlHint.textContent = getStartHintText();
       getChunk(0, 0);
+      updateCheckEngineHud();
+      setCarWrapTransform();
     }
 
     function onMovementKeyDown(code) {
@@ -2529,6 +4454,7 @@
         angleDiff += Math.PI * 2;
       }
       pointerSteeringTurning = Math.abs(angleDiff) > POINTER_STEER_ALIGNED_ANGLE;
+      carFrontSteerTarget = angleDiff * 0.58;
       turnRate = getTurnRateForSpeed(carSpeed);
       maxTurn = turnRate * deltaSeconds;
       if (angleDiff > maxTurn) {
@@ -2547,14 +4473,19 @@
       if (pointerHeld) {
         updatePointerSteering(deltaSeconds);
       } else {
+        carFrontSteerTarget = 0;
         if (keysDown.a) {
           turnAmount -= turnRate * deltaSeconds;
+          carFrontSteerTarget = -CAR_FRONT_STEER_MAX * 0.82;
         }
         if (keysDown.d) {
           turnAmount += turnRate * deltaSeconds;
+          carFrontSteerTarget = CAR_FRONT_STEER_MAX * 0.82;
         }
         carAngle += turnAmount;
       }
+
+      updateCarFrontWheelSteer(deltaSeconds);
 
       if (keysDown.w) {
         carSpeed += ACCEL_RATE * deltaSeconds;
@@ -2579,28 +4510,9 @@
       distanceMeters += carSpeed * deltaSeconds * METERS_PER_UNIT;
       updateDistanceHud();
 
-      carWrap.style.transform = "rotate(" + (carAngle + Math.PI / 2) + "rad)";
+      updateCamera(deltaSeconds);
+      setCarWrapTransform();
       updateSpeedGauge();
-    }
-
-    function updateHealthRegen(deltaSeconds) {
-      if (health >= MAX_HEALTH) {
-        return;
-      }
-      if (health <= 0) {
-        return;
-      }
-      healthRegenTimer += deltaSeconds;
-      if (healthRegenTimer >= HEALTH_REGEN_DELAY) {
-        var previousHealth = health;
-        health += HEALTH_REGEN_RATE * deltaSeconds;
-        if (health > MAX_HEALTH) {
-          health = MAX_HEALTH;
-        }
-        if (health !== previousHealth) {
-          updateDamageVignette(false);
-        }
-      }
     }
 
     function updateCollectArcs(deltaSeconds) {
@@ -2729,8 +4641,8 @@
         dust.life -= deltaSeconds;
         dust.velX *= 0.94;
         dust.velY *= 0.94;
-        dust.x += dust.velX * deltaSeconds;
-        dust.y += dust.velY * deltaSeconds;
+        dust.worldX += dust.velX * deltaSeconds;
+        dust.worldY += dust.velY * deltaSeconds;
         dust.size += 18 * deltaSeconds;
         dust.alpha -= 0.7 * deltaSeconds;
         if (dust.life <= 0 || dust.alpha <= 0) {
@@ -2742,10 +4654,25 @@
       for (impactIndex = impactParticles.length - 1; impactIndex >= 0; impactIndex -= 1) {
         impact = impactParticles[impactIndex];
         impact.life -= deltaSeconds;
-        impact.velX *= 0.9;
-        impact.velY *= 0.9;
-        impact.x += impact.velX * deltaSeconds;
-        impact.y += impact.velY * deltaSeconds;
+        if (impact.drag !== undefined) {
+          impact.velX *= impact.drag;
+          impact.velY *= impact.drag;
+        } else {
+          impact.velX *= 0.9;
+          impact.velY *= 0.9;
+        }
+        if (impact.kind === "death") {
+          impact.velY += 120 * deltaSeconds;
+        } else if (impact.kind === "collision" && impact.size > 5) {
+          impact.velY += 95 * deltaSeconds;
+        }
+        impact.worldX += impact.velX * deltaSeconds;
+        impact.worldY += impact.velY * deltaSeconds;
+        if (impact.kind === "death" && impact.maxLife > 0) {
+          impact.size += deltaSeconds * 6;
+        } else if (impact.kind === "collision" && impact.maxLife > 0 && !impact.glow) {
+          impact.size += deltaSeconds * 3.5;
+        }
         if (impact.life <= 0) {
           releaseImpactParticle(impactParticles[impactIndex]);
           impactParticles.splice(impactIndex, 1);
@@ -2811,8 +4738,8 @@
         if (!chunk || !chunk.surfaceCanvas) {
           continue;
         }
-        screenX = width * 0.5 + chunk.chunkX * CHUNK_SIZE - carWorldX;
-        screenY = height * 0.5 + chunk.chunkY * CHUNK_SIZE - carWorldY;
+        screenX = width * 0.5 + chunk.chunkX * CHUNK_SIZE - cameraWorldX;
+        screenY = height * 0.5 + chunk.chunkY * CHUNK_SIZE - cameraWorldY;
         if (screenX + CHUNK_SIZE < -64 || screenX > width + 64 ||
           screenY + CHUNK_SIZE < -64 || screenY > height + 64) {
           continue;
@@ -2828,6 +4755,9 @@
           drawChunkEntities(chunk);
         }
       }
+
+      drawEnemySightCones();
+      drawEnemyCars();
 
       context.restore();
     }
@@ -2933,18 +4863,64 @@
 
       for (dustIndex = 0; dustIndex < dustParticles.length; dustIndex += 1) {
         dust = dustParticles[dustIndex];
+        var dustScreen = worldToScreen(dust.worldX, dust.worldY);
         context.fillStyle = "rgba(160, 130, 95, " + dust.alpha + ")";
         context.beginPath();
-        context.arc(dust.x, dust.y, dust.size, 0, Math.PI * 2);
+        context.arc(dustScreen.x, dustScreen.y, dust.size, 0, Math.PI * 2);
         context.fill();
       }
 
       for (impactIndex = 0; impactIndex < impactParticles.length; impactIndex += 1) {
         impact = impactParticles[impactIndex];
-        context.fillStyle = "rgba(200, 120, 70, " + (impact.life * 2) + ")";
+        var impactScreen = worldToScreen(impact.worldX, impact.worldY);
+        var impactAlpha = impact.life * 1.8;
+        var streakScale;
+        var streakEndScreen;
+        if (impact.maxLife > 0) {
+          impactAlpha = impact.life / impact.maxLife;
+        }
+        if (impactAlpha > 1) {
+          impactAlpha = 1;
+        }
+        if (impactAlpha < 0) {
+          impactAlpha = 0;
+        }
+        if (impact.red !== undefined) {
+          context.fillStyle = "rgba(" + impact.red + "," + impact.green + "," + impact.blue + "," + impactAlpha + ")";
+        } else {
+          context.fillStyle = "rgba(200, 120, 70, " + impactAlpha + ")";
+        }
+        if (impact.glow) {
+          context.shadowColor = "rgba(" + impact.red + "," + impact.green + "," + impact.blue + ",0.95)";
+          context.shadowBlur = 14;
+        }
         context.beginPath();
-        context.arc(impact.x, impact.y, impact.size, 0, Math.PI * 2);
+        context.arc(impactScreen.x, impactScreen.y, impact.size, 0, Math.PI * 2);
         context.fill();
+        if (impact.glow && (impact.kind === "death" || impact.kind === "collision")) {
+          context.fillStyle = "rgba(255, 245, 220, " + (impactAlpha * 0.45) + ")";
+          context.beginPath();
+          context.arc(impactScreen.x, impactScreen.y, impact.size * 1.65, 0, Math.PI * 2);
+          context.fill();
+        }
+        context.shadowBlur = 0;
+        if (
+          (impact.kind === "death" || impact.kind === "collision") &&
+          impact.maxLife > 0 &&
+          impact.life / impact.maxLife > 0.28
+        ) {
+          streakScale = impact.life / impact.maxLife;
+          streakEndScreen = worldToScreen(
+            impact.worldX - impact.velX * 0.028 * streakScale,
+            impact.worldY - impact.velY * 0.028 * streakScale
+          );
+          context.strokeStyle = "rgba(" + impact.red + "," + impact.green + "," + impact.blue + "," + (impactAlpha * 0.55) + ")";
+          context.lineWidth = Math.max(1, impact.size * 0.35);
+          context.beginPath();
+          context.moveTo(impactScreen.x, impactScreen.y);
+          context.lineTo(streakEndScreen.x, streakEndScreen.y);
+          context.stroke();
+        }
       }
 
       for (particleIndex = 0; particleIndex < particles.length; particleIndex += 1) {
@@ -2966,19 +4942,30 @@
       var flashGradient;
       for (flashIndex = 0; flashIndex < collectFlashes.length; flashIndex += 1) {
         flash = collectFlashes[flashIndex];
+        var flashScreenX = flash.x;
+        var flashScreenY = flash.y;
+        if (flash.worldX !== undefined) {
+          var flashScreen = worldToScreen(flash.worldX, flash.worldY);
+          flashScreenX = flashScreen.x;
+          flashScreenY = flashScreen.y;
+        }
         flashProgress = flash.age / flash.duration;
         if (flashProgress > 1) {
           flashProgress = 1;
         }
         flashRadius = flash.maxRadius * flashProgress;
-        flashAlpha = (1 - flashProgress) * 0.55;
-        flashGradient = context.createRadialGradient(flash.x, flash.y, 0, flash.x, flash.y, flashRadius);
+        if (flash.isCollision) {
+          flashAlpha = (1 - flashProgress) * 0.78;
+        } else {
+          flashAlpha = (1 - flashProgress) * 0.55;
+        }
+        flashGradient = context.createRadialGradient(flashScreenX, flashScreenY, 0, flashScreenX, flashScreenY, flashRadius);
         flashGradient.addColorStop(0, "rgba(255, 255, 255, " + (flashAlpha * 0.85) + ")");
         flashGradient.addColorStop(0.35, "rgba(" + flash.red + "," + flash.green + "," + flash.blue + "," + flashAlpha + ")");
         flashGradient.addColorStop(1, "rgba(" + flash.red + "," + flash.green + "," + flash.blue + ",0)");
         context.fillStyle = flashGradient;
         context.beginPath();
-        context.arc(flash.x, flash.y, flashRadius, 0, Math.PI * 2);
+        context.arc(flashScreenX, flashScreenY, flashRadius, 0, Math.PI * 2);
         context.fill();
       }
 
@@ -2994,9 +4981,9 @@
           burstProgress = 1;
         }
         burstRadius = burst.maxRadius * burstProgress;
-        burstAlpha = (1 - burstProgress) * 0.75;
+        burstAlpha = (1 - burstProgress) * 0.88;
         context.strokeStyle = "rgba(" + burst.red + "," + burst.green + "," + burst.blue + "," + burstAlpha + ")";
-        context.lineWidth = 2.5 * (1 - burstProgress * 0.6);
+        context.lineWidth = 3.2 * (1 - burstProgress * 0.55);
         context.beginPath();
         context.arc(burst.x, burst.y, burstRadius, 0, Math.PI * 2);
         context.stroke();
@@ -3123,17 +5110,19 @@
     }
 
     function update(deltaSeconds) {
+      gameAnimTime += deltaSeconds;
       if (isPlaying()) {
         updateCar(deltaSeconds);
         updateChunksAroundCar();
         updateCrystalAnimations(deltaSeconds);
         updateCrystalMagnet(deltaSeconds);
+        updateEnemyCars(deltaSeconds);
         checkCollisions();
         spawnDustTrail(deltaSeconds);
-        updateHealthRegen(deltaSeconds);
         if (rockHitCooldown > 0) {
           rockHitCooldown -= deltaSeconds;
         }
+        updateRockDeflectStreakEntity(carRockDeflectEntity, deltaSeconds);
       }
       updateParticles(deltaSeconds);
     }
@@ -3166,6 +5155,7 @@
 
     function init() {
       resizeCanvas();
+      buildSpeedGaugeTicks();
       loadHighScore();
       loadBestDistance();
       applyGameLocale();
