@@ -12,8 +12,8 @@
   min-height: 0;
 }
 
-.os-window--managed .os-window-body--terminal > .menu-v-scroll,
-.os-window--managed > .menu-v-scroll {
+.os-window--managed .os-window-body--terminal>.menu-v-scroll,
+.os-window--managed>.menu-v-scroll {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
@@ -24,7 +24,7 @@
   scrollbar-gutter: auto;
 }
 
-.menu-v-scroll > .menu-v-scroll-view {
+.menu-v-scroll>.menu-v-scroll-view {
   width: 100%;
   height: 100%;
   margin-bottom: 0;
@@ -34,7 +34,7 @@
   -ms-overflow-style: none;
 }
 
-.menu-v-scroll > .menu-v-scroll-view::-webkit-scrollbar {
+.menu-v-scroll>.menu-v-scroll-view::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
@@ -86,7 +86,7 @@
   box-sizing: border-box;
 }
 
-.menu-h-scroll > .menu-h-scroll-view {
+.menu-h-scroll>.menu-h-scroll-view {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
@@ -94,7 +94,7 @@
   -ms-overflow-style: none;
 }
 
-.menu-h-scroll > .menu-h-scroll-view::-webkit-scrollbar {
+.menu-h-scroll>.menu-h-scroll-view::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
