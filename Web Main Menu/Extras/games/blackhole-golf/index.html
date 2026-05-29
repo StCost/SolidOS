@@ -368,9 +368,10 @@
       var TERRAIN_VISIBLE_PADDING = 52;
       var TERRAIN_EDGE_FADE = 96;
       var TERRAIN_EDGE_BLEND_EXTRA = 36;
-      var TERRAIN_EDGE_STRIP_STEP = 20;
-      var SPACE_STAR_FAR_COUNT = 220;
-      var SPACE_STAR_NEAR_COUNT = 110;
+      var TERRAIN_EDGE_STRIP_STEP = 32;
+      var SPACE_STAR_FAR_COUNT = 160;
+      var SPACE_STAR_NEAR_COUNT = 80;
+      var COSMIC_BACKDROP_CACHE_BUCKET = 72;
       var SPACE_NEBULA_COUNT = 7;
       var WORLD_HALF = 4200;
       var NOISE_SCALE = 0.00015;
@@ -394,6 +395,7 @@
       var TRAJECTORY_MIN_METERS = 10;
       var PHYSICS_FIXED_STEP_SECONDS = 1 / 60;
       var PHYSICS_MAX_SUB_STEPS = 10;
+      var WALL_MOVE_SUBSTEP_DISTANCE_SCALE = 0.45;
       var TRAJECTORY_TRAVEL_MAX_STEPS = 700;
       var TRAJECTORY_PREVIEW_BOUNCE = 0.62;
       var TRAJECTORY_MAX_BOUNCES = 14;
@@ -433,8 +435,13 @@
       var BLACK_HOLE_COUNT_MIN = 6;
       var BLACK_HOLE_COUNT_EXTRA = 5;
       var BLACK_HOLE_EVENT_RADIUS = 16;
+      var BLACK_HOLE_PULL_GLOW_RADIUS = BLACK_HOLE_EVENT_RADIUS * 2.5;
       var BLACK_HOLE_DRAW_RADIUS = 26;
       var BLACK_HOLE_PULL_RADIUS = 130;
+      var BLACK_HOLE_PULL_INNER_HALF_SCALE = 0.5;
+      var BLACK_HOLE_INFLUENCE_LINE_WIDTH_MIN = 0.85;
+      var BLACK_HOLE_INFLUENCE_LINE_WIDTH_MAX = 3.6;
+      var BLACK_HOLE_INFLUENCE_GLOW_FROM_PULL_SCALE = 0.55;
       var BLACK_HOLE_PULL_FORCE = 100000;
       var HOLE_WARP_SINK_DURATION = 0.38;
       var HOLE_WARP_TRAVEL_DURATION = 1.05;
@@ -498,6 +505,7 @@
       var mouseY = 0;
       var screenMouseX = 0;
       var screenMouseY = 0;
+      var cachedAimTrajectoryPreview = null;
       var restTimer = 0;
       var finishRestTimer = 0;
       var bestDistance = 0;
@@ -552,6 +560,13 @@
       var collisionRadius = BALL_RADIUS + WALL_COLLIDER_HALF_WIDTH;
       var terrainCanvas = null;
       var terrainCtx = null;
+      var terrainVisibilityCanvas = null;
+      var terrainVisibilityCtx = null;
+      var terrainCompositeCanvas = null;
+      var terrainCompositeCtx = null;
+      var cosmicBackdropCanvas = null;
+      var cosmicBackdropCtx = null;
+      var cosmicBackdropCacheKey = "";
       var topoCacheKey = "";
       var topoCacheMinorSegments = [];
       var topoCacheMajorSegments = [];
@@ -855,17 +870,36 @@
         }
       }
 
-      function drawCosmicBackground() {
+      function getCosmicBackdropCacheKey(width, height) {
+        return width + "|" + height + "|" +
+          Math.floor(cameraCenterX / COSMIC_BACKDROP_CACHE_BUCKET) + "|" +
+          Math.floor(cameraCenterY / COSMIC_BACKDROP_CACHE_BUCKET) + "|" +
+          Math.floor(cameraZoom * 40);
+      }
+
+      function ensureCosmicBackdropCache() {
         var width = canvas.clientWidth;
         var height = canvas.clientHeight;
-        var skyGradient = ctx.createLinearGradient(0, 0, 0, height);
+        var cacheKey = getCosmicBackdropCacheKey(width, height);
+        if (cacheKey === cosmicBackdropCacheKey && cosmicBackdropCanvas) {
+          return;
+        }
+        cosmicBackdropCacheKey = cacheKey;
+        if (!cosmicBackdropCanvas) {
+          cosmicBackdropCanvas = document.createElement("canvas");
+          cosmicBackdropCtx = cosmicBackdropCanvas.getContext("2d");
+        }
+        if (cosmicBackdropCanvas.width !== width || cosmicBackdropCanvas.height !== height) {
+          cosmicBackdropCanvas.width = width;
+          cosmicBackdropCanvas.height = height;
+        }
+        var backdropCtx = cosmicBackdropCtx;
+        var skyGradient = backdropCtx.createLinearGradient(0, 0, 0, height);
         skyGradient.addColorStop(0, "#06040f");
         skyGradient.addColorStop(0.45, "#0e0820");
         skyGradient.addColorStop(1, "#04030a");
-        ctx.fillStyle = skyGradient;
-        ctx.fillRect(0, 0, width, height);
-
-        var time = Date.now() * 0.001;
+        backdropCtx.fillStyle = skyGradient;
+        backdropCtx.fillRect(0, 0, width, height);
         var nebulaIndex;
         for (nebulaIndex = 0; nebulaIndex < spaceNebulaSpots.length; nebulaIndex += 1) {
           var nebula = spaceNebulaSpots[nebulaIndex];
@@ -873,7 +907,7 @@
           var nebulaParallaxY = cameraCenterY * 0.05;
           var nebulaScreenX = (nebula.worldX - nebulaParallaxX - cameraCenterX) * cameraZoom + width * 0.5;
           var nebulaScreenY = (nebula.worldY - nebulaParallaxY - cameraCenterY) * cameraZoom + height * 0.5;
-          var nebulaGradient = ctx.createRadialGradient(
+          var nebulaGradient = backdropCtx.createRadialGradient(
             nebulaScreenX,
             nebulaScreenY,
             0,
@@ -884,15 +918,22 @@
           nebulaGradient.addColorStop(0, "rgba(" + nebula.red + ", " + nebula.green + ", " + nebula.blue + ", 0.24)");
           nebulaGradient.addColorStop(0.55, "rgba(" + nebula.red + ", " + nebula.green + ", " + nebula.blue + ", 0.11)");
           nebulaGradient.addColorStop(1, "rgba(" + nebula.red + ", " + nebula.green + ", " + nebula.blue + ", 0)");
-          ctx.fillStyle = nebulaGradient;
-          ctx.fillRect(
+          backdropCtx.fillStyle = nebulaGradient;
+          backdropCtx.fillRect(
             nebulaScreenX - nebula.radius,
             nebulaScreenY - nebula.radius,
             nebula.radius * 2,
             nebula.radius * 2
           );
         }
+      }
 
+      function drawCosmicBackground() {
+        var width = canvas.clientWidth;
+        var height = canvas.clientHeight;
+        ensureCosmicBackdropCache();
+        ctx.drawImage(cosmicBackdropCanvas, 0, 0, width, height);
+        var time = Date.now() * 0.001;
         var starIndex;
         for (starIndex = 0; starIndex < spaceStarsFar.length; starIndex += 1) {
           var farStar = spaceStarsFar[starIndex];
@@ -904,10 +945,9 @@
             continue;
           }
           var farAlpha = farStar.brightness * (0.7 + Math.sin(time * 1.4 + farStar.twinkle) * 0.3);
+          var farSize = farStar.size * 2;
           ctx.fillStyle = "rgba(210, 220, 255, " + farAlpha + ")";
-          ctx.beginPath();
-          ctx.arc(farScreenX, farScreenY, farStar.size, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillRect(farScreenX - farSize * 0.5, farScreenY - farSize * 0.5, farSize, farSize);
         }
         for (starIndex = 0; starIndex < spaceStarsNear.length; starIndex += 1) {
           var nearStar = spaceStarsNear[starIndex];
@@ -919,10 +959,9 @@
             continue;
           }
           var nearAlpha = nearStar.brightness * (0.75 + Math.sin(time * 2.2 + nearStar.twinkle) * 0.25);
+          var nearSize = nearStar.size * 2;
           ctx.fillStyle = "rgba(240, 245, 255, " + nearAlpha + ")";
-          ctx.beginPath();
-          ctx.arc(nearScreenX, nearScreenY, nearStar.size, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillRect(nearScreenX - nearSize * 0.5, nearScreenY - nearSize * 0.5, nearSize, nearSize);
         }
       }
 
@@ -941,7 +980,7 @@
       }
 
       function drawTerrainNearTunnel() {
-        if (!terrainCanvas || tunnelPath.length < 2) {
+        if (!terrainCanvas || !terrainVisibilityCanvas || tunnelPath.length < 2) {
           return;
         }
         var worldStart = -WORLD_HALF;
@@ -968,45 +1007,59 @@
         if (cellEndY > terrainCanvas.height) {
           cellEndY = terrainCanvas.height;
         }
+        var sourceWidth = cellEndX - cellStartX;
+        var sourceHeight = cellEndY - cellStartY;
+        if (sourceWidth <= 0 || sourceHeight <= 0) {
+          return;
+        }
         var screenOriginX = width * 0.5 + (worldStart - cameraCenterX) * cameraZoom;
         var screenOriginY = height * 0.5 + (worldStart - cameraCenterY) * cameraZoom;
         var screenCellSize = TERRAIN_CELL * cameraZoom;
-        var previousSmoothing = ctx.imageSmoothingEnabled;
-        ctx.imageSmoothingEnabled = true;
-        var cellX;
-        var cellY;
-        for (cellY = cellStartY; cellY < cellEndY; cellY += 1) {
-          for (cellX = cellStartX; cellX < cellEndX; cellX += 1) {
-            var sampleX = worldStart + (cellX + 0.5) * TERRAIN_CELL;
-            var sampleY = worldStart + (cellY + 0.5) * TERRAIN_CELL;
-            var visibility = getTerrainVisibility(sampleX, sampleY);
-            if (visibility <= 0.01) {
-              continue;
-            }
-            var screenRect = getTerrainCellScreenRect(
-              cellX,
-              cellY,
-              screenOriginX,
-              screenOriginY,
-              screenCellSize
-            );
-            var previousAlpha = ctx.globalAlpha;
-            ctx.globalAlpha = previousAlpha * visibility;
-            ctx.drawImage(
-              terrainCanvas,
-              cellX,
-              cellY,
-              1,
-              1,
-              screenRect.x,
-              screenRect.y,
-              screenRect.width,
-              screenRect.height
-            );
-            ctx.globalAlpha = previousAlpha;
-          }
+        var destX = Math.floor(screenOriginX + cellStartX * screenCellSize);
+        var destY = Math.floor(screenOriginY + cellStartY * screenCellSize);
+        var destWidth = Math.ceil(sourceWidth * screenCellSize);
+        var destHeight = Math.ceil(sourceHeight * screenCellSize);
+        if (!terrainCompositeCanvas) {
+          terrainCompositeCanvas = document.createElement("canvas");
+          terrainCompositeCtx = terrainCompositeCanvas.getContext("2d");
         }
-        ctx.imageSmoothingEnabled = previousSmoothing;
+        if (terrainCompositeCanvas.width !== width || terrainCompositeCanvas.height !== height) {
+          terrainCompositeCanvas.width = width;
+          terrainCompositeCanvas.height = height;
+        }
+        var compositeCtx = terrainCompositeCtx;
+        compositeCtx.clearRect(0, 0, width, height);
+        var previousSmoothing = compositeCtx.imageSmoothingEnabled;
+        compositeCtx.imageSmoothingEnabled = true;
+        compositeCtx.drawImage(
+          terrainCanvas,
+          cellStartX,
+          cellStartY,
+          sourceWidth,
+          sourceHeight,
+          destX,
+          destY,
+          destWidth,
+          destHeight
+        );
+        compositeCtx.globalCompositeOperation = "destination-in";
+        compositeCtx.drawImage(
+          terrainVisibilityCanvas,
+          cellStartX,
+          cellStartY,
+          sourceWidth,
+          sourceHeight,
+          destX,
+          destY,
+          destWidth,
+          destHeight
+        );
+        compositeCtx.globalCompositeOperation = "source-over";
+        compositeCtx.imageSmoothingEnabled = previousSmoothing;
+        var mainPreviousSmoothing = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(terrainCompositeCanvas, 0, 0, width, height);
+        ctx.imageSmoothingEnabled = mainPreviousSmoothing;
       }
 
       function getContourEdgeBlend(targetHeight, heightStart, heightEnd) {
@@ -1346,7 +1399,7 @@
             var centerX = edgeStart.x + segX * alongT;
             var centerY = edgeStart.y + segY * alongT;
             if (centerX >= viewLeft && centerX <= viewRight && centerY >= viewTop && centerY <= viewBottom) {
-              var closestOnPath = getClosestOnPath(tunnelPath, centerX, centerY);
+              var corridorHalfWidth = edgeStart.halfWidth + (edgeEnd.halfWidth - edgeStart.halfWidth) * alongT;
               drawCorridorEdgeBlendStrip(
                 centerX,
                 centerY,
@@ -1354,7 +1407,7 @@
                 tangentY,
                 outwardX,
                 outwardY,
-                closestOnPath.halfWidth
+                corridorHalfWidth
               );
             }
             along += TERRAIN_EDGE_STRIP_STEP;
@@ -1469,6 +1522,39 @@
         terrainCtx.putImageData(imageData, 0, 0);
       }
 
+      function buildTerrainVisibilityTexture() {
+        if (!terrainCanvas || tunnelPath.length < 2) {
+          return;
+        }
+        var size = terrainCanvas.width;
+        if (!terrainVisibilityCanvas) {
+          terrainVisibilityCanvas = document.createElement("canvas");
+          terrainVisibilityCtx = terrainVisibilityCanvas.getContext("2d");
+        }
+        terrainVisibilityCanvas.width = size;
+        terrainVisibilityCanvas.height = size;
+        var imageData = terrainVisibilityCtx.createImageData(size, size);
+        var data = imageData.data;
+        var pixelIndex = 0;
+        var worldStart = -WORLD_HALF;
+        var cellY;
+        var cellX;
+        for (cellY = 0; cellY < size; cellY += 1) {
+          for (cellX = 0; cellX < size; cellX += 1) {
+            var worldX = worldStart + (cellX + 0.5) * TERRAIN_CELL;
+            var worldY = worldStart + (cellY + 0.5) * TERRAIN_CELL;
+            var visibility = getTerrainVisibility(worldX, worldY);
+            var alpha = (visibility * 255) | 0;
+            data[pixelIndex] = alpha;
+            data[pixelIndex + 1] = alpha;
+            data[pixelIndex + 2] = alpha;
+            data[pixelIndex + 3] = alpha;
+            pixelIndex += 4;
+          }
+        }
+        terrainVisibilityCtx.putImageData(imageData, 0, 0);
+      }
+
       function addWall(x1, y1, x2, y2) {
         walls.push({ x1: x1, y1: y1, x2: x2, y2: y2 });
       }
@@ -1559,10 +1645,11 @@
         return path;
       }
 
-      function offsetPoint(pointX, pointY, normalX, normalY, distance) {
+      function offsetPoint(pointX, pointY, normalX, normalY, distance, corridorHalfWidth) {
         return {
           x: pointX + normalX * distance,
-          y: pointY + normalY * distance
+          y: pointY + normalY * distance,
+          halfWidth: corridorHalfWidth
         };
       }
 
@@ -1600,7 +1687,8 @@
         }
         return {
           x: point.x + miterX,
-          y: point.y + miterY
+          y: point.y + miterY,
+          halfWidth: halfWidth
         };
       }
 
@@ -1617,6 +1705,7 @@
           path[0].y,
           -firstSegment.y * sideSign,
           firstSegment.x * sideSign,
+          path[0].halfWidth,
           path[0].halfWidth
         ));
         for (pointIndex = 1; pointIndex < pointCount - 1; pointIndex += 1) {
@@ -1628,6 +1717,7 @@
           path[pointCount - 1].y,
           -lastSegment.y * sideSign,
           lastSegment.x * sideSign,
+          path[pointCount - 1].halfWidth,
           path[pointCount - 1].halfWidth
         ));
         return edgePoints;
@@ -1652,10 +1742,18 @@
         tunnelRightEdge.length = 0;
         var edgeCopyIndex;
         for (edgeCopyIndex = 0; edgeCopyIndex < leftEdge.length; edgeCopyIndex += 1) {
-          tunnelLeftEdge.push({ x: leftEdge[edgeCopyIndex].x, y: leftEdge[edgeCopyIndex].y });
+          tunnelLeftEdge.push({
+            x: leftEdge[edgeCopyIndex].x,
+            y: leftEdge[edgeCopyIndex].y,
+            halfWidth: leftEdge[edgeCopyIndex].halfWidth
+          });
         }
         for (edgeCopyIndex = 0; edgeCopyIndex < rightEdge.length; edgeCopyIndex += 1) {
-          tunnelRightEdge.push({ x: rightEdge[edgeCopyIndex].x, y: rightEdge[edgeCopyIndex].y });
+          tunnelRightEdge.push({
+            x: rightEdge[edgeCopyIndex].x,
+            y: rightEdge[edgeCopyIndex].y,
+            halfWidth: rightEdge[edgeCopyIndex].halfWidth
+          });
         }
         addEdgeWalls(leftEdge);
         addEdgeWalls(rightEdge);
@@ -1918,6 +2016,109 @@
         ballVelY = result.vy;
       }
 
+      function moveBallWithSteppedWallChecks(positionX, positionY, velocityX, velocityY, deltaSeconds, options, circleRadius) {
+        if (circleRadius === undefined) {
+          circleRadius = collisionRadius;
+        }
+        var wallBounced = false;
+        var moveX = velocityX * deltaSeconds;
+        var moveY = velocityY * deltaSeconds;
+        var moveDistance = Math.sqrt(moveX * moveX + moveY * moveY);
+        var maxSubStepDistance = circleRadius * WALL_MOVE_SUBSTEP_DISTANCE_SCALE;
+        if (moveDistance < 0.001) {
+          if (options.walls) {
+            var restWallResult = resolveWallCollisionAt(positionX, positionY, velocityX, velocityY, circleRadius);
+            positionX = restWallResult.x;
+            positionY = restWallResult.y;
+            velocityX = restWallResult.vx;
+            velocityY = restWallResult.vy;
+            if (restWallResult.bounced) {
+              wallBounced = true;
+            }
+          }
+          if (options.tunnel) {
+            var restTunnelResult = constrainPositionToTunnelAt(positionX, positionY, velocityX, velocityY, circleRadius);
+            positionX = restTunnelResult.x;
+            positionY = restTunnelResult.y;
+            velocityX = restTunnelResult.vx;
+            velocityY = restTunnelResult.vy;
+            if (restTunnelResult.bounced) {
+              wallBounced = true;
+            }
+          }
+          return {
+            x: positionX,
+            y: positionY,
+            vx: velocityX,
+            vy: velocityY,
+            wallBounced: wallBounced
+          };
+        }
+        var remainingDistance = moveDistance;
+        var dirX = moveX / moveDistance;
+        var dirY = moveY / moveDistance;
+        var iterationLimit = Math.ceil(moveDistance / maxSubStepDistance) + 6;
+        var iteration;
+        for (iteration = 0; iteration < iterationLimit && remainingDistance > 0.001; iteration += 1) {
+          var stepDistance = remainingDistance;
+          if (stepDistance > maxSubStepDistance) {
+            stepDistance = maxSubStepDistance;
+          }
+          if (options.walls) {
+            var wallHit = rayHitWall(positionX, positionY, dirX, dirY, stepDistance);
+            if (wallHit.wall !== null && wallHit.distance < stepDistance) {
+              stepDistance = wallHit.distance;
+              if (stepDistance < 0) {
+                stepDistance = 0;
+              }
+            }
+          }
+          positionX += dirX * stepDistance;
+          positionY += dirY * stepDistance;
+          remainingDistance -= stepDistance;
+          if (options.walls) {
+            var wallResult = resolveWallCollisionAt(positionX, positionY, velocityX, velocityY, circleRadius);
+            positionX = wallResult.x;
+            positionY = wallResult.y;
+            velocityX = wallResult.vx;
+            velocityY = wallResult.vy;
+            if (wallResult.bounced) {
+              wallBounced = true;
+              var speedAfterWall = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+              if (speedAfterWall > 0.001) {
+                dirX = velocityX / speedAfterWall;
+                dirY = velocityY / speedAfterWall;
+              }
+            }
+          }
+          if (options.tunnel) {
+            var tunnelResult = constrainPositionToTunnelAt(positionX, positionY, velocityX, velocityY, circleRadius);
+            positionX = tunnelResult.x;
+            positionY = tunnelResult.y;
+            velocityX = tunnelResult.vx;
+            velocityY = tunnelResult.vy;
+            if (tunnelResult.bounced) {
+              wallBounced = true;
+              var speedAfterTunnel = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+              if (speedAfterTunnel > 0.001) {
+                dirX = velocityX / speedAfterTunnel;
+                dirY = velocityY / speedAfterTunnel;
+              }
+            }
+          }
+          if (stepDistance < 0.001) {
+            break;
+          }
+        }
+        return {
+          x: positionX,
+          y: positionY,
+          vx: velocityX,
+          vy: velocityY,
+          wallBounced: wallBounced
+        };
+      }
+
       function stepBallPhysics(positionX, positionY, velocityX, velocityY, deltaSeconds, options) {
         var gradient = heightGradient(positionX, positionY);
         velocityX -= gradient.x * SLOPE_FORCE * deltaSeconds;
@@ -1949,29 +2150,19 @@
             };
           }
         }
-        positionX += velocityX * deltaSeconds;
-        positionY += velocityY * deltaSeconds;
-        var wallBounced = false;
-        if (options.walls) {
-          var wallResult = resolveWallCollisionAt(positionX, positionY, velocityX, velocityY);
-          positionX = wallResult.x;
-          positionY = wallResult.y;
-          velocityX = wallResult.vx;
-          velocityY = wallResult.vy;
-          if (wallResult.bounced) {
-            wallBounced = true;
-          }
-        }
-        if (options.tunnel) {
-          var tunnelResult = constrainPositionToTunnelAt(positionX, positionY, velocityX, velocityY);
-          positionX = tunnelResult.x;
-          positionY = tunnelResult.y;
-          velocityX = tunnelResult.vx;
-          velocityY = tunnelResult.vy;
-          if (tunnelResult.bounced) {
-            wallBounced = true;
-          }
-        }
+        var moveResult = moveBallWithSteppedWallChecks(
+          positionX,
+          positionY,
+          velocityX,
+          velocityY,
+          deltaSeconds,
+          options
+        );
+        positionX = moveResult.x;
+        positionY = moveResult.y;
+        velocityX = moveResult.vx;
+        velocityY = moveResult.vy;
+        var wallBounced = moveResult.wallBounced;
         return {
           x: positionX,
           y: positionY,
@@ -2036,6 +2227,99 @@
         }
         var pullT = 1 - distance / BLACK_HOLE_PULL_RADIUS;
         return pullT * pullT;
+      }
+
+      function getBlackHoleCenterGlow(positionX, positionY, holeX, holeY) {
+        var offsetX = holeX - positionX;
+        var offsetY = holeY - positionY;
+        var distanceSq = offsetX * offsetX + offsetY * offsetY;
+        if (distanceSq < 0.001) {
+          return 1;
+        }
+        var distance = Math.sqrt(distanceSq);
+        if (distance >= BLACK_HOLE_PULL_GLOW_RADIUS) {
+          return 0;
+        }
+        var glowT = 1 - distance / BLACK_HOLE_PULL_GLOW_RADIUS;
+        return glowT * glowT;
+      }
+
+      function getBlackHolePullInnerDepth(distance) {
+        var innerRadius = BLACK_HOLE_PULL_RADIUS * BLACK_HOLE_PULL_INNER_HALF_SCALE;
+        if (distance >= innerRadius) {
+          return 0;
+        }
+        return 1 - distance / innerRadius;
+      }
+
+      function isBallInsideBlackHolePull(hole) {
+        var offsetX = hole.x - ballX;
+        var offsetY = hole.y - ballY;
+        var distanceSq = offsetX * offsetX + offsetY * offsetY;
+        return distanceSq < BLACK_HOLE_PULL_RADIUS * BLACK_HOLE_PULL_RADIUS;
+      }
+
+      function doesSegmentIntersectBlackHolePull(segmentStartX, segmentStartY, segmentEndX, segmentEndY, hole) {
+        var closestPoint = getClosestPointOnSegmentToPoint(
+          hole.x,
+          hole.y,
+          segmentStartX,
+          segmentStartY,
+          segmentEndX,
+          segmentEndY
+        );
+        var pullRadiusSq = BLACK_HOLE_PULL_RADIUS * BLACK_HOLE_PULL_RADIUS;
+        return closestPoint.distanceSq < pullRadiusSq;
+      }
+
+      function doesTrajectoryPreviewAffectBlackHole(preview, hole) {
+        var segmentIndex;
+        var pointIndex;
+        if (!preview || !preview.segments) {
+          return false;
+        }
+        for (segmentIndex = 0; segmentIndex < preview.segments.length; segmentIndex += 1) {
+          var segmentPoints = preview.segments[segmentIndex].points;
+          if (!segmentPoints || segmentPoints.length < 1) {
+            continue;
+          }
+          for (pointIndex = 0; pointIndex < segmentPoints.length; pointIndex += 1) {
+            var pathPoint = segmentPoints[pointIndex];
+            if (getBlackHolePullDisplayStrength(pathPoint.x, pathPoint.y, hole) >= TRAJECTORY_PULL_STRENGTH_MIN) {
+              return true;
+            }
+          }
+          for (pointIndex = 1; pointIndex < segmentPoints.length; pointIndex += 1) {
+            var segmentStart = segmentPoints[pointIndex - 1];
+            var segmentEnd = segmentPoints[pointIndex];
+            if (doesSegmentIntersectBlackHolePull(segmentStart.x, segmentStart.y, segmentEnd.x, segmentEnd.y, hole)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      function shouldShowBlackHolePullOutline(hole, aimPreview) {
+        if (gameState === stateRolling) {
+          return isBallInsideBlackHolePull(hole);
+        }
+        if (gameState === stateAiming && hitsLeft > 0 && !loseScreenActive && !levelIntroActive) {
+          return doesTrajectoryPreviewAffectBlackHole(aimPreview, hole);
+        }
+        return false;
+      }
+
+      function getAimTrajectoryPreview() {
+        if (gameState !== stateAiming || hitsLeft <= 0 || loseScreenActive || levelIntroActive) {
+          return null;
+        }
+        var worldMouse = screenToWorld(screenMouseX, screenMouseY);
+        var kick = getKickFromCursor(worldMouse.x, worldMouse.y);
+        if (!kick) {
+          return null;
+        }
+        return buildTrajectoryPreview(worldMouse.x, worldMouse.y);
       }
 
       function collectTrajectoryPathPoints(path) {
@@ -2272,6 +2556,7 @@
         canvas.width = Math.floor(width * ratio);
         canvas.height = Math.floor(height * ratio);
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        cosmicBackdropCacheKey = "";
         resizeCelebrationCanvas();
       }
 
@@ -2781,6 +3066,7 @@
         buildPermutation(seed);
         buildWalls(seed);
         buildTerrainTexture();
+        buildTerrainVisibilityTexture();
         invalidateTopoCache();
         buildSpaceBackdrop(seed);
         placeBallAtTunnelStart();
@@ -3675,31 +3961,57 @@
         }
       }
 
+      function getWallOutwardNormal(wall) {
+        var midX = (wall.x1 + wall.x2) * 0.5;
+        var midY = (wall.y1 + wall.y2) * 0.5;
+        var closest = getClosestOnPath(tunnelPath, midX, midY);
+        var outwardX = midX - closest.closestX;
+        var outwardY = midY - closest.closestY;
+        var outwardLength = Math.sqrt(outwardX * outwardX + outwardY * outwardY);
+        if (outwardLength < 0.001) {
+          var segmentX = wall.x2 - wall.x1;
+          var segmentY = wall.y2 - wall.y1;
+          var segmentLength = Math.sqrt(segmentX * segmentX + segmentY * segmentY);
+          if (segmentLength < 0.001) {
+            return { x: 0, y: 1 };
+          }
+          return { x: -segmentY / segmentLength, y: segmentX / segmentLength };
+        }
+        return { x: outwardX / outwardLength, y: outwardY / outwardLength };
+      }
+
       function drawWalls() {
         var wallLineWidth = 10 * cameraZoom;
         if (wallLineWidth < 6) {
           wallLineWidth = 6;
         }
         var wallSoftWidth = 26 * cameraZoom;
+        var shadowPassCount = 3;
+        var shadowPassOffsets = [4, 9, 15];
+        var shadowPassAlphas = [0.24, 0.15, 0.08];
+        var shadowPassWidthScales = [0.88, 1, 1.12];
         ctx.save();
         ctx.lineCap = "round";
-        ctx.lineJoin = "miter";
-        ctx.miterLimit = 2.2;
-        ctx.shadowBlur = 11 * cameraZoom;
-        ctx.shadowColor = "rgba(6, 4, 14, 0.82)";
-        ctx.strokeStyle = "rgba(8, 6, 16, 0.55)";
-        ctx.lineWidth = wallSoftWidth;
-        var wallIndex;
-        for (wallIndex = 0; wallIndex < walls.length; wallIndex += 1) {
-          var softWall = walls[wallIndex];
-          var softP1 = worldToScreen(softWall.x1, softWall.y1);
-          var softP2 = worldToScreen(softWall.x2, softWall.y2);
-          ctx.beginPath();
-          ctx.moveTo(softP1.x, softP1.y);
-          ctx.lineTo(softP2.x, softP2.y);
-          ctx.stroke();
-        }
+        ctx.lineJoin = "round";
         ctx.shadowBlur = 0;
+        var wallIndex;
+        var passIndex;
+        for (passIndex = 0; passIndex < shadowPassCount; passIndex += 1) {
+          ctx.strokeStyle = "rgba(6, 4, 14, " + shadowPassAlphas[passIndex] + ")";
+          ctx.lineWidth = wallSoftWidth * shadowPassWidthScales[passIndex];
+          for (wallIndex = 0; wallIndex < walls.length; wallIndex += 1) {
+            var shadowWall = walls[wallIndex];
+            var outward = getWallOutwardNormal(shadowWall);
+            var offsetX = outward.x * shadowPassOffsets[passIndex];
+            var offsetY = outward.y * shadowPassOffsets[passIndex];
+            var shadowP1 = worldToScreen(shadowWall.x1 + offsetX, shadowWall.y1 + offsetY);
+            var shadowP2 = worldToScreen(shadowWall.x2 + offsetX, shadowWall.y2 + offsetY);
+            ctx.beginPath();
+            ctx.moveTo(shadowP1.x, shadowP1.y);
+            ctx.lineTo(shadowP2.x, shadowP2.y);
+            ctx.stroke();
+          }
+        }
         ctx.strokeStyle = "rgba(42, 34, 28, 0.92)";
         ctx.lineWidth = wallLineWidth;
         for (wallIndex = 0; wallIndex < walls.length; wallIndex += 1) {
@@ -4120,13 +4432,21 @@
 
       function drawBlackHoles() {
         var time = Date.now() * 0.001;
+        var width = canvas.clientWidth;
+        var height = canvas.clientHeight;
+        var aimPreview = cachedAimTrajectoryPreview;
         var holeIndex;
         for (holeIndex = 0; holeIndex < blackHoles.length; holeIndex += 1) {
           var hole = blackHoles[holeIndex];
           var screen = worldToScreen(hole.x, hole.y);
+          var pullRadius = getBlackHoleScreenRadius(BLACK_HOLE_PULL_RADIUS);
+          var cullMargin = pullRadius + 48;
+          if (screen.x < -cullMargin || screen.x > width + cullMargin || screen.y < -cullMargin || screen.y > height + cullMargin) {
+            continue;
+          }
+          var showPullOutline = shouldShowBlackHolePullOutline(hole, aimPreview);
           var spin = time * 2.4 + holeIndex * 1.7;
           var eventRadius = getBlackHoleScreenRadius(BLACK_HOLE_EVENT_RADIUS);
-          var pullRadius = getBlackHoleScreenRadius(BLACK_HOLE_PULL_RADIUS);
           var drawRadius = getBlackHoleScreenRadius(BLACK_HOLE_DRAW_RADIUS);
           var gravityPulse = 0.72 + Math.sin(time * 1.8 + holeIndex * 0.9) * 0.28;
           var gravityFill = ctx.createRadialGradient(screen.x, screen.y, eventRadius, screen.x, screen.y, pullRadius);
@@ -4138,20 +4458,21 @@
           ctx.beginPath();
           ctx.arc(screen.x, screen.y, pullRadius, 0, Math.PI * 2);
           ctx.fill();
-          ctx.strokeStyle = "rgba(110, 60, 170, " + (0.22 + gravityPulse * 0.28) + ")";
-          ctx.lineWidth = Math.max(1, cameraZoom);
-          ctx.setLineDash([3 * cameraZoom, 7 * cameraZoom]);
-          ctx.beginPath();
-          ctx.arc(screen.x, screen.y, pullRadius * 0.55, spin, spin + Math.PI * 2);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          ctx.strokeStyle = "rgba(130, 80, 190, " + (0.3 + gravityPulse * 0.32) + ")";
-          ctx.lineWidth = Math.max(1.5, 1.5 * cameraZoom);
-          ctx.setLineDash([8 * cameraZoom, 6 * cameraZoom]);
-          ctx.beginPath();
-          ctx.arc(screen.x, screen.y, pullRadius, spin * 0.4, spin * 0.4 + Math.PI * 2);
-          ctx.stroke();
-          ctx.setLineDash([]);
+          if (showPullOutline) {
+            ctx.strokeStyle = "rgba(110, 60, 170, " + (0.22 + gravityPulse * 0.28) + ")";
+            ctx.lineWidth = Math.max(1, cameraZoom);
+            ctx.setLineDash([3 * cameraZoom, 7 * cameraZoom]);
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y, pullRadius * 0.55, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.strokeStyle = "rgba(130, 80, 190, " + (0.3 + gravityPulse * 0.32) + ")";
+            ctx.lineWidth = Math.max(1.5, 1.5 * cameraZoom);
+            ctx.setLineDash([8 * cameraZoom, 6 * cameraZoom]);
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y, pullRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
           var capturePulse = 0.8 + Math.sin(time * 3.2 + holeIndex) * 0.2;
           ctx.strokeStyle = "rgba(88, 48, 140, " + (0.42 * capturePulse) + ")";
           ctx.lineWidth = Math.max(1.2, 1.2 * cameraZoom);
@@ -4251,6 +4572,257 @@
         }
       }
 
+      function getBlackHoleInfluenceProximity(pullStrength) {
+        if (pullStrength <= 0) {
+          return 0;
+        }
+        if (pullStrength >= 1) {
+          return 1;
+        }
+        return Math.sqrt(pullStrength);
+      }
+
+      function getBlackHoleInfluenceGlowStrength(pullStrength, centerGlow) {
+        var proximity = getBlackHoleInfluenceProximity(pullStrength);
+        var glowStrength = proximity * BLACK_HOLE_INFLUENCE_GLOW_FROM_PULL_SCALE;
+        if (centerGlow > glowStrength) {
+          glowStrength = centerGlow;
+        }
+        if (glowStrength > 1) {
+          glowStrength = 1;
+        }
+        return glowStrength;
+      }
+
+      function drawBlackHoleInfluenceLinePath(pointScreenX, pointScreenY, holeScreenX, holeScreenY, controlScreenX, controlScreenY) {
+        ctx.beginPath();
+        ctx.moveTo(pointScreenX, pointScreenY);
+        if (controlScreenX === undefined || controlScreenY === undefined) {
+          ctx.lineTo(holeScreenX, holeScreenY);
+        } else {
+          ctx.quadraticCurveTo(controlScreenX, controlScreenY, holeScreenX, holeScreenY);
+        }
+      }
+
+      function drawBlackHoleInfluenceLine(pointScreenX, pointScreenY, holeScreenX, holeScreenY, pullStrength, centerGlow, controlScreenX, controlScreenY) {
+        var proximity = getBlackHoleInfluenceProximity(pullStrength);
+        var lineAlpha = 0.1 + proximity * 0.44;
+        var lineWidthRange = BLACK_HOLE_INFLUENCE_LINE_WIDTH_MAX - BLACK_HOLE_INFLUENCE_LINE_WIDTH_MIN;
+        var lineWidth = Math.max(
+          0.75,
+          (BLACK_HOLE_INFLUENCE_LINE_WIDTH_MIN + proximity * lineWidthRange) * cameraZoom
+        );
+        var glowStrength = getBlackHoleInfluenceGlowStrength(pullStrength, centerGlow);
+        if (glowStrength > 0.05) {
+          var pulse = 1;
+          if (glowStrength > 0.28) {
+            pulse = 0.82 + Math.sin(Date.now() * 0.014) * 0.18;
+          }
+          var animatedGlow = glowStrength * pulse;
+          if (animatedGlow > 1) {
+            animatedGlow = 1;
+          }
+          ctx.save();
+          ctx.lineCap = "round";
+          ctx.strokeStyle = "rgba(210, 160, 255, " + (0.14 + animatedGlow * 0.66) + ")";
+          ctx.lineWidth = lineWidth + animatedGlow * 4.5 * cameraZoom;
+          ctx.shadowColor = "rgba(220, 170, 255, " + (0.22 + animatedGlow * 0.68) + ")";
+          ctx.shadowBlur = 4 + animatedGlow * 22;
+          drawBlackHoleInfluenceLinePath(
+            pointScreenX,
+            pointScreenY,
+            holeScreenX,
+            holeScreenY,
+            controlScreenX,
+            controlScreenY
+          );
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+          ctx.restore();
+        }
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "rgba(190, 140, 255, " + lineAlpha + ")";
+        ctx.lineWidth = lineWidth;
+        drawBlackHoleInfluenceLinePath(
+          pointScreenX,
+          pointScreenY,
+          holeScreenX,
+          holeScreenY,
+          controlScreenX,
+          controlScreenY
+        );
+        ctx.stroke();
+      }
+
+      function getBlackHoleInfluenceCurveControlWorld(startX, startY, holeX, holeY, lineIndex, lineCount) {
+        if (lineCount <= 1 || lineIndex === 0) {
+          return null;
+        }
+        var offsetX = startX - holeX;
+        var offsetY = startY - holeY;
+        var distanceSq = offsetX * offsetX + offsetY * offsetY;
+        if (distanceSq < 0.001) {
+          return null;
+        }
+        var distance = Math.sqrt(distanceSq);
+        var radialX = offsetX / distance;
+        var radialY = offsetY / distance;
+        var tangentX = -radialY;
+        var tangentY = radialX;
+        var proximity = 1 - distance / BLACK_HOLE_PULL_RADIUS;
+        if (proximity < 0) {
+          proximity = 0;
+        }
+        if (proximity > 1) {
+          proximity = 1;
+        }
+        var centerIndex = (lineCount - 1) * 0.5;
+        var indexDelta = lineIndex - centerIndex;
+        var sideSign = indexDelta >= 0 ? 1 : -1;
+        if (lineIndex % 2 === 0) {
+          sideSign = -sideSign;
+        }
+        var indexMagnitude = Math.abs(indexDelta);
+        if (indexMagnitude < 0.001) {
+          indexMagnitude = lineIndex;
+        }
+        var bulgeScale = indexMagnitude / Math.max(1, (lineCount - 1) * 0.5);
+        var bulge = distance * (0.14 + proximity * 0.28) * bulgeScale;
+        var alongT = 0.5;
+        var pathPattern = lineIndex % 3;
+        if (pathPattern === 1) {
+          alongT = 0.28;
+        } else if (pathPattern === 2) {
+          alongT = 0.72;
+        }
+        var anchorX = holeX + offsetX * alongT;
+        var anchorY = holeY + offsetY * alongT;
+        return {
+          controlX: anchorX + tangentX * bulge * sideSign,
+          controlY: anchorY + tangentY * bulge * sideSign
+        };
+      }
+
+      function drawBlackHoleInfluenceLineWorld(startX, startY, holeX, holeY, pullStrength, centerGlow, lineIndex, lineCount) {
+        var pointScreen = worldToScreen(startX, startY);
+        var holeScreen = worldToScreen(holeX, holeY);
+        var curveControl = getBlackHoleInfluenceCurveControlWorld(startX, startY, holeX, holeY, lineIndex, lineCount);
+        var controlScreenX;
+        var controlScreenY;
+        if (curveControl) {
+          var controlScreen = worldToScreen(curveControl.controlX, curveControl.controlY);
+          controlScreenX = controlScreen.x;
+          controlScreenY = controlScreen.y;
+        }
+        drawBlackHoleInfluenceLine(
+          pointScreen.x,
+          pointScreen.y,
+          holeScreen.x,
+          holeScreen.y,
+          pullStrength,
+          centerGlow,
+          controlScreenX,
+          controlScreenY
+        );
+      }
+
+      function drawLiveBlackHolePullInfluence(ballX, ballY, holeX, holeY, forceMinimumStrength) {
+        var holePoint = { x: holeX, y: holeY };
+        var pullStrength = getBlackHolePullDisplayStrength(ballX, ballY, holePoint);
+        if (pullStrength < TRAJECTORY_PULL_STRENGTH_MIN) {
+          if (!forceMinimumStrength) {
+            return;
+          }
+          pullStrength = TRAJECTORY_PULL_STRENGTH_MIN;
+        }
+        var centerGlow = getBlackHoleCenterGlow(ballX, ballY, holeX, holeY);
+        var offsetX = ballX - holeX;
+        var offsetY = ballY - holeY;
+        var distanceSq = offsetX * offsetX + offsetY * offsetY;
+        var innerDepth = 0;
+        var extraLineCount = 0;
+        if (distanceSq >= 0.001) {
+          var distance = Math.sqrt(distanceSq);
+          innerDepth = getBlackHolePullInnerDepth(distance);
+          if (innerDepth > 0.001) {
+            extraLineCount = 1 + Math.floor(innerDepth * 6);
+          }
+        }
+        var totalLineCount = 1;
+        if (innerDepth > 0.001) {
+          totalLineCount = 1 + extraLineCount + 2;
+        }
+        var lineIndex = 0;
+        drawBlackHoleInfluenceLineWorld(
+          ballX,
+          ballY,
+          holeX,
+          holeY,
+          pullStrength,
+          centerGlow,
+          lineIndex,
+          totalLineCount
+        );
+        lineIndex += 1;
+        if (innerDepth <= 0.001) {
+          return;
+        }
+        var sampleIndex;
+        var along;
+        var sampleX;
+        var sampleY;
+        var sampleStrength;
+        var sampleGlow;
+        for (sampleIndex = 1; sampleIndex <= extraLineCount; sampleIndex += 1) {
+          along = sampleIndex / (extraLineCount + 1);
+          sampleX = holeX + offsetX * along;
+          sampleY = holeY + offsetY * along;
+          sampleStrength = getBlackHolePullDisplayStrength(sampleX, sampleY, holePoint);
+          if (sampleStrength < TRAJECTORY_PULL_STRENGTH_MIN) {
+            continue;
+          }
+          sampleGlow = getBlackHoleCenterGlow(sampleX, sampleY, holeX, holeY);
+          drawBlackHoleInfluenceLineWorld(
+            sampleX,
+            sampleY,
+            holeX,
+            holeY,
+            sampleStrength,
+            sampleGlow,
+            lineIndex,
+            totalLineCount
+          );
+          lineIndex += 1;
+        }
+        var distance = Math.sqrt(distanceSq);
+        var perpX = -offsetY / distance;
+        var perpY = offsetX / distance;
+        var lateralSpread = collisionRadius * (0.25 + innerDepth * 0.55);
+        var lateralIndex;
+        var sideSign;
+        for (lateralIndex = -1; lateralIndex <= 1; lateralIndex += 2) {
+          sideSign = lateralIndex;
+          sampleX = ballX + perpX * lateralSpread * sideSign;
+          sampleY = ballY + perpY * lateralSpread * sideSign;
+          sampleStrength = getBlackHolePullDisplayStrength(sampleX, sampleY, holePoint);
+          if (sampleStrength < TRAJECTORY_PULL_STRENGTH_MIN) {
+            continue;
+          }
+          sampleGlow = getBlackHoleCenterGlow(sampleX, sampleY, holeX, holeY);
+          drawBlackHoleInfluenceLineWorld(
+            sampleX,
+            sampleY,
+            holeX,
+            holeY,
+            sampleStrength,
+            sampleGlow,
+            lineIndex,
+            totalLineCount
+          );
+          lineIndex += 1;
+        }
+      }
+
       function drawTrajectoryBlackHoleInfluence(preview) {
         if (!preview) {
           return;
@@ -4260,20 +4832,62 @@
           return;
         }
         var sampleIndex;
+        var holeLineCounts = {};
+        var holeLineIndices = {};
+        for (sampleIndex = 0; sampleIndex < samples.length; sampleIndex += 1) {
+          var countSample = samples[sampleIndex];
+          var holeKey = countSample.holeX + "|" + countSample.holeY;
+          if (!holeLineCounts[holeKey]) {
+            holeLineCounts[holeKey] = 0;
+          }
+          holeLineCounts[holeKey] += 1;
+        }
         ctx.save();
         ctx.lineCap = "round";
         ctx.setLineDash([]);
         for (sampleIndex = 0; sampleIndex < samples.length; sampleIndex += 1) {
           var sample = samples[sampleIndex];
-          var pointScreen = worldToScreen(sample.pointX, sample.pointY);
-          var holeScreen = worldToScreen(sample.holeX, sample.holeY);
-          var pullStrength = sample.strength;
-          ctx.strokeStyle = "rgba(190, 140, 255, " + (0.12 + pullStrength * 0.38) + ")";
-          ctx.lineWidth = Math.max(0.8, 1.1 * cameraZoom);
-          ctx.beginPath();
-          ctx.moveTo(pointScreen.x, pointScreen.y);
-          ctx.lineTo(holeScreen.x, holeScreen.y);
-          ctx.stroke();
+          var sampleHoleKey = sample.holeX + "|" + sample.holeY;
+          if (holeLineIndices[sampleHoleKey] === undefined) {
+            holeLineIndices[sampleHoleKey] = 0;
+          }
+          var sampleGlow = getBlackHoleCenterGlow(sample.pointX, sample.pointY, sample.holeX, sample.holeY);
+          drawBlackHoleInfluenceLineWorld(
+            sample.pointX,
+            sample.pointY,
+            sample.holeX,
+            sample.holeY,
+            sample.strength,
+            sampleGlow,
+            holeLineIndices[sampleHoleKey],
+            holeLineCounts[sampleHoleKey]
+          );
+          holeLineIndices[sampleHoleKey] += 1;
+        }
+        ctx.restore();
+      }
+
+      function drawBallBlackHolePullInfluence() {
+        if (!levelReady) {
+          return;
+        }
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.setLineDash([]);
+        if (holeWarpActive && holeWarpPhase === HOLE_WARP_PHASE_SINK) {
+          drawLiveBlackHolePullInfluence(ballX, ballY, holeWarpTargetX, holeWarpTargetY, true);
+          ctx.restore();
+          return;
+        }
+        if (gameState !== stateRolling || holeWarpActive) {
+          ctx.restore();
+          return;
+        }
+        var displayBall = getBallDisplayPosition();
+        var holeIndex;
+        for (holeIndex = 0; holeIndex < blackHoles.length; holeIndex += 1) {
+          var hole = blackHoles[holeIndex];
+          drawLiveBlackHolePullInfluence(displayBall.x, displayBall.y, hole.x, hole.y, false);
         }
         ctx.restore();
       }
@@ -4310,7 +4924,10 @@
         ctx.arc(pullEndX, pullEndY, 4 + powerRatio * 5, 0, Math.PI * 2);
         ctx.fill();
 
-        var trajectoryPreview = buildTrajectoryPreview(worldMouse.x, worldMouse.y);
+        var trajectoryPreview = cachedAimTrajectoryPreview;
+        if (!trajectoryPreview) {
+          return;
+        }
         drawTrajectoryBlackHoleInfluence(trajectoryPreview);
         drawTrajectoryPreview(trajectoryPreview);
         updateDistanceHud();
@@ -4464,6 +5081,9 @@
         ctx.fill();
 
         var motion = getBallMotionVector();
+        if (gameState === stateRolling && motion && !holeWarpActive) {
+          drawInertiaArrow(screen, motion);
+        }
         var spinSpeed = 0;
         if (motion) {
           spinSpeed = motion.speed;
@@ -4487,10 +5107,6 @@
         ctx.arc(-drawRadius * 0.28, -drawRadius * 0.32, drawRadius * 0.22, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
-
-        if (gameState === stateRolling && motion && !holeWarpActive) {
-          drawInertiaArrow(screen, motion);
-        }
       }
 
       function getStartLineGeometry() {
@@ -4822,6 +5438,7 @@
             terrainViewBounds.bottom
           );
         }
+        cachedAimTrajectoryPreview = getAimTrajectoryPreview();
         drawBlackHoles();
         drawWalls();
         drawStartFinishLineMarkers();
@@ -4829,6 +5446,7 @@
         drawFinishParticles();
         drawAimLine();
         drawCursorPushField();
+        drawBallBlackHolePullInfluence();
         drawBall();
         drawFinishEdgeHint();
       }
