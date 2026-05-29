@@ -396,7 +396,6 @@
     var LOCALE_KEY_METERS_SUFFIX = "web.game.meters-suffix";
     var LOCALE_KEY_SPEED_SUFFIX = "web.game.speed-suffix";
     var METERS_PER_UNIT = 0.12;
-    var MAX_HP = 10;
     var START_HP = 1;
     var HP_DISTANCE_PER_LIFE = 1000;
 
@@ -664,7 +663,7 @@
     }
 
     function updateHerdMilestones() {
-      while (distanceMeters >= hpMilestoneNext && herdHp < MAX_HP) {
+      while (distanceMeters >= hpMilestoneNext) {
         herdHp += 1;
         hpMilestoneNext += HP_DISTANCE_PER_LIFE;
         syncHerdFollowerElements();

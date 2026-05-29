@@ -7,7 +7,7 @@
   var VIEW_GAME = "game";
   var VIEW_LINKS = "links";
 
-  var currentView = VIEW_ART;
+  var currentView = VIEW_GAMES;
   var pendingExternalUrl = "";
   var pendingExternalLabel = "";
   var artViewerOpen = false;
@@ -146,10 +146,13 @@
   }
 
   function refreshScrollbars() {
-    if (!contentRoot) return;
     if (window.WebScrollbarCursor) {
+      if (window.WebScrollbarCursor.scheduleScrollViewScan) {
+        window.WebScrollbarCursor.scheduleScrollViewScan();
+        return;
+      }
       if (window.WebScrollbarCursor.initVerticalScrollViews) {
-        window.WebScrollbarCursor.initVerticalScrollViews(contentRoot);
+        window.WebScrollbarCursor.initVerticalScrollViews(document);
       }
       window.WebScrollbarCursor.refreshAllScrollbars();
     }
@@ -589,7 +592,7 @@
     closeArtViewer();
     if (gameFrame) gameFrame.src = "about:blank";
     renderExtras();
-    showTab(VIEW_ART);
+    showTab(VIEW_GAMES);
   }
 
   if (extrasNav) extrasNav.addEventListener("click", onExtrasNavClick);
@@ -657,7 +660,7 @@
 
   function applyExtrasRoute(routeParts) {
     if (!routeParts || !routeParts.length) {
-      showTab(VIEW_ART);
+      showTab(VIEW_GAMES);
       return;
     }
     var section = normalizeExtrasRouteSection(routeParts[0]);
@@ -683,7 +686,7 @@
       }
       return;
     }
-    showTab(VIEW_ART);
+    showTab(VIEW_GAMES);
   }
 
   window.WebExtras = {

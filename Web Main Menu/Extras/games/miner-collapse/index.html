@@ -74,6 +74,33 @@
       color: #fff4d8;
     }
 
+    #depthHud {
+      position: absolute;
+      left: 12px;
+      top: 10px;
+      z-index: 2;
+      pointer-events: none;
+      text-align: left;
+      font-size: 12px;
+      color: rgba(200, 180, 150, 0.65);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+    }
+
+    #depthHud #depthValue {
+      display: block;
+      font-size: 18px;
+      font-weight: bold;
+      color: #a8d8ff;
+    }
+
+    #depthHud #depthBestValue {
+      display: block;
+      font-size: 14px;
+      font-weight: bold;
+      color: rgba(168, 216, 255, 0.9);
+      margin-top: 2px;
+    }
+
     #scoreValue {
       font-size: 22px;
       font-weight: bold;
@@ -100,7 +127,7 @@
       text-align: center;
     }
 
-    #multiplierHud {
+    #bonusHud {
       font-size: 15px;
       font-weight: bold;
       color: rgba(255, 210, 140, 0.95);
@@ -108,12 +135,12 @@
       text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
     }
 
-    #multiplierBarWrap {
+    #bonusBarWrap {
       width: min(280px, 60vw);
       margin: 0 auto;
     }
 
-    #multiplierBarLabels {
+    #bonusBarLabels {
       display: flex;
       justify-content: space-between;
       font-size: 9px;
@@ -123,14 +150,14 @@
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
     }
 
-    #multiplierBar {
+    #bonusBar {
       height: 4px;
       background: rgba(0, 0, 0, 0.45);
       border-radius: 2px;
       overflow: hidden;
     }
 
-    #multiplierFill {
+    #bonusFill {
       height: 100%;
       width: 0%;
       background: linear-gradient(90deg, #4488ff, #aa44ff, #ff8844);
@@ -140,13 +167,32 @@
 
     #fpsHud {
       position: absolute;
-      left: 10px;
-      top: 10px;
+      right: 12px;
+      bottom: 14px;
+      top: auto;
+      left: auto;
       z-index: 2;
       pointer-events: none;
       font-size: 11px;
       color: rgba(180, 170, 150, 0.55);
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    }
+
+    #oreHud {
+      position: absolute;
+      left: 12px;
+      bottom: 14px;
+      z-index: 2;
+      pointer-events: none;
+      font-size: 11px;
+      color: rgba(180, 170, 150, 0.55);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+      white-space: nowrap;
+    }
+
+    #oreHud #oreValue {
+      color: rgba(255, 244, 216, 0.92);
+      font-weight: bold;
     }
   </style>
 </head>
@@ -154,20 +200,27 @@
 <body>
   <div id="gameRoot">
     <canvas id="gameCanvas"></canvas>
+    <div id="depthHud">
+      <span id="depthLabel">depth</span>
+      <span id="depthValue">0m</span>
+      <span id="depthBestLabel">best</span>
+      <span id="depthBestValue">0m</span>
+    </div>
     <div id="fpsHud">fps <span id="fpsValue">--</span></div>
+    <div id="oreHud">Ore: <span id="oreValue">0/0 (0%)</span></div>
     <div id="hud">
       <div id="scoreValue">0t</div>
     </div>
     <div id="bestHud"><span id="bestLabel">best</span> <span id="bestValue">0t</span></div>
     <div id="bottomHud">
-      <div id="multiplierHud">100%</div>
-      <div id="multiplierBarWrap">
-        <div id="multiplierBarLabels">
-          <span>100%</span>
-          <span>99900%</span>
+      <div id="bonusHud">bonus 1</div>
+      <div id="bonusBarWrap">
+        <div id="bonusBarLabels">
+          <span>bonus 1</span>
+          <span>bonus 999</span>
         </div>
-        <div id="multiplierBar">
-          <div id="multiplierFill"></div>
+        <div id="bonusBar">
+          <div id="bonusFill"></div>
         </div>
       </div>
     </div>
@@ -179,12 +232,19 @@
       var scoreValueEl = document.getElementById("scoreValue");
       var bestValueEl = document.getElementById("bestValue");
       var bestLabelEl = document.getElementById("bestLabel");
-      var multiplierHudEl = document.getElementById("multiplierHud");
-      var multiplierFillEl = document.getElementById("multiplierFill");
+      var depthValueEl = document.getElementById("depthValue");
+      var depthLabelEl = document.getElementById("depthLabel");
+      var depthBestValueEl = document.getElementById("depthBestValue");
+      var depthBestLabelEl = document.getElementById("depthBestLabel");
+      var bonusHudEl = document.getElementById("bonusHud");
+      var bonusFillEl = document.getElementById("bonusFill");
       var fpsValueEl = document.getElementById("fpsValue");
+      var oreValueEl = document.getElementById("oreValue");
 
       var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
+      var LOCALE_KEY_DEPTH_LABEL = "web.game.label.depth";
       var LOCALE_KEY_TONS_SUFFIX = "web.game.tons-suffix";
+      var LOCALE_KEY_METERS_SUFFIX = "web.game.meters-suffix";
 
       var PIXEL = 5;
       var CELL_EMPTY = 0;
@@ -202,14 +262,16 @@
       ];
       var RARITY_SCORE = [8, 22, 55, 140, 380];
       var RARITY_GLOW = [0.35, 0.5, 0.7, 0.9, 1.15];
-      var RARITY_SPEED_GAIN = [0.012, 0.034, 0.088, 0.21, 0.52];
-      var RARITY_POWER_GAIN = [0.003, 0.006, 0.011, 0.019, 0.032];
+      var RARITY_SPEED_GAIN = [1.2, 3.4, 8.8, 21, 52];
+      var RARITY_POWER_GAIN = [0.3, 0.6, 1.1, 1.9, 3.2];
       var RARITY_PIXEL_MIN = [92, 158, 268, 435, 700];
       var RARITY_PIXEL_MAX = [230, 390, 660, 1050, 1650];
       var VEIN_ATTEMPTS_PER_CHUNK = 3;
       var VEIN_ATTEMPT_CHANCE = 0.125;
       var VEIN_DEPTH_CHANCE = 0.0006;
       var VEIN_PATTERN_COUNT = 6;
+      var VEIN_THICKNESS_MIN = 2;
+      var VEIN_THICKNESS_MAX = 5;
       var GOLDEN_ANGLE = 2.399963229728653;
       var GROW_DIRECTIONS = [
         [1, 0],
@@ -222,21 +284,36 @@
         [-1, -1]
       ];
 
-      var BASE_GROWTH_SPEED = 42;
-      var MIN_COLLAPSE_RADIUS = 18;
-      var MULTIPLIER_DECAY_PERCENT = 0.09;
-      var MAX_SPEED_MULTIPLIER = 999;
+      var BASE_GROWTH_SPEED = 28;
+      var MIN_DIG_RADIUS = 14;
+      var MIN_MAX_HOLE_RADIUS = 18;
+      var BONUS_DECAY_PERCENT = 0.16;
+      var BONUS_OVERFLOW_DECAY = 14;
+      var MAX_BONUS = 999;
       var CHUNK_ROWS = 48;
       var PRUNE_KEEP_ROWS_ABOVE_CAMERA = 48;
       var PRUNE_MIN_GRID_ROWS = 192;
       var BURN_DECAY = 1.8;
+      var BURN_SPREAD_MIN_HEAT = 0.28;
+      var BURN_COLLAPSE_SPREAD_DELAY = 0.07;
+      var BURN_DIRT_PASS_HEAT_MULT = 0.94;
+      var BURN_DIAGONAL_PASS_HEAT_MULT = 0.91;
+      var BURN_ORE_REFRESH_HEAT = 1;
+      var BURN_TUNNEL_MAX_WALL = 2;
+      var MAX_BURN_SPREAD_PER_FRAME = 80;
+      var BURN_SPREAD_QUEUE_SIZE = 160;
       var PARTICLE_MERGE_AFTER = 0.14;
       var PARTICLE_MERGE_DIST = 16;
-      var PARTICLE_MERGE_DIST_SCORE = 22;
       var SCORE_ARRIVE_DIST = 14;
-      var SCORE_PARTICLE_TRAVEL_TIME = 0.5;
+      var BONUS_ARRIVE_DIST = 14;
+      var BONUS_FLY_SPEED = 340;
+      var SCORE_PARTICLE_TRAVEL_TIME = 0.95;
+      var SCORE_PARTICLE_MAX_AGE = 1.35;
+      var SCORE_PARTICLE_SPAWN_SPREAD = 38;
+      var MAX_SCORE_PARTICLES = 120;
       var CRYSTAL_GLOSS_SPEED = 2;
       var BEST_SCORE_STORAGE_KEY = "miner-collapse-best-score";
+      var BEST_DEPTH_STORAGE_KEY = "miner-collapse-best-depth";
       var MAX_DIRT_PARTICLES = 90;
       var MAX_SCORE_PARTICLES_FROM_CLUSTER = 20;
       var MAX_DIRTY_CELLS_PER_COLLAPSE = 14000;
@@ -247,6 +324,7 @@
       var SKY_HORIZON = [255, 168, 88];
       var SUN_CORE = [255, 228, 140];
       var SUN_GLOW = [255, 140, 60];
+      var SUN_DESTROY_DURATION = 2.6;
 
       var surfaceRowByCol = null;
       var gridCols = 0;
@@ -265,7 +343,7 @@
       var targetCameraY = 0;
       var deepestRow = 0;
       var gridRowBase = 0;
-      var seed = 90210;
+      var seed = 1;
 
       var pointerX = 0;
       var pointerY = 0;
@@ -277,9 +355,21 @@
 
       var score = 0;
       var bestScore = 0;
-      var growthBoost = 1;
+      var sessionMaxDepth = 0;
+      var bestDepth = 0;
+      var bonus = 1;
+      var oreUnitsCollected = 0;
+      var oreUnitsDespawned = 0;
 
       var burns = [];
+      var burnSpreadQueueCol = null;
+      var burnSpreadQueueRow = null;
+      var burnSpreadQueueHeat = null;
+      var burnSpreadQueueRed = null;
+      var burnSpreadQueueGreen = null;
+      var burnSpreadQueueBlue = null;
+      var tunnelPathCol = null;
+      var tunnelPathRow = null;
       var particles = [];
       var floatingLabels = [];
       var collapseRings = [];
@@ -290,6 +380,9 @@
       var glossPhase = 0;
       var fpsSampleTime = 0;
       var fpsSampleFrames = 0;
+      var worldReady = false;
+      var viewportCommitTimer = null;
+      var VIEWPORT_COMMIT_DELAY_MS = 200;
       var staticBgCanvas = null;
       var staticBgCtx = null;
       var worldLayerCanvas = null;
@@ -310,6 +403,10 @@
 
       function randRange(min, max) {
         return min + rand() * (max - min);
+      }
+
+      function setRandomWorldSeed() {
+        seed = 1 + Math.floor(Math.random() * 2147483646);
       }
 
       function hashNoise(x, y) {
@@ -392,18 +489,99 @@
         return CELL_DIRT;
       }
 
-      function resize() {
-        var width = window.innerWidth;
-        var height = window.innerHeight;
+      function resizeCanvas(width, height) {
         var dpr = window.devicePixelRatio || 1;
         canvas.width = Math.floor(width * dpr);
         canvas.height = Math.floor(height * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
 
-        gridCols = Math.ceil(width / PIXEL) + 2;
+      function getViewportGridCols(width) {
+        return Math.ceil(width / PIXEL) + 2;
+      }
+
+      function expandGridColsIfNeeded(neededCols) {
+        var oldCols;
+        var col;
+        var row;
+        var index;
+        var oldIndex;
+        var surfaceRow;
+        var newCells;
+        var newShade;
+        var newClusterIds;
+        if (neededCols <= gridCols) {
+          return;
+        }
+        oldCols = gridCols;
+        newCells = new Uint8Array(neededCols * gridRows);
+        newShade = new Uint8Array(neededCols * gridRows);
+        newClusterIds = new Uint16Array(neededCols * gridRows);
+        for (row = 0; row < gridRows; row += 1) {
+          for (col = 0; col < oldCols; col += 1) {
+            oldIndex = row * oldCols + col;
+            index = row * neededCols + col;
+            newCells[index] = cells[oldIndex];
+            newShade[index] = dirtShade[oldIndex];
+            newClusterIds[index] = crystalClusterId[oldIndex];
+          }
+        }
+        cells = newCells;
+        dirtShade = newShade;
+        crystalClusterId = newClusterIds;
+        gridCols = neededCols;
+        buildSurfaceRows();
+        crystalMarksBuffer = new Uint8Array(gridCols * gridRows);
+        ensureGridWorkBuffers();
+        for (col = oldCols; col < gridCols; col += 1) {
+          for (row = 0; row < gridRows; row += 1) {
+            surfaceRow = getSurfaceRow(col);
+            index = cellIndex(col, row);
+            crystalClusterId[index] = 0;
+            if (row < surfaceRow) {
+              cells[index] = CELL_EMPTY;
+              dirtShade[index] = 0;
+            } else {
+              setDirtCell(col, row, true);
+            }
+          }
+        }
+        ensureWorldLayerCanvas();
+        rebuildWorldLayer();
+      }
+
+      function commitViewportSize() {
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+        var neededCols;
+        viewportCommitTimer = null;
+        resizeCanvas(width, height);
         baseMaxHoleRadius = Math.min(width, height) * 0.5;
         rebuildStaticBackground(width, height);
-        initWorld();
+        neededCols = getViewportGridCols(width);
+        if (!worldReady) {
+          gridCols = neededCols;
+          initWorld();
+          worldReady = true;
+          return;
+        }
+        expandGridColsIfNeeded(neededCols);
+        sunWorldX = width * 0.68;
+      }
+
+      function scheduleViewportCommit() {
+        if (viewportCommitTimer !== null) {
+          clearTimeout(viewportCommitTimer);
+        }
+        viewportCommitTimer = setTimeout(commitViewportSize, VIEWPORT_COMMIT_DELAY_MS);
+      }
+
+      function flushViewportCommit() {
+        if (viewportCommitTimer === null) {
+          return;
+        }
+        clearTimeout(viewportCommitTimer);
+        commitViewportSize();
       }
 
       function rebuildStaticBackground(width, height) {
@@ -501,20 +679,39 @@
         }
       }
 
-      function getMaxHoleRadius() {
-        var mult = getSpeedMultiplier();
-        var scale = Math.log(Math.max(1, mult)) / Math.log(MAX_SPEED_MULTIPLIER);
+      function getBonusScaleT(bonusValue) {
+        var scale = (bonusValue - 1) / (MAX_BONUS - 1);
         if (scale < 0) {
           scale = 0;
         }
         if (scale > 1) {
           scale = 1;
         }
-        return baseMaxHoleRadius * (0.35 + scale * 0.65);
+        return scale;
       }
 
-      function getMultiplierCapPercent() {
-        return MAX_SPEED_MULTIPLIER * 100;
+      function getStartHoleRadius() {
+        return MIN_DIG_RADIUS;
+      }
+
+      function getMinHoleRadius() {
+        return MIN_MAX_HOLE_RADIUS;
+      }
+
+      function canDigAtCurrentHoleSize() {
+        return holeRadius >= MIN_DIG_RADIUS;
+      }
+
+      function getMaxHoleRadius() {
+        var scale = getBonusScaleT(getBonus());
+        var minRadius = getMinHoleRadius();
+        var maxRadius = baseMaxHoleRadius * 0.5;
+        return minRadius + (maxRadius - minRadius) * scale;
+      }
+
+      function getHoleGrowthSpeed() {
+        var bonusScale = getBonusScaleT(getBonus());
+        return BASE_GROWTH_SPEED * (1 + bonusScale * 5);
       }
 
       function paintWorldCell(col, row) {
@@ -594,6 +791,7 @@
       }
 
       function initWorld() {
+        setRandomWorldSeed();
         var width = window.innerWidth;
         var height = window.innerHeight;
         horizonWorldY = height * 0.5;
@@ -634,6 +832,7 @@
         generateChunkBelow();
         spawnSurfaceCrystalPlants();
         rebuildWorldLayer();
+        beginHoleGrowCycle();
       }
 
       function placeSurfaceCrystal(col, row, cellType, clusterId) {
@@ -743,22 +942,51 @@
         return 22;
       }
 
-      function getSpeedMultiplier() {
-        if (growthBoost > MAX_SPEED_MULTIPLIER) {
-          return MAX_SPEED_MULTIPLIER;
-        }
-        return growthBoost;
+      function getBonusTargetX() {
+        return window.innerWidth * 0.5;
       }
 
-      function getMultiplierBarFillPercent(mult) {
-        var scale = Math.log(Math.max(1, mult)) / Math.log(MAX_SPEED_MULTIPLIER);
-        if (scale < 0) {
-          scale = 0;
+      function getBonusTargetY() {
+        if (bonusHudEl) {
+          var rect = bonusHudEl.getBoundingClientRect();
+          return rect.top + rect.height * 0.5;
         }
-        if (scale > 1) {
-          scale = 1;
+        return window.innerHeight - 42;
+      }
+
+      function getBonus() {
+        if (bonus > MAX_BONUS) {
+          return MAX_BONUS;
         }
-        return scale * 100;
+        if (bonus < 1) {
+          return 1;
+        }
+        return bonus;
+      }
+
+      function getBonusBarFillPercent(bonusValue) {
+        return getBonusScaleT(getBonus()) * 100;
+      }
+
+      function decayBonus(dt) {
+        var excess;
+        var decayFactor;
+        var logExcess;
+        var shrink;
+        if (bonus > MAX_BONUS) {
+          excess = bonus - MAX_BONUS;
+          logExcess = Math.log(1 + excess);
+          shrink = Math.exp(-BONUS_OVERFLOW_DECAY * dt * logExcess / 20);
+          excess = excess * shrink;
+          if (excess < 0.5) {
+            bonus = MAX_BONUS;
+          } else {
+            bonus = MAX_BONUS + excess;
+          }
+          return;
+        }
+        decayFactor = Math.pow(1 - BONUS_DECAY_PERCENT, dt);
+        bonus = Math.max(1, bonus * decayFactor);
       }
 
       function getCrystalSpeedBoostGain(crystal) {
@@ -794,9 +1022,18 @@
         if (bestLabelEl) {
           bestLabelEl.textContent = getLocalized(LOCALE_KEY_BEST_LABEL, "best");
         }
+        if (depthLabelEl) {
+          depthLabelEl.textContent = getLocalized(LOCALE_KEY_DEPTH_LABEL, "depth");
+        }
+        if (depthBestLabelEl) {
+          depthBestLabelEl.textContent = getLocalized(LOCALE_KEY_BEST_LABEL, "best");
+        }
         updateHudDisplay();
         if (bestScore > 0) {
           bestValueEl.textContent = formatScoreTons(bestScore);
+        }
+        if (bestDepth > 0) {
+          depthBestValueEl.textContent = formatDepth(bestDepth);
         }
       }
 
@@ -812,40 +1049,93 @@
         return String(Math.round(value)) + getLocalized(LOCALE_KEY_TONS_SUFFIX, "t");
       }
 
+      function formatDepth(value) {
+        return String(Math.round(value)) + getLocalized(LOCALE_KEY_METERS_SUFFIX, "m");
+      }
+
+      function getHoleDepth() {
+        var worldRow = Math.floor(holeY / PIXEL);
+        var depth = worldRow - horizonRow;
+        if (depth < 0) {
+          depth = 0;
+        }
+        return depth;
+      }
+
+      function updateSessionDepth() {
+        var depth = getHoleDepth();
+        if (depth > sessionMaxDepth) {
+          sessionMaxDepth = depth;
+          setBestDepthIfHigher(sessionMaxDepth);
+        }
+      }
+
       function formatScoreGainLabel(earned) {
         return "+" + formatScoreTons(earned);
       }
 
-      function formatMultiplierPercent(mult) {
-        var percent = mult * 100;
-        if (percent >= getMultiplierCapPercent() - 0.05) {
-          return "99900%";
+      function formatBonus(bonusValue) {
+        var value = bonusValue;
+        if (value < 1) {
+          value = 1;
         }
-        if (percent >= 1000) {
-          return Math.floor(percent) + "%";
+        if (value >= 1000000) {
+          return "bonus " + (value / 1000000).toFixed(1) + "m";
         }
-        if (percent >= 100) {
-          return percent.toFixed(0) + "%";
+        if (value >= 1000) {
+          return "bonus " + (value / 1000).toFixed(1) + "k";
         }
-        return percent.toFixed(1) + "%";
+        if (value >= 100) {
+          return "bonus " + String(Math.floor(value));
+        }
+        return "bonus " + value.toFixed(1);
       }
 
-      function formatBoostGainPercentLabel(gain) {
-        var percent = gain * 100;
-        if (percent >= 100) {
-          return "+" + percent.toFixed(0) + "%";
+      function formatBoostGainLabel(gain) {
+        if (gain >= 100) {
+          return "+" + gain.toFixed(0);
         }
-        if (percent >= 10) {
-          return "+" + percent.toFixed(1) + "%";
+        if (gain >= 10) {
+          return "+" + gain.toFixed(1);
         }
-        return "+" + percent.toFixed(2) + "%";
+        if (gain >= 1) {
+          return "+" + gain.toFixed(1);
+        }
+        return "+" + gain.toFixed(2);
+      }
+
+      function formatOrePercent(collected, resolved) {
+        if (resolved <= 0) {
+          return 0;
+        }
+        return Math.floor(collected * 100 / resolved);
+      }
+
+      function formatOreHud() {
+        var resolved = oreUnitsCollected + oreUnitsDespawned;
+        var percent = formatOrePercent(oreUnitsCollected, resolved);
+        return String(oreUnitsCollected) + "/" + String(resolved) + " (" + String(percent) + "%)";
+      }
+
+      function registerOreUnitsCollected(count) {
+        if (count > 0) {
+          oreUnitsCollected += count;
+        }
+      }
+
+      function registerOreUnitsDespawned(count) {
+        if (count > 0) {
+          oreUnitsDespawned += count;
+        }
       }
 
       function updateHudDisplay() {
-        var mult = getSpeedMultiplier();
         scoreValueEl.textContent = formatScoreTons(score);
-        multiplierHudEl.textContent = formatMultiplierPercent(mult);
-        multiplierFillEl.style.width = String(getMultiplierBarFillPercent(mult)) + "%";
+        depthValueEl.textContent = formatDepth(sessionMaxDepth);
+        depthBestValueEl.textContent = formatDepth(bestDepth);
+        bonusHudEl.textContent = formatBonus(bonus);
+        bonusFillEl.style.width = String(getBonusBarFillPercent(bonus)) + "%";
+        oreValueEl.textContent = formatOreHud();
       }
 
       function loadBestScore() {
@@ -873,6 +1163,31 @@
         }
       }
 
+      function loadBestDepth() {
+        var stored = localStorage.getItem(BEST_DEPTH_STORAGE_KEY);
+        var parsed;
+        if (stored === null) {
+          return 0;
+        }
+        parsed = parseInt(stored, 10);
+        if (isNaN(parsed) || parsed < 0) {
+          return 0;
+        }
+        return parsed;
+      }
+
+      function saveBestDepth() {
+        localStorage.setItem(BEST_DEPTH_STORAGE_KEY, String(bestDepth));
+      }
+
+      function setBestDepthIfHigher(value) {
+        if (value > bestDepth) {
+          bestDepth = value;
+          depthBestValueEl.textContent = formatDepth(bestDepth);
+          saveBestDepth();
+        }
+      }
+
       function pushImplodeRing(worldX, worldY, startRadius, life, red, green, blue) {
         collapseRings.push({
           worldX: worldX,
@@ -897,14 +1212,17 @@
         if (!hasBoost && !hasScore) {
           return;
         }
-        intensity = Math.min(1, totalGain / 3 + totalScoreEarned / 1200);
+        intensity = Math.min(1, totalGain / 80 + totalScoreEarned / 1200);
         fontSize = Math.floor(16 + intensity * 26);
         if (hasBoost) {
+          var boostScreen = worldToScreen(worldX, worldY);
           floatingLabels.push({
-            worldX: worldX,
-            worldY: worldY,
-            screenOffsetY: -18,
-            text: formatBoostGainPercentLabel(totalGain),
+            homesToBonus: true,
+            x: boostScreen.x,
+            y: boostScreen.y - 18,
+            targetX: getBonusTargetX(),
+            targetY: getBonusTargetY(),
+            text: formatBoostGainLabel(totalGain),
             life: 1.2 + intensity * 0.8,
             maxLife: 1.2 + intensity * 0.8,
             red: 80 + Math.floor(intensity * 140),
@@ -943,9 +1261,12 @@
 
       function spawnBoostLabel(screenX, screenY, gain, red, green, blue) {
         floatingLabels.push({
+          homesToBonus: true,
           x: screenX + (rand() - 0.5) * 24,
           y: screenY - 8,
-          text: formatBoostGainPercentLabel(gain),
+          targetX: getBonusTargetX(),
+          targetY: getBonusTargetY(),
+          text: formatBoostGainLabel(gain),
           life: 1.15,
           maxLife: 1.15,
           red: red,
@@ -956,7 +1277,7 @@
 
       function addCrystalSpeedBoost(crystal) {
         var gain = getCrystalSpeedBoostGain(crystal);
-        growthBoost += gain;
+        bonus += gain;
         return gain;
       }
 
@@ -1004,6 +1325,17 @@
             crystalMarksBuffer[index] = 0;
           }
         }
+      }
+
+      function clearAllCrystalMarks() {
+        var cellCount;
+        ensureGridWorkBuffers();
+        cellCount = gridCols * gridRows;
+        if (!crystalMarksBuffer || crystalMarksBuffer.length !== cellCount) {
+          crystalMarksBuffer = new Uint8Array(cellCount);
+          return;
+        }
+        crystalMarksBuffer.fill(0);
       }
 
       function markDirtyPaintCell(col, row, dirtyCount) {
@@ -1141,6 +1473,9 @@
         var lineErrorDouble;
         var thicknessPass;
         var thicknessLimit;
+        var veinThickness;
+        var expandFromCount;
+        var dirIndex;
         var angle;
         var growth;
         var step;
@@ -1176,7 +1511,6 @@
         var juliaConstantImag;
         var thicknessIndex;
         var basePoint;
-        var directionIndex;
         var direction;
         var neighborCol;
         var neighborRow;
@@ -1347,16 +1681,17 @@
           connectCurvePath();
         }
 
-        thicknessLimit = targetPixels + Math.floor(targetPixels * 0.62);
-        for (thicknessPass = 0; thicknessPass < 2; thicknessPass += 1) {
+        veinThickness = VEIN_THICKNESS_MIN + Math.floor(rand() * (VEIN_THICKNESS_MAX - VEIN_THICKNESS_MIN + 1));
+        thicknessLimit = targetPixels + Math.floor(targetPixels * veinThickness * 0.45);
+        for (thicknessPass = 0; thicknessPass < veinThickness - 1; thicknessPass += 1) {
+          expandFromCount = points.length;
           thicknessIndex = 0;
-          while (thicknessIndex < points.length && pointCount < thicknessLimit) {
+          while (thicknessIndex < expandFromCount && pointCount < thicknessLimit) {
             basePoint = points[thicknessIndex];
-            directionIndex = Math.floor(rand() * GROW_DIRECTIONS.length);
-            direction = GROW_DIRECTIONS[directionIndex];
-            neighborCol = basePoint.col + direction[0];
-            neighborRow = basePoint.row + direction[1];
-            if (rand() < 0.56) {
+            for (dirIndex = 0; dirIndex < GROW_DIRECTIONS.length; dirIndex += 1) {
+              direction = GROW_DIRECTIONS[dirIndex];
+              neighborCol = basePoint.col + direction[0];
+              neighborRow = basePoint.row + direction[1];
               addPoint(neighborCol, neighborRow);
             }
             thicknessIndex += 1;
@@ -1466,6 +1801,9 @@
         var destIndex;
         var burnIndex;
         var pixelShiftY;
+        var pruneCol;
+        var pruneRow;
+        var pruneIndex;
 
         if (gridRowToKeepMin < CHUNK_ROWS) {
           return;
@@ -1476,6 +1814,15 @@
         }
         if (gridRows - removeRows < PRUNE_MIN_GRID_ROWS) {
           return;
+        }
+
+        for (pruneRow = 0; pruneRow < removeRows; pruneRow += 1) {
+          for (pruneCol = 0; pruneCol < gridCols; pruneCol += 1) {
+            pruneIndex = pruneRow * gridCols + pruneCol;
+            if (isCrystalCell(cells[pruneIndex])) {
+              registerOreUnitsDespawned(1);
+            }
+          }
         }
 
         newRows = gridRows - removeRows;
@@ -1498,6 +1845,7 @@
         gridRowBase += removeRows;
         pixelShiftY = removeRows * PIXEL;
         deepestRow = gridRows - 1;
+        crystalMarksBuffer = new Uint8Array(gridCols * gridRows);
 
         for (burnIndex = burns.length - 1; burnIndex >= 0; burnIndex -= 1) {
           burns[burnIndex].row -= removeRows;
@@ -1548,15 +1896,371 @@
         holeY = world.y;
       }
 
-      function addBurn(col, row, heat, red, green, blue) {
+      function ensureBurnSpreadQueue() {
+        if (!burnSpreadQueueCol || burnSpreadQueueCol.length < BURN_SPREAD_QUEUE_SIZE) {
+          burnSpreadQueueCol = new Int16Array(BURN_SPREAD_QUEUE_SIZE);
+          burnSpreadQueueRow = new Int16Array(BURN_SPREAD_QUEUE_SIZE);
+          burnSpreadQueueHeat = new Float32Array(BURN_SPREAD_QUEUE_SIZE);
+          burnSpreadQueueRed = new Uint8Array(BURN_SPREAD_QUEUE_SIZE);
+          burnSpreadQueueGreen = new Uint8Array(BURN_SPREAD_QUEUE_SIZE);
+          burnSpreadQueueBlue = new Uint8Array(BURN_SPREAD_QUEUE_SIZE);
+        }
+      }
+
+      function addBurn(col, row, heat, red, green, blue, spreadDelay) {
         burns.push({
           col: col,
           row: row,
           heat: heat,
           red: red,
           green: green,
-          blue: blue
+          blue: blue,
+          spreadDelay: spreadDelay || 0
         });
+      }
+
+      function addBurnOrRefresh(col, row, heat, red, green, blue) {
+        var burnIndex;
+        var burn;
+        for (burnIndex = 0; burnIndex < burns.length; burnIndex += 1) {
+          burn = burns[burnIndex];
+          if (burn.col === col && burn.row === row) {
+            if (heat > burn.heat) {
+              burn.heat = heat;
+            }
+            return;
+          }
+        }
+        addBurn(col, row, heat, red, green, blue, 0);
+      }
+
+      function canBurnSpreadDiagonal(burnCol, burnRow, dirCol, dirRow) {
+        var sideCol;
+        var sideRow;
+        var sideIndex;
+        sideCol = burnCol + dirCol;
+        sideRow = burnRow;
+        if (sideCol < 0 || sideCol >= gridCols || sideRow < 0 || sideRow >= gridRows) {
+          return false;
+        }
+        sideIndex = cellIndex(sideCol, sideRow);
+        if (cells[sideIndex] !== CELL_EMPTY) {
+          return false;
+        }
+        sideCol = burnCol;
+        sideRow = burnRow + dirRow;
+        if (sideCol < 0 || sideCol >= gridCols || sideRow < 0 || sideRow >= gridRows) {
+          return false;
+        }
+        sideIndex = cellIndex(sideCol, sideRow);
+        if (cells[sideIndex] !== CELL_EMPTY) {
+          return false;
+        }
+        return true;
+      }
+
+      function ensureTunnelPathBuffers() {
+        if (!tunnelPathCol || tunnelPathCol.length < BURN_TUNNEL_MAX_WALL + 1) {
+          tunnelPathCol = new Int16Array(BURN_TUNNEL_MAX_WALL + 1);
+          tunnelPathRow = new Int16Array(BURN_TUNNEL_MAX_WALL + 1);
+        }
+      }
+
+      function trySpreadBurnThroughWall(burnCol, burnRow, dirCol, dirRow, isDiagonal, burnHeat, burnRed, burnGreen, burnBlue, spreadSeen, dirtyCount) {
+        var step;
+        var scanCol;
+        var scanRow;
+        var index;
+        var cell;
+        var wallCount;
+        var maxWall;
+        var pathCount;
+        var pathIndex;
+        var spreadKey;
+        var spreadHeat;
+        var pathCol;
+        var pathRow;
+        var rarity;
+        var clusterPickup;
+        var collectResult;
+        var cellsSpread;
+        var totalBoostGain;
+        var totalScoreEarned;
+        var effectSumX;
+        var effectSumY;
+        var effectWeight;
+        var endCol;
+        var endRow;
+        var endHeat;
+
+        cellsSpread = 0;
+        totalBoostGain = 0;
+        totalScoreEarned = 0;
+        effectSumX = 0;
+        effectSumY = 0;
+        effectWeight = 0;
+        endCol = burnCol;
+        endRow = burnRow;
+        endHeat = burnHeat;
+        maxWall = isDiagonal ? 1 : BURN_TUNNEL_MAX_WALL;
+        if (isDiagonal && !canBurnSpreadDiagonal(burnCol, burnRow, dirCol, dirRow)) {
+          return null;
+        }
+        ensureTunnelPathBuffers();
+        wallCount = 0;
+        pathCount = 0;
+        scanCol = burnCol + dirCol;
+        scanRow = burnRow + dirRow;
+        for (step = 1; step <= maxWall + 1; step += 1) {
+          if (scanCol < 0 || scanCol >= gridCols || scanRow < 0 || scanRow >= gridRows) {
+            return null;
+          }
+          if (isDiagonal && step > 1 && !canBurnSpreadDiagonal(scanCol - dirCol, scanRow - dirRow, dirCol, dirRow)) {
+            return null;
+          }
+          spreadKey = scanCol * 4099 + scanRow;
+          if (spreadSeen[spreadKey]) {
+            return null;
+          }
+          index = cellIndex(scanCol, scanRow);
+          cell = cells[index];
+          if (cell === CELL_EMPTY) {
+            return null;
+          }
+          if (isCrystalCell(cell)) {
+            spreadHeat = burnHeat;
+            for (pathIndex = 0; pathIndex < pathCount; pathIndex += 1) {
+              pathCol = tunnelPathCol[pathIndex];
+              pathRow = tunnelPathRow[pathIndex];
+              if (isDiagonal) {
+                spreadHeat = spreadHeat * BURN_DIAGONAL_PASS_HEAT_MULT;
+              } else {
+                spreadHeat = spreadHeat * BURN_DIRT_PASS_HEAT_MULT;
+              }
+              spreadKey = pathCol * 4099 + pathRow;
+              spreadSeen[spreadKey] = 1;
+              index = cellIndex(pathCol, pathRow);
+              cells[index] = CELL_EMPTY;
+              crystalClusterId[index] = 0;
+              dirtyCount = markDirtyPaintCell(pathCol, pathRow, dirtyCount);
+              addBurnOrRefresh(pathCol, pathRow, spreadHeat, burnRed, burnGreen, burnBlue);
+              cellsSpread += 1;
+            }
+            spreadKey = scanCol * 4099 + scanRow;
+            spreadSeen[spreadKey] = 1;
+            rarity = cell - CELL_CRYSTAL_BASE;
+            clusterPickup = collectCrystalCluster(scanCol, scanRow, rarity, crystalMarksBuffer, dirtyCount);
+            dirtyCount = clusterPickup.dirtyCount;
+            if (clusterPickup.pixelCount > 0) {
+              collectResult = collectCrystal(clusterPickup);
+              totalBoostGain = collectResult.boostGain;
+              totalScoreEarned = collectResult.earned;
+            }
+            effectSumX = clusterPickup.worldX * clusterPickup.pixelCount;
+            effectSumY = clusterPickup.worldY * clusterPickup.pixelCount;
+            effectWeight = clusterPickup.pixelCount;
+            endCol = scanCol;
+            endRow = scanRow;
+            endHeat = BURN_ORE_REFRESH_HEAT;
+            addBurnOrRefresh(scanCol, scanRow, endHeat, burnRed, burnGreen, burnBlue);
+            cellsSpread += 1;
+            return {
+              cellsSpread: cellsSpread,
+              dirtyCount: dirtyCount,
+              boostGain: totalBoostGain,
+              scoreEarned: totalScoreEarned,
+              effectSumX: effectSumX,
+              effectSumY: effectSumY,
+              effectWeight: effectWeight,
+              endCol: endCol,
+              endRow: endRow,
+              endHeat: endHeat
+            };
+          }
+          if (wallCount >= maxWall) {
+            return null;
+          }
+          tunnelPathCol[pathCount] = scanCol;
+          tunnelPathRow[pathCount] = scanRow;
+          pathCount += 1;
+          wallCount += 1;
+          scanCol += dirCol;
+          scanRow += dirRow;
+        }
+        return null;
+      }
+
+      function enqueueBurnSpread(col, row, heat, red, green, blue, queueCount) {
+        if (queueCount >= BURN_SPREAD_QUEUE_SIZE) {
+          return queueCount;
+        }
+        burnSpreadQueueCol[queueCount] = col;
+        burnSpreadQueueRow[queueCount] = row;
+        burnSpreadQueueHeat[queueCount] = heat;
+        burnSpreadQueueRed[queueCount] = red;
+        burnSpreadQueueGreen[queueCount] = green;
+        burnSpreadQueueBlue[queueCount] = blue;
+        return queueCount + 1;
+      }
+
+      function processBurnChainReaction() {
+        var spreadCount = 0;
+        var burnIndex;
+        var burn;
+        var queueIndex;
+        var queueCount;
+        var burnCol;
+        var burnRow;
+        var burnHeat;
+        var burnRed;
+        var burnGreen;
+        var burnBlue;
+        var directionIndex;
+        var direction;
+        var neighborCol;
+        var neighborRow;
+        var index;
+        var cell;
+        var rarity;
+        var clusterPickup;
+        var collectResult;
+        var totalBoostGain = 0;
+        var totalScoreEarned = 0;
+        var effectSumX = 0;
+        var effectSumY = 0;
+        var effectWeight = 0;
+        var spreadHeat;
+        var dirtyCount = 0;
+        var spreadKey;
+        var spreadSeen = {};
+        var isDiagonal;
+        var tunnelResult;
+        if (burns.length === 0) {
+          return;
+        }
+        ensureGridWorkBuffers();
+        clearAllCrystalMarks();
+        ensureBurnSpreadQueue();
+        queueCount = 0;
+        for (burnIndex = 0; burnIndex < burns.length; burnIndex += 1) {
+          burn = burns[burnIndex];
+          if (burn.heat < BURN_SPREAD_MIN_HEAT || burn.spreadDelay > 0) {
+            continue;
+          }
+          queueCount = enqueueBurnSpread(burn.col, burn.row, burn.heat, burn.red, burn.green, burn.blue, queueCount);
+        }
+        queueIndex = 0;
+        while (queueIndex < queueCount && spreadCount < MAX_BURN_SPREAD_PER_FRAME) {
+          burnCol = burnSpreadQueueCol[queueIndex];
+          burnRow = burnSpreadQueueRow[queueIndex];
+          burnHeat = burnSpreadQueueHeat[queueIndex];
+          burnRed = burnSpreadQueueRed[queueIndex];
+          burnGreen = burnSpreadQueueGreen[queueIndex];
+          burnBlue = burnSpreadQueueBlue[queueIndex];
+          queueIndex += 1;
+          if (burnHeat < BURN_SPREAD_MIN_HEAT) {
+            continue;
+          }
+          for (directionIndex = 0; directionIndex < GROW_DIRECTIONS.length; directionIndex += 1) {
+            if (spreadCount >= MAX_BURN_SPREAD_PER_FRAME) {
+              break;
+            }
+            direction = GROW_DIRECTIONS[directionIndex];
+            isDiagonal = directionIndex >= 4;
+            tunnelResult = trySpreadBurnThroughWall(
+              burnCol,
+              burnRow,
+              direction[0],
+              direction[1],
+              isDiagonal,
+              burnHeat,
+              burnRed,
+              burnGreen,
+              burnBlue,
+              spreadSeen,
+              dirtyCount
+            );
+            if (tunnelResult !== null) {
+              dirtyCount = tunnelResult.dirtyCount;
+              totalBoostGain += tunnelResult.boostGain;
+              totalScoreEarned += tunnelResult.scoreEarned;
+              effectSumX += tunnelResult.effectSumX;
+              effectSumY += tunnelResult.effectSumY;
+              effectWeight += tunnelResult.effectWeight;
+              queueCount = enqueueBurnSpread(
+                tunnelResult.endCol,
+                tunnelResult.endRow,
+                tunnelResult.endHeat,
+                burnRed,
+                burnGreen,
+                burnBlue,
+                queueCount
+              );
+              spreadCount += tunnelResult.cellsSpread;
+              continue;
+            }
+            if (isDiagonal && !canBurnSpreadDiagonal(burnCol, burnRow, direction[0], direction[1])) {
+              continue;
+            }
+            neighborCol = burnCol + direction[0];
+            neighborRow = burnRow + direction[1];
+            if (neighborCol < 0 || neighborCol >= gridCols || neighborRow < 0 || neighborRow >= gridRows) {
+              continue;
+            }
+            spreadKey = neighborCol * 4099 + neighborRow;
+            if (spreadSeen[spreadKey]) {
+              continue;
+            }
+            index = cellIndex(neighborCol, neighborRow);
+            cell = cells[index];
+            if (cell === CELL_EMPTY) {
+              continue;
+            }
+            spreadSeen[spreadKey] = 1;
+            if (isCrystalCell(cell)) {
+              spreadHeat = BURN_ORE_REFRESH_HEAT;
+              rarity = cell - CELL_CRYSTAL_BASE;
+              clusterPickup = collectCrystalCluster(neighborCol, neighborRow, rarity, crystalMarksBuffer, dirtyCount);
+              dirtyCount = clusterPickup.dirtyCount;
+              if (clusterPickup.pixelCount > 0) {
+                collectResult = collectCrystal(clusterPickup);
+                totalBoostGain += collectResult.boostGain;
+                totalScoreEarned += collectResult.earned;
+                effectSumX += clusterPickup.worldX * clusterPickup.pixelCount;
+                effectSumY += clusterPickup.worldY * clusterPickup.pixelCount;
+                effectWeight += clusterPickup.pixelCount;
+              }
+            } else if (isDiagonal) {
+              spreadHeat = burnHeat * BURN_DIAGONAL_PASS_HEAT_MULT;
+              cells[index] = CELL_EMPTY;
+              crystalClusterId[index] = 0;
+              dirtyCount = markDirtyPaintCell(neighborCol, neighborRow, dirtyCount);
+            } else {
+              spreadHeat = burnHeat * BURN_DIRT_PASS_HEAT_MULT;
+              cells[index] = CELL_EMPTY;
+              crystalClusterId[index] = 0;
+              dirtyCount = markDirtyPaintCell(neighborCol, neighborRow, dirtyCount);
+            }
+            addBurnOrRefresh(neighborCol, neighborRow, spreadHeat, burnRed, burnGreen, burnBlue);
+            queueCount = enqueueBurnSpread(neighborCol, neighborRow, spreadHeat, burnRed, burnGreen, burnBlue, queueCount);
+            spreadCount += 1;
+          }
+        }
+        if (dirtyCount > 0) {
+          paintDirtyCells(dirtyCount);
+        }
+        if (totalBoostGain > 0.001 || totalScoreEarned > 0) {
+          if (effectWeight > 0) {
+            spawnCollapseBoostEffect(
+              totalBoostGain,
+              totalScoreEarned,
+              effectSumX / effectWeight,
+              effectSumY / effectWeight
+            );
+          }
+          scorePopTimer = 0.18;
+          updateHudDisplay();
+        }
       }
 
       function tryDestroySun(collapseX, collapseY, collapseRadius) {
@@ -1579,11 +2283,13 @@
           return;
         }
         sunDestroyed = true;
-        sunDestroyLife = 1.1;
+        sunDestroyLife = SUN_DESTROY_DURATION;
         screenShake = Math.min(14, screenShake + 8);
         pushImplodeRing(sunWorldX, sunWorldY, 48, 1, 255, 230, 120);
         pushImplodeRing(sunWorldX, sunWorldY, 110, 0.92, 255, 170, 50);
         pushImplodeRing(sunWorldX, sunWorldY, 190, 0.78, 255, 90, 25);
+        pushImplodeRing(sunWorldX, sunWorldY, 320, 0.65, 255, 50, 10);
+        pushImplodeRing(sunWorldX, sunWorldY, 520, 0.5, 180, 30, 80);
         sunScreen = worldToScreen(sunWorldX, sunWorldY);
         for (particleIndex = 0; particleIndex < 28; particleIndex += 1) {
           if (dirtParticleCount >= MAX_DIRT_PARTICLES) {
@@ -1605,19 +2311,27 @@
             green: 150 + Math.floor(rand() * 90),
             blue: 30 + Math.floor(rand() * 50),
             size: 2 + Math.floor(rand() * 2),
-          gravity: 30
-        });
-        dirtParticleCount += 1;
+            gravity: 30
+          });
+          dirtParticleCount += 1;
+        }
       }
+
+      function beginHoleGrowCycle() {
+        holeRadius = getStartHoleRadius();
+        holeGrowing = true;
       }
 
       function triggerCollapse() {
-        if (holeRadius < MIN_COLLAPSE_RADIUS) {
+        if (!canDigAtCurrentHoleSize()) {
           return;
         }
         var collapseX = holeX;
         var collapseY = holeY;
         var radius = holeRadius;
+        if (radius < MIN_DIG_RADIUS) {
+          radius = MIN_DIG_RADIUS;
+        }
         var radiusSq = radius * radius;
         var centerCol = Math.floor(collapseX / PIXEL);
         var centerWorldRow = Math.floor(collapseY / PIXEL);
@@ -1651,11 +2365,12 @@
         clearCrystalMarksRegion(minCol, minRow, maxCol, maxRow);
         crystalMarks = crystalMarksBuffer;
 
-        screenShake = Math.min(2.5, radius * 0.012);
+        screenShake = Math.min(6, 2.2 + radius * 0.02);
 
-        pushImplodeRing(collapseX, collapseY, radius, 1, 180, 60, 255);
-        pushImplodeRing(collapseX, collapseY, radius * 0.72, 0.85, 255, 120, 200);
-        pushImplodeRing(collapseX, collapseY, radius * 0.45, 0.65, 140, 80, 255);
+        pushImplodeRing(collapseX, collapseY, radius, 1.15, 200, 80, 255);
+        pushImplodeRing(collapseX, collapseY, radius * 0.82, 1, 255, 140, 220);
+        pushImplodeRing(collapseX, collapseY, radius * 0.58, 0.9, 255, 180, 100);
+        pushImplodeRing(collapseX, collapseY, radius * 0.32, 0.75, 140, 220, 255);
 
         tryDestroySun(collapseX, collapseY, radius);
 
@@ -1705,14 +2420,14 @@
               continue;
             }
             if (getCellFast(col - 1, row) !== CELL_EMPTY ||
-                getCellFast(col + 1, row) !== CELL_EMPTY ||
-                getCellFast(col, row - 1) !== CELL_EMPTY ||
-                getCellFast(col, row + 1) !== CELL_EMPTY) {
+              getCellFast(col + 1, row) !== CELL_EMPTY ||
+              getCellFast(col, row - 1) !== CELL_EMPTY ||
+              getCellFast(col, row + 1) !== CELL_EMPTY) {
               cellHeat = 0.7 + rand() * 0.3;
               burnRed = 255;
               burnGreen = 90 + Math.floor(rand() * 80);
               burnBlue = 30 + Math.floor(rand() * 40);
-              addBurn(col, row, cellHeat, burnRed, burnGreen, burnBlue);
+              addBurn(col, row, cellHeat, burnRed, burnGreen, burnBlue, BURN_COLLAPSE_SPREAD_DELAY + rand() * 0.06);
             }
           }
         }
@@ -1721,6 +2436,9 @@
         var collectResult;
         for (crystalIndex = 0; crystalIndex < crystalsFound.length; crystalIndex += 1) {
           crystal = crystalsFound[crystalIndex];
+          if (crystal.pixelCount < 1) {
+            continue;
+          }
           collectResult = collectCrystal(crystal);
           totalBoostGain += collectResult.boostGain;
           totalScoreEarned += collectResult.earned;
@@ -1736,9 +2454,9 @@
           generateChunkBelow();
         }
         targetCameraY = Math.max(targetCameraY, centerWorldRow * PIXEL - window.innerHeight * 0.35);
+        updateSessionDepth();
 
-        holeRadius = MIN_COLLAPSE_RADIUS * 0.5;
-        holeGrowing = true;
+        beginHoleGrowCycle();
       }
 
       function collectCrystalCluster(startCol, startRow, rarity, crystalMarks, dirtyCount) {
@@ -1802,6 +2520,8 @@
           }
         }
 
+        registerOreUnitsCollected(count);
+
         return {
           rarity: rarity,
           worldX: sumX / Math.max(1, count),
@@ -1812,6 +2532,12 @@
       }
 
       function collectCrystal(crystal) {
+        if (!crystal || !crystal.pixelCount || crystal.pixelCount < 1) {
+          return {
+            boostGain: 0,
+            earned: 0
+          };
+        }
         var rarity = crystal.rarity;
         var points = RARITY_SCORE[rarity];
         var sizeBonus = 1 + (crystal.pixelCount || 1) * 0.04;
@@ -1844,8 +2570,8 @@
         }
         travelTime = SCORE_PARTICLE_TRAVEL_TIME;
         for (particleIndex = 0; particleIndex < count; particleIndex += 1) {
-          offsetX = (rand() - 0.5) * 14;
-          offsetY = (rand() - 0.5) * 14;
+          offsetX = (rand() - 0.5) * SCORE_PARTICLE_SPAWN_SPREAD;
+          offsetY = (rand() - 0.5) * SCORE_PARTICLE_SPAWN_SPREAD;
           startX = screen.x + offsetX;
           startY = screen.y + offsetY;
           particles.push({
@@ -1947,13 +2673,19 @@
 
         for (indexA = 0; indexA < particles.length; indexA += 1) {
           particleA = particles[indexA];
+          if (particleA.kind === "score") {
+            continue;
+          }
           if (particleA.age < PARTICLE_MERGE_AFTER) {
             continue;
           }
-          mergeDist = particleA.kind === "score" ? PARTICLE_MERGE_DIST_SCORE : PARTICLE_MERGE_DIST;
+          mergeDist = PARTICLE_MERGE_DIST;
           for (indexB = indexA + 1; indexB < particles.length; indexB += 1) {
             particleB = particles[indexB];
             if (particleB.kind !== particleA.kind) {
+              continue;
+            }
+            if (particleB.kind === "score") {
               continue;
             }
             if (particleB.age < PARTICLE_MERGE_AFTER) {
@@ -1992,10 +2724,19 @@
         var margin = 48;
         var particleIndex = particles.length - 1;
         var particle;
-        var dist;
+        var scoreParticleCount = 0;
+        var scoreCullIndex;
+        var scoreCullParticle;
         while (particleIndex >= 0) {
           particle = particles[particleIndex];
-          if (particle.kind === "dirt") {
+          if (particle.kind === "score") {
+            if (particle.age >= SCORE_PARTICLE_MAX_AGE ||
+              particle.age >= particle.travelTime * 1.15) {
+              particles.splice(particleIndex, 1);
+            } else {
+              scoreParticleCount += 1;
+            }
+          } else if (particle.kind === "dirt") {
             if (particle.life <= 0 ||
               particle.x < -margin ||
               particle.x > width + margin ||
@@ -2010,11 +2751,25 @@
           }
           particleIndex -= 1;
         }
+        if (scoreParticleCount > MAX_SCORE_PARTICLES) {
+          scoreCullIndex = particles.length - 1;
+          while (scoreCullIndex >= 0 && scoreParticleCount > MAX_SCORE_PARTICLES) {
+            scoreCullParticle = particles[scoreCullIndex];
+            if (scoreCullParticle.kind === "score") {
+              particles.splice(scoreCullIndex, 1);
+              scoreParticleCount -= 1;
+            }
+            scoreCullIndex -= 1;
+          }
+        }
       }
 
       function restartSession() {
         score = 0;
-        growthBoost = 1;
+        sessionMaxDepth = 0;
+        bonus = 1;
+        oreUnitsCollected = 0;
+        oreUnitsDespawned = 0;
         burns = [];
         particles = [];
         floatingLabels = [];
@@ -2022,9 +2777,9 @@
         dirtParticleCount = 0;
         sunDestroyed = false;
         sunDestroyLife = 0;
-        holeRadius = MIN_COLLAPSE_RADIUS * 0.5;
+        beginHoleGrowCycle();
         scoreValueEl.textContent = formatScoreTons(0);
-        multiplierHudEl.textContent = formatMultiplierPercent(1);
+        bonusHudEl.textContent = formatBonus(1);
         updateHudDisplay();
         fpsSampleFrames = 0;
         fpsSampleTime = 0;
@@ -2034,16 +2789,18 @@
 
       function update(dt) {
         if (holeGrowing) {
-          var growthRate = BASE_GROWTH_SPEED * getSpeedMultiplier();
+          var growthRate = getHoleGrowthSpeed();
+          var maxRadius = getMaxHoleRadius();
           holeRadius += growthRate * dt;
-          if (holeRadius > getMaxHoleRadius()) {
-            holeRadius = getMaxHoleRadius();
+          if (holeRadius >= maxRadius) {
+            holeRadius = maxRadius;
+            holeGrowing = false;
           }
         }
 
-        var decayFactor = Math.pow(1 - MULTIPLIER_DECAY_PERCENT, dt);
-        growthBoost = Math.max(1, growthBoost * decayFactor);
+        decayBonus(dt);
 
+        updateSessionDepth();
         updateHudDisplay();
 
         cameraY += (targetCameraY - cameraY) * Math.min(1, dt * 2.5);
@@ -2055,12 +2812,19 @@
 
         var burnIndex;
         for (burnIndex = 0; burnIndex < burns.length; burnIndex += 1) {
+          if (burns[burnIndex].spreadDelay > 0) {
+            burns[burnIndex].spreadDelay -= dt;
+            if (burns[burnIndex].spreadDelay < 0) {
+              burns[burnIndex].spreadDelay = 0;
+            }
+          }
           burns[burnIndex].heat -= BURN_DECAY * dt;
         }
+        processBurnChainReaction();
         cleanupBurns();
 
         if (sunDestroyLife > 0) {
-          sunDestroyLife -= dt * 1.6;
+          sunDestroyLife -= dt;
           if (sunDestroyLife <= 0) {
             sunDestroyLife = 0;
           }
@@ -2084,13 +2848,18 @@
             var toTargetX = particle.targetX - particle.x;
             var toTargetY = particle.targetY - particle.y;
             dist = Math.sqrt(toTargetX * toTargetX + toTargetY * toTargetY);
-            if (dist < SCORE_ARRIVE_DIST) {
+            if (dist < SCORE_ARRIVE_DIST ||
+              particle.age >= particle.travelTime ||
+              particle.age >= SCORE_PARTICLE_MAX_AGE) {
               particles.splice(particleIndex, 1);
               continue;
             }
             timeLeft = particle.travelTime - particle.age;
-            if (timeLeft < 0.04) {
-              timeLeft = 0.04;
+            if (timeLeft < 0.08) {
+              particle.x = particle.targetX;
+              particle.y = particle.targetY;
+              particles.splice(particleIndex, 1);
+              continue;
             }
             particle.velX = toTargetX / timeLeft;
             particle.velY = toTargetY / timeLeft;
@@ -2102,6 +2871,14 @@
           }
           particle.x += particle.velX * dt;
           particle.y += particle.velY * dt;
+          if (particle.kind === "score") {
+            toTargetX = particle.targetX - particle.x;
+            toTargetY = particle.targetY - particle.y;
+            dist = Math.sqrt(toTargetX * toTargetX + toTargetY * toTargetY);
+            if (dist < SCORE_ARRIVE_DIST) {
+              particles.splice(particleIndex, 1);
+            }
+          }
         }
         cleanupParticles();
 
@@ -2110,9 +2887,25 @@
         for (labelIndex = floatingLabels.length - 1; labelIndex >= 0; labelIndex -= 1) {
           label = floatingLabels[labelIndex];
           label.life -= dt;
-          if (label.screenOffsetY !== undefined) {
+          if (label.homesToBonus) {
+            label.targetX = getBonusTargetX();
+            label.targetY = getBonusTargetY();
+            var toBonusX = label.targetX - label.x;
+            var toBonusY = label.targetY - label.y;
+            var bonusDist = Math.sqrt(toBonusX * toBonusX + toBonusY * toBonusY);
+            if (bonusDist < BONUS_ARRIVE_DIST) {
+              floatingLabels.splice(labelIndex, 1);
+              continue;
+            }
+            var bonusMove = BONUS_FLY_SPEED * dt;
+            if (bonusMove > bonusDist) {
+              bonusMove = bonusDist;
+            }
+            label.x += toBonusX / bonusDist * bonusMove;
+            label.y += toBonusY / bonusDist * bonusMove;
+          } else if (label.screenOffsetY !== undefined) {
             label.screenOffsetY -= 32 * dt;
-          } else {
+          } else if (label.y !== undefined) {
             label.y -= 32 * dt;
           }
           if (label.life <= 0) {
@@ -2127,7 +2920,7 @@
         var ringScreen;
         for (ringIndex = collapseRings.length - 1; ringIndex >= 0; ringIndex -= 1) {
           var ring = collapseRings[ringIndex];
-          ring.life -= dt * 1.4;
+          ring.life -= dt * 1.05;
           if (ring.startRadius === undefined) {
             ring.startRadius = ring.radius;
           }
@@ -2285,20 +3078,124 @@
         }
       }
 
+      function getSunDestroyLifeNorm() {
+        if (sunDestroyLife <= 0) {
+          return 0;
+        }
+        return sunDestroyLife / SUN_DESTROY_DURATION;
+      }
+
       function drawSky(width, height) {
         var horizonScreenY = getHorizonScreenY();
         var gradient = ctx.createLinearGradient(0, 0, 0, Math.max(height, horizonScreenY + 40));
-        gradient.addColorStop(0, "rgba(" + SKY_TOP[0] + "," + SKY_TOP[1] + "," + SKY_TOP[2] + ",0.92)");
-        gradient.addColorStop(0.55, "rgba(" + SKY_MID[0] + "," + SKY_MID[1] + "," + SKY_MID[2] + ",0.88)");
-        gradient.addColorStop(1, "rgba(" + SKY_HORIZON[0] + "," + SKY_HORIZON[1] + "," + SKY_HORIZON[2] + ",0.85)");
+        if (sunDestroyed) {
+          gradient.addColorStop(0, "rgba(6, 8, 20, 0.96)");
+          gradient.addColorStop(0.45, "rgba(18, 10, 28, 0.94)");
+          gradient.addColorStop(0.72, "rgba(42, 22, 38, 0.9)");
+          gradient.addColorStop(1, "rgba(72, 38, 48, 0.88)");
+        } else {
+          gradient.addColorStop(0, "rgba(" + SKY_TOP[0] + "," + SKY_TOP[1] + "," + SKY_TOP[2] + ",0.92)");
+          gradient.addColorStop(0.55, "rgba(" + SKY_MID[0] + "," + SKY_MID[1] + "," + SKY_MID[2] + ",0.88)");
+          gradient.addColorStop(1, "rgba(" + SKY_HORIZON[0] + "," + SKY_HORIZON[1] + "," + SKY_HORIZON[2] + ",0.85)");
+        }
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, width, height);
+        drawSunDestroySkyOverlay(width, height);
+      }
+
+      function drawSunDestroySkyOverlay(width, height) {
+        var lifeNorm;
+        var flashPeak;
+        var sunScreen;
+        var maxRadius;
+        var burstRadius;
+        var gradient;
+        var horizonScreenY;
+        var waveCenterY;
+        var bandAlpha;
+        var duskAlpha;
+        var rayIndex;
+        var rayAngle;
+        var rayLength;
+        var rayEndX;
+        var rayEndY;
+        if (sunDestroyLife <= 0) {
+          return;
+        }
+        lifeNorm = getSunDestroyLifeNorm();
+        flashPeak = lifeNorm * lifeNorm;
+        sunScreen = worldToScreen(sunWorldX, sunWorldY);
+        maxRadius = Math.sqrt(width * width + height * height) * 1.2;
+        burstRadius = maxRadius * (0.35 + (1 - lifeNorm) * 0.75);
+        gradient = ctx.createRadialGradient(
+          sunScreen.x, sunScreen.y, 0,
+          sunScreen.x, sunScreen.y, burstRadius
+        );
+        gradient.addColorStop(0, "rgba(255, 252, 230, " + (flashPeak * 0.95) + ")");
+        gradient.addColorStop(0.08, "rgba(255, 220, 100, " + (flashPeak * 0.82) + ")");
+        gradient.addColorStop(0.22, "rgba(255, 160, 40, " + (flashPeak * 0.58) + ")");
+        gradient.addColorStop(0.45, "rgba(255, 90, 20, " + (flashPeak * 0.32) + ")");
+        gradient.addColorStop(0.7, "rgba(120, 30, 60, " + (flashPeak * 0.14) + ")");
+        gradient.addColorStop(1, "rgba(20, 8, 30, 0)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        gradient = ctx.createRadialGradient(
+          width * 0.5, height * 0.35, 0,
+          width * 0.5, height * 0.35, maxRadius * 0.85
+        );
+        gradient.addColorStop(0, "rgba(255, 200, 120, " + (flashPeak * 0.28) + ")");
+        gradient.addColorStop(0.5, "rgba(255, 100, 40, " + (flashPeak * 0.12) + ")");
+        gradient.addColorStop(1, "rgba(255, 60, 10, 0)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        horizonScreenY = getHorizonScreenY();
+        waveCenterY = sunScreen.y + (horizonScreenY - sunScreen.y) * (1 - lifeNorm * 0.85);
+        bandAlpha = flashPeak * 0.42;
+        gradient = ctx.createLinearGradient(0, waveCenterY - height * 0.22, 0, waveCenterY + height * 0.28);
+        gradient.addColorStop(0, "rgba(255, 200, 80, 0)");
+        gradient.addColorStop(0.42, "rgba(255, 230, 160, " + bandAlpha + ")");
+        gradient.addColorStop(0.5, "rgba(255, 255, 220, " + (bandAlpha * 1.15) + ")");
+        gradient.addColorStop(0.58, "rgba(255, 120, 35, " + (bandAlpha * 0.9) + ")");
+        gradient.addColorStop(1, "rgba(255, 50, 10, 0)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        for (rayIndex = 0; rayIndex < 10; rayIndex += 1) {
+          rayAngle = (rayIndex / 10) * Math.PI * 2 + lifeNorm * 0.4;
+          rayLength = maxRadius * (0.45 + flashPeak * 0.55);
+          rayEndX = sunScreen.x + Math.cos(rayAngle) * rayLength;
+          rayEndY = sunScreen.y + Math.sin(rayAngle) * rayLength;
+          gradient = ctx.createLinearGradient(sunScreen.x, sunScreen.y, rayEndX, rayEndY);
+          gradient.addColorStop(0, "rgba(255, 240, 180, " + (flashPeak * 0.35) + ")");
+          gradient.addColorStop(0.35, "rgba(255, 150, 50, " + (flashPeak * 0.14) + ")");
+          gradient.addColorStop(1, "rgba(255, 80, 20, 0)");
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = 10 + flashPeak * 28;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(sunScreen.x, sunScreen.y);
+          ctx.lineTo(rayEndX, rayEndY);
+          ctx.stroke();
+        }
+
+        duskAlpha = (1 - lifeNorm) * 0.5;
+        if (duskAlpha > 0.02) {
+          gradient = ctx.createLinearGradient(0, 0, 0, height);
+          gradient.addColorStop(0, "rgba(4, 6, 18, " + (duskAlpha * 0.75) + ")");
+          gradient.addColorStop(0.55, "rgba(22, 10, 32, " + (duskAlpha * 0.55) + ")");
+          gradient.addColorStop(1, "rgba(48, 26, 42, " + (duskAlpha * 0.4) + ")");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, width, height);
+        }
       }
 
       function drawSunDestroyFlash(width, height) {
         var sunScreen;
-        var alpha;
-        var burstRadius;
+        var lifeNorm;
+        var flashPeak;
+        var coreRadius;
         var gradient;
         if (sunDestroyLife <= 0) {
           return;
@@ -2307,17 +3204,18 @@
         if (sunScreen.y > height + 200 || sunScreen.y < -200) {
           return;
         }
-        alpha = sunDestroyLife / 1.1;
-        burstRadius = (1.1 - sunDestroyLife) * Math.min(width, height) * 0.28 + 20;
+        lifeNorm = getSunDestroyLifeNorm();
+        flashPeak = lifeNorm * lifeNorm;
+        coreRadius = 24 + (1 - lifeNorm) * Math.min(width, height) * 0.12;
         gradient = ctx.createRadialGradient(
           sunScreen.x, sunScreen.y, 0,
-          sunScreen.x, sunScreen.y, burstRadius
+          sunScreen.x, sunScreen.y, coreRadius
         );
-        gradient.addColorStop(0, "rgba(255, 240, 180, " + (alpha * 0.7) + ")");
-        gradient.addColorStop(0.35, "rgba(255, 140, 50, " + (alpha * 0.35) + ")");
+        gradient.addColorStop(0, "rgba(255, 255, 240, " + (flashPeak * 0.9) + ")");
+        gradient.addColorStop(0.25, "rgba(255, 180, 60, " + (flashPeak * 0.55) + ")");
         gradient.addColorStop(1, "rgba(255, 60, 10, 0)");
         ctx.fillStyle = gradient;
-        ctx.fillRect(sunScreen.x - burstRadius, sunScreen.y - burstRadius, burstRadius * 2, burstRadius * 2);
+        ctx.fillRect(sunScreen.x - coreRadius, sunScreen.y - coreRadius, coreRadius * 2, coreRadius * 2);
       }
 
       function drawSun(width, height) {
@@ -2371,40 +3269,78 @@
 
       function drawBlackHole(width, height) {
         var screen = worldToScreen(holeX, holeY);
+        var maxRing = getMaxHoleRadius();
+        var growProgress = 0;
+        var warningAlpha;
+        var readyPulse;
+        var limitAlpha;
+        var coreGrad;
 
-        var warningAlpha = 0.25 + Math.sin(lastTime * 5) * 0.08;
-        ctx.strokeStyle = "rgba(180, 60, 255, " + warningAlpha + ")";
-        ctx.lineWidth = 2;
+        if (maxRing > 0) {
+          growProgress = holeRadius / maxRing;
+          if (growProgress > 1) {
+            growProgress = 1;
+          }
+        }
+        warningAlpha = 0.4 + Math.sin(lastTime * 6) * 0.14 + growProgress * 0.12;
+        readyPulse = 0;
+        if (canDigAtCurrentHoleSize()) {
+          readyPulse = 0.1 + Math.sin(lastTime * 9) * 0.08;
+        }
+
+        ctx.strokeStyle = "rgba(120, 40, 255, " + (warningAlpha * 0.35) + ")";
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.arc(screen.x, screen.y, holeRadius + 3, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(200, 90, 255, " + (warningAlpha + readyPulse) + ")";
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(screen.x, screen.y, holeRadius, 0, Math.PI * 2);
         ctx.stroke();
 
-        ctx.strokeStyle = "rgba(255, 120, 200, " + (warningAlpha * 0.6) + ")";
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(255, 150, 220, " + (warningAlpha * 0.75 + readyPulse) + ")";
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(screen.x, screen.y, holeRadius * 0.72, 0, Math.PI * 2);
         ctx.stroke();
 
-        var coreGrad = ctx.createRadialGradient(
+        coreGrad = ctx.createRadialGradient(
           screen.x, screen.y, 0,
-          screen.x, screen.y, holeRadius * 0.5
+          screen.x, screen.y, holeRadius * 0.55
         );
-        coreGrad.addColorStop(0, "rgba(0, 0, 0, 0.95)");
-        coreGrad.addColorStop(0.5, "rgba(40, 0, 60, 0.7)");
-        coreGrad.addColorStop(1, "rgba(80, 20, 120, 0)");
+        coreGrad.addColorStop(0, "rgba(0, 0, 0, 0.97)");
+        coreGrad.addColorStop(0.45, "rgba(50, 0, 80, 0.78)");
+        coreGrad.addColorStop(1, "rgba(100, 30, 160, 0)");
         ctx.fillStyle = coreGrad;
         ctx.beginPath();
-        ctx.arc(screen.x, screen.y, holeRadius * 0.55, 0, Math.PI * 2);
+        ctx.arc(screen.x, screen.y, holeRadius * 0.58, 0, Math.PI * 2);
         ctx.fill();
 
-        var maxRing = getMaxHoleRadius();
-        var limitAlpha = 0.08 + (holeRadius / maxRing) * 0.12;
-        ctx.strokeStyle = "rgba(255, 80, 40, " + limitAlpha + ")";
-        ctx.setLineDash([6, 8]);
-        ctx.beginPath();
-        ctx.arc(screen.x, screen.y, maxRing, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        if (holeGrowing) {
+          limitAlpha = 0.08 + growProgress * 0.1 + Math.sin(lastTime * 7) * 0.03;
+          ctx.strokeStyle = "rgba(255, 120, 50, " + limitAlpha + ")";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 6]);
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, maxRing, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.strokeStyle = "rgba(255, 200, 120, " + (limitAlpha * 0.35) + ")";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, maxRing, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        if (growProgress > 0.72) {
+          ctx.strokeStyle = "rgba(255, 220, 140, " + (0.2 + readyPulse * 1.5) + ")";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, holeRadius + 5, 0, Math.PI * 2);
+          ctx.stroke();
+        }
       }
 
       function drawCollapseRings() {
@@ -2419,9 +3355,22 @@
           ring = collapseRings[ringIndex];
           screen = worldToScreen(ring.worldX, ring.worldY);
           alpha = ring.life;
+          if (alpha > 1) {
+            alpha = 1;
+          }
           red = ring.red !== undefined ? ring.red : 120;
           green = ring.green !== undefined ? ring.green : 60;
           blue = ring.blue !== undefined ? ring.blue : 200;
+          ctx.strokeStyle = "rgba(" + red + "," + green + "," + blue + "," + (alpha * 0.35) + ")";
+          ctx.lineWidth = 9;
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, ring.radius, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.strokeStyle = "rgba(255, 255, 255, " + (alpha * 0.22) + ")";
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, ring.radius, 0, Math.PI * 2);
+          ctx.stroke();
           ctx.strokeStyle = "rgba(" + red + "," + green + "," + blue + "," + alpha + ")";
           ctx.lineWidth = 3;
           ctx.beginPath();
@@ -2444,7 +3393,10 @@
           alpha = label.life / label.maxLife;
           fontSize = label.fontSize || 14;
           scale = label.scale || 1;
-          if (label.worldX !== undefined) {
+          if (label.homesToBonus || label.x !== undefined) {
+            drawX = label.x;
+            drawY = label.y;
+          } else if (label.worldX !== undefined) {
             screen = worldToScreen(label.worldX, label.worldY);
             drawX = screen.x;
             drawY = screen.y + (label.screenOffsetY || 0);
@@ -2551,7 +3503,11 @@
           return;
         }
         updatePointer(event.clientX, event.clientY);
-        triggerCollapse();
+        if (canDigAtCurrentHoleSize()) {
+          triggerCollapse();
+        } else {
+          beginHoleGrowCycle();
+        }
       });
 
       window.addEventListener("keydown", function (event) {
@@ -2560,11 +3516,13 @@
         }
       });
 
-      window.addEventListener("resize", resize);
+      window.addEventListener("resize", scheduleViewportCommit);
+      window.addEventListener("mouseup", flushViewportCommit);
       bindLocaleListener();
       bestScore = loadBestScore();
+      bestDepth = loadBestDepth();
       applyGameLocale();
-      resize();
+      commitViewportSize();
       updatePointer(window.innerWidth * 0.5, window.innerHeight * 0.65);
       requestAnimationFrame(frame);
     })();

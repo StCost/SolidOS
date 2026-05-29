@@ -238,7 +238,10 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  scrollbar-gutter: stable;
+}
+
+.os-window--managed .os-window-body--terminal.menu-v-scroll-view {
+  scrollbar-gutter: auto;
 }
 
 .os-window--opening .os-window-chrome--drag {

@@ -1,0 +1,2944 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crystal Rush</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #1a1410;
+      color: #e8dcc8;
+      font-family: "Courier New", Courier, monospace;
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+    }
+
+    #gameRoot {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    #gameRoot:focus {
+      outline: none;
+    }
+
+    #gameCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #damageVignette {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle at 50% 50%, transparent var(--vignette-inner, 62%), rgba(40, 8, 4, 0.92) 100%);
+      transition: opacity 0.35s ease, --vignette-inner 0.45s ease;
+    }
+
+    #damageVignette.is-visible {
+      opacity: 1;
+    }
+
+    #damageVignette.is-flash {
+      animation: damage-vignette-flash 0.38s ease-out forwards;
+    }
+
+    @keyframes damage-vignette-flash {
+      0% {
+        opacity: 1;
+        filter: brightness(1.6);
+      }
+
+      100% {
+        opacity: var(--vignette-opacity, 0.75);
+        filter: brightness(1);
+      }
+    }
+
+    #carWrap {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 56px;
+      height: 72px;
+      margin-left: -28px;
+      margin-top: -36px;
+      pointer-events: none;
+      z-index: 4;
+      filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.55));
+    }
+
+    #carShake {
+      width: 100%;
+      height: 100%;
+    }
+
+    #carShake.is-hit {
+      animation: car-hit-shake 0.32s ease-out;
+    }
+
+    #carWrap.is-collect #carShake {
+      animation: car-collect-pulse 0.42s ease-out;
+    }
+
+    @keyframes car-collect-pulse {
+      0% {
+        transform: scale(1);
+        filter: brightness(1);
+      }
+
+      28% {
+        transform: scale(1.07);
+        filter: brightness(1.55) drop-shadow(0 0 16px var(--collect-glow, rgba(160, 230, 255, 0.9)));
+      }
+
+      100% {
+        transform: scale(1);
+        filter: brightness(1);
+      }
+    }
+
+    @keyframes car-hit-shake {
+      0% {
+        transform: translate(0, 0);
+        filter: brightness(1.8) drop-shadow(0 0 12px rgba(255, 80, 40, 0.8));
+      }
+
+      35% {
+        transform: translate(-4px, 3px);
+      }
+
+      70% {
+        transform: translate(3px, -2px);
+      }
+
+      100% {
+        transform: translate(0, 0);
+      }
+    }
+
+    #carSvg {
+      width: 100%;
+      height: 100%;
+    }
+
+    #hudScore {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 6;
+      pointer-events: none;
+      text-align: center;
+    }
+
+    #hudDistance {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      z-index: 6;
+      pointer-events: none;
+      text-align: left;
+    }
+
+    #distanceValue {
+      font-size: 1.55rem;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      color: #e8dcc8;
+      text-shadow: 0 0 10px rgba(200, 170, 120, 0.45), 0 2px 6px rgba(0, 0, 0, 0.85);
+    }
+
+    #distanceLabel {
+      font-size: 0.68rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(200, 180, 150, 0.55);
+      margin-top: 2px;
+    }
+
+    #scoreValue {
+      font-size: 1.55rem;
+      font-weight: bold;
+      letter-spacing: 0.12em;
+      color: #c8f0ff;
+      text-shadow: 0 0 12px rgba(120, 200, 255, 0.55), 0 2px 6px rgba(0, 0, 0, 0.85);
+      transition: transform 0.14s ease-out;
+    }
+
+    #scoreValue.is-pop {
+      transform: scale(1.14);
+      color: #e8ffff;
+    }
+
+    #scoreLabel {
+      font-size: 0.68rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(180, 210, 220, 0.55);
+      margin-top: 2px;
+    }
+
+    #hudBest {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      z-index: 6;
+      pointer-events: none;
+      text-align: right;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      color: rgba(180, 170, 150, 0.6);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+    }
+
+    #bestValue {
+      display: block;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #fff4d8;
+    }
+
+    #gameScreen {
+      position: absolute;
+      inset: 0;
+      z-index: 7;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      pointer-events: auto;
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+      background: rgba(12, 8, 6, 0.42);
+    }
+
+    #gameScreen.hidden {
+      display: none;
+    }
+
+    #screenTitle {
+      margin: 0;
+      font-size: 1.4rem;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+      color: #e8dcc8;
+      text-shadow: 0 0 16px rgba(200, 180, 140, 0.45);
+    }
+
+    #screenScore {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0.14em;
+      color: #c8b898;
+    }
+
+    #screenScore.hidden,
+    #screenDistance.hidden {
+      display: none;
+    }
+
+    #controlHint {
+      margin: 0.4rem 0 0;
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      color: rgba(200, 180, 150, 0.65);
+      animation: hint-pulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes hint-pulse {
+
+      0%,
+      100% {
+        opacity: 0.45;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    #gameScreen.is-record #screenTitle {
+      color: #ffe8a8;
+      animation: record-glow 0.8s ease-in-out infinite alternate;
+    }
+
+    #hudSpeed {
+      position: absolute;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%);
+      z-index: 6;
+      pointer-events: none;
+      width: min(300px, 72vw);
+    }
+
+    #speedGaugeLabels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(180, 170, 150, 0.55);
+      margin-bottom: 4px;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    }
+
+    #speedGaugeTrack {
+      height: 5px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 3px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+    }
+
+    #speedGaugeFill {
+      height: 100%;
+      width: 0%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #88a8c8, #c8e8ff, #ffaa66);
+      transition: width 0.06s linear;
+    }
+
+    #hudSpeed.hidden {
+      display: none;
+    }
+
+    #fpsHud {
+      position: absolute;
+      right: 12px;
+      bottom: 14px;
+      top: auto;
+      left: auto;
+      z-index: 6;
+      pointer-events: none;
+      font-size: 11px;
+      color: rgba(180, 170, 150, 0.55);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="gameRoot" tabindex="0">
+    <canvas id="gameCanvas" aria-hidden="true"></canvas>
+    <div id="damageVignette" aria-hidden="true"></div>
+    <div id="carWrap" aria-hidden="true">
+      <div id="carShake">
+        <svg id="carSvg" viewBox="0 0 56 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="carBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#8a9098" />
+              <stop offset="45%" stop-color="#c8d0d8" />
+              <stop offset="100%" stop-color="#687078" />
+            </linearGradient>
+            <linearGradient id="carAccentGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#e8f4ff" />
+              <stop offset="100%" stop-color="#88b8d8" />
+            </linearGradient>
+          </defs>
+          <ellipse cx="28" cy="58" rx="20" ry="8" fill="rgba(0,0,0,0.22)" />
+          <rect x="10" y="14" width="36" height="46" rx="8" fill="url(#carBodyGrad)" stroke="#3a4048"
+            stroke-width="1.4" />
+          <rect x="14" y="18" width="28" height="18" rx="4" fill="url(#carAccentGrad)" opacity="0.85" stroke="#506878"
+            stroke-width="1" />
+          <rect x="12" y="38" width="10" height="18" rx="3" fill="#505860" stroke="#2a3038" stroke-width="1" />
+          <rect x="34" y="38" width="10" height="18" rx="3" fill="#505860" stroke="#2a3038" stroke-width="1" />
+          <rect x="22" y="6" width="12" height="10" rx="3" fill="#687078" stroke="#3a4048" stroke-width="1" />
+          <circle cx="28" cy="11" r="2.5" fill="#a8e8ff" opacity="0.9" />
+          <path d="M18 52 L14 66 M38 52 L42 66" stroke="#2a3038" stroke-width="3" stroke-linecap="round" />
+          <path d="M20 52 L16 64 M36 52 L40 64" stroke="#687078" stroke-width="2" stroke-linecap="round" />
+          <line x1="28" y1="72" x2="28" y2="62" stroke="#ff8844" stroke-width="2" stroke-linecap="round"
+            opacity="0.7" />
+        </svg>
+      </div>
+    </div>
+    <div id="hudDistance">
+      <div id="distanceValue">0m</div>
+      <div id="distanceLabel">distance</div>
+    </div>
+    <div id="hudScore">
+      <div id="scoreValue">0</div>
+      <div id="scoreLabel">score</div>
+    </div>
+    <div id="hudBest">best<span id="bestValue">0</span></div>
+    <div id="hudSpeed" class="hidden">
+      <div id="speedGaugeLabels">
+        <span id="speedMinLabel">min</span>
+        <span id="speedMaxLabel">max</span>
+      </div>
+      <div id="speedGaugeTrack">
+        <div id="speedGaugeFill"></div>
+      </div>
+    </div>
+    <div id="fpsHud">fps <span id="fpsValue">--</span></div>
+    <div id="gameScreen">
+      <h1 id="screenTitle">Crystal Rush</h1>
+      <p id="screenDistance" class="hidden">0m</p>
+      <p id="screenScore" class="hidden">0</p>
+      <p id="controlHint">click and hold or WASD</p>
+    </div>
+  </div>
+  <script>
+    var HIGH_SCORE_STORAGE_KEY = "cm-crystal-rush-high-score";
+    var DISTANCE_BEST_STORAGE_KEY = "cm-crystal-rush-best-distance";
+    var LOCALE_KEY_START = "web.game.crystal-rush.start";
+    var LOCALE_KEY_GAME_OVER = "web.game.crystal-rush.game-over";
+    var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
+    var LOCALE_KEY_SCORE_LABEL = "web.game.score-label";
+    var LOCALE_KEY_START_HINT = "web.game.crystal-rush.start-hint";
+    var LOCALE_KEY_GAME_OVER_HINT = "web.game.crystal-rush.game-over-hint";
+    var LOCALE_KEY_METERS_SUFFIX = "web.game.meters-suffix";
+    var LOCALE_KEY_DISTANCE_LABEL = "web.game.crystal-rush.distance-label";
+    var METERS_PER_UNIT = 0.08;
+
+    var PHASE_START = "start";
+    var PHASE_PLAYING = "playing";
+    var PHASE_GAME_OVER = "gameover";
+
+    var CHUNK_SIZE = 512;
+    var CHUNK_LOAD_RADIUS = 2;
+    var CHUNK_UNLOAD_RADIUS = 4;
+    var CAR_RADIUS = 15;
+    var CRYSTAL_PICKUP_RADIUS = 10;
+    var CRYSTAL_MAGNET_RADIUS = 34;
+    var ROCK_RADIUS = 24;
+    var ENTITY_MIN_DIST = 130;
+    var ROCK_BOULDER_MIN_DIST = 72;
+    var ROCK_WALL_HALF_LENGTH_START_MIN = 78;
+    var ROCK_WALL_HALF_LENGTH_START_RANGE = 102;
+    var ROCK_WALL_HALF_WIDTH_START_MIN = 14;
+    var ROCK_WALL_HALF_WIDTH_START_RANGE = 16;
+    var ROCK_WALL_HALF_LENGTH_CHAIN_MIN = 64;
+    var ROCK_WALL_HALF_LENGTH_CHAIN_RANGE = 96;
+    var ROCK_WALL_HALF_WIDTH_CHAIN_MIN = 12;
+    var ROCK_WALL_HALF_WIDTH_CHAIN_RANGE = 14;
+    var CHUNK_ROCK_DENSITY_MIN = 0.4;
+    var CHUNK_ROCK_DENSITY_MAX = 1.85;
+    var BOULDER_PER_CHUNK_MIN = 0;
+    var BOULDER_PER_CHUNK_MAX = 8;
+    var WALL_CHAIN_PER_CHUNK_MIN = 0;
+    var WALL_CHAIN_PER_CHUNK_MAX = 4;
+    var WALL_BRANCH_CHANCE_MIN = 0.62;
+    var WALL_BRANCH_CHANCE_MAX = 0.92;
+    var WALL_SEGMENT_COUNT_MIN = 1;
+    var WALL_SEGMENT_COUNT_MAX = 6;
+    var ROCK_PUSH_EXTRA = 14;
+    var ROCK_DEFLECT_STRENGTH = 0.72;
+    var TIRE_TRACK_LATERAL_OFFSET = 13;
+    var TIRE_TRACK_REAR_OFFSET = 20;
+    var TIRE_TRACK_STEP_DISTANCE = 7;
+    var TIRE_TRACK_MAX_PATH_LENGTH = 520;
+    var TIRE_TRACK_MIN_SPEED = 28;
+    var TIRE_TRACK_LINE_WIDTH = 2.5;
+
+    var RARITY_COLORS = [
+      [48, 198, 82],
+      [72, 140, 255],
+      [180, 90, 255],
+      [255, 160, 64],
+      [255, 72, 72]
+    ];
+    var RARITY_SCORE = [1, 3, 6, 12, 25];
+    var RARITY_GLOW = [0.35, 0.5, 0.7, 0.9, 1.15];
+    var RARITY_SIZE = [0.7, 1.0, 1.35, 1.75, 2.25];
+    var RARITY_GLOW_RADIUS = [2.0, 2.7, 3.5, 4.4, 5.5];
+    var RARITY_WEIGHTS = [0.42, 0.28, 0.17, 0.09, 0.04];
+    var CRYSTAL_RARITY_COUNT = 5;
+    var COLLECT_ARC_DURATION = 0.42;
+    var COLLECT_ARC_RADIUS = 52;
+    var COLLECT_FLASH_DURATION = 0.38;
+    var COLLECT_EFFECTS_DEBOUNCE = 0.2;
+    var COLLECT_RING_DURATION = 0.48;
+    var COLLECT_BURST_COUNT = 2;
+    var COLLECT_SPARK_COUNT_BASE = 10;
+    var COLLECT_STREAK_COUNT_BASE = 6;
+    var SCORE_LABEL_FADE_END_PROGRESS = 0.3;
+    var SCORE_LABEL_START_ALPHA = 0.07;
+
+    var MAX_SPEED = 440;
+    var MIN_SPEED = 58;
+    var START_SPEED = 140;
+    var ACCEL_RATE = 300;
+    var BRAKE_RATE = 360;
+    var COAST_DRAG = 18;
+    var POINTER_HOLD_CRUISE_ACCEL = 43;
+    var POINTER_STEER_ALIGNED_ANGLE = 0.11;
+    var TURN_RATE_AT_MIN_CAR_SPEED = 3.2;
+    var TURN_RATE_SPEED_DROP = 1.6;
+    var TURN_RATE_AT_MAX_CAR_SPEED = TURN_RATE_AT_MIN_CAR_SPEED - TURN_RATE_SPEED_DROP;
+    var ROCK_SPEED_PENALTY = 95;
+    var ROCK_HIT_COOLDOWN = 0.55;
+
+    var MAX_HEALTH = 5;
+    var HEALTH_REGEN_DELAY = 3.5;
+    var HEALTH_REGEN_RATE = 0.55;
+    var SCORE_ARRIVE_DIST = 14;
+    var SCORE_LABEL_ARRIVE_DIST = 18;
+    var SCORE_LABEL_RISE_MIN = 36;
+    var SCORE_LABEL_RISE_RANGE = 32;
+    var SCORE_LABEL_SPREAD_MIN = 26;
+    var SCORE_LABEL_SPREAD_RANGE = 38;
+    var SCORE_LABEL_FLIGHT_MIN = 0.72;
+    var SCORE_LABEL_FLIGHT_RANGE = 0.26;
+
+    var canvas = document.getElementById("gameCanvas");
+    var context = canvas.getContext("2d");
+    var gameRoot = document.getElementById("gameRoot");
+    var damageVignette = document.getElementById("damageVignette");
+    var carWrap = document.getElementById("carWrap");
+    var carShake = document.getElementById("carShake");
+    var scoreValue = document.getElementById("scoreValue");
+    var scoreLabel = document.getElementById("scoreLabel");
+    var distanceValue = document.getElementById("distanceValue");
+    var distanceLabel = document.getElementById("distanceLabel");
+    var hudBest = document.getElementById("hudBest");
+    var bestValue = document.getElementById("bestValue");
+    var hudSpeed = document.getElementById("hudSpeed");
+    var speedGaugeFill = document.getElementById("speedGaugeFill");
+    var speedMinLabel = document.getElementById("speedMinLabel");
+    var speedMaxLabel = document.getElementById("speedMaxLabel");
+    var gameScreen = document.getElementById("gameScreen");
+    var screenTitle = document.getElementById("screenTitle");
+    var screenDistance = document.getElementById("screenDistance");
+    var screenScore = document.getElementById("screenScore");
+    var controlHint = document.getElementById("controlHint");
+    var fpsValue = document.getElementById("fpsValue");
+
+    var width = 0;
+    var height = 0;
+    var devicePixelRatioScale = 1;
+
+    var gamePhase = PHASE_START;
+    var keysDown = { w: false, a: false, s: false, d: false };
+    var pointerHeld = false;
+    var pointerSteeringTurning = false;
+    var lastPointerX = 0;
+    var lastPointerY = 0;
+
+    var carWorldX = 0;
+    var carWorldY = 0;
+    var carAngle = -Math.PI / 2;
+    var carSpeed = 0;
+
+    var health = MAX_HEALTH;
+    var healthRegenTimer = 0;
+    var rockHitCooldown = 0;
+
+    var score = 0;
+    var bestScore = 0;
+    var distanceMeters = 0;
+    var bestDistanceMeters = 0;
+
+    var chunks = {};
+    var chunkKeys = [];
+    var particles = [];
+    var dustParticles = [];
+    var tireTrailLeft = [];
+    var tireTrailRight = [];
+    var tireTrailDistanceSinceLastPoint = 0;
+    var impactParticles = [];
+    var collectArcs = [];
+    var collectFlashes = [];
+    var collectBursts = [];
+    var collectSparks = [];
+    var collectStreaks = [];
+    var scoreFlyLabels = [];
+    var collectEffectsDebounceTimer = 0;
+
+    var lastFrameTime = 0;
+    var fpsSampleTime = 0;
+    var fpsSampleFrames = 0;
+
+    function isPlaying() {
+      return gamePhase === PHASE_PLAYING;
+    }
+
+    function isGameOver() {
+      return gamePhase === PHASE_GAME_OVER;
+    }
+
+    function isStart() {
+      return gamePhase === PHASE_START;
+    }
+
+    function hashSeed(value) {
+      var seed = value | 0;
+      seed = ((seed << 13) ^ seed) | 0;
+      seed = (seed * (seed * seed * 15731 + 789221) + 1376312589) | 0;
+      return (seed & 2147483647) / 2147483647;
+    }
+
+    function chunkKey(chunkX, chunkY) {
+      return chunkX + "," + chunkY;
+    }
+
+    function worldToChunk(worldValue) {
+      return Math.floor(worldValue / CHUNK_SIZE);
+    }
+
+    function createChunkRandom(chunkX, chunkY) {
+      var state = (chunkX * 73856093) ^ (chunkY * 19349663) ^ 83492791;
+      return function () {
+        state = (state * 1664525 + 1013904223) | 0;
+        return (state >>> 0) / 4294967296;
+      };
+    }
+
+    function isFarEnoughFromEntities(entities, x, y, minDist) {
+      var index;
+      var entity;
+      var deltaX;
+      var deltaY;
+      var distSq;
+      var minDistSq = minDist * minDist;
+      for (index = 0; index < entities.length; index += 1) {
+        entity = entities[index];
+        deltaX = entity.x - x;
+        deltaY = entity.y - y;
+        distSq = deltaX * deltaX + deltaY * deltaY;
+        if (distSq < minDistSq) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function pickCrystalRarity(random) {
+      var roll = random();
+      var rarityIndex;
+      var accumulated = 0;
+      for (rarityIndex = 0; rarityIndex < CRYSTAL_RARITY_COUNT; rarityIndex += 1) {
+        accumulated += RARITY_WEIGHTS[rarityIndex];
+        if (roll <= accumulated) {
+          return rarityIndex;
+        }
+      }
+      return 0;
+    }
+
+    function pickSecondCrystalRarity(random, firstRarity) {
+      var secondRarity = pickCrystalRarity(random);
+      var attemptIndex;
+      for (attemptIndex = 0; attemptIndex < 10; attemptIndex += 1) {
+        if (secondRarity !== firstRarity) {
+          return secondRarity;
+        }
+        secondRarity = pickCrystalRarity(random);
+      }
+      return (firstRarity + 1 + Math.floor(random() * (CRYSTAL_RARITY_COUNT - 1))) % CRYSTAL_RARITY_COUNT;
+    }
+
+    function getCrystalSparkSize(rarity, random) {
+      return (0.85 + random() * 0.75) * RARITY_SIZE[rarity];
+    }
+
+    function getRockExtentRadius(rock) {
+      if (rock.kind === "boulder") {
+        return rock.radius;
+      }
+      return Math.sqrt(rock.halfLength * rock.halfLength + rock.halfWidth * rock.halfWidth);
+    }
+
+    function isFarEnoughFromRocks(rocks, x, y, minDist) {
+      var rockIndex;
+      var rock;
+      var deltaX;
+      var deltaY;
+      var dist;
+      var neededDist;
+      for (rockIndex = 0; rockIndex < rocks.length; rockIndex += 1) {
+        rock = rocks[rockIndex];
+        deltaX = rock.x - x;
+        deltaY = rock.y - y;
+        dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        neededDist = minDist + getRockExtentRadius(rock);
+        if (dist < neededDist) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function buildBoulderPolygon(radius, random) {
+      var points = [];
+      var vertexCount = 5 + Math.floor(random() * 3);
+      var vertexIndex;
+      var angle;
+      var distance;
+      for (vertexIndex = 0; vertexIndex < vertexCount; vertexIndex += 1) {
+        angle = vertexIndex / vertexCount * Math.PI * 2 + (random() - 0.5) * 0.55;
+        distance = radius * (0.68 + random() * 0.42);
+        points.push({
+          x: Math.cos(angle) * distance,
+          y: Math.sin(angle) * distance
+        });
+      }
+      return points;
+    }
+
+    function buildWallCapsulePolygon(halfLength, halfWidth, random) {
+      var points = [];
+      var halfLen = halfLength;
+      var halfWid = halfWidth;
+      var straightLen = halfLen * 2 - halfWid * 2;
+      var topCount = 7 + Math.floor(random() * 5);
+      var bottomCount = 7 + Math.floor(random() * 5);
+      var capCount = 5;
+      var index;
+      var t;
+      var x;
+      var y;
+      var angle;
+      var jitterX;
+      var jitterY;
+
+      if (straightLen < 4) {
+        straightLen = 4;
+      }
+
+      for (index = 0; index <= topCount; index += 1) {
+        t = index / topCount;
+        x = -halfLen + halfWid + straightLen * t;
+        jitterY = (random() - 0.5) * halfWid * 0.7;
+        points.push({ x: x, y: -halfWid + jitterY });
+      }
+      for (index = 1; index <= capCount; index += 1) {
+        t = index / capCount;
+        angle = -Math.PI / 2 + Math.PI * t;
+        jitterX = (random() - 0.5) * halfWid * 0.45;
+        jitterY = (random() - 0.5) * halfWid * 0.45;
+        points.push({
+          x: halfLen - halfWid + Math.cos(angle) * halfWid + jitterX,
+          y: Math.sin(angle) * halfWid + jitterY
+        });
+      }
+      for (index = bottomCount; index >= 0; index -= 1) {
+        t = index / bottomCount;
+        x = -halfLen + halfWid + straightLen * t;
+        jitterY = (random() - 0.5) * halfWid * 0.7;
+        points.push({ x: x, y: halfWid + jitterY });
+      }
+      for (index = capCount - 1; index >= 1; index -= 1) {
+        t = index / capCount;
+        angle = Math.PI / 2 + Math.PI * t;
+        jitterX = (random() - 0.5) * halfWid * 0.45;
+        jitterY = (random() - 0.5) * halfWid * 0.45;
+        points.push({
+          x: -halfLen + halfWid + Math.cos(angle) * halfWid + jitterX,
+          y: Math.sin(angle) * halfWid + jitterY
+        });
+      }
+      return points;
+    }
+
+    function createBoulderRock(worldX, worldY, random) {
+      var radius = 16 + random() * 14;
+      var rotation = random() * Math.PI * 2;
+      var shade = 0.55 + random() * 0.35;
+      return {
+        kind: "boulder",
+        x: worldX,
+        y: worldY,
+        radius: radius,
+        rotation: rotation,
+        shade: shade,
+        polygonPoints: buildBoulderPolygon(radius, random)
+      };
+    }
+
+    function buildChunkBoulders(random, chunkX, chunkY, rocks, entities, margin, boulderCount) {
+      var boulders = [];
+      var attemptIndex;
+      var localX;
+      var localY;
+      var worldX;
+      var worldY;
+
+      for (attemptIndex = 0; attemptIndex < boulderCount * 10; attemptIndex += 1) {
+        if (boulders.length >= boulderCount) {
+          break;
+        }
+        localX = margin + random() * (CHUNK_SIZE - margin * 2);
+        localY = margin + random() * (CHUNK_SIZE - margin * 2);
+        worldX = chunkX * CHUNK_SIZE + localX;
+        worldY = chunkY * CHUNK_SIZE + localY;
+        if (!isFarEnoughFromEntities(entities, worldX, worldY, ROCK_BOULDER_MIN_DIST)) {
+          continue;
+        }
+        if (!isFarEnoughFromRocks(rocks, worldX, worldY, ROCK_BOULDER_MIN_DIST * 0.45)) {
+          continue;
+        }
+        if (!isFarEnoughFromRocks(boulders, worldX, worldY, ROCK_BOULDER_MIN_DIST * 0.55)) {
+          continue;
+        }
+        boulders.push(createBoulderRock(worldX, worldY, random));
+        entities.push({ x: worldX, y: worldY });
+      }
+
+      return boulders;
+    }
+
+    function getRockEndWorldPosition(rock, endSign) {
+      return {
+        x: rock.x + Math.cos(rock.rotation) * rock.halfLength * endSign,
+        y: rock.y + Math.sin(rock.rotation) * rock.halfLength * endSign
+      };
+    }
+
+    function createRockWallSegment(worldX, worldY, rotation, halfLength, halfWidth, shade, random) {
+      return {
+        kind: "wall",
+        x: worldX,
+        y: worldY,
+        rotation: rotation,
+        halfLength: halfLength,
+        halfWidth: halfWidth,
+        shade: shade,
+        polygonPoints: buildWallCapsulePolygon(halfLength, halfWidth, random)
+      };
+    }
+
+    function isRockWallInsideChunk(worldX, worldY, chunkX, chunkY, margin) {
+      var minX = chunkX * CHUNK_SIZE + margin;
+      var minY = chunkY * CHUNK_SIZE + margin;
+      var maxX = (chunkX + 1) * CHUNK_SIZE - margin;
+      var maxY = (chunkY + 1) * CHUNK_SIZE - margin;
+      return worldX >= minX && worldX <= maxX && worldY >= minY && worldY <= maxY;
+    }
+
+    function getChunkRockDensity(random) {
+      return CHUNK_ROCK_DENSITY_MIN + random() * (CHUNK_ROCK_DENSITY_MAX - CHUNK_ROCK_DENSITY_MIN);
+    }
+
+    function getBoulderCountForDensity(density, random) {
+      var densityNormalized = (density - CHUNK_ROCK_DENSITY_MIN) / (CHUNK_ROCK_DENSITY_MAX - CHUNK_ROCK_DENSITY_MIN);
+      var count = Math.floor(BOULDER_PER_CHUNK_MIN + densityNormalized * (BOULDER_PER_CHUNK_MAX - BOULDER_PER_CHUNK_MIN) * (0.55 + random() * 0.65));
+      if (count < BOULDER_PER_CHUNK_MIN) {
+        count = BOULDER_PER_CHUNK_MIN;
+      }
+      if (count > BOULDER_PER_CHUNK_MAX) {
+        count = BOULDER_PER_CHUNK_MAX;
+      }
+      return count;
+    }
+
+    function getWallChainCountForDensity(density, random) {
+      var densityNormalized = (density - CHUNK_ROCK_DENSITY_MIN) / (CHUNK_ROCK_DENSITY_MAX - CHUNK_ROCK_DENSITY_MIN);
+      var count = Math.floor(WALL_CHAIN_PER_CHUNK_MIN + densityNormalized * (WALL_CHAIN_PER_CHUNK_MAX - WALL_CHAIN_PER_CHUNK_MIN) * (0.45 + random() * 0.75));
+      if (count < WALL_CHAIN_PER_CHUNK_MIN) {
+        count = WALL_CHAIN_PER_CHUNK_MIN;
+      }
+      if (count > WALL_CHAIN_PER_CHUNK_MAX) {
+        count = WALL_CHAIN_PER_CHUNK_MAX;
+      }
+      return count;
+    }
+
+    function getWallBranchChanceForDensity(density, random) {
+      var densityNormalized = (density - CHUNK_ROCK_DENSITY_MIN) / (CHUNK_ROCK_DENSITY_MAX - CHUNK_ROCK_DENSITY_MIN);
+      var branchChance = WALL_BRANCH_CHANCE_MIN + densityNormalized * (WALL_BRANCH_CHANCE_MAX - WALL_BRANCH_CHANCE_MIN);
+      branchChance += (random() - 0.5) * 0.06;
+      if (branchChance < WALL_BRANCH_CHANCE_MIN) {
+        branchChance = WALL_BRANCH_CHANCE_MIN;
+      }
+      if (branchChance > WALL_BRANCH_CHANCE_MAX) {
+        branchChance = WALL_BRANCH_CHANCE_MAX;
+      }
+      return branchChance;
+    }
+
+    function getWallMaxSegmentsForDensity(density, random) {
+      var densityNormalized = (density - CHUNK_ROCK_DENSITY_MIN) / (CHUNK_ROCK_DENSITY_MAX - CHUNK_ROCK_DENSITY_MIN);
+      var segmentSpan = WALL_SEGMENT_COUNT_MAX - WALL_SEGMENT_COUNT_MIN;
+      var maxSegments = WALL_SEGMENT_COUNT_MIN + Math.floor(densityNormalized * segmentSpan * (0.5 + random() * 0.75));
+      if (maxSegments < WALL_SEGMENT_COUNT_MIN) {
+        maxSegments = WALL_SEGMENT_COUNT_MIN;
+      }
+      if (maxSegments > WALL_SEGMENT_COUNT_MAX) {
+        maxSegments = WALL_SEGMENT_COUNT_MAX;
+      }
+      return maxSegments;
+    }
+
+    function buildRockWallChain(random, chunkX, chunkY, entities, margin, branchChance, maxSegments) {
+      var walls = [];
+      var localX = margin + random() * (CHUNK_SIZE - margin * 2);
+      var localY = margin + random() * (CHUNK_SIZE - margin * 2);
+      var worldX = chunkX * CHUNK_SIZE + localX;
+      var worldY = chunkY * CHUNK_SIZE + localY;
+      var currentRotation = random() * Math.PI * 2;
+      var currentHalfLength = ROCK_WALL_HALF_LENGTH_START_MIN + random() * ROCK_WALL_HALF_LENGTH_START_RANGE;
+      var currentHalfWidth = ROCK_WALL_HALF_WIDTH_START_MIN + random() * ROCK_WALL_HALF_WIDTH_START_RANGE;
+      var shade = 0.55 + random() * 0.35;
+      var segmentIndex;
+      var currentX = worldX;
+      var currentY = worldY;
+      var endSign;
+      var endPos;
+      var newRotation;
+      var lastWall;
+
+      if (!isFarEnoughFromEntities(entities, worldX, worldY, ENTITY_MIN_DIST)) {
+        return walls;
+      }
+
+      walls.push(createRockWallSegment(currentX, currentY, currentRotation, currentHalfLength, currentHalfWidth, shade, random));
+      entities.push({ x: currentX, y: currentY });
+
+      for (segmentIndex = 1; segmentIndex < maxSegments; segmentIndex += 1) {
+        if (random() >= branchChance) {
+          break;
+        }
+        lastWall = walls[walls.length - 1];
+        endSign = random() < 0.5 ? 1 : -1;
+        endPos = getRockEndWorldPosition(lastWall, endSign);
+        newRotation = lastWall.rotation + (random() * 2.2 - 1.1);
+        currentHalfLength = ROCK_WALL_HALF_LENGTH_CHAIN_MIN + random() * ROCK_WALL_HALF_LENGTH_CHAIN_RANGE;
+        currentHalfWidth = ROCK_WALL_HALF_WIDTH_CHAIN_MIN + random() * ROCK_WALL_HALF_WIDTH_CHAIN_RANGE;
+        currentX = endPos.x + Math.cos(newRotation) * currentHalfLength;
+        currentY = endPos.y + Math.sin(newRotation) * currentHalfLength;
+        currentRotation = newRotation;
+        if (!isRockWallInsideChunk(currentX, currentY, chunkX, chunkY, margin)) {
+          break;
+        }
+        if (!isFarEnoughFromEntities(entities, currentX, currentY, ENTITY_MIN_DIST * 0.65)) {
+          break;
+        }
+        shade = 0.55 + random() * 0.35;
+        walls.push(createRockWallSegment(currentX, currentY, currentRotation, currentHalfLength, currentHalfWidth, shade, random));
+        entities.push({ x: currentX, y: currentY });
+      }
+
+      return walls;
+    }
+
+    function getTurnRateForSpeed(speed) {
+      var speedRange = MAX_SPEED - MIN_SPEED;
+      var speedFactor = 0;
+      if (speedRange > 0) {
+        speedFactor = (speed - MIN_SPEED) / speedRange;
+      }
+      if (speedFactor < 0) {
+        speedFactor = 0;
+      }
+      if (speedFactor > 1) {
+        speedFactor = 1;
+      }
+      return TURN_RATE_AT_MIN_CAR_SPEED + (TURN_RATE_AT_MAX_CAR_SPEED - TURN_RATE_AT_MIN_CAR_SPEED) * speedFactor;
+    }
+
+    function getBoulderCarCollision(rock) {
+      var deltaX = carWorldX - rock.x;
+      var deltaY = carWorldY - rock.y;
+      var dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      var hitRadius = CAR_RADIUS + rock.radius * 0.72;
+      var normalX;
+      var normalY;
+
+      if (dist >= hitRadius) {
+        return null;
+      }
+      if (dist > 0.001) {
+        normalX = deltaX / dist;
+        normalY = deltaY / dist;
+      } else {
+        normalX = Math.cos(carAngle);
+        normalY = Math.sin(carAngle);
+        dist = 1;
+      }
+      return {
+        normalX: normalX,
+        normalY: normalY,
+        closestWorldX: rock.x + normalX * rock.radius,
+        closestWorldY: rock.y + normalY * rock.radius,
+        penetration: hitRadius - dist
+      };
+    }
+
+    function getWallCarCollision(rock) {
+      var deltaX = carWorldX - rock.x;
+      var deltaY = carWorldY - rock.y;
+      var cosR = Math.cos(rock.rotation);
+      var sinR = Math.sin(rock.rotation);
+      var localX = deltaX * cosR + deltaY * sinR;
+      var localY = -deltaX * sinR + deltaY * cosR;
+      var closestX = localX;
+      var closestY = localY;
+      var distX;
+      var distY;
+      var distSq;
+      var dist;
+      var normalLocalX;
+      var normalLocalY;
+      var normalX;
+      var normalY;
+      var closestWorldX;
+      var closestWorldY;
+
+      if (closestX > rock.halfLength) {
+        closestX = rock.halfLength;
+      }
+      if (closestX < -rock.halfLength) {
+        closestX = -rock.halfLength;
+      }
+      if (closestY > rock.halfWidth) {
+        closestY = rock.halfWidth;
+      }
+      if (closestY < -rock.halfWidth) {
+        closestY = -rock.halfWidth;
+      }
+      distX = localX - closestX;
+      distY = localY - closestY;
+      distSq = distX * distX + distY * distY;
+      if (distSq >= CAR_RADIUS * CAR_RADIUS) {
+        return null;
+      }
+      dist = Math.sqrt(distSq);
+      if (dist > 0.001) {
+        normalLocalX = distX / dist;
+        normalLocalY = distY / dist;
+      } else {
+        normalLocalX = 1;
+        normalLocalY = 0;
+      }
+      normalX = normalLocalX * cosR - normalLocalY * sinR;
+      normalY = normalLocalX * sinR + normalLocalY * cosR;
+      closestWorldX = rock.x + closestX * cosR - closestY * sinR;
+      closestWorldY = rock.y + closestX * sinR + closestY * cosR;
+      return {
+        normalX: normalX,
+        normalY: normalY,
+        closestWorldX: closestWorldX,
+        closestWorldY: closestWorldY,
+        penetration: CAR_RADIUS - dist
+      };
+    }
+
+    function getRockCarCollision(rock) {
+      if (rock.kind === "boulder") {
+        return getBoulderCarCollision(rock);
+      }
+      return getWallCarCollision(rock);
+    }
+
+    function buildCrystalDeposit(random, chunkX, chunkY, depositIndex, entities, rocks) {
+      var margin = 56;
+      var centerLocalX = margin + random() * (CHUNK_SIZE - margin * 2);
+      var centerLocalY = margin + random() * (CHUNK_SIZE - margin * 2);
+      var centerWorldX = chunkX * CHUNK_SIZE + centerLocalX;
+      var centerWorldY = chunkY * CHUNK_SIZE + centerLocalY;
+      var depositRadius = 72 + random() * 88;
+      var densityMultiplier = 1 + random();
+      var sparkCount = Math.floor((90 + random() * 110) * densityMultiplier);
+      var rarityPrimary = pickCrystalRarity(random);
+      var raritySecondary = pickSecondCrystalRarity(random, rarityPrimary);
+      var crystals = [];
+      var sparkIndex;
+      var angle;
+      var distance;
+      var localX;
+      var localY;
+      var worldX;
+      var worldY;
+      var rockIndex;
+      var rock;
+      var deltaX;
+      var deltaY;
+      var rockDist;
+      var tooCloseToRock;
+      var sparkRarity;
+
+      if (!isFarEnoughFromEntities(entities, centerWorldX, centerWorldY, depositRadius + 40)) {
+        return crystals;
+      }
+
+      for (rockIndex = 0; rockIndex < rocks.length; rockIndex += 1) {
+        rock = rocks[rockIndex];
+        deltaX = rock.x - centerWorldX;
+        deltaY = rock.y - centerWorldY;
+        rockDist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        if (rockDist < depositRadius + getRockExtentRadius(rock) + 24) {
+          return crystals;
+        }
+      }
+
+      entities.push({ x: centerWorldX, y: centerWorldY });
+
+      for (sparkIndex = 0; sparkIndex < sparkCount; sparkIndex += 1) {
+        angle = random() * Math.PI * 2;
+        distance = Math.pow(random(), 1.85) * depositRadius;
+        localX = centerLocalX + Math.cos(angle) * distance;
+        localY = centerLocalY + Math.sin(angle) * distance;
+        if (localX < 8 || localY < 8 || localX > CHUNK_SIZE - 8 || localY > CHUNK_SIZE - 8) {
+          continue;
+        }
+        worldX = chunkX * CHUNK_SIZE + localX;
+        worldY = chunkY * CHUNK_SIZE + localY;
+        tooCloseToRock = false;
+        for (rockIndex = 0; rockIndex < rocks.length; rockIndex += 1) {
+          rock = rocks[rockIndex];
+          deltaX = rock.x - worldX;
+          deltaY = rock.y - worldY;
+          rockDist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+          if (rockDist < getRockExtentRadius(rock) + 10) {
+            tooCloseToRock = true;
+            break;
+          }
+        }
+        if (tooCloseToRock) {
+          continue;
+        }
+        if (random() < 0.5) {
+          sparkRarity = rarityPrimary;
+        } else {
+          sparkRarity = raritySecondary;
+        }
+        crystals.push({
+          x: worldX,
+          y: worldY,
+          size: getCrystalSparkSize(sparkRarity, random),
+          twinkle: random() * Math.PI * 2,
+          twinkleSpeed: 2.5 + random() * 4,
+          rarity: sparkRarity,
+          collected: false,
+          collecting: false
+        });
+      }
+
+      return crystals;
+    }
+
+    function buildChunkEntities(chunkX, chunkY) {
+      var random = createChunkRandom(chunkX, chunkY);
+      var crystals = [];
+      var rocks = [];
+      var entities = [];
+      var margin = 64;
+      var rockDensity = getChunkRockDensity(random);
+      var wallChainCount = getWallChainCountForDensity(rockDensity, random);
+      var boulderCount = getBoulderCountForDensity(rockDensity, random);
+      var wallChainIndex;
+      var wallChain;
+      var branchChance;
+      var maxWallSegments;
+      var boulderIndex;
+      var chunkBoulders;
+      var depositCount = 0;
+      var depositIndex;
+      var depositCrystals;
+
+      for (wallChainIndex = 0; wallChainIndex < wallChainCount; wallChainIndex += 1) {
+        branchChance = getWallBranchChanceForDensity(rockDensity, random);
+        maxWallSegments = getWallMaxSegmentsForDensity(rockDensity, random);
+        wallChain = buildRockWallChain(random, chunkX, chunkY, entities, margin, branchChance, maxWallSegments);
+        var wallIndex;
+        for (wallIndex = 0; wallIndex < wallChain.length; wallIndex += 1) {
+          rocks.push(wallChain[wallIndex]);
+        }
+      }
+
+      chunkBoulders = buildChunkBoulders(random, chunkX, chunkY, rocks, entities, margin, boulderCount);
+      for (boulderIndex = 0; boulderIndex < chunkBoulders.length; boulderIndex += 1) {
+        rocks.push(chunkBoulders[boulderIndex]);
+      }
+
+      if (random() < 0.82) {
+        depositCount = 1;
+      }
+      if (random() < 0.34) {
+        depositCount = 2;
+      }
+
+      for (depositIndex = 0; depositIndex < depositCount; depositIndex += 1) {
+        depositCrystals = buildCrystalDeposit(random, chunkX, chunkY, depositIndex, entities, rocks);
+        var crystalIndex;
+        for (crystalIndex = 0; crystalIndex < depositCrystals.length; crystalIndex += 1) {
+          crystals.push(depositCrystals[crystalIndex]);
+        }
+      }
+
+      return {
+        chunkX: chunkX,
+        chunkY: chunkY,
+        seed: hashSeed(chunkX * 991 + chunkY * 997),
+        crystals: crystals,
+        rocks: rocks,
+        surfaceCanvas: null
+      };
+    }
+
+    function getChunk(chunkX, chunkY) {
+      var key = chunkKey(chunkX, chunkY);
+      var chunk = chunks[key];
+      if (!chunk) {
+        chunk = buildChunkEntities(chunkX, chunkY);
+        chunks[key] = chunk;
+        chunkKeys.push(key);
+        buildChunkSurface(chunk);
+        paintCrystalGroundTints(chunk);
+      }
+      return chunk;
+    }
+
+    function buildChunkSurface(chunk) {
+      var surfaceCanvas = document.createElement("canvas");
+      surfaceCanvas.width = CHUNK_SIZE;
+      surfaceCanvas.height = CHUNK_SIZE;
+      var surfaceContext = surfaceCanvas.getContext("2d");
+      var random = createChunkRandom(chunk.chunkX * 17 + 3, chunk.chunkY * 31 + 7);
+      var baseHue = 28 + chunk.seed * 14;
+      var baseR = 130 + chunk.seed * 35;
+      var baseG = 105 + chunk.seed * 25;
+      var baseB = 72 + chunk.seed * 18;
+      var patchCount;
+      var patchIndex;
+      var crackCount;
+      var crackIndex;
+      var pebbleCount;
+      var pebbleIndex;
+      var x;
+      var y;
+      var radius;
+      var shade;
+
+      surfaceContext.fillStyle = "rgb(" + Math.floor(baseR) + "," + Math.floor(baseG) + "," + Math.floor(baseB) + ")";
+      surfaceContext.fillRect(0, 0, CHUNK_SIZE, CHUNK_SIZE);
+
+      patchCount = 18 + Math.floor(random() * 14);
+      for (patchIndex = 0; patchIndex < patchCount; patchIndex += 1) {
+        x = random() * CHUNK_SIZE;
+        y = random() * CHUNK_SIZE;
+        radius = 20 + random() * 80;
+        shade = 0.75 + random() * 0.35;
+        surfaceContext.fillStyle = "rgba(" +
+          Math.floor(baseR * shade) + "," +
+          Math.floor(baseG * shade) + "," +
+          Math.floor(baseB * shade) + ",0.45)";
+        surfaceContext.beginPath();
+        surfaceContext.ellipse(x, y, radius, radius * (0.6 + random() * 0.5), random() * Math.PI, 0, Math.PI * 2);
+        surfaceContext.fill();
+      }
+
+      crackCount = 6 + Math.floor(random() * 8);
+      for (crackIndex = 0; crackIndex < crackCount; crackIndex += 1) {
+        x = random() * CHUNK_SIZE;
+        y = random() * CHUNK_SIZE;
+        surfaceContext.strokeStyle = "rgba(" +
+          Math.floor(baseR * 0.55) + "," +
+          Math.floor(baseG * 0.5) + "," +
+          Math.floor(baseB * 0.42) + ",0.35)";
+        surfaceContext.lineWidth = 1 + random() * 1.5;
+        surfaceContext.beginPath();
+        surfaceContext.moveTo(x, y);
+        var segment;
+        for (segment = 0; segment < 3 + Math.floor(random() * 4); segment += 1) {
+          x += (random() - 0.5) * 70;
+          y += (random() - 0.5) * 70;
+          surfaceContext.lineTo(x, y);
+        }
+        surfaceContext.stroke();
+      }
+
+      pebbleCount = 40 + Math.floor(random() * 50);
+      for (pebbleIndex = 0; pebbleIndex < pebbleCount; pebbleIndex += 1) {
+        x = random() * CHUNK_SIZE;
+        y = random() * CHUNK_SIZE;
+        shade = 0.5 + random() * 0.5;
+        surfaceContext.fillStyle = "rgba(" +
+          Math.floor(baseR * shade) + "," +
+          Math.floor(baseG * shade) + "," +
+          Math.floor(baseB * shade) + ",0.55)";
+        surfaceContext.beginPath();
+        surfaceContext.arc(x, y, 1 + random() * 2.5, 0, Math.PI * 2);
+        surfaceContext.fill();
+      }
+
+      chunk.surfaceCanvas = surfaceCanvas;
+    }
+
+    function paintCrystalGroundTints(chunk) {
+      var surfaceContext;
+      var crystalIndex;
+      var crystal;
+      var localX;
+      var localY;
+      var rgb;
+      var radius;
+      if (!chunk.surfaceCanvas) {
+        return;
+      }
+      surfaceContext = chunk.surfaceCanvas.getContext("2d");
+      for (crystalIndex = 0; crystalIndex < chunk.crystals.length; crystalIndex += 1) {
+        crystal = chunk.crystals[crystalIndex];
+        localX = crystal.x - chunk.chunkX * CHUNK_SIZE;
+        localY = crystal.y - chunk.chunkY * CHUNK_SIZE;
+        rgb = getCrystalColorRgb(crystal.rarity);
+        radius = 3 + crystal.size * 2.2;
+        surfaceContext.fillStyle = "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ",0.09)";
+        surfaceContext.beginPath();
+        surfaceContext.arc(localX, localY, radius, 0, Math.PI * 2);
+        surfaceContext.fill();
+      }
+    }
+
+    function updateChunksAroundCar() {
+      var carChunkX = worldToChunk(carWorldX);
+      var carChunkY = worldToChunk(carWorldY);
+      var offsetX;
+      var offsetY;
+      var chunkX;
+      var chunkY;
+
+      for (offsetY = -CHUNK_LOAD_RADIUS; offsetY <= CHUNK_LOAD_RADIUS; offsetY += 1) {
+        for (offsetX = -CHUNK_LOAD_RADIUS; offsetX <= CHUNK_LOAD_RADIUS; offsetX += 1) {
+          chunkX = carChunkX + offsetX;
+          chunkY = carChunkY + offsetY;
+          getChunk(chunkX, chunkY);
+        }
+      }
+
+      var keyIndex;
+      var key;
+      var chunk;
+      var removeKeys = [];
+      for (keyIndex = chunkKeys.length - 1; keyIndex >= 0; keyIndex -= 1) {
+        key = chunkKeys[keyIndex];
+        chunk = chunks[key];
+        if (!chunk) {
+          chunkKeys.splice(keyIndex, 1);
+          continue;
+        }
+        if (Math.abs(chunk.chunkX - carChunkX) > CHUNK_UNLOAD_RADIUS ||
+          Math.abs(chunk.chunkY - carChunkY) > CHUNK_UNLOAD_RADIUS) {
+          removeKeys.push(key);
+        }
+      }
+
+      var removeIndex;
+      for (removeIndex = 0; removeIndex < removeKeys.length; removeIndex += 1) {
+        key = removeKeys[removeIndex];
+        delete chunks[key];
+        keyIndex = chunkKeys.indexOf(key);
+        if (keyIndex >= 0) {
+          chunkKeys.splice(keyIndex, 1);
+        }
+      }
+    }
+
+    function getScoreTargetX() {
+      var rect = scoreValue.getBoundingClientRect();
+      return rect.left + rect.width * 0.5;
+    }
+
+    function getScoreTargetY() {
+      var rect = scoreValue.getBoundingClientRect();
+      return rect.top + rect.height * 0.5;
+    }
+
+    function getLocaleApi() {
+      if (window.parent && window.parent !== window && window.parent.WebLocale) {
+        return window.parent.WebLocale;
+      }
+      if (window.WebLocale) {
+        return window.WebLocale;
+      }
+      return null;
+    }
+
+    function getLocalized(key, fallback) {
+      var locale = getLocaleApi();
+      if (locale) {
+        return locale.get(key, fallback);
+      }
+      if (fallback != null) {
+        return fallback;
+      }
+      return key;
+    }
+
+    function getStartHintText() {
+      return getLocalized(LOCALE_KEY_START_HINT, "click and hold or WASD");
+    }
+
+    function getGameOverHintText() {
+      return getLocalized(LOCALE_KEY_GAME_OVER_HINT, "click to continue");
+    }
+
+    function formatMeters(meters) {
+      var suffix = getLocalized(LOCALE_KEY_METERS_SUFFIX, "m");
+      return Math.floor(meters) + suffix;
+    }
+
+    function applyGameLocale() {
+      var bestLabel = getLocalized(LOCALE_KEY_BEST_LABEL, "best");
+      hudBest.firstChild.textContent = bestLabel;
+      scoreLabel.textContent = getLocalized(LOCALE_KEY_SCORE_LABEL, "score");
+      distanceLabel.textContent = getLocalized(LOCALE_KEY_DISTANCE_LABEL, "distance");
+      if (isGameOver()) {
+        controlHint.textContent = getGameOverHintText();
+      } else {
+        controlHint.textContent = getStartHintText();
+      }
+      if (isStart()) {
+        screenTitle.textContent = getLocalized(LOCALE_KEY_START, "Crystal Rush");
+      } else if (isGameOver()) {
+        screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
+        screenDistance.textContent = formatMeters(distanceMeters);
+        screenScore.textContent = String(score);
+      }
+      setBestDistanceHud();
+      scoreValue.textContent = String(score);
+      distanceValue.textContent = formatMeters(distanceMeters);
+    }
+
+    function bindLocaleListener() {
+      var localeTarget = window;
+      if (window.parent && window.parent !== window) {
+        localeTarget = window.parent;
+      }
+      localeTarget.addEventListener("web-locale-applied", applyGameLocale);
+    }
+
+    function loadHighScore() {
+      try {
+        var stored = window.localStorage.getItem(HIGH_SCORE_STORAGE_KEY);
+        if (stored) {
+          var parsed = parseInt(stored, 10);
+          if (!isNaN(parsed) && parsed >= 0) {
+            bestScore = parsed;
+          }
+        }
+      } catch (error) {
+        bestScore = 0;
+      }
+    }
+
+    function loadBestDistance() {
+      try {
+        var stored = window.localStorage.getItem(DISTANCE_BEST_STORAGE_KEY);
+        if (stored) {
+          var parsed = parseInt(stored, 10);
+          if (!isNaN(parsed) && parsed >= 0) {
+            bestDistanceMeters = parsed;
+          }
+        }
+      } catch (error) {
+        bestDistanceMeters = 0;
+      }
+      setBestDistanceHud();
+    }
+
+    function setBestDistanceHud() {
+      bestValue.textContent = formatMeters(bestDistanceMeters);
+    }
+
+    function saveBestDistanceIfNeeded() {
+      var distanceScore = Math.floor(distanceMeters);
+      if (distanceScore > bestDistanceMeters) {
+        bestDistanceMeters = distanceScore;
+        setBestDistanceHud();
+        try {
+          window.localStorage.setItem(DISTANCE_BEST_STORAGE_KEY, String(bestDistanceMeters));
+        } catch (error) {
+        }
+      }
+    }
+
+    function saveHighScoreIfNeeded() {
+      if (score > bestScore) {
+        bestScore = score;
+        try {
+          window.localStorage.setItem(HIGH_SCORE_STORAGE_KEY, String(bestScore));
+        } catch (error) {
+        }
+      }
+    }
+
+    function setScoreHudPop() {
+      scoreValue.classList.add("is-pop");
+      window.setTimeout(function () {
+        scoreValue.classList.remove("is-pop");
+      }, 140);
+    }
+
+    function updateScoreHud() {
+      scoreValue.textContent = String(score);
+    }
+
+    function updateDistanceHud() {
+      distanceValue.textContent = formatMeters(distanceMeters);
+    }
+
+    function getVignetteInnerPercent() {
+      if (health >= 3) {
+        return 62;
+      }
+      if (health === 2) {
+        return 38;
+      }
+      if (health === 1) {
+        return 14;
+      }
+      return 0;
+    }
+
+    function updateDamageVignette(flash) {
+      var innerPercent = getVignetteInnerPercent();
+      if (health <= 2 && health > 0) {
+        damageVignette.style.setProperty("--vignette-inner", innerPercent + "%");
+        damageVignette.style.setProperty("--vignette-opacity", "0.82");
+        damageVignette.classList.add("is-visible");
+      } else if (health <= 0) {
+        damageVignette.style.setProperty("--vignette-inner", "0%");
+        damageVignette.style.setProperty("--vignette-opacity", "1");
+        damageVignette.classList.add("is-visible");
+      } else {
+        damageVignette.classList.remove("is-visible");
+      }
+      if (flash) {
+        damageVignette.classList.remove("is-flash");
+        void damageVignette.offsetWidth;
+        damageVignette.classList.add("is-flash");
+      }
+    }
+
+    function getCrystalColorRgb(rarity) {
+      return RARITY_COLORS[rarity];
+    }
+
+    function getCarScreenCenter() {
+      return {
+        x: width * 0.5,
+        y: height * 0.5
+      };
+    }
+
+    function focusGameInput() {
+      if (gameRoot && gameRoot.focus) {
+        try {
+          gameRoot.focus({ preventScroll: true });
+        } catch (error) {
+          gameRoot.focus();
+        }
+      }
+    }
+
+    function clearKeysDown() {
+      keysDown.w = false;
+      keysDown.a = false;
+      keysDown.s = false;
+      keysDown.d = false;
+      setPointerHeld(false);
+    }
+
+    function setKeyFromCode(code, isDown) {
+      if (code === "KeyW") {
+        keysDown.w = isDown;
+      } else if (code === "KeyA") {
+        keysDown.a = isDown;
+      } else if (code === "KeyS") {
+        keysDown.s = isDown;
+      } else if (code === "KeyD") {
+        keysDown.d = isDown;
+      }
+    }
+
+    function updateSpeedGauge() {
+      var speedRange = MAX_SPEED - MIN_SPEED;
+      var fillPercent = 0;
+      if (speedRange > 0) {
+        fillPercent = ((carSpeed - MIN_SPEED) / speedRange) * 100;
+      }
+      if (fillPercent < 0) {
+        fillPercent = 0;
+      }
+      if (fillPercent > 100) {
+        fillPercent = 100;
+      }
+      speedGaugeFill.style.width = fillPercent + "%";
+      speedMinLabel.textContent = String(MIN_SPEED);
+      speedMaxLabel.textContent = String(MAX_SPEED);
+    }
+
+    function spawnCollectArc(crystal) {
+      var carCenter = getCarScreenCenter();
+      var crystalScreen = worldToScreen(crystal.x, crystal.y);
+      var baseAngle = Math.atan2(crystalScreen.y - carCenter.y, crystalScreen.x - carCenter.x);
+      var rgb = getCrystalColorRgb(crystal.rarity);
+      var radiusPeak = COLLECT_ARC_RADIUS + RARITY_SIZE[crystal.rarity] * 14;
+      collectArcs.push({
+        age: 0,
+        duration: COLLECT_ARC_DURATION,
+        baseAngle: baseAngle,
+        arcWobble: 0.9 + Math.random() * 0.7,
+        radiusPeak: radiusPeak,
+        size: crystal.size * (0.9 + RARITY_GLOW[crystal.rarity] * 0.25),
+        red: rgb[0],
+        green: rgb[1],
+        blue: rgb[2],
+        points: RARITY_SCORE[crystal.rarity],
+        x: carCenter.x,
+        y: carCenter.y
+      });
+    }
+
+    function spawnScoreFlyLabel(screenX, screenY, points, red, green, blue) {
+      var fontSize = 13 + Math.min(points, 20);
+      var popScale = 1 + Math.min(points * 0.04, 0.45);
+      var spreadRoll = Math.random();
+      var spreadX;
+      if (spreadRoll < 0.34) {
+        spreadX = -(SCORE_LABEL_SPREAD_MIN + Math.random() * SCORE_LABEL_SPREAD_RANGE);
+      } else if (spreadRoll < 0.68) {
+        spreadX = SCORE_LABEL_SPREAD_MIN + Math.random() * SCORE_LABEL_SPREAD_RANGE;
+      } else {
+        spreadX = (Math.random() - 0.5) * 14;
+      }
+      scoreFlyLabels.push({
+        originX: screenX,
+        originY: screenY,
+        controlX: screenX + spreadX,
+        controlY: screenY - (SCORE_LABEL_RISE_MIN + Math.random() * SCORE_LABEL_RISE_RANGE),
+        x: screenX,
+        y: screenY,
+        text: "+" + String(points),
+        red: red,
+        green: green,
+        blue: blue,
+        age: 0,
+        fontSize: fontSize,
+        scale: popScale,
+        targetOffsetX: (Math.random() - 0.5) * 28,
+        flightTime: SCORE_LABEL_FLIGHT_MIN + Math.random() * SCORE_LABEL_FLIGHT_RANGE
+      });
+    }
+
+    function spawnScoreParticles(screenX, screenY, red, green, blue, sparkSize, particleCount) {
+      var count = particleCount;
+      var particleIndex;
+      var angle;
+      var speed;
+      if (count === undefined) {
+        count = 2;
+      }
+      if (count > 12) {
+        count = 12;
+      }
+      for (particleIndex = 0; particleIndex < count; particleIndex += 1) {
+        angle = Math.random() * Math.PI * 2;
+        speed = 25 + Math.random() * 60;
+        particles.push({
+          kind: "score",
+          x: screenX,
+          y: screenY,
+          velX: Math.cos(angle) * speed,
+          velY: Math.sin(angle) * speed,
+          age: 0,
+          travelTime: 0.32 + Math.random() * 0.18,
+          size: 1 + sparkSize * 0.35,
+          red: red,
+          green: green,
+          blue: blue
+        });
+      }
+    }
+
+    function triggerCarCollectPulse(red, green, blue) {
+      carWrap.style.setProperty("--collect-glow", "rgba(" + red + "," + green + "," + blue + ",0.9)");
+      carWrap.classList.remove("is-collect");
+      void carWrap.offsetWidth;
+      carWrap.classList.add("is-collect");
+    }
+
+    function spawnCollectEffects(carCenterX, carCenterY, crystalScreenX, crystalScreenY, red, green, blue, rarity) {
+      if (collectEffectsDebounceTimer > 0) {
+        return;
+      }
+      collectEffectsDebounceTimer = COLLECT_EFFECTS_DEBOUNCE;
+      var rarityScale = 0.8 + RARITY_SIZE[rarity] * 0.4;
+      var sparkCount = COLLECT_SPARK_COUNT_BASE + Math.floor(rarity * 2.5);
+      var streakCount = COLLECT_STREAK_COUNT_BASE + rarity * 2;
+      var ringIndex;
+      var particleIndex;
+      var angle;
+      var speed;
+      var streakIndex;
+      var deltaX;
+      var deltaY;
+      var dist;
+      var streakSpeed;
+      var startX;
+      var startY;
+
+      collectFlashes.push({
+        x: carCenterX,
+        y: carCenterY,
+        age: 0,
+        duration: COLLECT_FLASH_DURATION,
+        maxRadius: 58 * rarityScale,
+        red: red,
+        green: green,
+        blue: blue
+      });
+
+      for (ringIndex = 0; ringIndex < COLLECT_BURST_COUNT; ringIndex += 1) {
+        collectBursts.push({
+          x: carCenterX,
+          y: carCenterY,
+          age: ringIndex * 0.05,
+          duration: COLLECT_RING_DURATION,
+          maxRadius: (34 + ringIndex * 26) * rarityScale,
+          red: red,
+          green: green,
+          blue: blue
+        });
+      }
+
+      for (particleIndex = 0; particleIndex < sparkCount; particleIndex += 1) {
+        angle = (particleIndex / sparkCount) * Math.PI * 2 + Math.random() * 0.5;
+        speed = 80 + Math.random() * 150 * rarityScale;
+        collectSparks.push({
+          x: carCenterX,
+          y: carCenterY,
+          velX: Math.cos(angle) * speed,
+          velY: Math.sin(angle) * speed,
+          age: 0,
+          life: 0.26 + Math.random() * 0.24,
+          size: 1.8 + rarityScale * 1.6,
+          red: red,
+          green: green,
+          blue: blue
+        });
+      }
+
+      deltaX = carCenterX - crystalScreenX;
+      deltaY = carCenterY - crystalScreenY;
+      dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      if (dist < 1) {
+        dist = 1;
+      }
+      for (streakIndex = 0; streakIndex < streakCount; streakIndex += 1) {
+        startX = crystalScreenX + (Math.random() - 0.5) * 14;
+        startY = crystalScreenY + (Math.random() - 0.5) * 14;
+        streakSpeed = dist / (0.16 + Math.random() * 0.12);
+        collectStreaks.push({
+          x: startX,
+          y: startY,
+          velX: (deltaX / dist) * streakSpeed,
+          velY: (deltaY / dist) * streakSpeed,
+          age: 0,
+          life: 0.18 + Math.random() * 0.14,
+          size: 2 + rarityScale * 1.2,
+          red: red,
+          green: green,
+          blue: blue
+        });
+      }
+
+      triggerCarCollectPulse(red, green, blue);
+      spawnScoreParticles(carCenterX, carCenterY, red, green, blue, RARITY_SIZE[rarity], 3 + rarity * 2);
+    }
+
+    function spawnImpactParticles(worldX, worldY) {
+      var count = 10;
+      var particleIndex;
+      var angle;
+      var speed;
+      var screenPos = worldToScreen(worldX, worldY);
+      for (particleIndex = 0; particleIndex < count; particleIndex += 1) {
+        angle = Math.random() * Math.PI * 2;
+        speed = 60 + Math.random() * 180;
+        impactParticles.push({
+          x: screenPos.x,
+          y: screenPos.y,
+          velX: Math.cos(angle) * speed,
+          velY: Math.sin(angle) * speed,
+          life: 0.35 + Math.random() * 0.35,
+          size: 2 + Math.random() * 5
+        });
+      }
+    }
+
+    function spawnDustTrail(deltaSeconds) {
+      if (carSpeed < 40) {
+        return;
+      }
+      var spawnCount = Math.floor(carSpeed / 120);
+      var spawnIndex;
+      var backAngle = carAngle + Math.PI;
+      var offsetDist = 22;
+      var originWorldX = carWorldX + Math.cos(backAngle) * offsetDist;
+      var originWorldY = carWorldY + Math.sin(backAngle) * offsetDist;
+      var screenPos = worldToScreen(originWorldX, originWorldY);
+      for (spawnIndex = 0; spawnIndex < spawnCount; spawnIndex += 1) {
+        dustParticles.push({
+          x: screenPos.x + (Math.random() - 0.5) * 16,
+          y: screenPos.y + (Math.random() - 0.5) * 16,
+          velX: (Math.random() - 0.5) * 30 - Math.cos(carAngle) * 20,
+          velY: (Math.random() - 0.5) * 30 - Math.sin(carAngle) * 20,
+          life: 0.4 + Math.random() * 0.5,
+          size: 4 + Math.random() * 10,
+          alpha: 0.25 + Math.random() * 0.35
+        });
+      }
+    }
+
+    function getTireTrailPathLength(trail) {
+      var totalLength = 0;
+      var pointIndex;
+      var deltaX;
+      var deltaY;
+      for (pointIndex = 1; pointIndex < trail.length; pointIndex += 1) {
+        deltaX = trail[pointIndex].x - trail[pointIndex - 1].x;
+        deltaY = trail[pointIndex].y - trail[pointIndex - 1].y;
+        totalLength += Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      }
+      return totalLength;
+    }
+
+    function trimTireTrail(trail) {
+      while (trail.length > 2 && getTireTrailPathLength(trail) > TIRE_TRACK_MAX_PATH_LENGTH) {
+        trail.shift();
+      }
+    }
+
+    function appendTireTrailPoints() {
+      var backAngle = carAngle + Math.PI;
+      var leftAngle = carAngle - Math.PI * 0.5;
+      var rightAngle = carAngle + Math.PI * 0.5;
+      var rearWorldX = Math.cos(backAngle) * TIRE_TRACK_REAR_OFFSET;
+      var rearWorldY = Math.sin(backAngle) * TIRE_TRACK_REAR_OFFSET;
+
+      tireTrailLeft.push({
+        x: carWorldX + rearWorldX + Math.cos(leftAngle) * TIRE_TRACK_LATERAL_OFFSET,
+        y: carWorldY + rearWorldY + Math.sin(leftAngle) * TIRE_TRACK_LATERAL_OFFSET
+      });
+      tireTrailRight.push({
+        x: carWorldX + rearWorldX + Math.cos(rightAngle) * TIRE_TRACK_LATERAL_OFFSET,
+        y: carWorldY + rearWorldY + Math.sin(rightAngle) * TIRE_TRACK_LATERAL_OFFSET
+      });
+    }
+
+    function updateTireTrails(moveDistance) {
+      if (moveDistance < 0.01 || carSpeed < TIRE_TRACK_MIN_SPEED) {
+        return;
+      }
+      tireTrailDistanceSinceLastPoint += moveDistance;
+      if (tireTrailDistanceSinceLastPoint < TIRE_TRACK_STEP_DISTANCE) {
+        return;
+      }
+      tireTrailDistanceSinceLastPoint = 0;
+      appendTireTrailPoints();
+      trimTireTrail(tireTrailLeft);
+      trimTireTrail(tireTrailRight);
+    }
+
+    function drawTireTrail(trail) {
+      var segmentCount;
+      var segmentIndex;
+      var startScreen;
+      var endScreen;
+      var alpha;
+
+      if (trail.length < 2) {
+        return;
+      }
+
+      segmentCount = trail.length - 1;
+      context.save();
+      context.lineCap = "round";
+      context.lineJoin = "round";
+      context.lineWidth = TIRE_TRACK_LINE_WIDTH;
+
+      for (segmentIndex = 0; segmentIndex < segmentCount; segmentIndex += 1) {
+        alpha = 0.18 + (segmentIndex / segmentCount) * 0.32;
+        context.strokeStyle = "rgba(95, 78, 58, " + alpha + ")";
+        startScreen = worldToScreen(trail[segmentIndex].x, trail[segmentIndex].y);
+        endScreen = worldToScreen(trail[segmentIndex + 1].x, trail[segmentIndex + 1].y);
+        context.beginPath();
+        context.moveTo(startScreen.x, startScreen.y);
+        context.lineTo(endScreen.x, endScreen.y);
+        context.stroke();
+      }
+
+      context.restore();
+    }
+
+    function drawTireTrails() {
+      drawTireTrail(tireTrailLeft);
+      drawTireTrail(tireTrailRight);
+    }
+
+    function worldToScreen(worldX, worldY) {
+      return {
+        x: width * 0.5 + (worldX - carWorldX),
+        y: height * 0.5 + (worldY - carWorldY)
+      };
+    }
+
+    function beginCrystalCollect(crystal) {
+      if (crystal.collected || crystal.collecting) {
+        return;
+      }
+      crystal.collecting = true;
+      crystal.collected = true;
+      var carCenter = getCarScreenCenter();
+      var crystalScreen = worldToScreen(crystal.x, crystal.y);
+      var rgb = getCrystalColorRgb(crystal.rarity);
+      var points = RARITY_SCORE[crystal.rarity];
+      score += points;
+      updateScoreHud();
+      setScoreHudPop();
+      spawnScoreFlyLabel(carCenter.x, carCenter.y, points, rgb[0], rgb[1], rgb[2]);
+      spawnCollectEffects(carCenter.x, carCenter.y, crystalScreen.x, crystalScreen.y, rgb[0], rgb[1], rgb[2], crystal.rarity);
+      spawnCollectArc(crystal);
+    }
+
+    function collectCrystal(crystal) {
+      beginCrystalCollect(crystal);
+    }
+
+    function updateCrystalAnimations(deltaSeconds) {
+      var carChunkX = worldToChunk(carWorldX);
+      var carChunkY = worldToChunk(carWorldY);
+      var offsetX;
+      var offsetY;
+      var chunk;
+      var crystalIndex;
+      var crystal;
+
+      for (offsetY = -CHUNK_LOAD_RADIUS; offsetY <= CHUNK_LOAD_RADIUS; offsetY += 1) {
+        for (offsetX = -CHUNK_LOAD_RADIUS; offsetX <= CHUNK_LOAD_RADIUS; offsetX += 1) {
+          chunk = getChunk(carChunkX + offsetX, carChunkY + offsetY);
+          for (crystalIndex = 0; crystalIndex < chunk.crystals.length; crystalIndex += 1) {
+            crystal = chunk.crystals[crystalIndex];
+            if (!crystal.collected && !crystal.collecting) {
+              crystal.twinkle += crystal.twinkleSpeed * deltaSeconds;
+            }
+          }
+        }
+      }
+    }
+
+    function updateCrystalMagnet(deltaSeconds) {
+      var carChunkX = worldToChunk(carWorldX);
+      var carChunkY = worldToChunk(carWorldY);
+      var offsetX;
+      var offsetY;
+      var chunk;
+      var crystalIndex;
+      var crystal;
+      var deltaX;
+      var deltaY;
+      var dist;
+      var pullStrength;
+      var magnetRange = CAR_RADIUS + CRYSTAL_MAGNET_RADIUS;
+
+      for (offsetY = -1; offsetY <= 1; offsetY += 1) {
+        for (offsetX = -1; offsetX <= 1; offsetX += 1) {
+          chunk = getChunk(carChunkX + offsetX, carChunkY + offsetY);
+          for (crystalIndex = 0; crystalIndex < chunk.crystals.length; crystalIndex += 1) {
+            crystal = chunk.crystals[crystalIndex];
+            if (crystal.collected || crystal.collecting) {
+              continue;
+            }
+            deltaX = crystal.x - carWorldX;
+            deltaY = crystal.y - carWorldY;
+            dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            if (dist < CAR_RADIUS + CRYSTAL_PICKUP_RADIUS) {
+              collectCrystal(crystal);
+            } else if (dist < magnetRange) {
+              pullStrength = (1 - dist / magnetRange) * 160 * deltaSeconds;
+              if (dist > 0.001) {
+                crystal.x -= (deltaX / dist) * pullStrength;
+                crystal.y -= (deltaY / dist) * pullStrength;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    function resolveRockCollision(collision) {
+      var normalX = collision.normalX;
+      var normalY = collision.normalY;
+      var pushDist = collision.penetration + ROCK_PUSH_EXTRA;
+      var pushAngle;
+      var angleDiff;
+
+      carWorldX += normalX * pushDist;
+      carWorldY += normalY * pushDist;
+
+      pushAngle = Math.atan2(normalY, normalX);
+      angleDiff = pushAngle - carAngle;
+      while (angleDiff > Math.PI) {
+        angleDiff -= Math.PI * 2;
+      }
+      while (angleDiff < -Math.PI) {
+        angleDiff += Math.PI * 2;
+      }
+      carAngle += angleDiff * ROCK_DEFLECT_STRENGTH;
+      carWrap.style.transform = "rotate(" + (carAngle + Math.PI / 2) + "rad)";
+    }
+
+    function applyRockDamage(collision) {
+      health -= 1;
+      healthRegenTimer = 0;
+      rockHitCooldown = ROCK_HIT_COOLDOWN;
+      carSpeed = Math.max(MIN_SPEED, carSpeed - ROCK_SPEED_PENALTY);
+      carShake.classList.remove("is-hit");
+      void carShake.offsetWidth;
+      carShake.classList.add("is-hit");
+      spawnImpactParticles(collision.closestWorldX, collision.closestWorldY);
+      updateDamageVignette(true);
+
+      if (health <= 0) {
+        triggerGameOver();
+      }
+    }
+
+    function checkCollisions() {
+      var carChunkX = worldToChunk(carWorldX);
+      var carChunkY = worldToChunk(carWorldY);
+      var offsetX;
+      var offsetY;
+      var chunk;
+      var rockIndex;
+      var rock;
+      var collision;
+      var tookDamage = false;
+
+      for (offsetY = -1; offsetY <= 1; offsetY += 1) {
+        for (offsetX = -1; offsetX <= 1; offsetX += 1) {
+          chunk = getChunk(carChunkX + offsetX, carChunkY + offsetY);
+
+          for (rockIndex = 0; rockIndex < chunk.rocks.length; rockIndex += 1) {
+            rock = chunk.rocks[rockIndex];
+            collision = getRockCarCollision(rock);
+            if (!collision) {
+              continue;
+            }
+            resolveRockCollision(collision);
+            if (!tookDamage && rockHitCooldown <= 0) {
+              applyRockDamage(collision);
+              tookDamage = true;
+            }
+          }
+        }
+      }
+    }
+
+    function triggerGameOver() {
+      gamePhase = PHASE_GAME_OVER;
+      carSpeed = 0;
+      clearKeysDown();
+      hudSpeed.classList.add("hidden");
+      saveHighScoreIfNeeded();
+      saveBestDistanceIfNeeded();
+      gameScreen.classList.remove("hidden");
+      screenDistance.classList.remove("hidden");
+      screenScore.classList.remove("hidden");
+      screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
+      screenDistance.textContent = formatMeters(distanceMeters);
+      screenScore.textContent = String(score);
+      controlHint.textContent = getGameOverHintText();
+      if (Math.floor(distanceMeters) >= bestDistanceMeters && distanceMeters > 0) {
+        gameScreen.classList.add("is-record");
+      } else {
+        gameScreen.classList.remove("is-record");
+      }
+      updateDamageVignette(false);
+      damageVignette.style.setProperty("--vignette-inner", "0%");
+      damageVignette.classList.add("is-visible");
+    }
+
+    function startGame() {
+      gamePhase = PHASE_PLAYING;
+      gameScreen.classList.add("hidden");
+      hudSpeed.classList.remove("hidden");
+      if (carSpeed < MIN_SPEED) {
+        carSpeed = START_SPEED;
+      }
+      updateSpeedGauge();
+      focusGameInput();
+    }
+
+    function tryStartFromInput() {
+      if (isGameOver()) {
+        resetGame();
+        startGame();
+        return;
+      }
+      if (isStart()) {
+        startGame();
+      }
+    }
+
+    function setPointerHeld(isHeld, clientX, clientY) {
+      pointerHeld = isHeld;
+      if (!isHeld) {
+        pointerSteeringTurning = false;
+      }
+      if (clientX !== undefined) {
+        lastPointerX = clientX;
+      }
+      if (clientY !== undefined) {
+        lastPointerY = clientY;
+      }
+    }
+
+    function onPointerDown(event) {
+      event.preventDefault();
+      focusGameInput();
+      tryStartFromInput();
+      if (isPlaying()) {
+        setPointerHeld(true, event.clientX, event.clientY);
+        if (gameRoot.setPointerCapture) {
+          try {
+            gameRoot.setPointerCapture(event.pointerId);
+          } catch (captureError) {
+          }
+        }
+      }
+    }
+
+    function onPointerMove(event) {
+      lastPointerX = event.clientX;
+      lastPointerY = event.clientY;
+    }
+
+    function onPointerUp(event) {
+      setPointerHeld(false);
+      if (gameRoot.releasePointerCapture) {
+        try {
+          if (gameRoot.hasPointerCapture && gameRoot.hasPointerCapture(event.pointerId)) {
+            gameRoot.releasePointerCapture(event.pointerId);
+          }
+        } catch (releaseError) {
+        }
+      }
+    }
+
+    function resetGame() {
+      gamePhase = PHASE_START;
+      setPointerHeld(false);
+      carWorldX = 0;
+      carWorldY = 0;
+      carAngle = -Math.PI / 2;
+      carSpeed = 0;
+      health = MAX_HEALTH;
+      healthRegenTimer = 0;
+      rockHitCooldown = 0;
+      score = 0;
+      distanceMeters = 0;
+      particles = [];
+      dustParticles = [];
+      tireTrailLeft = [];
+      tireTrailRight = [];
+      tireTrailDistanceSinceLastPoint = 0;
+      impactParticles = [];
+      collectArcs = [];
+      collectFlashes = [];
+      collectBursts = [];
+      collectSparks = [];
+      collectStreaks = [];
+      scoreFlyLabels = [];
+      collectEffectsDebounceTimer = 0;
+      chunks = {};
+      chunkKeys = [];
+      clearKeysDown();
+      updateScoreHud();
+      updateDistanceHud();
+      updateSpeedGauge();
+      updateDamageVignette(false);
+      damageVignette.classList.remove("is-visible", "is-flash");
+      carShake.classList.remove("is-hit");
+      carWrap.classList.remove("is-collect");
+      gameScreen.classList.remove("hidden", "is-record");
+      hudSpeed.classList.add("hidden");
+      screenDistance.classList.add("hidden");
+      screenScore.classList.add("hidden");
+      screenTitle.textContent = getLocalized(LOCALE_KEY_START, "Crystal Rush");
+      controlHint.textContent = getStartHintText();
+      getChunk(0, 0);
+    }
+
+    function onMovementKeyDown(code) {
+      if (isStart()) {
+        tryStartFromInput();
+      }
+      if (!isPlaying()) {
+        return;
+      }
+      setKeyFromCode(code, true);
+    }
+
+    function onMovementKeyUp(code) {
+      if (!isPlaying()) {
+        return;
+      }
+      setKeyFromCode(code, false);
+    }
+
+    function onKeyDown(event) {
+      var code = event.code;
+      if (code === "KeyW" || code === "KeyA" || code === "KeyS" || code === "KeyD") {
+        event.preventDefault();
+        onMovementKeyDown(code);
+        return;
+      }
+      var key = event.key;
+      if (key === "w" || key === "W") {
+        event.preventDefault();
+        if (isStart()) {
+          tryStartFromInput();
+        }
+        if (isPlaying()) {
+          keysDown.w = true;
+        }
+      } else if (key === "a" || key === "A") {
+        event.preventDefault();
+        if (isStart()) {
+          tryStartFromInput();
+        }
+        if (isPlaying()) {
+          keysDown.a = true;
+        }
+      } else if (key === "s" || key === "S") {
+        event.preventDefault();
+        if (isStart()) {
+          tryStartFromInput();
+        }
+        if (isPlaying()) {
+          keysDown.s = true;
+        }
+      } else if (key === "d" || key === "D") {
+        event.preventDefault();
+        if (isStart()) {
+          tryStartFromInput();
+        }
+        if (isPlaying()) {
+          keysDown.d = true;
+        }
+      }
+    }
+
+    function onKeyUp(event) {
+      var code = event.code;
+      if (code === "KeyW" || code === "KeyA" || code === "KeyS" || code === "KeyD") {
+        event.preventDefault();
+        onMovementKeyUp(code);
+        return;
+      }
+      var key = event.key;
+      if (key === "w" || key === "W") {
+        keysDown.w = false;
+      } else if (key === "a" || key === "A") {
+        keysDown.a = false;
+      } else if (key === "s" || key === "S") {
+        keysDown.s = false;
+      } else if (key === "d" || key === "D") {
+        keysDown.d = false;
+      }
+    }
+
+    function updatePointerSteering(deltaSeconds) {
+      var carCenter;
+      var targetAngle;
+      var angleDiff;
+      var turnRate;
+      var maxTurn;
+
+      if (!pointerHeld || !isPlaying()) {
+        pointerSteeringTurning = false;
+        return;
+      }
+      carCenter = getCarScreenCenter();
+      targetAngle = Math.atan2(lastPointerY - carCenter.y, lastPointerX - carCenter.x);
+      angleDiff = targetAngle - carAngle;
+      while (angleDiff > Math.PI) {
+        angleDiff -= Math.PI * 2;
+      }
+      while (angleDiff < -Math.PI) {
+        angleDiff += Math.PI * 2;
+      }
+      pointerSteeringTurning = Math.abs(angleDiff) > POINTER_STEER_ALIGNED_ANGLE;
+      turnRate = getTurnRateForSpeed(carSpeed);
+      maxTurn = turnRate * deltaSeconds;
+      if (angleDiff > maxTurn) {
+        angleDiff = maxTurn;
+      }
+      if (angleDiff < -maxTurn) {
+        angleDiff = -maxTurn;
+      }
+      carAngle += angleDiff;
+    }
+
+    function updateCar(deltaSeconds) {
+      var turnAmount = 0;
+      var turnRate = getTurnRateForSpeed(carSpeed);
+
+      if (pointerHeld) {
+        updatePointerSteering(deltaSeconds);
+      } else {
+        if (keysDown.a) {
+          turnAmount -= turnRate * deltaSeconds;
+        }
+        if (keysDown.d) {
+          turnAmount += turnRate * deltaSeconds;
+        }
+        carAngle += turnAmount;
+      }
+
+      if (keysDown.w) {
+        carSpeed += ACCEL_RATE * deltaSeconds;
+      } else if (keysDown.s) {
+        carSpeed -= BRAKE_RATE * deltaSeconds;
+      } else if (pointerHeld && !pointerSteeringTurning) {
+        carSpeed += POINTER_HOLD_CRUISE_ACCEL * deltaSeconds;
+      } else {
+        carSpeed -= COAST_DRAG * deltaSeconds;
+      }
+
+      if (carSpeed > MAX_SPEED) {
+        carSpeed = MAX_SPEED;
+      }
+      if (carSpeed < MIN_SPEED) {
+        carSpeed = MIN_SPEED;
+      }
+
+      carWorldX += Math.cos(carAngle) * carSpeed * deltaSeconds;
+      carWorldY += Math.sin(carAngle) * carSpeed * deltaSeconds;
+      updateTireTrails(carSpeed * deltaSeconds);
+      distanceMeters += carSpeed * deltaSeconds * METERS_PER_UNIT;
+      updateDistanceHud();
+
+      carWrap.style.transform = "rotate(" + (carAngle + Math.PI / 2) + "rad)";
+      updateSpeedGauge();
+    }
+
+    function updateHealthRegen(deltaSeconds) {
+      if (health >= MAX_HEALTH) {
+        return;
+      }
+      if (health <= 0) {
+        return;
+      }
+      healthRegenTimer += deltaSeconds;
+      if (healthRegenTimer >= HEALTH_REGEN_DELAY) {
+        var previousHealth = health;
+        health += HEALTH_REGEN_RATE * deltaSeconds;
+        if (health > MAX_HEALTH) {
+          health = MAX_HEALTH;
+        }
+        if (health !== previousHealth) {
+          updateDamageVignette(false);
+        }
+      }
+    }
+
+    function updateCollectArcs(deltaSeconds) {
+      var arcIndex;
+      var arc;
+      var progress;
+      var carCenter;
+      var radius;
+      var angle;
+      var wobble;
+
+      carCenter = getCarScreenCenter();
+
+      for (arcIndex = collectArcs.length - 1; arcIndex >= 0; arcIndex -= 1) {
+        arc = collectArcs[arcIndex];
+        arc.age += deltaSeconds;
+        progress = arc.age / arc.duration;
+        if (progress >= 1) {
+          collectArcs.splice(arcIndex, 1);
+          continue;
+        }
+        radius = Math.sin(progress * Math.PI) * arc.radiusPeak;
+        wobble = Math.sin(progress * Math.PI) * arc.arcWobble;
+        angle = arc.baseAngle + wobble;
+        arc.x = carCenter.x + Math.cos(angle) * radius;
+        arc.y = carCenter.y + Math.sin(angle) * radius;
+      }
+    }
+
+    function updateCollectEffects(deltaSeconds) {
+      if (collectEffectsDebounceTimer > 0) {
+        collectEffectsDebounceTimer -= deltaSeconds;
+        if (collectEffectsDebounceTimer < 0) {
+          collectEffectsDebounceTimer = 0;
+        }
+      }
+      var flashIndex;
+      var burstIndex;
+      var sparkIndex;
+      var streakIndex;
+      var flash;
+      var burst;
+      var spark;
+      var streak;
+
+      for (flashIndex = collectFlashes.length - 1; flashIndex >= 0; flashIndex -= 1) {
+        flash = collectFlashes[flashIndex];
+        flash.age += deltaSeconds;
+        if (flash.age >= flash.duration) {
+          collectFlashes.splice(flashIndex, 1);
+        }
+      }
+
+      for (burstIndex = collectBursts.length - 1; burstIndex >= 0; burstIndex -= 1) {
+        burst = collectBursts[burstIndex];
+        burst.age += deltaSeconds;
+        if (burst.age >= burst.duration) {
+          collectBursts.splice(burstIndex, 1);
+        }
+      }
+
+      for (sparkIndex = collectSparks.length - 1; sparkIndex >= 0; sparkIndex -= 1) {
+        spark = collectSparks[sparkIndex];
+        spark.age += deltaSeconds;
+        spark.velX *= 0.91;
+        spark.velY *= 0.91;
+        spark.x += spark.velX * deltaSeconds;
+        spark.y += spark.velY * deltaSeconds;
+        if (spark.age >= spark.life) {
+          collectSparks.splice(sparkIndex, 1);
+        }
+      }
+
+      for (streakIndex = collectStreaks.length - 1; streakIndex >= 0; streakIndex -= 1) {
+        streak = collectStreaks[streakIndex];
+        streak.age += deltaSeconds;
+        streak.x += streak.velX * deltaSeconds;
+        streak.y += streak.velY * deltaSeconds;
+        if (streak.age >= streak.life) {
+          collectStreaks.splice(streakIndex, 1);
+        }
+      }
+    }
+
+    function updateParticles(deltaSeconds) {
+      updateCollectArcs(deltaSeconds);
+      updateCollectEffects(deltaSeconds);
+      var targetX = getScoreTargetX();
+      var targetY = getScoreTargetY();
+      var particleIndex;
+      var particle;
+      var toTargetX;
+      var toTargetY;
+      var dist;
+      var timeLeft;
+      var dustIndex;
+      var dust;
+      var impactIndex;
+      var impact;
+
+      for (particleIndex = particles.length - 1; particleIndex >= 0; particleIndex -= 1) {
+        particle = particles[particleIndex];
+        particle.age += deltaSeconds;
+        toTargetX = targetX - particle.x;
+        toTargetY = targetY - particle.y;
+        dist = Math.sqrt(toTargetX * toTargetX + toTargetY * toTargetY);
+        if (dist < SCORE_ARRIVE_DIST) {
+          particles.splice(particleIndex, 1);
+          continue;
+        }
+        timeLeft = particle.travelTime - particle.age;
+        if (timeLeft < 0.04) {
+          timeLeft = 0.04;
+        }
+        particle.velX = toTargetX / timeLeft;
+        particle.velY = toTargetY / timeLeft;
+        particle.x += particle.velX * deltaSeconds;
+        particle.y += particle.velY * deltaSeconds;
+      }
+
+      for (dustIndex = dustParticles.length - 1; dustIndex >= 0; dustIndex -= 1) {
+        dust = dustParticles[dustIndex];
+        dust.life -= deltaSeconds;
+        dust.velX *= 0.94;
+        dust.velY *= 0.94;
+        dust.x += dust.velX * deltaSeconds;
+        dust.y += dust.velY * deltaSeconds;
+        dust.size += 18 * deltaSeconds;
+        dust.alpha -= 0.7 * deltaSeconds;
+        if (dust.life <= 0 || dust.alpha <= 0) {
+          dustParticles.splice(dustIndex, 1);
+        }
+      }
+
+      for (impactIndex = impactParticles.length - 1; impactIndex >= 0; impactIndex -= 1) {
+        impact = impactParticles[impactIndex];
+        impact.life -= deltaSeconds;
+        impact.velX *= 0.9;
+        impact.velY *= 0.9;
+        impact.x += impact.velX * deltaSeconds;
+        impact.y += impact.velY * deltaSeconds;
+        if (impact.life <= 0) {
+          impactParticles.splice(impactIndex, 1);
+        }
+      }
+
+      var labelIndex;
+      var label;
+      var targetX;
+      var targetY;
+      var progress;
+      var oneMinusT;
+      var dist;
+
+      for (labelIndex = scoreFlyLabels.length - 1; labelIndex >= 0; labelIndex -= 1) {
+        label = scoreFlyLabels[labelIndex];
+        label.age += deltaSeconds;
+        progress = label.age / label.flightTime;
+        if (progress >= 1) {
+          scoreFlyLabels.splice(labelIndex, 1);
+          continue;
+        }
+        targetX = getScoreTargetX() + label.targetOffsetX;
+        targetY = getScoreTargetY();
+        oneMinusT = 1 - progress;
+        label.x = oneMinusT * oneMinusT * label.originX + 2 * oneMinusT * progress * label.controlX + progress * progress * targetX;
+        label.y = oneMinusT * oneMinusT * label.originY + 2 * oneMinusT * progress * label.controlY + progress * progress * targetY;
+        dist = Math.sqrt((targetX - label.x) * (targetX - label.x) + (targetY - label.y) * (targetY - label.y));
+        if (dist < SCORE_LABEL_ARRIVE_DIST && progress > 0.55) {
+          scoreFlyLabels.splice(labelIndex, 1);
+          continue;
+        }
+        if (progress > 0.35) {
+          label.scale = label.scale * (1 - deltaSeconds * 0.22);
+          if (label.scale < 0.55) {
+            label.scale = 0.55;
+          }
+        }
+        if (label.age > 3.5) {
+          scoreFlyLabels.splice(labelIndex, 1);
+        }
+      }
+    }
+
+    function drawWorld() {
+      var carChunkX = worldToChunk(carWorldX);
+      var carChunkY = worldToChunk(carWorldY);
+      var offsetX;
+      var offsetY;
+      var chunk;
+      var screenX;
+      var screenY;
+      var keyIndex;
+      var key;
+
+      context.save();
+      context.fillStyle = "#1a1410";
+      context.fillRect(0, 0, width, height);
+
+      for (keyIndex = 0; keyIndex < chunkKeys.length; keyIndex += 1) {
+        key = chunkKeys[keyIndex];
+        chunk = chunks[key];
+        if (!chunk || !chunk.surfaceCanvas) {
+          continue;
+        }
+        screenX = width * 0.5 + chunk.chunkX * CHUNK_SIZE - carWorldX;
+        screenY = height * 0.5 + chunk.chunkY * CHUNK_SIZE - carWorldY;
+        if (screenX + CHUNK_SIZE < -64 || screenX > width + 64 ||
+          screenY + CHUNK_SIZE < -64 || screenY > height + 64) {
+          continue;
+        }
+        context.drawImage(chunk.surfaceCanvas, screenX, screenY);
+      }
+
+      drawTireTrails();
+
+      for (offsetY = -CHUNK_LOAD_RADIUS; offsetY <= CHUNK_LOAD_RADIUS; offsetY += 1) {
+        for (offsetX = -CHUNK_LOAD_RADIUS; offsetX <= CHUNK_LOAD_RADIUS; offsetX += 1) {
+          chunk = getChunk(carChunkX + offsetX, carChunkY + offsetY);
+          drawChunkEntities(chunk);
+        }
+      }
+
+      context.restore();
+    }
+
+    function drawChunkEntities(chunk) {
+      var crystalIndex;
+      var crystal;
+      var screenPos;
+      var rockIndex;
+      var rock;
+
+      for (rockIndex = 0; rockIndex < chunk.rocks.length; rockIndex += 1) {
+        rock = chunk.rocks[rockIndex];
+        screenPos = worldToScreen(rock.x, rock.y);
+        var cullRadius = getRockExtentRadius(rock) + 24;
+        if (screenPos.x + cullRadius < -220 || screenPos.x - cullRadius > width + 220 ||
+          screenPos.y + cullRadius < -220 || screenPos.y - cullRadius > height + 220) {
+          continue;
+        }
+        context.save();
+        context.translate(screenPos.x, screenPos.y);
+        context.rotate(rock.rotation);
+        var shade = rock.shade;
+        var bodyR = Math.floor(88 * shade);
+        var bodyG = Math.floor(80 * shade);
+        var bodyB = Math.floor(72 * shade);
+        var edgeR = Math.floor(58 * shade);
+        var edgeG = Math.floor(52 * shade);
+        var edgeB = Math.floor(46 * shade);
+        var pointIndex;
+        var polygonPoint;
+        context.fillStyle = "rgb(" + bodyR + "," + bodyG + "," + bodyB + ")";
+        context.beginPath();
+        for (pointIndex = 0; pointIndex < rock.polygonPoints.length; pointIndex += 1) {
+          polygonPoint = rock.polygonPoints[pointIndex];
+          if (pointIndex === 0) {
+            context.moveTo(polygonPoint.x, polygonPoint.y);
+          } else {
+            context.lineTo(polygonPoint.x, polygonPoint.y);
+          }
+        }
+        context.closePath();
+        context.fill();
+        context.strokeStyle = "rgba(" + edgeR + "," + edgeG + "," + edgeB + ",0.78)";
+        context.lineWidth = rock.kind === "wall" ? 1.8 : 1.5;
+        context.stroke();
+        context.strokeStyle = "rgba(40, 36, 30, 0.38)";
+        context.lineWidth = 1;
+        context.beginPath();
+        if (rock.kind === "wall") {
+          context.moveTo(-rock.halfLength * 0.72, -rock.halfWidth * 0.2);
+          context.lineTo(rock.halfLength * 0.68, rock.halfWidth * 0.28);
+          context.moveTo(-rock.halfLength * 0.35, rock.halfWidth * 0.42);
+          context.lineTo(rock.halfLength * 0.5, -rock.halfWidth * 0.22);
+        } else {
+          context.moveTo(-rock.radius * 0.45, -rock.radius * 0.15);
+          context.lineTo(rock.radius * 0.35, rock.radius * 0.4);
+        }
+        context.stroke();
+        context.restore();
+      }
+
+      for (crystalIndex = 0; crystalIndex < chunk.crystals.length; crystalIndex += 1) {
+        crystal = chunk.crystals[crystalIndex];
+        if (crystal.collected) {
+          continue;
+        }
+        screenPos = worldToScreen(crystal.x, crystal.y);
+        if (screenPos.x < -40 || screenPos.x > width + 40 ||
+          screenPos.y < -40 || screenPos.y > height + 40) {
+          continue;
+        }
+        var rgb = getCrystalColorRgb(crystal.rarity);
+        var twinkleScale = 0.72 + Math.sin(crystal.twinkle) * 0.28;
+        var sparkSize = crystal.size * twinkleScale;
+        var glowAlpha = 0.12 + RARITY_GLOW[crystal.rarity] * 0.28;
+        var glowRadius = sparkSize * RARITY_GLOW_RADIUS[crystal.rarity];
+        var gradient = context.createRadialGradient(screenPos.x, screenPos.y, 0, screenPos.x, screenPos.y, glowRadius);
+        gradient.addColorStop(0, "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + "," + glowAlpha + ")");
+        gradient.addColorStop(1, "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ",0)");
+        context.fillStyle = gradient;
+        context.beginPath();
+        context.arc(screenPos.x, screenPos.y, glowRadius, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
+        context.beginPath();
+        context.arc(screenPos.x, screenPos.y, sparkSize, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "rgba(255, 255, 255, " + (0.35 + twinkleScale * 0.35) + ")";
+        context.beginPath();
+        context.arc(screenPos.x - sparkSize * 0.25, screenPos.y - sparkSize * 0.25, sparkSize * 0.35, 0, Math.PI * 2);
+        context.fill();
+      }
+    }
+
+    function drawParticles() {
+      var dustIndex;
+      var dust;
+      var impactIndex;
+      var impact;
+      var particleIndex;
+      var particle;
+
+      for (dustIndex = 0; dustIndex < dustParticles.length; dustIndex += 1) {
+        dust = dustParticles[dustIndex];
+        context.fillStyle = "rgba(160, 130, 95, " + dust.alpha + ")";
+        context.beginPath();
+        context.arc(dust.x, dust.y, dust.size, 0, Math.PI * 2);
+        context.fill();
+      }
+
+      for (impactIndex = 0; impactIndex < impactParticles.length; impactIndex += 1) {
+        impact = impactParticles[impactIndex];
+        context.fillStyle = "rgba(200, 120, 70, " + (impact.life * 2) + ")";
+        context.beginPath();
+        context.arc(impact.x, impact.y, impact.size, 0, Math.PI * 2);
+        context.fill();
+      }
+
+      for (particleIndex = 0; particleIndex < particles.length; particleIndex += 1) {
+        particle = particles[particleIndex];
+        context.fillStyle = "rgb(" + particle.red + "," + particle.green + "," + particle.blue + ")";
+        context.shadowColor = "rgba(" + particle.red + "," + particle.green + "," + particle.blue + ",0.9)";
+        context.shadowBlur = 6;
+        context.beginPath();
+        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        context.fill();
+        context.shadowBlur = 0;
+      }
+
+      var flashIndex;
+      var flash;
+      var flashProgress;
+      var flashRadius;
+      var flashAlpha;
+      var flashGradient;
+      for (flashIndex = 0; flashIndex < collectFlashes.length; flashIndex += 1) {
+        flash = collectFlashes[flashIndex];
+        flashProgress = flash.age / flash.duration;
+        if (flashProgress > 1) {
+          flashProgress = 1;
+        }
+        flashRadius = flash.maxRadius * flashProgress;
+        flashAlpha = (1 - flashProgress) * 0.55;
+        flashGradient = context.createRadialGradient(flash.x, flash.y, 0, flash.x, flash.y, flashRadius);
+        flashGradient.addColorStop(0, "rgba(255, 255, 255, " + (flashAlpha * 0.85) + ")");
+        flashGradient.addColorStop(0.35, "rgba(" + flash.red + "," + flash.green + "," + flash.blue + "," + flashAlpha + ")");
+        flashGradient.addColorStop(1, "rgba(" + flash.red + "," + flash.green + "," + flash.blue + ",0)");
+        context.fillStyle = flashGradient;
+        context.beginPath();
+        context.arc(flash.x, flash.y, flashRadius, 0, Math.PI * 2);
+        context.fill();
+      }
+
+      var burstIndex;
+      var burst;
+      var burstProgress;
+      var burstRadius;
+      var burstAlpha;
+      for (burstIndex = 0; burstIndex < collectBursts.length; burstIndex += 1) {
+        burst = collectBursts[burstIndex];
+        burstProgress = burst.age / burst.duration;
+        if (burstProgress > 1) {
+          burstProgress = 1;
+        }
+        burstRadius = burst.maxRadius * burstProgress;
+        burstAlpha = (1 - burstProgress) * 0.75;
+        context.strokeStyle = "rgba(" + burst.red + "," + burst.green + "," + burst.blue + "," + burstAlpha + ")";
+        context.lineWidth = 2.5 * (1 - burstProgress * 0.6);
+        context.beginPath();
+        context.arc(burst.x, burst.y, burstRadius, 0, Math.PI * 2);
+        context.stroke();
+      }
+
+      var sparkIndex;
+      var spark;
+      var sparkLifeLeft;
+      var sparkAlpha;
+      for (sparkIndex = 0; sparkIndex < collectSparks.length; sparkIndex += 1) {
+        spark = collectSparks[sparkIndex];
+        sparkLifeLeft = 1 - spark.age / spark.life;
+        if (sparkLifeLeft < 0) {
+          sparkLifeLeft = 0;
+        }
+        sparkAlpha = sparkLifeLeft * 0.95;
+        context.fillStyle = "rgba(" + spark.red + "," + spark.green + "," + spark.blue + "," + sparkAlpha + ")";
+        context.shadowColor = "rgba(" + spark.red + "," + spark.green + "," + spark.blue + ",0.85)";
+        context.shadowBlur = 8;
+        context.beginPath();
+        context.arc(spark.x, spark.y, spark.size * sparkLifeLeft, 0, Math.PI * 2);
+        context.fill();
+        context.shadowBlur = 0;
+      }
+
+      var streakIndex;
+      var streak;
+      var streakLifeLeft;
+      var streakAlpha;
+      var tailX;
+      var tailY;
+      for (streakIndex = 0; streakIndex < collectStreaks.length; streakIndex += 1) {
+        streak = collectStreaks[streakIndex];
+        streakLifeLeft = 1 - streak.age / streak.life;
+        if (streakLifeLeft < 0) {
+          streakLifeLeft = 0;
+        }
+        streakAlpha = streakLifeLeft;
+        tailX = streak.x - streak.velX * 0.028;
+        tailY = streak.y - streak.velY * 0.028;
+        context.strokeStyle = "rgba(" + streak.red + "," + streak.green + "," + streak.blue + "," + (streakAlpha * 0.9) + ")";
+        context.lineWidth = streak.size * streakLifeLeft;
+        context.lineCap = "round";
+        context.beginPath();
+        context.moveTo(tailX, tailY);
+        context.lineTo(streak.x, streak.y);
+        context.stroke();
+        context.fillStyle = "rgba(255, 255, 255, " + (streakAlpha * 0.7) + ")";
+        context.beginPath();
+        context.arc(streak.x, streak.y, streak.size * 0.55, 0, Math.PI * 2);
+        context.fill();
+      }
+
+      var arcIndex;
+      var arc;
+      for (arcIndex = 0; arcIndex < collectArcs.length; arcIndex += 1) {
+        arc = collectArcs[arcIndex];
+        if (arc.x === undefined) {
+          continue;
+        }
+        var arcGlow = arc.size * 2.8;
+        var arcGradient = context.createRadialGradient(arc.x, arc.y, 0, arc.x, arc.y, arcGlow);
+        arcGradient.addColorStop(0, "rgba(" + arc.red + "," + arc.green + "," + arc.blue + ",0.75)");
+        arcGradient.addColorStop(1, "rgba(" + arc.red + "," + arc.green + "," + arc.blue + ",0)");
+        context.fillStyle = arcGradient;
+        context.beginPath();
+        context.arc(arc.x, arc.y, arcGlow, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "rgb(" + arc.red + "," + arc.green + "," + arc.blue + ")";
+        context.beginPath();
+        context.arc(arc.x, arc.y, arc.size, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "rgba(255, 255, 255, 0.7)";
+        context.beginPath();
+        context.arc(arc.x - arc.size * 0.2, arc.y - arc.size * 0.2, arc.size * 0.35, 0, Math.PI * 2);
+        context.fill();
+      }
+
+      var labelIndex;
+      var label;
+      var drawAlpha;
+      var drawScale;
+      var progress;
+      for (labelIndex = 0; labelIndex < scoreFlyLabels.length; labelIndex += 1) {
+        label = scoreFlyLabels[labelIndex];
+        progress = label.age / label.flightTime;
+        if (progress > 1) {
+          progress = 1;
+        }
+        if (progress < SCORE_LABEL_FADE_END_PROGRESS) {
+          drawAlpha = SCORE_LABEL_START_ALPHA + (1 - SCORE_LABEL_START_ALPHA) * (progress / SCORE_LABEL_FADE_END_PROGRESS);
+        } else {
+          drawAlpha = 1;
+        }
+        drawScale = label.scale;
+        if (progress < 0.22) {
+          drawScale = label.scale * (1 + (1 - progress / 0.22) * 0.35);
+        }
+        context.save();
+        context.translate(label.x, label.y);
+        context.scale(drawScale, drawScale);
+        context.font = "bold " + label.fontSize + "px Courier New, monospace";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillStyle = "rgba(0, 0, 0, " + (drawAlpha * 0.6) + ")";
+        context.fillText(label.text, 1, 2);
+        context.fillStyle = "rgba(" + label.red + "," + label.green + "," + label.blue + "," + drawAlpha + ")";
+        context.fillText(label.text, 0, 0);
+        context.fillStyle = "rgba(255, 255, 255, " + (drawAlpha * 0.45) + ")";
+        context.fillText(label.text, -1, -1);
+        context.restore();
+      }
+    }
+
+    function resizeCanvas() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      devicePixelRatioScale = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(width * devicePixelRatioScale);
+      canvas.height = Math.floor(height * devicePixelRatioScale);
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
+      context.setTransform(devicePixelRatioScale, 0, 0, devicePixelRatioScale, 0, 0);
+    }
+
+    function update(deltaSeconds) {
+      if (isPlaying()) {
+        updateCar(deltaSeconds);
+        updateChunksAroundCar();
+        updateCrystalAnimations(deltaSeconds);
+        updateCrystalMagnet(deltaSeconds);
+        checkCollisions();
+        spawnDustTrail(deltaSeconds);
+        updateHealthRegen(deltaSeconds);
+        if (rockHitCooldown > 0) {
+          rockHitCooldown -= deltaSeconds;
+        }
+      }
+      updateParticles(deltaSeconds);
+    }
+
+    function render() {
+      drawWorld();
+      drawParticles();
+    }
+
+    function frame(timestamp) {
+      if (!lastFrameTime) {
+        lastFrameTime = timestamp;
+      }
+      var deltaSeconds = (timestamp - lastFrameTime) / 1000;
+      if (deltaSeconds > 0.05) {
+        deltaSeconds = 0.05;
+      }
+      lastFrameTime = timestamp;
+      fpsSampleFrames += 1;
+      fpsSampleTime += deltaSeconds;
+      if (fpsSampleTime >= 0.35) {
+        fpsValue.textContent = String(Math.round(fpsSampleFrames / fpsSampleTime));
+        fpsSampleFrames = 0;
+        fpsSampleTime = 0;
+      }
+      update(deltaSeconds);
+      render();
+      window.requestAnimationFrame(frame);
+    }
+
+    function init() {
+      resizeCanvas();
+      loadHighScore();
+      loadBestDistance();
+      applyGameLocale();
+      bindLocaleListener();
+      resetGame();
+      window.addEventListener("resize", resizeCanvas);
+      window.addEventListener("blur", clearKeysDown);
+      document.addEventListener("keydown", onKeyDown, true);
+      document.addEventListener("keyup", onKeyUp, true);
+      window.addEventListener("keydown", onKeyDown);
+      window.addEventListener("keyup", onKeyUp);
+      canvas.addEventListener("pointerdown", onPointerDown);
+      canvas.addEventListener("pointermove", onPointerMove);
+      canvas.addEventListener("pointerup", onPointerUp);
+      canvas.addEventListener("pointercancel", onPointerUp);
+      gameScreen.addEventListener("pointerdown", onPointerDown);
+      gameRoot.addEventListener("pointerdown", onPointerDown);
+      gameRoot.addEventListener("pointermove", onPointerMove);
+      gameRoot.addEventListener("pointerup", onPointerUp);
+      gameRoot.addEventListener("pointercancel", onPointerUp);
+      window.addEventListener("pointerup", onPointerUp);
+      window.addEventListener("pointercancel", onPointerUp);
+      window.requestAnimationFrame(frame);
+    }
+
+    init();
+  </script>
+</body>
+
+</html>
