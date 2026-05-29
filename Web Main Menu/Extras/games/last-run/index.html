@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Midnight Run</title>
+  <title>Last Run</title>
   <style>
     * {
       box-sizing: border-box;
@@ -18,7 +18,12 @@
       background: #0c0618;
       color: #d4b8ff;
       font-family: "Courier New", Courier, monospace;
-      cursor: url("../../cursor-pointer.svg") 2.1 0, pointer;
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+    }
+
+    #gameRoot,
+    #gameCanvas {
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
     }
 
     #gameRoot {
@@ -106,6 +111,24 @@
       width: 100%;
       height: 100%;
       filter: drop-shadow(0 2px 6px rgba(100, 50, 180, 0.4));
+    }
+
+    .runner-follower.is-joining .runner-follower-shake svg {
+      filter: drop-shadow(0 0 14px rgba(210, 150, 255, 0.85)) drop-shadow(0 2px 6px rgba(100, 50, 180, 0.4));
+    }
+
+    .runner-follower-eject {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 84px;
+      height: 68px;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .runner-follower-eject .runner-follower-shake svg {
+      filter: drop-shadow(0 2px 6px rgba(100, 50, 180, 0.35));
     }
 
     #runnerWrap {
@@ -261,6 +284,20 @@
       display: none;
     }
 
+    #controlHint {
+      margin: 0.35rem 0 0;
+      font-size: 0.78rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #c9a8ff;
+      text-align: center;
+      max-width: min(92vw, 22rem);
+    }
+
+    #controlHint.hidden {
+      display: none;
+    }
+
     #clickHint {
       position: absolute;
       left: 18%;
@@ -382,21 +419,22 @@
     <div id="hudHighScore" class="hud-panel">best 0m</div>
     <div id="clickHint" class="is-visible" aria-hidden="true"></div>
     <div id="gameScreen">
-      <h1 id="screenTitle">Start</h1>
+      <h1 id="screenTitle">Last Run</h1>
+      <p id="controlHint">Press and Hold to jump higher</p>
       <p id="screenMeters" class="hidden">0m</p>
       <div id="recordBurst" aria-hidden="true"></div>
     </div>
   </div>
   <script>
-    var HIGH_SCORE_STORAGE_KEY = "cm-midnight-run-high-score";
-    var HIGH_SCORE_STORAGE_KEY_LEGACY = "cm-dino-wasteland-run-high-score";
-    var LOCALE_KEY_START = "web.game.midnight-run.start";
-    var LOCALE_KEY_GAME_OVER = "web.game.midnight-run.game-over";
+    var HIGH_SCORE_STORAGE_KEY = "cm-last-run-high-score";
+    var GAME_TITLE = "Last Run";
+    var LOCALE_KEY_GAME_OVER = "web.game.game-over";
     var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
     var LOCALE_KEY_METERS_SUFFIX = "web.game.meters-suffix";
     var LOCALE_KEY_SPEED_SUFFIX = "web.game.speed-suffix";
+    var LOCALE_KEY_HOLD_JUMP_HIGHER = "web.game.prompt.hold-jump-higher";
     var METERS_PER_UNIT = 0.12;
-    var START_HP = 1;
+    var START_HP = 2;
     var HP_DISTANCE_PER_LIFE = 1000;
 
     var PHASE_START = "start";
@@ -406,6 +444,7 @@
     var canvas = document.getElementById("gameCanvas");
     var context = canvas.getContext("2d");
     var damageFlash = document.getElementById("damageFlash");
+    var gameRoot = document.getElementById("gameRoot");
     var runnerHerd = document.getElementById("runnerHerd");
     var runnerFollowers = document.getElementById("runnerFollowers");
     var runnerWrap = document.getElementById("runnerWrap");
@@ -419,6 +458,7 @@
     var hudHighScore = document.getElementById("hudHighScore");
     var screenTitle = document.getElementById("screenTitle");
     var screenMeters = document.getElementById("screenMeters");
+    var controlHint = document.getElementById("controlHint");
     var clickHint = document.getElementById("clickHint");
     var recordBurst = document.getElementById("recordBurst");
 
@@ -457,6 +497,9 @@
     var hpMilestoneNext = HP_DISTANCE_PER_LIFE;
     var herdShuffleTime = 0;
     var herdFollowerElements = [];
+    var herdMemberMotions = [];
+    var HERD_JOIN_DURATION = 0.82;
+    var HERD_EJECT_GRAVITY = 520;
     var invincibleTimer = 0;
     var screenShakeTimer = 0;
     var screenShakeStrength = 0;
@@ -485,6 +528,27 @@
     var BOMB_HEIGHT = 32;
     var CRYSTAL_WIDTH = 34;
     var CRYSTAL_HEIGHT = 44;
+    var OBSTACLE_METEOR_SPAWN_CHANCE = 0.12;
+    var OBSTACLE_OTHER_TYPE_SLICE = (1 - OBSTACLE_METEOR_SPAWN_CHANCE) / 5;
+    var METEOR_WIDTH = 36;
+    var METEOR_HEIGHT = 30;
+
+    var fallingMeteors = [];
+    var meteorExplosions = [];
+    var fallingMeteorCooldown = 0;
+    var fallingMeteorObstacleTriggerDelay = -1;
+    var fallingMeteorObstacleTriggerPending = 0;
+    var meteorObstaclePulseTime = 0;
+    var FALLING_METEOR_COOLDOWN_MIN = 5;
+    var FALLING_METEOR_COOLDOWN_RANGE = 8;
+    var FALLING_METEOR_SPAWN_ROLL = 0.0024;
+    var FALLING_METEOR_RANDOM_SPAWN_FACTOR = 0.14;
+    var FALLING_METEOR_OBSTACLE_TRIGGER_DELAY_MIN = 0.35;
+    var FALLING_METEOR_OBSTACLE_TRIGGER_DELAY_RANGE = 0.95;
+    var FALLING_METEOR_DURATION_MIN = 1.56;
+    var FALLING_METEOR_DURATION_RANGE = 0.76;
+    var FALLING_METEOR_TEASE_CHANCE = 0.24;
+    var METEOR_IMPACT_RADIUS = 46;
 
     var jumpAirSlowFactor = 0.52;
     var jumpAirSlowBoost = 90;
@@ -497,10 +561,22 @@
 
     var SKY_TILE_WIDTH = 1280;
     var SKY_TILE_HEIGHT = 720;
-    var SKY_MOON_X = SKY_TILE_WIDTH * 0.82;
-    var SKY_MOON_Y = SKY_TILE_HEIGHT * 0.11;
-    var SKY_MOON_BLOCK_RADIUS = 90;
+    var moonScreenXRatio = 0.82;
+    var moonScreenYRatio = 0.11;
+    var MOON_MARGIN_X_RATIO = 0.12;
+    var MOON_MARGIN_Y_TOP_RATIO = 0.08;
+    var MOON_MARGIN_Y_BOTTOM_RATIO = 0.48;
+    var MOON_CLICK_RADIUS_SCALE = 1.2;
     var skyStars = [];
+    var SKY_METEOR_COUNT = 48;
+    var SKY_METEOR_ANGLE = Math.PI * 0.34;
+    var SKY_METEOR_DIR_X = Math.cos(SKY_METEOR_ANGLE);
+    var SKY_METEOR_DIR_Y = Math.sin(SKY_METEOR_ANGLE);
+    var SKY_METEOR_PERP_X = -SKY_METEOR_DIR_Y;
+    var SKY_METEOR_PERP_Y = SKY_METEOR_DIR_X;
+    var SKY_METEOR_MAX_Y_RATIO = 0.62;
+    var skyMeteorAnimTime = 0;
+    var skyMeteors = [];
 
     function isPlaying() {
       return gamePhase === PHASE_PLAYING;
@@ -535,9 +611,14 @@
       return key;
     }
 
+    function getStartHintText() {
+      return getLocalized(LOCALE_KEY_HOLD_JUMP_HIGHER, "Press and Hold to jump higher");
+    }
+
     function applyGameLocale() {
       if (isStart()) {
-        screenTitle.textContent = getLocalized(LOCALE_KEY_START, "Start");
+        screenTitle.textContent = GAME_TITLE;
+        controlHint.textContent = getStartHintText();
       } else if (isGameOver()) {
         screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
         screenMeters.textContent = formatMeters(distanceMeters);
@@ -560,16 +641,10 @@
     function loadHighScore() {
       try {
         var stored = window.localStorage.getItem(HIGH_SCORE_STORAGE_KEY);
-        if (!stored) {
-          stored = window.localStorage.getItem(HIGH_SCORE_STORAGE_KEY_LEGACY);
-        }
         if (stored) {
           var parsed = parseInt(stored, 10);
           if (!isNaN(parsed) && parsed >= 0) {
             highScoreMeters = parsed;
-            if (!window.localStorage.getItem(HIGH_SCORE_STORAGE_KEY)) {
-              window.localStorage.setItem(HIGH_SCORE_STORAGE_KEY, String(highScoreMeters));
-            }
           }
         }
       } catch (error) {
@@ -622,26 +697,227 @@
       return wrap;
     }
 
+    function getHerdFollowerLayout(followerIndex, slope) {
+      var depth = followerIndex + 1;
+      var seed = followerIndex * 2.17 + 0.61;
+      var baseOffsetX = -(14 + depth * 11);
+      var shuffleX = Math.sin(herdShuffleTime * 2.35 + seed) * (2.5 + depth * 0.9);
+      var shuffleY = Math.sin(herdShuffleTime * 1.85 + seed * 1.37) * (2 + depth * 0.55);
+      var scale = 1 - depth * 0.035;
+      var opacity = 0.9 - depth * 0.07;
+      return {
+        offsetX: baseOffsetX + shuffleX,
+        offsetY: shuffleY,
+        scale: scale,
+        opacity: opacity,
+        depth: depth,
+        slope: slope
+      };
+    }
+
+    function applyHerdFollowerLayout(element, layout) {
+      element.style.left = layout.offsetX + "px";
+      element.style.top = layout.offsetY + "px";
+      element.style.zIndex = String(layout.depth);
+      element.style.opacity = String(layout.opacity);
+      element.style.transform = "scale(" + layout.scale + ")";
+      var tiltNode = element.firstChild;
+      if (tiltNode && !isGameOver()) {
+        tiltNode.style.transform = "rotate(" + (layout.slope * 0.35) + "rad)";
+      }
+    }
+
+    function isFollowerJoining(element) {
+      var index;
+      for (index = 0; index < herdMemberMotions.length; index++) {
+        if (herdMemberMotions[index].kind === "join" && herdMemberMotions[index].element === element) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function removeHerdMotionElement(motion) {
+      if (motion.element && motion.element.parentNode) {
+        motion.element.parentNode.removeChild(motion.element);
+      }
+    }
+
+    function clearHerdMemberMotions() {
+      var index;
+      for (index = 0; index < herdMemberMotions.length; index++) {
+        removeHerdMotionElement(herdMemberMotions[index]);
+      }
+      herdMemberMotions.length = 0;
+    }
+
+    function addHerdFollowerWithJoinAnimation(followerIndex) {
+      var element = createHerdFollowerElement(followerIndex);
+      var shakeNode = element.querySelector(".runner-follower-shake");
+      element.classList.add("is-joining");
+      if (isPlaying() || isGameOver()) {
+        shakeNode.classList.add("is-running");
+      }
+      runnerFollowers.appendChild(element);
+      herdFollowerElements.push(element);
+      herdMemberMotions.push({
+        kind: "join",
+        element: element,
+        followerIndex: followerIndex,
+        age: 0,
+        duration: HERD_JOIN_DURATION,
+        startOffsetX: 118 + Math.random() * 48,
+        startOffsetY: -28 + Math.random() * 18,
+        startScale: 0.68
+      });
+    }
+
+    function ejectHerdFollowerFromDamage() {
+      var element;
+      var followerIndex;
+      var layout;
+      var motion;
+      var shakeNode;
+      var herdLeft;
+      var herdTop;
+      if (herdFollowerElements.length === 0) {
+        return;
+      }
+      element = herdFollowerElements.pop();
+      followerIndex = herdFollowerElements.length;
+      layout = getHerdFollowerLayout(followerIndex, groundSlope(playerWorldX));
+      shakeNode = element.querySelector(".runner-follower-shake");
+      if (shakeNode) {
+        shakeNode.classList.remove("is-running");
+      }
+      element.classList.remove("is-joining");
+      if (element.parentNode === runnerFollowers) {
+        runnerFollowers.removeChild(element);
+      }
+      element.className = "runner-follower-eject";
+      gameRoot.appendChild(element);
+      herdLeft = playerScreenX - 84 * 0.48;
+      herdTop = getPlayerGroundY() + playerYOffset - 68 + 6;
+      motion = {
+        kind: "eject",
+        element: element,
+        screenX: herdLeft + layout.offsetX,
+        screenY: herdTop + layout.offsetY,
+        scale: layout.scale,
+        rotation: (Math.random() - 0.5) * 0.45,
+        velocityX: 150 + Math.random() * 110,
+        velocityY: 200 + Math.random() * 150,
+        spin: (Math.random() - 0.5) * 9,
+        age: 0
+      };
+      element.style.left = motion.screenX + "px";
+      element.style.top = motion.screenY + "px";
+      element.style.opacity = "1";
+      element.style.transform = "scale(" + motion.scale + ") rotate(" + motion.rotation + "rad)";
+      herdMemberMotions.push(motion);
+    }
+
+    function updateHerdJoinMotion(motion, slope) {
+      var progress = motion.age / motion.duration;
+      var ease;
+      var target;
+      var offsetX;
+      var offsetY;
+      var scale;
+      var opacity;
+      if (progress > 1) {
+        progress = 1;
+      }
+      ease = 1 - (1 - progress) * (1 - progress);
+      target = getHerdFollowerLayout(motion.followerIndex, slope);
+      offsetX = motion.startOffsetX + (target.offsetX - motion.startOffsetX) * ease;
+      offsetY = motion.startOffsetY + (target.offsetY - motion.startOffsetY) * ease;
+      scale = motion.startScale + (target.scale - motion.startScale) * ease;
+      opacity = 0.35 + (target.opacity - 0.35) * ease;
+      motion.element.style.left = offsetX + "px";
+      motion.element.style.top = offsetY + "px";
+      motion.element.style.zIndex = String(target.depth);
+      motion.element.style.opacity = String(opacity);
+      motion.element.style.transform = "scale(" + scale + ")";
+      applyHerdFollowerLayout(motion.element, {
+        offsetX: offsetX,
+        offsetY: offsetY,
+        scale: scale,
+        opacity: opacity,
+        depth: target.depth,
+        slope: slope
+      });
+      if (progress >= 1) {
+        motion.element.classList.remove("is-joining");
+      }
+    }
+
+    function updateHerdEjectMotion(motion, deltaSeconds) {
+      var tiltNode = motion.element.firstChild;
+      motion.screenX -= (motion.velocityX + scrollSpeed * 0.42) * deltaSeconds;
+      motion.screenY += motion.velocityY * deltaSeconds;
+      motion.velocityY += HERD_EJECT_GRAVITY * deltaSeconds;
+      motion.rotation += motion.spin * deltaSeconds;
+      motion.element.style.left = motion.screenX + "px";
+      motion.element.style.top = motion.screenY + "px";
+      motion.element.style.opacity = String(Math.max(0, 1 - motion.age * 0.55));
+      motion.element.style.transform = "scale(" + motion.scale + ") rotate(" + motion.rotation + "rad)";
+      if (tiltNode) {
+        tiltNode.style.transform = "rotate(" + (motion.rotation * 0.6) + "rad)";
+      }
+    }
+
+    function updateHerdMemberMotions(deltaSeconds) {
+      var index = 0;
+      var motion;
+      var slope = groundSlope(playerWorldX);
+      while (index < herdMemberMotions.length) {
+        motion = herdMemberMotions[index];
+        motion.age += deltaSeconds;
+        if (motion.kind === "join") {
+          updateHerdJoinMotion(motion, slope);
+          if (motion.age >= motion.duration) {
+            herdMemberMotions.splice(index, 1);
+            continue;
+          }
+        } else if (motion.kind === "eject") {
+          updateHerdEjectMotion(motion, deltaSeconds);
+          if (motion.screenX < -120 || motion.screenY > height + 40 || motion.age > 2.4) {
+            removeHerdMotionElement(motion);
+            herdMemberMotions.splice(index, 1);
+            continue;
+          }
+        }
+        index += 1;
+      }
+    }
+
+    function applyHerdDamageLoss() {
+      ejectHerdFollowerFromDamage();
+    }
+
     function syncHerdFollowerElements() {
       var targetCount = herdHp - 1;
+      var followerIndex;
       if (targetCount < 0) {
         targetCount = 0;
       }
-      var followerIndex;
-      while (herdFollowerElements.length < targetCount) {
-        followerIndex = herdFollowerElements.length;
+      clearHerdMemberMotions();
+      while (herdFollowerElements.length > 0) {
+        var removed = herdFollowerElements.pop();
+        if (removed && removed.parentNode === runnerFollowers) {
+          runnerFollowers.removeChild(removed);
+        } else if (removed && removed.parentNode) {
+          removed.parentNode.removeChild(removed);
+        }
+      }
+      for (followerIndex = 0; followerIndex < targetCount; followerIndex++) {
         var element = createHerdFollowerElement(followerIndex);
         if (isPlaying() || isGameOver()) {
           element.querySelector(".runner-follower-shake").classList.add("is-running");
         }
         runnerFollowers.appendChild(element);
         herdFollowerElements.push(element);
-      }
-      while (herdFollowerElements.length > targetCount) {
-        var removed = herdFollowerElements.pop();
-        if (removed && removed.parentNode === runnerFollowers) {
-          runnerFollowers.removeChild(removed);
-        }
       }
     }
 
@@ -666,7 +942,7 @@
       while (distanceMeters >= hpMilestoneNext) {
         herdHp += 1;
         hpMilestoneNext += HP_DISTANCE_PER_LIFE;
-        syncHerdFollowerElements();
+        addHerdFollowerWithJoinAnimation(herdFollowerElements.length);
       }
     }
 
@@ -675,21 +951,10 @@
       var followerCount = herdFollowerElements.length;
       for (followerIndex = 0; followerIndex < followerCount; followerIndex++) {
         var element = herdFollowerElements[followerIndex];
-        var depth = followerIndex + 1;
-        var seed = followerIndex * 2.17 + 0.61;
-        var baseOffsetX = -(14 + depth * 11);
-        var shuffleX = Math.sin(herdShuffleTime * 2.35 + seed) * (2.5 + depth * 0.9);
-        var shuffleY = Math.sin(herdShuffleTime * 1.85 + seed * 1.37) * (2 + depth * 0.55);
-        var scale = 1 - depth * 0.035;
-        element.style.left = (baseOffsetX + shuffleX) + "px";
-        element.style.top = shuffleY + "px";
-        element.style.zIndex = String(depth);
-        element.style.opacity = String(0.9 - depth * 0.07);
-        element.style.transform = "scale(" + scale + ")";
-        var tiltNode = element.firstChild;
-        if (tiltNode && !isGameOver()) {
-          tiltNode.style.transform = "rotate(" + (slope * 0.35) + "rad)";
+        if (isFollowerJoining(element)) {
+          continue;
         }
+        applyHerdFollowerLayout(element, getHerdFollowerLayout(followerIndex, slope));
       }
     }
 
@@ -698,7 +963,9 @@
       gameScreen.classList.remove("hidden");
       gameScreen.classList.remove("is-record");
       hudHighScore.classList.remove("is-record");
-      screenTitle.textContent = getLocalized(LOCALE_KEY_START, "Start");
+      screenTitle.textContent = GAME_TITLE;
+      controlHint.textContent = getStartHintText();
+      controlHint.classList.remove("hidden");
       screenMeters.classList.add("hidden");
       recordBurst.classList.remove("is-active");
       recordBurst.innerHTML = "";
@@ -721,6 +988,7 @@
       screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
       screenMeters.textContent = formatMeters(distanceMeters);
       screenMeters.classList.remove("hidden");
+      controlHint.classList.add("hidden");
       clickHint.classList.remove("is-visible");
       hudPlaying.classList.add("hidden");
       if (newRecord) {
@@ -845,6 +1113,9 @@
       index = 0;
       while (index < obstacles.length) {
         if (obstacles[index].x < removeBefore - 80) {
+          if (obstacles[index].type === "meteor") {
+            queueFallingMeteorFromObstacleDespawn();
+          }
           obstacles.splice(index, 1);
         } else {
           index += 1;
@@ -895,15 +1166,23 @@
       if (obstacleType === "bomb") {
         return { width: BOMB_WIDTH, height: BOMB_HEIGHT };
       }
+      if (obstacleType === "meteor") {
+        return { width: METEOR_WIDTH, height: METEOR_HEIGHT };
+      }
       return { width: CRYSTAL_WIDTH, height: CRYSTAL_HEIGHT };
     }
 
     function pickObstacleType() {
       var typeRoll = Math.random();
-      if (typeRoll < 0.2) return "rock";
-      if (typeRoll < 0.4) return "cactus";
-      if (typeRoll < 0.6) return "bush";
-      if (typeRoll < 0.8) return "bomb";
+      var rockThreshold = OBSTACLE_METEOR_SPAWN_CHANCE + OBSTACLE_OTHER_TYPE_SLICE;
+      var cactusThreshold = rockThreshold + OBSTACLE_OTHER_TYPE_SLICE;
+      var bushThreshold = cactusThreshold + OBSTACLE_OTHER_TYPE_SLICE;
+      var bombThreshold = bushThreshold + OBSTACLE_OTHER_TYPE_SLICE;
+      if (typeRoll < OBSTACLE_METEOR_SPAWN_CHANCE) return "meteor";
+      if (typeRoll < rockThreshold) return "rock";
+      if (typeRoll < cactusThreshold) return "cactus";
+      if (typeRoll < bushThreshold) return "bush";
+      if (typeRoll < bombThreshold) return "bomb";
       return "crystal";
     }
 
@@ -971,6 +1250,12 @@
       dustParticles.length = 0;
       trailCleanups.length = 0;
       damageParticles.length = 0;
+      fallingMeteors.length = 0;
+      meteorExplosions.length = 0;
+      fallingMeteorCooldown = 2 + Math.random() * 4;
+      fallingMeteorObstacleTriggerDelay = -1;
+      fallingMeteorObstacleTriggerPending = 0;
+      meteorObstaclePulseTime = 0;
       obstacleSpawnGap = 520;
       nextObstacleAt = 700;
       parallaxPhase[0] = 0;
@@ -1084,8 +1369,57 @@
       addTrailCleanup();
     }
 
+    function getMoonRadius() {
+      return Math.max(20, Math.min(width, height) * 0.052);
+    }
+
+    function getMoonGlowRadius() {
+      return getMoonRadius() * 3.4;
+    }
+
+    function getMoonScreenPosition() {
+      return {
+        x: width * moonScreenXRatio,
+        y: height * moonScreenYRatio
+      };
+    }
+
+    function randomizeMoonPosition() {
+      var marginX = MOON_MARGIN_X_RATIO;
+      var minY = MOON_MARGIN_Y_TOP_RATIO;
+      var maxY = MOON_MARGIN_Y_BOTTOM_RATIO;
+      moonScreenXRatio = marginX + Math.random() * (1 - marginX * 2);
+      moonScreenYRatio = minY + Math.random() * (maxY - minY);
+    }
+
+    function getPointerCanvasPosition(event) {
+      var rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function isPointerOnMoon(pointerX, pointerY) {
+      var moonPos = getMoonScreenPosition();
+      var moonHitRadius = getMoonRadius() * MOON_CLICK_RADIUS_SCALE;
+      var distX = pointerX - moonPos.x;
+      var distY = pointerY - moonPos.y;
+      return distX * distX + distY * distY <= moonHitRadius * moonHitRadius;
+    }
+
+    function tryRandomizeMoonFromPointer(event) {
+      var pointerPos = getPointerCanvasPosition(event);
+      if (!isPointerOnMoon(pointerPos.x, pointerPos.y)) {
+        return false;
+      }
+      randomizeMoonPosition();
+      return true;
+    }
+
     function onPointerDown(event) {
       event.preventDefault();
+      tryRandomizeMoonFromPointer(event);
       pointerHeld = true;
       if (isGameOver()) {
         if (!grounded) {
@@ -1165,7 +1499,7 @@
             endGame();
             return;
           }
-          syncHerdFollowerElements();
+          applyHerdDamageLoss();
           invincibleTimer = 1.4;
           return;
         }
@@ -1257,6 +1591,165 @@
       }
     }
 
+    function getFallingMeteorGroundY(screenX) {
+      return groundWave(worldScroll + screenX);
+    }
+
+    function getFallingMeteorScreenPosition(meteor) {
+      var progress = meteor.progress;
+      var ease = progress * progress;
+      var screenX = meteor.startScreenX + (meteor.targetScreenX - meteor.startScreenX) * ease;
+      var targetGroundY = getFallingMeteorGroundY(meteor.targetScreenX);
+      var screenY = meteor.startScreenY + (targetGroundY - meteor.startScreenY) * ease;
+      return { x: screenX, y: screenY };
+    }
+
+    function queueFallingMeteorFromObstacleDespawn() {
+      fallingMeteorObstacleTriggerPending += 1;
+      if (fallingMeteorObstacleTriggerDelay < 0) {
+        fallingMeteorObstacleTriggerDelay = FALLING_METEOR_OBSTACLE_TRIGGER_DELAY_MIN +
+          Math.random() * FALLING_METEOR_OBSTACLE_TRIGGER_DELAY_RANGE;
+      }
+    }
+
+    function trySpawnObstacleFallingMeteor() {
+      if (fallingMeteorObstacleTriggerPending <= 0) {
+        fallingMeteorObstacleTriggerDelay = -1;
+        return;
+      }
+      if (fallingMeteors.length > 0) {
+        fallingMeteorObstacleTriggerDelay = 0.15;
+        return;
+      }
+      fallingMeteorObstacleTriggerPending -= 1;
+      spawnFallingMeteor();
+      fallingMeteorCooldown = FALLING_METEOR_COOLDOWN_MIN + Math.random() * FALLING_METEOR_COOLDOWN_RANGE;
+      if (fallingMeteorObstacleTriggerPending > 0) {
+        fallingMeteorObstacleTriggerDelay = FALLING_METEOR_OBSTACLE_TRIGGER_DELAY_MIN +
+          Math.random() * FALLING_METEOR_OBSTACLE_TRIGGER_DELAY_RANGE;
+      } else {
+        fallingMeteorObstacleTriggerDelay = -1;
+      }
+    }
+
+    function spawnFallingMeteor() {
+      var isTease = Math.random() < FALLING_METEOR_TEASE_CHANCE;
+      var targetScreenX;
+      if (isTease) {
+        targetScreenX = width * (0.38 + Math.random() * 0.24);
+      } else {
+        targetScreenX = playerScreenX + (Math.random() - 0.5) * 26;
+      }
+      fallingMeteors.push({
+        state: "falling",
+        startScreenX: width + 80 + Math.random() * 100,
+        startScreenY: -30 - Math.random() * 70,
+        targetScreenX: targetScreenX,
+        progress: 0,
+        duration: FALLING_METEOR_DURATION_MIN + Math.random() * FALLING_METEOR_DURATION_RANGE,
+        size: 14 + Math.random() * 12,
+        hitsPlayer: !isTease
+      });
+    }
+
+    function trySpawnFallingMeteor(deltaSeconds) {
+      if (!isPlaying()) return;
+
+      if (fallingMeteorObstacleTriggerDelay >= 0) {
+        fallingMeteorObstacleTriggerDelay -= deltaSeconds;
+        if (fallingMeteorObstacleTriggerDelay <= 0) {
+          trySpawnObstacleFallingMeteor();
+        }
+        return;
+      }
+
+      if (fallingMeteors.length > 0) return;
+
+      if (fallingMeteorCooldown > 0) {
+        fallingMeteorCooldown -= deltaSeconds;
+        return;
+      }
+      if (Math.random() > FALLING_METEOR_SPAWN_ROLL * FALLING_METEOR_RANDOM_SPAWN_FACTOR) return;
+      spawnFallingMeteor();
+      fallingMeteorCooldown = FALLING_METEOR_COOLDOWN_MIN + Math.random() * FALLING_METEOR_COOLDOWN_RANGE;
+    }
+
+    function spawnMeteorExplosion(screenX, groundY, meteorSize) {
+      var index;
+      meteorExplosions.push({
+        screenX: screenX,
+        groundY: groundY,
+        age: 0,
+        life: 0.65 + Math.random() * 0.25,
+        radius: 28 + meteorSize * 0.9,
+        maxRadius: 72 + meteorSize * 1.4
+      });
+      for (index = 0; index < 18; index++) {
+        damageParticles.push({
+          x: screenX + (Math.random() - 0.5) * 44,
+          y: groundY - 8 + (Math.random() - 0.5) * 22,
+          velocityX: (Math.random() - 0.5) * 320,
+          velocityY: -60 - Math.random() * 280,
+          life: 0.4 + Math.random() * 0.45,
+          age: 0,
+          size: 2 + Math.random() * 5,
+          hue: 18 + Math.random() * 28
+        });
+      }
+    }
+
+    function triggerFallingMeteorDamage(meteor) {
+      if (invincibleTimer > 0) return;
+      if (!meteor.hitsPlayer) return;
+      var inZone = Math.abs(playerScreenX - meteor.targetScreenX) < METEOR_IMPACT_RADIUS;
+      var airborne = !grounded;
+      if (!inZone || airborne) return;
+      herdHp -= 1;
+      triggerDamageEffects();
+      if (herdHp <= 0) {
+        syncHerdFollowerElements();
+        endGame();
+        return;
+      }
+      applyHerdDamageLoss();
+      invincibleTimer = 1.4;
+    }
+
+    function updateFallingMeteors(deltaSeconds) {
+      var index = 0;
+      var meteor;
+      var groundY;
+      while (index < fallingMeteors.length) {
+        meteor = fallingMeteors[index];
+        meteor.progress += deltaSeconds / meteor.duration;
+        if (meteor.state === "falling" && meteor.progress >= 1) {
+          meteor.progress = 1;
+          meteor.state = "impact";
+          groundY = getFallingMeteorGroundY(meteor.targetScreenX);
+          spawnMeteorExplosion(meteor.targetScreenX, groundY, meteor.size);
+          triggerFallingMeteorDamage(meteor);
+          meteor.impactAge = 0;
+        }
+        if (meteor.state === "impact") {
+          meteor.impactAge += deltaSeconds;
+          if (meteor.impactAge >= 0.15) {
+            fallingMeteors.splice(index, 1);
+            continue;
+          }
+        }
+        index += 1;
+      }
+      index = 0;
+      while (index < meteorExplosions.length) {
+        meteorExplosions[index].age += deltaSeconds;
+        if (meteorExplosions[index].age >= meteorExplosions[index].life) {
+          meteorExplosions.splice(index, 1);
+        } else {
+          index += 1;
+        }
+      }
+    }
+
     function updateTrailCleanups(deltaSeconds) {
       var index = 0;
       while (index < trailCleanups.length) {
@@ -1290,6 +1783,9 @@
     }
 
     function update(deltaSeconds) {
+      updateSkyMeteors(deltaSeconds);
+      meteorObstaclePulseTime += deltaSeconds;
+      updateHerdMemberMotions(deltaSeconds);
       if (isGameOver()) {
         updateGameOver(deltaSeconds);
         return;
@@ -1322,6 +1818,8 @@
       updateDustParticles(deltaSeconds);
       updateTrailCleanups(deltaSeconds);
       updateDamageParticles(deltaSeconds);
+      updateFallingMeteors(deltaSeconds);
+      trySpawnFallingMeteor(deltaSeconds);
 
       if (screenShakeTimer > 0) screenShakeTimer -= deltaSeconds;
 
@@ -1403,26 +1901,107 @@
       }
     }
 
-    function getMoonScreenPosition() {
-      var moonX = SKY_MOON_X;
-      var moonY = SKY_MOON_Y;
-      if (width < SKY_TILE_WIDTH) {
-        moonX = width * 0.82;
-      } else {
-        moonX = width - SKY_TILE_WIDTH * 0.18;
+    function initSkyMeteors() {
+      var index;
+      skyMeteors.length = 0;
+      for (index = 0; index < SKY_METEOR_COUNT; index += 1) {
+        skyMeteors.push({
+          phase: Math.random(),
+          speed: 0.04 + Math.random() * 0.1,
+          lane: Math.random(),
+          tailLength: 42 + Math.random() * 88,
+          thickness: 1.1 + Math.random() * 2.4,
+          headSize: 1.5 + Math.random() * 3.2,
+          red: 235 + Math.floor(Math.random() * 20),
+          green: 80 + Math.floor(Math.random() * 85),
+          blue: 30 + Math.floor(Math.random() * 50),
+          alpha: 0.22 + Math.random() * 0.42,
+          depth: 0.5 + Math.random() * 0.5
+        });
       }
-      if (height < SKY_TILE_HEIGHT) {
-        moonY = height * 0.11;
+    }
+
+    function updateSkyMeteors(deltaSeconds) {
+      skyMeteorAnimTime += deltaSeconds;
+    }
+
+    function getSkyMeteorHeadPosition(meteor) {
+      var loopDistance = (width + height) * 1.4 * meteor.depth;
+      var progress = skyMeteorAnimTime * meteor.speed + meteor.phase;
+      progress = progress - Math.floor(progress);
+      var travel = progress * loopDistance;
+      var laneSpan = width * 0.92;
+      var laneOffset = (meteor.lane - 0.5) * laneSpan;
+      var spawnX = -width * 0.45;
+      var spawnY = -height * 0.24;
+      return {
+        x: spawnX + SKY_METEOR_DIR_X * travel + SKY_METEOR_PERP_X * laneOffset,
+        y: spawnY + SKY_METEOR_DIR_Y * travel + SKY_METEOR_PERP_Y * laneOffset
+      };
+    }
+
+    function drawSkyMeteor(meteor, headX, headY) {
+      var tailX = headX - SKY_METEOR_DIR_X * meteor.tailLength;
+      var tailY = headY - SKY_METEOR_DIR_Y * meteor.tailLength;
+      var gradient;
+      var glowRadius;
+
+      gradient = context.createLinearGradient(tailX, tailY, headX, headY);
+      gradient.addColorStop(0, "rgba(" + meteor.red + "," + meteor.green + "," + meteor.blue + ",0)");
+      gradient.addColorStop(0.45, "rgba(" + meteor.red + "," + meteor.green + "," + meteor.blue + "," + (meteor.alpha * 0.35) + ")");
+      gradient.addColorStop(0.82, "rgba(255," + (meteor.green + 40) + "," + (meteor.blue + 20) + "," + (meteor.alpha * 0.85) + ")");
+      gradient.addColorStop(1, "rgba(255, 245, 220, " + meteor.alpha + ")");
+      context.strokeStyle = gradient;
+      context.lineWidth = meteor.thickness;
+      context.lineCap = "round";
+      context.beginPath();
+      context.moveTo(tailX, tailY);
+      context.lineTo(headX, headY);
+      context.stroke();
+
+      glowRadius = meteor.headSize * 2.8;
+      gradient = context.createRadialGradient(headX, headY, 0, headX, headY, glowRadius);
+      gradient.addColorStop(0, "rgba(255, 240, 210, " + (meteor.alpha * 0.95) + ")");
+      gradient.addColorStop(0.35, "rgba(" + meteor.red + "," + meteor.green + "," + meteor.blue + "," + (meteor.alpha * 0.55) + ")");
+      gradient.addColorStop(1, "rgba(" + meteor.red + "," + meteor.green + "," + meteor.blue + ",0)");
+      context.fillStyle = gradient;
+      context.beginPath();
+      context.arc(headX, headY, glowRadius, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    function drawSkyMeteors() {
+      var index;
+      var meteor;
+      var headPos;
+      var skyClipHeight = height * SKY_METEOR_MAX_Y_RATIO;
+
+      context.save();
+      context.beginPath();
+      context.rect(0, 0, width, skyClipHeight);
+      context.clip();
+
+      for (index = 0; index < skyMeteors.length; index += 1) {
+        meteor = skyMeteors[index];
+        headPos = getSkyMeteorHeadPosition(meteor);
+        if (headPos.y < -meteor.tailLength || headPos.y > skyClipHeight + meteor.tailLength) {
+          continue;
+        }
+        if (headPos.x < -meteor.tailLength || headPos.x > width + meteor.tailLength) {
+          continue;
+        }
+        drawSkyMeteor(meteor, headPos.x, headPos.y);
       }
-      return { x: moonX, y: moonY };
+
+      context.restore();
     }
 
     function drawMoon() {
       var moonPos = getMoonScreenPosition();
       var moonX = moonPos.x;
       var moonY = moonPos.y;
-      var moonRadius = Math.max(20, Math.min(width, height) * 0.052);
-      var glowRadius = moonRadius * 3.4;
+      var moonRadius = getMoonRadius();
+      var glowRadius = getMoonGlowRadius();
 
       var glow = context.createRadialGradient(moonX, moonY, moonRadius * 0.4, moonX, moonY, glowRadius);
       glow.addColorStop(0, "rgba(230, 215, 255, 0.38)");
@@ -1480,6 +2059,7 @@
       var moonPos = getMoonScreenPosition();
       var moonX = moonPos.x;
       var moonY = moonPos.y;
+      var moonBlockRadius = getMoonGlowRadius() + 10;
       context.fillStyle = "rgba(220, 200, 255, 0.75)";
       for (tileY = 0; tileY < tilesY; tileY++) {
         for (tileX = -1; tileX < tilesX; tileX++) {
@@ -1492,7 +2072,7 @@
             }
             distX = screenX - moonX;
             distY = screenY - moonY;
-            if (distX * distX + distY * distY < SKY_MOON_BLOCK_RADIUS * SKY_MOON_BLOCK_RADIUS) {
+            if (distX * distX + distY * distY < moonBlockRadius * moonBlockRadius) {
               continue;
             }
             context.beginPath();
@@ -1597,10 +2177,44 @@
         drawObstacleBombShape(obstacle);
       } else if (obstacle.type === "crystal") {
         drawObstacleCrystalShape(obstacle);
+      } else if (obstacle.type === "meteor") {
+        drawObstacleMeteorShape(obstacle);
       } else {
         drawObstacleRockShape(obstacle);
       }
       context.restore();
+    }
+
+    function drawObstacleMeteorShape(obstacle) {
+      var meteorW = obstacle.width;
+      var meteorH = obstacle.height;
+      var pulse = 0.5 + 0.5 * Math.sin(meteorObstaclePulseTime * 4.2);
+      var crackAlpha = 0.55 + pulse * 0.35;
+      context.fillStyle = "#3a2838";
+      context.strokeStyle = "#221820";
+      context.lineWidth = 1.2;
+      context.beginPath();
+      context.moveTo(-meteorW * 0.42, 0);
+      context.lineTo(-meteorW * 0.38, -meteorH * 0.45);
+      context.lineTo(-meteorW * 0.08, -meteorH * 0.88);
+      context.lineTo(meteorW * 0.22, -meteorH * 0.82);
+      context.lineTo(meteorW * 0.44, -meteorH * 0.38);
+      context.lineTo(meteorW * 0.36, -meteorH * 0.08);
+      context.closePath();
+      context.fill();
+      context.stroke();
+      context.strokeStyle = "rgba(255, 120, 50, " + crackAlpha + ")";
+      context.lineWidth = 1.4 + pulse * 0.4;
+      context.beginPath();
+      context.moveTo(-meteorW * 0.18, -meteorH * 0.62);
+      context.lineTo(meteorW * 0.06, -meteorH * 0.48);
+      context.moveTo(-meteorW * 0.04, -meteorH * 0.78);
+      context.lineTo(meteorW * 0.2, -meteorH * 0.58);
+      context.stroke();
+      context.fillStyle = "rgba(255, 180, 80, " + (0.45 + pulse * 0.35) + ")";
+      context.beginPath();
+      context.arc(-meteorW * 0.06, -meteorH * 0.55, meteorW * (0.06 + pulse * 0.025), 0, Math.PI * 2);
+      context.fill();
     }
 
     function drawObstacleRockShape(obstacle) {
@@ -1765,6 +2379,96 @@
       }
     }
 
+    function drawFallingMeteorStreak(meteor, headX, headY, tailX, tailY) {
+      var gradient;
+      var glowRadius;
+      gradient = context.createLinearGradient(tailX, tailY, headX, headY);
+      gradient.addColorStop(0, "rgba(180, 60, 30, 0)");
+      gradient.addColorStop(0.4, "rgba(255, 100, 40, 0.35)");
+      gradient.addColorStop(0.82, "rgba(255, 180, 80, 0.88)");
+      gradient.addColorStop(1, "rgba(255, 245, 220, 0.95)");
+      context.strokeStyle = gradient;
+      context.lineWidth = meteor.size * 0.22;
+      context.lineCap = "round";
+      context.beginPath();
+      context.moveTo(tailX, tailY);
+      context.lineTo(headX, headY);
+      context.stroke();
+      glowRadius = meteor.size * 1.8;
+      gradient = context.createRadialGradient(headX, headY, 0, headX, headY, glowRadius);
+      gradient.addColorStop(0, "rgba(255, 240, 210, 0.95)");
+      gradient.addColorStop(0.35, "rgba(255, 120, 50, 0.55)");
+      gradient.addColorStop(1, "rgba(200, 60, 30, 0)");
+      context.fillStyle = gradient;
+      context.beginPath();
+      context.arc(headX, headY, glowRadius, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#3a2838";
+      context.beginPath();
+      context.arc(headX, headY, meteor.size * 0.38, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    function drawFallingMeteors() {
+      var index;
+      var meteor;
+      var headPos;
+      var prevProgress;
+      var prevEase;
+      var prevX;
+      var prevY;
+      var targetGroundY;
+      for (index = 0; index < fallingMeteors.length; index += 1) {
+        meteor = fallingMeteors[index];
+        if (meteor.state !== "falling") continue;
+        headPos = getFallingMeteorScreenPosition(meteor);
+        prevProgress = Math.max(0, meteor.progress - 0.14);
+        prevEase = prevProgress * prevProgress;
+        prevX = meteor.startScreenX + (meteor.targetScreenX - meteor.startScreenX) * prevEase;
+        targetGroundY = getFallingMeteorGroundY(meteor.targetScreenX);
+        prevY = meteor.startScreenY + (targetGroundY - meteor.startScreenY) * prevEase;
+        drawFallingMeteorStreak(meteor, headPos.x, headPos.y, prevX, prevY);
+      }
+    }
+
+    function drawMeteorExplosions() {
+      var index;
+      var explosion;
+      var fade;
+      var expand;
+      var radius;
+      var gradient;
+      for (index = 0; index < meteorExplosions.length; index += 1) {
+        explosion = meteorExplosions[index];
+        fade = 1 - explosion.age / explosion.life;
+        expand = explosion.age / explosion.life;
+        radius = explosion.radius + (explosion.maxRadius - explosion.radius) * expand;
+        context.globalAlpha = fade * 0.85;
+        gradient = context.createRadialGradient(
+          explosion.screenX,
+          explosion.groundY - 6,
+          radius * 0.08,
+          explosion.screenX,
+          explosion.groundY - 6,
+          radius
+        );
+        gradient.addColorStop(0, "rgba(255, 220, 140, 0.95)");
+        gradient.addColorStop(0.35, "rgba(255, 120, 40, 0.65)");
+        gradient.addColorStop(0.72, "rgba(220, 60, 20, 0.28)");
+        gradient.addColorStop(1, "rgba(120, 30, 10, 0)");
+        context.fillStyle = gradient;
+        context.beginPath();
+        context.ellipse(explosion.screenX, explosion.groundY - 4, radius, radius * 0.42, 0, 0, Math.PI * 2);
+        context.fill();
+        context.strokeStyle = "rgba(255, 180, 80, " + (fade * 0.7) + ")";
+        context.lineWidth = 2.5 * fade;
+        context.beginPath();
+        context.ellipse(explosion.screenX, explosion.groundY - 2, radius * 0.72, radius * 0.28, 0, 0, Math.PI * 2);
+        context.stroke();
+      }
+      context.globalAlpha = 1;
+    }
+
     function drawDamageParticles() {
       var index;
       for (index = 0; index < damageParticles.length; index++) {
@@ -1827,13 +2531,16 @@
       drawSky();
       drawMoon();
       drawStars();
+      drawSkyMeteors();
       drawParallaxHills(0, "rgba(58, 38, 88, 0.92)", "rgba(28, 18, 48, 0.88)", "rgba(80, 52, 112, 0.45)", 42, 0.0014, height * 0.52);
       drawParallaxHills(1, "rgba(72, 46, 108, 0.94)", "rgba(36, 22, 58, 0.9)", "rgba(96, 62, 132, 0.48)", 52, 0.002, height * 0.58);
       drawParallaxHills(2, "rgba(88, 56, 128, 0.96)", "rgba(44, 28, 68, 0.92)", "rgba(112, 72, 152, 0.52)", 62, 0.0026, height * 0.64);
       drawParallaxHills(3, "rgba(104, 68, 148, 0.98)", "rgba(52, 34, 82, 0.94)", "rgba(128, 84, 172, 0.55)", 72, 0.0032, height * 0.68);
       drawDustParticles();
       drawTrailCleanups();
+      drawFallingMeteors();
       drawGround();
+      drawMeteorExplosions();
       drawObstacles();
       drawFlyingObstacles();
       if (isPlaying() || isGameOver()) {
@@ -1864,12 +2571,15 @@
     window.addEventListener("pointercancel", onPointerUp);
 
     initSkyStars();
+    initSkyMeteors();
     bindLocaleListener();
     loadHighScore();
     herdHp = START_HP;
     syncHerdFollowerElements();
     resizeCanvas();
+    randomizeMoonPosition();
     showStartScreen();
+    applyGameLocale();
     positionRunnerDom();
     render();
     window.requestAnimationFrame(gameLoop);

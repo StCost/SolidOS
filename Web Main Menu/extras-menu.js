@@ -17,6 +17,8 @@
   var activeGameId = "";
   var backgroundApplyTimer = 0;
   var ART_MODAL_OPEN_MS_DEFAULT = 340;
+  var STORAGE_KEY_SKIP_EXTERNAL_LINK_CONFIRM = "cm-skip-external-link-confirm";
+  var STORAGE_VALUE_TRUE = "1";
 
   var contentRoot = document.getElementById("extrasContent");
   var viewArt = document.getElementById("extrasViewArt");
@@ -427,6 +429,21 @@
     refreshScrollbars();
   }
 
+  function getSkipExternalLinkConfirm() {
+    try {
+      return window.localStorage.getItem(STORAGE_KEY_SKIP_EXTERNAL_LINK_CONFIRM) === STORAGE_VALUE_TRUE;
+    } catch (storageError) {
+      return false;
+    }
+  }
+
+  function setSkipExternalLinkConfirm() {
+    try {
+      window.localStorage.setItem(STORAGE_KEY_SKIP_EXTERNAL_LINK_CONFIRM, STORAGE_VALUE_TRUE);
+    } catch (storageError) {
+    }
+  }
+
   function openExternalUrl(url) {
     if (!url) return;
     if (window.vuplex && window.vuplex.postMessage && window.WebMenu) {
@@ -511,6 +528,15 @@
     }
   }
 
+  function requestExternalUrl(url, label) {
+    if (!url) return;
+    if (getSkipExternalLinkConfirm()) {
+      openExternalUrl(url);
+      return;
+    }
+    openLinkOverlay(url, label);
+  }
+
   function openLinkOverlay(url, label) {
     if (!linkOverlay || !url) return;
     pendingExternalUrl = url;
@@ -547,7 +573,7 @@
     event.stopPropagation();
     var href = linkRow.getAttribute("data-extras-href");
     var label = linkRow.getAttribute("data-extras-label");
-    if (href) openLinkOverlay(href, label);
+    if (href) requestExternalUrl(href, label);
   }
 
   function onExtrasNavClick(event) {
@@ -577,6 +603,13 @@
 
   function onLinkOverlayConfirm() {
     var url = pendingExternalUrl;
+    closeLinkOverlay();
+    openExternalUrl(url);
+  }
+
+  function onLinkOverlayConfirmNoAsk() {
+    var url = pendingExternalUrl;
+    setSkipExternalLinkConfirm();
     closeLinkOverlay();
     openExternalUrl(url);
   }
@@ -615,6 +648,9 @@
 
   var btnLinkOverlayCancel = document.getElementById("extrasLinkOverlayCancel");
   if (btnLinkOverlayCancel) btnLinkOverlayCancel.addEventListener("click", closeLinkOverlay);
+
+  var btnLinkOverlayConfirmNoAsk = document.getElementById("extrasLinkOverlayConfirmNoAsk");
+  if (btnLinkOverlayConfirmNoAsk) btnLinkOverlayConfirmNoAsk.addEventListener("click", onLinkOverlayConfirmNoAsk);
 
   if (linkOverlay) {
     linkOverlay.addEventListener("click", function (event) {

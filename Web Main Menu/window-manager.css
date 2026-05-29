@@ -370,16 +370,16 @@
 }
 
 .term-overlay .os-window[data-wm-preset] {
-  position: relative;
-  left: auto;
-  top: auto;
-  width: min(480px, 100%);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: min(480px, calc(100% - 48px));
   height: fit-content;
-  max-width: 100%;
+  max-width: calc(100% - 48px);
 }
 
 .term-overlay .os-window--managed {
-  align-self: auto;
+  margin: 0;
 }
 
 body[data-wm-drag] {

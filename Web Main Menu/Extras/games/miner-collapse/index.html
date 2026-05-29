@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Miner Collapse</title>
+  <title>Deep Collapse</title>
   <style>
     * {
       box-sizing: border-box;
@@ -194,6 +194,91 @@
       color: rgba(255, 244, 216, 0.92);
       font-weight: bold;
     }
+
+    #gameScreen {
+      position: absolute;
+      inset: 0;
+      z-index: 8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      pointer-events: auto;
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+      background: transparent;
+    }
+
+    #gameScreen.hidden {
+      display: none;
+    }
+
+    #startScreenMask {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(14, 10, 24, 0.62) 0%, rgba(10, 8, 6, 0.74) 48%, rgba(36, 18, 10, 0.68) 100%);
+    }
+
+    #startScreenPanel {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 1.15rem 1.45rem 1.05rem;
+      background: rgba(48, 28, 18, 0.2);
+      border: 1px solid rgba(255, 168, 88, 0.38);
+      box-shadow: 0 10px 36px rgba(0, 0, 0, 0.55), inset 0 0 24px rgba(255, 140, 60, 0.06);
+    }
+
+    #screenTitle {
+      margin: 0;
+      font-size: 1.4rem;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+      color: #e8dcc8;
+      text-shadow: 0 0 16px rgba(200, 180, 140, 0.45);
+    }
+
+    #controlHint {
+      margin: 0;
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      color: #e8dcc8;
+    }
+
+    #crystalPreviewRow {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.45rem 0.75rem;
+      margin: 0;
+      max-width: min(88vw, 400px);
+    }
+
+    .crystal-preview-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+    }
+
+    .crystal-preview-canvas {
+      width: 20px;
+      height: 20px;
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    .crystal-preview-cost {
+      margin: 0;
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      color: #e8dcc8;
+    }
   </style>
 </head>
 
@@ -224,6 +309,14 @@
         </div>
       </div>
     </div>
+    <div id="gameScreen">
+      <div id="startScreenMask" aria-hidden="true"></div>
+      <div id="startScreenPanel">
+        <h1 id="screenTitle">Deep Collapse</h1>
+        <div id="crystalPreviewRow"></div>
+        <p id="controlHint">click to start</p>
+      </div>
+    </div>
   </div>
   <script>
     (function () {
@@ -240,7 +333,13 @@
       var bonusFillEl = document.getElementById("bonusFill");
       var fpsValueEl = document.getElementById("fpsValue");
       var oreValueEl = document.getElementById("oreValue");
+      var gameScreenEl = document.getElementById("gameScreen");
+      var screenTitleEl = document.getElementById("screenTitle");
+      var controlHintEl = document.getElementById("controlHint");
+      var crystalPreviewRowEl = document.getElementById("crystalPreviewRow");
 
+      var GAME_TITLE = "Deep Collapse";
+      var LOCALE_KEY_START_HINT = "web.game.prompt.click-start";
       var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
       var LOCALE_KEY_DEPTH_LABEL = "web.game.label.depth";
       var LOCALE_KEY_TONS_SUFFIX = "web.game.tons-suffix";
@@ -360,6 +459,8 @@
       var bonus = 1;
       var oreUnitsCollected = 0;
       var oreUnitsDespawned = 0;
+      var sessionStarted = false;
+      var startCrystalPreviewCanvases = [];
 
       var burns = [];
       var burnSpreadQueueCol = null;
@@ -832,6 +933,83 @@
         generateChunkBelow();
         spawnSurfaceCrystalPlants();
         rebuildWorldLayer();
+      }
+
+      function getStartHintText() {
+        return getLocalized(LOCALE_KEY_START_HINT, "click to start");
+      }
+
+      function drawCrystalCellPreview(canvas, rarity) {
+        var previewContext = canvas.getContext("2d");
+        var displayScale = 3;
+        var canvasSize = PIXEL * displayScale;
+        var color = RARITY_COLORS[rarity];
+        var pulse = 0.85 + Math.sin(glossPhase * CRYSTAL_GLOSS_SPEED) * 0.15;
+        var red = Math.floor(color[0] * pulse);
+        var green = Math.floor(color[1] * pulse);
+        var blue = Math.floor(color[2] * pulse);
+        var innerRed = Math.min(255, red + 40);
+        var innerGreen = Math.min(255, green + 40);
+        var innerBlue = Math.min(255, blue + 40);
+        var inset = displayScale;
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
+        previewContext.clearRect(0, 0, canvasSize, canvasSize);
+        previewContext.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
+        previewContext.fillRect(0, 0, canvasSize, canvasSize);
+        previewContext.fillStyle = "rgb(" + innerRed + "," + innerGreen + "," + innerBlue + ")";
+        previewContext.fillRect(inset, inset, canvasSize - inset * 2, canvasSize - inset * 2);
+      }
+
+      function buildCrystalPreviewRow() {
+        var rarityIndex;
+        var item;
+        var canvas;
+        var costLabel;
+        crystalPreviewRowEl.innerHTML = "";
+        startCrystalPreviewCanvases.length = 0;
+        for (rarityIndex = 0; rarityIndex < CRYSTAL_COUNT; rarityIndex += 1) {
+          item = document.createElement("div");
+          item.className = "crystal-preview-item";
+          canvas = document.createElement("canvas");
+          canvas.className = "crystal-preview-canvas";
+          costLabel = document.createElement("p");
+          costLabel.className = "crystal-preview-cost";
+          costLabel.textContent = formatScoreTons(RARITY_SCORE[rarityIndex]);
+          item.appendChild(canvas);
+          item.appendChild(costLabel);
+          crystalPreviewRowEl.appendChild(item);
+          startCrystalPreviewCanvases.push(canvas);
+        }
+      }
+
+      function updateStartCrystalPreviews() {
+        var rarityIndex;
+        var canvas;
+        if (sessionStarted) {
+          return;
+        }
+        for (rarityIndex = 0; rarityIndex < startCrystalPreviewCanvases.length; rarityIndex += 1) {
+          canvas = startCrystalPreviewCanvases[rarityIndex];
+          drawCrystalCellPreview(canvas, rarityIndex);
+        }
+      }
+
+      function showStartScreen() {
+        sessionStarted = false;
+        gameScreenEl.classList.remove("hidden");
+        screenTitleEl.textContent = GAME_TITLE;
+        controlHintEl.textContent = getStartHintText();
+        holeGrowing = false;
+        updateStartCrystalPreviews();
+      }
+
+      function startSession() {
+        if (sessionStarted) {
+          return;
+        }
+        sessionStarted = true;
+        gameScreenEl.classList.add("hidden");
         beginHoleGrowCycle();
       }
 
@@ -1027,6 +1205,10 @@
         }
         if (depthBestLabelEl) {
           depthBestLabelEl.textContent = getLocalized(LOCALE_KEY_BEST_LABEL, "best");
+        }
+        if (!sessionStarted) {
+          screenTitleEl.textContent = GAME_TITLE;
+          controlHintEl.textContent = getStartHintText();
         }
         updateHudDisplay();
         if (bestScore > 0) {
@@ -2777,17 +2959,19 @@
         dirtParticleCount = 0;
         sunDestroyed = false;
         sunDestroyLife = 0;
-        beginHoleGrowCycle();
         scoreValueEl.textContent = formatScoreTons(0);
         bonusHudEl.textContent = formatBonus(1);
-        updateHudDisplay();
         fpsSampleFrames = 0;
         fpsSampleTime = 0;
         fpsValueEl.textContent = "--";
         initWorld();
+        showStartScreen();
       }
 
       function update(dt) {
+        if (!sessionStarted) {
+          return;
+        }
         if (holeGrowing) {
           var growthRate = getHoleGrowthSpeed();
           var maxRadius = getMaxHoleRadius();
@@ -3486,6 +3670,9 @@
           fpsSampleTime = 0;
         }
         update(dt);
+        if (!sessionStarted) {
+          updateStartCrystalPreviews();
+        }
         draw();
         requestAnimationFrame(frame);
       }
@@ -3503,11 +3690,20 @@
           return;
         }
         updatePointer(event.clientX, event.clientY);
+        if (!sessionStarted) {
+          startSession();
+          return;
+        }
         if (canDigAtCurrentHoleSize()) {
           triggerCollapse();
         } else {
           beginHoleGrowCycle();
         }
+      });
+
+      gameScreenEl.addEventListener("pointerdown", function (event) {
+        event.preventDefault();
+        startSession();
       });
 
       window.addEventListener("keydown", function (event) {
@@ -3522,7 +3718,9 @@
       bestScore = loadBestScore();
       bestDepth = loadBestDepth();
       applyGameLocale();
+      buildCrystalPreviewRow();
       commitViewportSize();
+      showStartScreen();
       updatePointer(window.innerWidth * 0.5, window.innerHeight * 0.65);
       requestAnimationFrame(frame);
     })();

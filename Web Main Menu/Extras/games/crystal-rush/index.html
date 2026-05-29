@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Crystal Rush</title>
+  <title>Trouble Drivers</title>
   <style>
     * {
       box-sizing: border-box;
@@ -352,14 +352,35 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 0.55rem;
+      gap: 0;
       pointer-events: auto;
       cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
-      background: rgba(12, 8, 6, 0.42);
+      background: transparent;
     }
 
     #gameScreen.hidden {
       display: none;
+    }
+
+    #startScreenMask {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(16, 12, 10, 0.58) 0%, rgba(12, 8, 6, 0.72) 100%);
+    }
+
+    #startScreenPanel {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 1.15rem 1.45rem 1.05rem;
+      background: rgba(42, 30, 20, 0.2);
+      border: 1px solid rgba(200, 180, 140, 0.36);
+      box-shadow: 0 10px 36px rgba(0, 0, 0, 0.55), inset 0 0 22px rgba(200, 160, 100, 0.05);
     }
 
     #screenTitle {
@@ -384,11 +405,43 @@
     }
 
     #controlHint {
-      margin: 0.4rem 0 0;
+      margin: 0;
       font-size: 0.78rem;
       letter-spacing: 0.18em;
-      color: rgba(200, 180, 150, 0.65);
-      animation: hint-pulse 1.6s ease-in-out infinite;
+      color: #e8dcc8;
+    }
+
+    #crystalPreviewRow {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.65rem 1.1rem;
+      margin: 0;
+      max-width: min(88vw, 460px);
+    }
+
+    #crystalPreviewRow.hidden {
+      display: none;
+    }
+
+    .crystal-preview-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .crystal-preview-canvas {
+      width: 52px;
+      height: 52px;
+      display: block;
+    }
+
+    .crystal-preview-cost {
+      margin: 0;
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      color: #e8dcc8;
     }
 
     @keyframes hint-pulse {
@@ -526,20 +579,24 @@
     <div id="hudBest">best<span id="bestValue">0</span></div>
     <div id="fpsHud">fps <span id="fpsValue">--</span></div>
     <div id="gameScreen">
-      <h1 id="screenTitle">Crystal Rush</h1>
-      <p id="screenDistance" class="hidden">0m</p>
-      <p id="screenScore" class="hidden">0</p>
-      <p id="controlHint">click and hold or WASD</p>
+      <div id="startScreenMask" aria-hidden="true"></div>
+      <div id="startScreenPanel">
+        <h1 id="screenTitle">Trouble Drivers</h1>
+        <p id="screenDistance" class="hidden">0m</p>
+        <p id="screenScore" class="hidden">0</p>
+        <div id="crystalPreviewRow"></div>
+        <p id="controlHint">click and hold or WASD</p>
+      </div>
     </div>
   </div>
   <script>
     var HIGH_SCORE_STORAGE_KEY = "cm-crystal-rush-high-score";
     var DISTANCE_BEST_STORAGE_KEY = "cm-crystal-rush-best-distance";
-    var LOCALE_KEY_START = "web.game.crystal-rush.start";
-    var LOCALE_KEY_GAME_OVER = "web.game.midnight-run.game-over";
+    var GAME_TITLE = "Trouble Drivers";
+    var LOCALE_KEY_GAME_OVER = "web.game.game-over";
     var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
     var LOCALE_KEY_SCORE_LABEL = "web.game.label.score";
-    var LOCALE_KEY_START_HINT = "web.game.crystal-rush.start-hint";
+    var LOCALE_KEY_START_HINT = "web.game.prompt.hold-or-wasd";
     var LOCALE_KEY_GAME_OVER_HINT = "web.game.prompt.click-continue-quiet";
     var LOCALE_KEY_METERS_SUFFIX = "web.game.meters-suffix";
     var LOCALE_KEY_DISTANCE_LABEL = "web.game.label.distance";
@@ -750,6 +807,9 @@
     var screenDistance = document.getElementById("screenDistance");
     var screenScore = document.getElementById("screenScore");
     var controlHint = document.getElementById("controlHint");
+    var crystalPreviewRow = document.getElementById("crystalPreviewRow");
+    var startCrystalPreviewCanvases = [];
+    var startCrystalPreviewTwinkle = 0;
     var fpsValue = document.getElementById("fpsValue");
 
     var width = 0;
@@ -2162,7 +2222,7 @@
         controlHint.textContent = getStartHintText();
       }
       if (isStart()) {
-        screenTitle.textContent = getLocalized(LOCALE_KEY_START, "Crystal Rush");
+        screenTitle.textContent = GAME_TITLE;
       } else if (isGameOver()) {
         screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
         screenDistance.textContent = formatMeters(distanceMeters);
@@ -2399,6 +2459,79 @@
 
     function getCrystalColorRgb(rarity) {
       return RARITY_COLORS[rarity];
+    }
+
+    function drawCrystalPreviewOnCanvas(canvas, rarity, twinkle) {
+      var previewContext = canvas.getContext("2d");
+      var canvasSize = canvas.width;
+      var center = canvasSize * 0.5;
+      var rgb = getCrystalColorRgb(rarity);
+      var twinkleScale = 0.72 + Math.sin(twinkle) * 0.28;
+      var sparkSize = RARITY_SIZE[rarity] * twinkleScale * 3.1;
+      var glowAlpha = 0.12 + RARITY_GLOW[rarity] * 0.28;
+      var glowRadius = sparkSize * RARITY_GLOW_RADIUS[rarity];
+      var gradient;
+      previewContext.clearRect(0, 0, canvasSize, canvasSize);
+      gradient = previewContext.createRadialGradient(center, center, 0, center, center, glowRadius);
+      gradient.addColorStop(0, "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + "," + glowAlpha + ")");
+      gradient.addColorStop(1, "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ",0)");
+      previewContext.fillStyle = gradient;
+      previewContext.beginPath();
+      previewContext.arc(center, center, glowRadius, 0, Math.PI * 2);
+      previewContext.fill();
+      previewContext.fillStyle = "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
+      previewContext.beginPath();
+      previewContext.arc(center, center, sparkSize, 0, Math.PI * 2);
+      previewContext.fill();
+      previewContext.fillStyle = "rgba(255, 255, 255, " + (0.35 + twinkleScale * 0.35) + ")";
+      previewContext.beginPath();
+      previewContext.arc(center - sparkSize * 0.25, center - sparkSize * 0.25, sparkSize * 0.35, 0, Math.PI * 2);
+      previewContext.fill();
+    }
+
+    function buildCrystalPreviewRow() {
+      var rarityIndex;
+      var item;
+      var canvas;
+      var costLabel;
+      crystalPreviewRow.innerHTML = "";
+      startCrystalPreviewCanvases.length = 0;
+      for (rarityIndex = 0; rarityIndex < CRYSTAL_RARITY_COUNT; rarityIndex += 1) {
+        item = document.createElement("div");
+        item.className = "crystal-preview-item";
+        canvas = document.createElement("canvas");
+        canvas.className = "crystal-preview-canvas";
+        canvas.width = 56;
+        canvas.height = 56;
+        costLabel = document.createElement("p");
+        costLabel.className = "crystal-preview-cost";
+        costLabel.textContent = String(RARITY_SCORE[rarityIndex]);
+        item.appendChild(canvas);
+        item.appendChild(costLabel);
+        crystalPreviewRow.appendChild(item);
+        startCrystalPreviewCanvases.push(canvas);
+      }
+    }
+
+    function updateStartCrystalPreviews(deltaSeconds) {
+      var rarityIndex;
+      var canvas;
+      if (!isStart()) {
+        return;
+      }
+      startCrystalPreviewTwinkle += deltaSeconds * 5.2;
+      for (rarityIndex = 0; rarityIndex < startCrystalPreviewCanvases.length; rarityIndex += 1) {
+        canvas = startCrystalPreviewCanvases[rarityIndex];
+        drawCrystalPreviewOnCanvas(canvas, rarityIndex, startCrystalPreviewTwinkle + rarityIndex * 0.7);
+      }
+    }
+
+    function setCrystalPreviewRowVisible(isVisible) {
+      if (isVisible) {
+        crystalPreviewRow.classList.remove("hidden");
+      } else {
+        crystalPreviewRow.classList.add("hidden");
+      }
     }
 
     function getCarScreenCenter() {
@@ -2998,6 +3131,13 @@
       };
     }
 
+    function screenToWorld(screenX, screenY) {
+      return {
+        x: cameraWorldX + (screenX - width * 0.5),
+        y: cameraWorldY + (screenY - height * 0.5)
+      };
+    }
+
     function applyCrystalHeal(crystal) {
       var healAmount = CRYSTAL_HEAL_BASE + crystal.size * CRYSTAL_HEAL_PER_SIZE;
       var previousHealth = health;
@@ -3466,6 +3606,7 @@
       var inset;
       var spawnScreenX;
       var spawnScreenY;
+      var spawnWorld;
       var spawnX;
       var spawnY;
       var enemy;
@@ -3490,8 +3631,9 @@
           spawnScreenX = Math.random() * width;
           spawnScreenY = height + inset;
         }
-        spawnX = cameraWorldX + spawnScreenX - width * 0.5;
-        spawnY = cameraWorldY + spawnScreenY - height * 0.5;
+        spawnWorld = screenToWorld(spawnScreenX, spawnScreenY);
+        spawnX = spawnWorld.x;
+        spawnY = spawnWorld.y;
         if (!isEnemySpawnClear(spawnX, spawnY)) {
           continue;
         }
@@ -3992,7 +4134,7 @@
       }
     }
 
-    function drawEnemyRotatingBeacon(centerX, centerY, spinAngle, isLit) {
+    function drawEnemyRotatingBeacon(centerX, centerY, spinAngle, isLit, isAttackMode) {
       var housingRadius = ENEMY_ATTACK_LIGHT_RADIUS;
       var lensAlpha;
       var beamAlpha;
@@ -4011,6 +4153,19 @@
       context.beginPath();
       context.arc(0, 0, housingRadius, 0, Math.PI * 2);
       context.fill();
+
+      if (!isAttackMode) {
+        context.fillStyle = "#8a2020";
+        context.beginPath();
+        context.arc(0, 0, housingRadius * 0.78, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "#4a1010";
+        context.beginPath();
+        context.arc(0, 0, housingRadius * 0.44, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+        return;
+      }
 
       context.rotate(spinAngle);
 
@@ -4067,7 +4222,7 @@
       context.restore();
     }
 
-    function drawEnemyAttackLights(enemyIndex) {
+    function drawEnemyAttackLights(enemyIndex, isAttackMode) {
       var enemyPhase = gameAnimTime + enemyIndex * 1.37;
       var leftSpin = enemyPhase * ENEMY_ATTACK_LIGHT_ROTATION_SPEED;
       var rightSpin = -enemyPhase * ENEMY_ATTACK_LIGHT_ROTATION_SPEED;
@@ -4078,8 +4233,14 @@
       context.fillStyle = "#180404";
       context.fillRect(-9, -13.8, 18, 2.8);
 
-      drawEnemyRotatingBeacon(ENEMY_ATTACK_LIGHT_LEFT_X, ENEMY_ATTACK_LIGHT_Y, leftSpin, leftLit);
-      drawEnemyRotatingBeacon(ENEMY_ATTACK_LIGHT_RIGHT_X, ENEMY_ATTACK_LIGHT_Y, rightSpin, rightLit);
+      if (!isAttackMode) {
+        drawEnemyRotatingBeacon(ENEMY_ATTACK_LIGHT_LEFT_X, ENEMY_ATTACK_LIGHT_Y, 0, false, false);
+        drawEnemyRotatingBeacon(ENEMY_ATTACK_LIGHT_RIGHT_X, ENEMY_ATTACK_LIGHT_Y, 0, false, false);
+        return;
+      }
+
+      drawEnemyRotatingBeacon(ENEMY_ATTACK_LIGHT_LEFT_X, ENEMY_ATTACK_LIGHT_Y, leftSpin, leftLit, true);
+      drawEnemyRotatingBeacon(ENEMY_ATTACK_LIGHT_RIGHT_X, ENEMY_ATTACK_LIGHT_Y, rightSpin, rightLit, true);
 
       if (leftLit) {
         roofGlowAlpha += 0.24;
@@ -4138,9 +4299,7 @@
         context.fill();
         context.fillStyle = "rgba(255, 80, 60, 0.45)";
         context.fillRect(-14, 14, 28, 4);
-        if (enemy.chasing || enemy.rememberPlayerTimer > 0) {
-          drawEnemyAttackLights(enemyIndex);
-        }
+        drawEnemyAttackLights(enemyIndex, enemy.chasing || enemy.rememberPlayerTimer > 0);
         context.restore();
       }
     }
@@ -4215,6 +4374,7 @@
       screenDistance.textContent = formatMeters(distanceMeters);
       screenScore.textContent = String(score);
       controlHint.textContent = getGameOverHintText();
+      setCrystalPreviewRowVisible(false);
       if (Math.floor(distanceMeters) >= bestDistanceMeters && distanceMeters > 0) {
         gameScreen.classList.add("is-record");
       } else {
@@ -4347,8 +4507,9 @@
       hudDashboard.classList.add("hidden");
       screenDistance.classList.add("hidden");
       screenScore.classList.add("hidden");
-      screenTitle.textContent = getLocalized(LOCALE_KEY_START, "Crystal Rush");
+      screenTitle.textContent = GAME_TITLE;
       controlHint.textContent = getStartHintText();
+      setCrystalPreviewRowVisible(true);
       getChunk(0, 0);
       updateCheckEngineHud();
       setCarWrapTransform();
@@ -4725,6 +4886,8 @@
       var chunk;
       var screenX;
       var screenY;
+      var screenPos;
+      var chunkDrawSize;
       var keyIndex;
       var key;
 
@@ -4732,19 +4895,21 @@
       context.fillStyle = "#1a1410";
       context.fillRect(0, 0, width, height);
 
+      chunkDrawSize = CHUNK_SIZE;
       for (keyIndex = 0; keyIndex < chunkKeys.length; keyIndex += 1) {
         key = chunkKeys[keyIndex];
         chunk = chunks[key];
         if (!chunk || !chunk.surfaceCanvas) {
           continue;
         }
-        screenX = width * 0.5 + chunk.chunkX * CHUNK_SIZE - cameraWorldX;
-        screenY = height * 0.5 + chunk.chunkY * CHUNK_SIZE - cameraWorldY;
-        if (screenX + CHUNK_SIZE < -64 || screenX > width + 64 ||
-          screenY + CHUNK_SIZE < -64 || screenY > height + 64) {
+        screenPos = worldToScreen(chunk.chunkX * CHUNK_SIZE, chunk.chunkY * CHUNK_SIZE);
+        screenX = screenPos.x;
+        screenY = screenPos.y;
+        if (screenX + chunkDrawSize < -64 || screenX > width + 64 ||
+          screenY + chunkDrawSize < -64 || screenY > height + 64) {
           continue;
         }
-        context.drawImage(chunk.surfaceCanvas, screenX, screenY);
+        context.drawImage(chunk.surfaceCanvas, screenX, screenY, chunkDrawSize, chunkDrawSize);
       }
 
       drawTireTrails();
@@ -5125,6 +5290,7 @@
         updateRockDeflectStreakEntity(carRockDeflectEntity, deltaSeconds);
       }
       updateParticles(deltaSeconds);
+      updateStartCrystalPreviews(deltaSeconds);
     }
 
     function render() {
@@ -5160,6 +5326,7 @@
       loadBestDistance();
       applyGameLocale();
       bindLocaleListener();
+      buildCrystalPreviewRow();
       resetGame();
       window.addEventListener("resize", resizeCanvas);
       window.addEventListener("blur", clearKeysDown);

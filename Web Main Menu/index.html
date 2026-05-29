@@ -501,14 +501,18 @@
         <div class="os-window-body os-window-body--terminal">
           <p class="extras-link-overlay-text" id="extrasLinkOverlayText" data-locale-key="web.extras.link.confirm-message">Open this link in your browser?</p>
           <p class="extras-link-overlay-url terminal-text--dim" id="extrasLinkOverlayUrl"></p>
-          <nav class="term-menu">
+          <nav class="term-menu extras-link-overlay-menu">
+            <button type="button" class="term-row" id="extrasLinkOverlayCancel">
+              <span class="term-row-prefix terminal-text--dim">[ ]</span>
+              <span class="term-row-label terminal-text" data-locale-key="web.extras.link.confirm-cancel">Cancel</span>
+            </button>
             <button type="button" class="term-row term-row--primary" id="extrasLinkOverlayConfirm">
               <span class="term-row-prefix terminal-text--dim">&gt;&gt;</span>
               <span class="term-row-label terminal-text" data-locale-key="web.extras.link.confirm-open">Open in browser</span>
             </button>
-            <button type="button" class="term-row" id="extrasLinkOverlayCancel">
+            <button type="button" class="term-row" id="extrasLinkOverlayConfirmNoAsk">
               <span class="term-row-prefix terminal-text--dim">[ ]</span>
-              <span class="term-row-label terminal-text" data-locale-key="web.extras.link.confirm-cancel">Cancel</span>
+              <span class="term-row-label terminal-text" data-locale-key="web.extras.link.confirm-open-no-ask">Open, don't ask again</span>
             </button>
           </nav>
         </div>
