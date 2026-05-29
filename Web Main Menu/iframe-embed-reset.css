@@ -1,0 +1,22 @@
+html,
+body {
+  -webkit-tap-highlight-color: transparent;
+  tap-highlight-color: transparent;
+}
+
+*,
+*::before,
+*::after {
+  -webkit-tap-highlight-color: transparent;
+  tap-highlight-color: transparent;
+}
+
+*:focus,
+*:focus-visible,
+*:active {
+  outline: none;
+}
+
+html {
+  touch-action: manipulation;
+}
