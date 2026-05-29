@@ -221,6 +221,28 @@
     notifyRouteChanged();
   }
 
+  function buildDifficultyStarsHtml(difficulty) {
+    var starsHtml = "";
+    var starIndex;
+    var filledCount = difficulty;
+    if (!filledCount || filledCount < 0) {
+      filledCount = 0;
+    }
+    if (filledCount > 5) {
+      filledCount = 5;
+    }
+    for (starIndex = 1; starIndex <= 5; starIndex += 1) {
+      var starClass = "extras-game-star";
+      var starSymbol = "\u2606";
+      if (starIndex <= filledCount) {
+        starClass += " is-filled";
+        starSymbol = "\u2605";
+      }
+      starsHtml += '<span class="' + starClass + '" aria-hidden="true">' + starSymbol + "</span>";
+    }
+    return starsHtml;
+  }
+
   function buildGameListHtml() {
     var manifest = getManifest();
     var games = manifest.games || [];
@@ -229,12 +251,26 @@
     for (index = 0; index < games.length; index++) {
       var game = games[index];
       var title = game.title || game.titleFallback || game.id;
+      var imageSrc = game.image || "";
+      var difficulty = game.difficulty || 0;
       html +=
-        '<li><button type="button" class="term-row extras-game-picker" data-game-id="' +
+        '<li><button type="button" class="extras-game-card extras-game-picker" data-game-id="' +
         escapeHtml(game.id) +
-        '"><span class="term-row-prefix terminal-text--dim">&gt;&gt;</span><span class="term-row-label terminal-text">' +
+        '">';
+      if (imageSrc) {
+        html +=
+          '<img class="extras-game-card-image" src="' +
+          escapeHtml(imageSrc) +
+          '" alt="" loading="lazy" />';
+      } else {
+        html += '<span class="extras-game-card-image extras-game-card-image--empty" aria-hidden="true"></span>';
+      }
+      html +=
+        '<div class="extras-game-card-body"><span class="extras-game-card-title terminal-text">' +
         escapeHtml(title) +
-        "</span></button></li>";
+        '</span><span class="extras-game-card-stars">' +
+        buildDifficultyStarsHtml(difficulty) +
+        "</span></div></button></li>";
     }
     if (!html) {
       html =

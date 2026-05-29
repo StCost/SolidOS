@@ -95,6 +95,11 @@
       display: none;
     }
 
+    #congratsOverlay.is-instant-hide {
+      opacity: 0 !important;
+      transition: none !important;
+    }
+
     #congratsCard {
       text-align: center;
       padding: 0 16px;
@@ -224,25 +229,21 @@
   <div id="gameRoot">
     <canvas id="gameCanvas"></canvas>
     <div id="hud">
-      <div><span class="label">Distance </span><span class="value" id="distanceValue">0</span><span class="label">
-          m</span></div>
-      <div><span class="label">Best </span><span class="value" id="bestValue">0</span><span class="label"> m</span>
-      </div>
-      <div><span class="label">Level </span><span class="value" id="levelValue">1</span></div>
-      <div><span class="label">Total </span><span class="value" id="totalValue">0</span><span class="label"> m</span>
-      </div>
-      <div><span class="label">Hits </span><span class="value" id="hitsValue">10</span><span class="label"> left</span>
-      </div>
-      <div><span class="label">Speed </span><span class="value" id="speedValue">0</span><span class="label"> m/s</span>
-      </div>
-      <div><span class="label">Coast </span><span class="value" id="coastValue">0</span><span class="label"> m</span>
-      </div>
+      <div><span class="label" id="hudLabelDistance">Distance </span><span class="value" id="distanceValue">0</span><span
+          class="label hud-suffix-meters"> m</span></div>
+      <div><span class="label" id="hudLabelBest">Best </span><span class="value" id="bestValue">0</span><span
+          class="label hud-suffix-meters"> m</span></div>
+      <div><span class="label" id="hudLabelLevel">Level </span><span class="value" id="levelValue">1</span></div>
+      <div><span class="label" id="hudLabelTotal">Total </span><span class="value" id="totalValue">0</span><span
+          class="label hud-suffix-meters"> m</span></div>
+      <div><span class="label" id="hudLabelHits">Hits </span><span class="value" id="hitsValue">10</span><span
+          class="label" id="hudLabelHitsLeft"> left</span></div>
     </div>
     <div id="finishFlash"></div>
     <div id="congratsOverlay" class="is-hidden">
       <div id="congratsCard">
         <div id="congratsTitle">LEVEL COMPLETE</div>
-        <div id="congratsStats">0 m · 0 m/s</div>
+        <div id="congratsStats">0 m</div>
         <div id="congratsTotals">Total 0 m · Best 0 m</div>
         <div id="congratsPrompt">CLICK TO CONTINUE</div>
       </div>
@@ -258,7 +259,7 @@
     <div id="loseOverlay" class="is-hidden">
       <div id="loseCard">
         <div id="loseTitle">OUT OF HITS</div>
-        <div id="loseStats">0 m · 0 m/s</div>
+        <div id="loseStats">0 m</div>
         <div id="losePrompt">CLICK TO TRY AGAIN</div>
       </div>
     </div>
@@ -272,9 +273,14 @@
       var hitsValueEl = document.getElementById("hitsValue");
       var levelValueEl = document.getElementById("levelValue");
       var totalValueEl = document.getElementById("totalValue");
-      var speedValueEl = document.getElementById("speedValue");
-      var coastValueEl = document.getElementById("coastValue");
       var finishFlashEl = document.getElementById("finishFlash");
+      var hudLabelDistanceEl = document.getElementById("hudLabelDistance");
+      var hudLabelBestEl = document.getElementById("hudLabelBest");
+      var hudLabelLevelEl = document.getElementById("hudLabelLevel");
+      var hudLabelTotalEl = document.getElementById("hudLabelTotal");
+      var hudLabelHitsEl = document.getElementById("hudLabelHits");
+      var hudLabelHitsLeftEl = document.getElementById("hudLabelHitsLeft");
+      var hudSuffixMeterEls = document.querySelectorAll(".hud-suffix-meters");
       var congratsOverlayEl = document.getElementById("congratsOverlay");
       var congratsCardEl = document.getElementById("congratsCard");
       var congratsTitleEl = document.getElementById("congratsTitle");
@@ -288,6 +294,30 @@
       var loseOverlayEl = document.getElementById("loseOverlay");
       var loseCardEl = document.getElementById("loseCard");
       var loseStatsEl = document.getElementById("loseStats");
+      var loseTitleEl = document.getElementById("loseTitle");
+      var losePromptEl = document.getElementById("losePrompt");
+      var levelIntroPromptEl = document.getElementById("levelIntroPrompt");
+      var congratsPromptEl = document.getElementById("congratsPrompt");
+
+      var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
+      var LOCALE_KEY_METERS_SUFFIX = "web.game.meters-suffix";
+      var LOCALE_KEY_LABEL_DISTANCE = "web.game.label.distance";
+      var LOCALE_KEY_LABEL_LEVEL = "web.game.label.level";
+      var LOCALE_KEY_LABEL_TOTAL = "web.game.label.total";
+      var LOCALE_KEY_LABEL_HITS = "web.game.label.hits";
+      var LOCALE_KEY_LABEL_HITS_LEFT = "web.game.label.hits-left";
+      var LOCALE_KEY_LABEL_SCORE = "web.game.label.score";
+      var LOCALE_KEY_LEVEL_TITLE = "web.game.level-title";
+      var LOCALE_KEY_LEVEL_COMPLETE = "web.game.level-complete";
+      var LOCALE_KEY_PROMPT_CONTINUE = "web.game.prompt.click-continue";
+      var LOCALE_KEY_PROMPT_START = "web.game.prompt.click-start";
+      var LOCALE_KEY_PROMPT_RETRY = "web.game.prompt.click-retry";
+      var LOCALE_KEY_MARKER_START = "web.game.marker.start";
+      var LOCALE_KEY_MARKER_FINISH = "web.game.marker.finish";
+      var LOCALE_KEY_STATS_SEPARATOR = "web.game.stats-separator";
+      var LOCALE_KEY_OUT_OF_HITS = "web.game.slope-golf.out-of-hits";
+      var LEVEL_SPAWN_DELAY_MS = 500;
+      var levelReady = false;
 
       var BALL_RADIUS = 8;
       var WALL_COLLIDER_HALF_WIDTH = 7;
@@ -354,7 +384,7 @@
       var BLACK_HOLE_EVENT_RADIUS = 16;
       var BLACK_HOLE_DRAW_RADIUS = 26;
       var BLACK_HOLE_PULL_RADIUS = 130;
-      var BLACK_HOLE_PULL_FORCE = 4400;
+      var BLACK_HOLE_PULL_FORCE = 5800;
       var HOLE_WARP_SINK_DURATION = 0.38;
       var HOLE_WARP_TRAVEL_DURATION = 1.05;
       var HOLE_WARP_SETTLE_DURATION = 0.45;
@@ -2064,6 +2094,120 @@
         };
       }
 
+      function getLocaleApi() {
+        if (window.parent && window.parent !== window && window.parent.WebLocale) {
+          return window.parent.WebLocale;
+        }
+        if (window.WebLocale) {
+          return window.WebLocale;
+        }
+        return null;
+      }
+
+      function getLocalized(key, fallback) {
+        var locale = getLocaleApi();
+        if (locale) {
+          return locale.get(key, fallback);
+        }
+        if (fallback != null) {
+          return fallback;
+        }
+        return key;
+      }
+
+      function formatLocalized(key, fallback, value) {
+        var text = getLocalized(key, fallback);
+        if (value != null) {
+          text = text.split("{0}").join(String(value));
+        }
+        return text;
+      }
+
+      function getMetersSuffix() {
+        return " " + getLocalized(LOCALE_KEY_METERS_SUFFIX, "m");
+      }
+
+      function getStatsSeparator() {
+        return getLocalized(LOCALE_KEY_STATS_SEPARATOR, " · ");
+      }
+
+      function formatDistanceWithSuffix(value) {
+        return formatDistance(value) + getMetersSuffix();
+      }
+
+      function applyGameLocale() {
+        var metersSuffix = getMetersSuffix();
+        var suffixIndex;
+        if (hudLabelDistanceEl) {
+          hudLabelDistanceEl.textContent = getLocalized(LOCALE_KEY_LABEL_DISTANCE, "Distance") + " ";
+        }
+        if (hudLabelBestEl) {
+          hudLabelBestEl.textContent = getLocalized(LOCALE_KEY_BEST_LABEL, "Best") + " ";
+        }
+        if (hudLabelLevelEl) {
+          hudLabelLevelEl.textContent = getLocalized(LOCALE_KEY_LABEL_LEVEL, "Level") + " ";
+        }
+        if (hudLabelTotalEl) {
+          hudLabelTotalEl.textContent = getLocalized(LOCALE_KEY_LABEL_TOTAL, "Total") + " ";
+        }
+        if (hudLabelHitsEl) {
+          hudLabelHitsEl.textContent = getLocalized(LOCALE_KEY_LABEL_HITS, "Hits") + " ";
+        }
+        if (hudLabelHitsLeftEl) {
+          hudLabelHitsLeftEl.textContent = " " + getLocalized(LOCALE_KEY_LABEL_HITS_LEFT, "left");
+        }
+        for (suffixIndex = 0; suffixIndex < hudSuffixMeterEls.length; suffixIndex += 1) {
+          hudSuffixMeterEls[suffixIndex].textContent = metersSuffix;
+        }
+        if (congratsPromptEl) {
+          congratsPromptEl.textContent = getLocalized(LOCALE_KEY_PROMPT_CONTINUE, "CLICK TO CONTINUE");
+        }
+        if (levelIntroPromptEl) {
+          levelIntroPromptEl.textContent = getLocalized(LOCALE_KEY_PROMPT_START, "CLICK TO START");
+        }
+        if (loseTitleEl) {
+          loseTitleEl.textContent = getLocalized(LOCALE_KEY_OUT_OF_HITS, "OUT OF HITS");
+        }
+        if (losePromptEl) {
+          losePromptEl.textContent = getLocalized(LOCALE_KEY_PROMPT_RETRY, "CLICK TO TRY AGAIN");
+        }
+        if (levelIntroActive) {
+          refreshLevelIntroText();
+        }
+        if (congratsScreenActive) {
+          refreshCongratsText();
+        }
+        if (loseScreenActive) {
+          loseStatsEl.textContent = formatDistanceWithSuffix(loseLevelDistance);
+        }
+      }
+
+      function bindLocaleListener() {
+        var localeTarget = window;
+        if (window.parent && window.parent !== window) {
+          localeTarget = window.parent;
+        }
+        localeTarget.addEventListener("web-locale-applied", applyGameLocale);
+      }
+
+      function refreshLevelIntroText() {
+        levelIntroTitleEl.textContent = formatLocalized(LOCALE_KEY_LEVEL_TITLE, "LEVEL {0}", levelIndex);
+        levelIntroScoreEl.textContent =
+          getLocalized(LOCALE_KEY_LABEL_SCORE, "Score") + " " + formatDistanceWithSuffix(totalScore);
+        levelIntroBestEl.textContent =
+          getLocalized(LOCALE_KEY_BEST_LABEL, "Best") + " " + formatDistanceWithSuffix(bestDistance);
+      }
+
+      function refreshCongratsText() {
+        setCongratsContent(
+          levelIndex,
+          congratsLevelDistance,
+          congratsLevelMaxSpeed,
+          totalScore,
+          bestDistance
+        );
+      }
+
       function formatDistance(value) {
         return String(Math.round(value));
       }
@@ -2080,27 +2224,6 @@
         totalValueEl.textContent = formatDistance(totalScore);
         levelValueEl.textContent = String(levelIndex);
         hitsValueEl.textContent = String(hitsLeft);
-        if (gameState === stateRolling) {
-          var speed = Math.sqrt(ballVelX * ballVelX + ballVelY * ballVelY);
-          if (speed > maxRunSpeed) {
-            maxRunSpeed = speed;
-          }
-          speedValueEl.textContent = formatDistance(speed);
-          coastValueEl.textContent = formatDistance(estimateCoastMeters(speed, ballVelX, ballVelY));
-        } else if (gameState === stateAiming) {
-          var worldMouse = screenToWorld(screenMouseX, screenMouseY);
-          var aimKick = getKickFromCursor(worldMouse.x, worldMouse.y);
-          if (aimKick) {
-            speedValueEl.textContent = formatDistance(aimKick.power);
-            coastValueEl.textContent = formatDistance(estimateCoastMeters(aimKick.power, aimKick.velX, aimKick.velY));
-          } else {
-            speedValueEl.textContent = "0";
-            coastValueEl.textContent = "0";
-          }
-        } else {
-          speedValueEl.textContent = "0";
-          coastValueEl.textContent = "0";
-        }
       }
 
       function placeBallAtTunnelStart() {
@@ -2145,6 +2268,7 @@
         physicsTimeAccumulator = 0;
         finishParticles.length = 0;
         updateDistanceHud();
+        levelReady = true;
       }
 
       function beginRun(seed) {
@@ -2153,7 +2277,8 @@
         bestDistance = 0;
         finishParticles.length = 0;
         loadLevel(seed);
-        showLevelIntro();
+        applyGameLocale();
+        showLevelIntro(true);
       }
 
       function showLoseScreen() {
@@ -2181,11 +2306,7 @@
         loseTimer = 0;
         loseLevelDistance = maxRunDistance;
         loseLevelMaxSpeed = maxRunSpeed;
-        loseStatsEl.textContent =
-          formatDistance(loseLevelDistance) +
-          " m · " +
-          formatDistance(loseLevelMaxSpeed) +
-          " m/s";
+        loseStatsEl.textContent = formatDistanceWithSuffix(loseLevelDistance);
         ballVelX = 0;
         ballVelY = 0;
         gameState = stateAiming;
@@ -2331,9 +2452,9 @@
             var pullY = holeWarpParticlePullY - particle.y;
             var pullLength = Math.sqrt(pullX * pullX + pullY * pullY);
             if (pullLength > 0.001) {
-              var pullStrength = 520 * deltaSeconds;
+              var pullStrength = 660 * deltaSeconds;
               if (particle.kind === "warp") {
-                pullStrength = 680 * deltaSeconds;
+                pullStrength = 860 * deltaSeconds;
               }
               particle.velX += (pullX / pullLength) * pullStrength;
               particle.velY += (pullY / pullLength) * pullStrength;
@@ -2372,6 +2493,8 @@
       function showCongratsScreen() {
         congratsCardOpacity = 0;
         congratsCardEl.style.opacity = "0";
+        congratsOverlayEl.classList.remove("is-instant-hide");
+        congratsOverlayEl.style.opacity = "";
         congratsOverlayEl.classList.remove("is-hidden");
       }
 
@@ -2380,42 +2503,56 @@
         congratsTimer = 0;
         congratsCardOpacity = 0;
         congratsCardEl.style.opacity = "0";
+        congratsOverlayEl.classList.remove("is-instant-hide");
+        congratsOverlayEl.style.opacity = "";
+        congratsOverlayEl.classList.add("is-hidden");
+      }
+
+      function hideCongratsScreenInstant() {
+        congratsScreenActive = false;
+        congratsTimer = 0;
+        congratsCardOpacity = 0;
+        congratsCardEl.style.opacity = "0";
+        congratsOverlayEl.classList.add("is-instant-hide");
         congratsOverlayEl.classList.add("is-hidden");
       }
 
       function setCongratsContent(completedLevel, levelDistance, levelMaxSpeed, total, best) {
-        congratsTitleEl.textContent = "LEVEL " + String(completedLevel) + " COMPLETE";
-        congratsStatsEl.textContent =
-          formatDistance(levelDistance) +
-          " m · " +
-          formatDistance(levelMaxSpeed) +
-          " m/s";
+        congratsTitleEl.textContent = formatLocalized(LOCALE_KEY_LEVEL_COMPLETE, "LEVEL {0} COMPLETE", completedLevel);
+        congratsStatsEl.textContent = formatDistanceWithSuffix(levelDistance);
         congratsTotalsEl.textContent =
-          "Total " +
-          formatDistance(total) +
-          " m · Best " +
-          formatDistance(best) +
-          " m";
+          getLocalized(LOCALE_KEY_LABEL_TOTAL, "Total") +
+          " " +
+          formatDistanceWithSuffix(total) +
+          getStatsSeparator() +
+          getLocalized(LOCALE_KEY_BEST_LABEL, "Best") +
+          " " +
+          formatDistanceWithSuffix(best);
       }
 
       function advanceAfterLevelComplete() {
         if (!congratsScreenActive) {
           return;
         }
-        hideCongratsScreen();
+        hideCongratsScreenInstant();
         levelIndex += 1;
-        loadNextLevel();
-        showLevelIntro();
+        window.requestAnimationFrame(function () {
+          loadNextLevel();
+          showLevelIntro(false);
+        });
       }
 
-      function showLevelIntro() {
+      function showLevelIntro(showImmediately) {
         levelIntroActive = true;
         levelIntroTimer = 0;
-        levelIntroTitleEl.textContent = "LEVEL " + String(levelIndex);
-        levelIntroScoreEl.textContent = "Score " + formatDistance(totalScore) + " m";
-        levelIntroBestEl.textContent = "Best " + formatDistance(bestDistance) + " m";
-        levelIntroCardOpacity = 0;
-        levelIntroCardEl.style.opacity = "0";
+        refreshLevelIntroText();
+        if (showImmediately) {
+          levelIntroCardOpacity = 1;
+          levelIntroCardEl.style.opacity = "1";
+        } else {
+          levelIntroCardOpacity = 0;
+          levelIntroCardEl.style.opacity = "0";
+        }
         levelIntroOverlayEl.classList.remove("is-hidden");
         updateDistanceHud();
       }
@@ -2884,6 +3021,9 @@
         updateCongratsScreen(deltaSeconds);
         updateLoseScreen(deltaSeconds);
         updateLevelIntro(deltaSeconds);
+        if (!levelReady) {
+          return;
+        }
         updateFinishParticles(deltaSeconds);
         updateBlackHoleWarp(deltaSeconds);
         if (congratsScreenActive || loseScreenActive || levelIntroActive) {
@@ -3459,9 +3599,71 @@
             ctx.arc(screen.x, screen.y, ringRadius, spin + ringIndex, spin + ringIndex + Math.PI * 1.35);
             ctx.stroke();
           }
-          ctx.fillStyle = "#000000";
+          var corePulse = 0.55 + Math.sin(time * 4.2 + holeIndex * 1.3) * 0.45;
+          var coreFlicker = 0.82 + Math.sin(time * 13 + holeIndex * 2.7) * 0.18;
+          var coreSpin = spin * 2.8;
+          var streakIndex;
+          var streakColors = [
+            "rgba(255, 130, 55, ",
+            "rgba(180, 70, 220, ",
+            "rgba(255, 95, 40, ",
+            "rgba(140, 55, 200, ",
+            "rgba(255, 160, 70, "
+          ];
+          ctx.save();
+          ctx.translate(screen.x, screen.y);
+          ctx.rotate(coreSpin);
+          for (streakIndex = 0; streakIndex < 5; streakIndex += 1) {
+            var streakAngle = streakIndex * (Math.PI * 2 / 5);
+            var streakAlpha = (0.16 + corePulse * 0.38) * coreFlicker;
+            ctx.strokeStyle = streakColors[streakIndex] + streakAlpha + ")";
+            ctx.lineWidth = Math.max(1.4, 1.4 * cameraZoom);
+            ctx.beginPath();
+            ctx.arc(0, 0, eventRadius * (1.05 + streakIndex * 0.08), streakAngle, streakAngle + Math.PI * 0.42);
+            ctx.stroke();
+          }
+          ctx.restore();
+          var innerGlow = ctx.createRadialGradient(
+            screen.x,
+            screen.y,
+            eventRadius * 0.15,
+            screen.x,
+            screen.y,
+            eventRadius * 1.2
+          );
+          innerGlow.addColorStop(0, "rgba(255, 120, 45, " + (0.55 * corePulse * coreFlicker) + ")");
+          innerGlow.addColorStop(0.35, "rgba(200, 80, 210, " + (0.42 * corePulse) + ")");
+          innerGlow.addColorStop(0.7, "rgba(110, 40, 170, " + (0.28 * corePulse) + ")");
+          innerGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = innerGlow;
           ctx.beginPath();
-          ctx.arc(screen.x, screen.y, eventRadius * 0.85, 0, Math.PI * 2);
+          ctx.arc(screen.x, screen.y, eventRadius * 1.2, 0, Math.PI * 2);
+          ctx.fill();
+          var holeCore = ctx.createRadialGradient(
+            screen.x,
+            screen.y,
+            0,
+            screen.x,
+            screen.y,
+            eventRadius * 1.05
+          );
+          holeCore.addColorStop(0, "rgba(255, 155, 60, " + (0.92 * coreFlicker) + ")");
+          holeCore.addColorStop(0.18, "rgba(255, 105, 35, " + (0.78 * corePulse) + ")");
+          holeCore.addColorStop(0.42, "rgba(190, 70, 200, " + (0.62 * corePulse) + ")");
+          holeCore.addColorStop(0.68, "rgba(120, 40, 160, " + (0.48 * corePulse) + ")");
+          holeCore.addColorStop(0.88, "rgba(40, 10, 70, " + (0.55 * corePulse) + ")");
+          holeCore.addColorStop(1, "rgba(0, 0, 0, 0.98)");
+          ctx.fillStyle = holeCore;
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, eventRadius * 0.95, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "rgba(8, 2, 18, " + (0.5 + (1 - corePulse) * 0.42) + ")";
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, eventRadius * 0.42, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "rgba(255, 110, 40, " + (0.22 * coreFlicker * corePulse) + ")";
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, eventRadius * 0.18, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -3799,9 +4001,9 @@
         var labelX = centerX - tangentX * labelOffset;
         var labelY = centerY - tangentY * labelOffset;
         var labelScreen = worldToScreen(labelX, labelY);
-        var labelText = "START";
+        var labelText = getLocalized(LOCALE_KEY_MARKER_START, "START");
         if (markerKind === "finish") {
-          labelText = "FINISH";
+          labelText = getLocalized(LOCALE_KEY_MARKER_FINISH, "FINISH");
         }
         ctx.fillStyle = labelColor;
         ctx.font = "11px Courier New, Courier, monospace";
@@ -3851,6 +4053,13 @@
       }
 
       function drawFrame() {
+        if (!levelReady) {
+          var width = canvas.clientWidth;
+          var height = canvas.clientHeight;
+          ctx.fillStyle = "#06040f";
+          ctx.fillRect(0, 0, width, height);
+          return;
+        }
         drawCosmicBackground();
         drawTerrainNearTunnel();
         drawCorridorEdgeBlend();
@@ -3904,6 +4113,9 @@
           return;
         }
         if (levelIntroActive) {
+          if (!levelReady) {
+            return;
+          }
           hideLevelIntro();
           return;
         }
@@ -3950,9 +4162,17 @@
         cursorPushHoldActive = false;
       });
 
+      bindLocaleListener();
+      applyGameLocale();
       resize();
-      beginRun(hashSeed(Date.now()));
+      levelIndex = 1;
+      totalScore = 0;
+      bestDistance = 0;
+      showLevelIntro(true);
       window.requestAnimationFrame(loop);
+      window.setTimeout(function () {
+        beginRun(hashSeed(Date.now()));
+      }, LEVEL_SPAWN_DELAY_MS);
     })();
   </script>
 </body>

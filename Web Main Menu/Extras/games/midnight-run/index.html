@@ -393,8 +393,8 @@
     var LOCALE_KEY_START = "web.game.midnight-run.start";
     var LOCALE_KEY_GAME_OVER = "web.game.midnight-run.game-over";
     var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
-    var LOCALE_KEY_METERS_SUFFIX = "web.game.midnight-run.meters-suffix";
-    var LOCALE_KEY_SPEED_SUFFIX = "web.game.midnight-run.speed-suffix";
+    var LOCALE_KEY_METERS_SUFFIX = "web.game.meters-suffix";
+    var LOCALE_KEY_SPEED_SUFFIX = "web.game.speed-suffix";
     var METERS_PER_UNIT = 0.12;
     var MAX_HP = 10;
     var START_HP = 1;
@@ -490,7 +490,7 @@
     var jumpAirSlowFactor = 0.52;
     var jumpAirSlowBoost = 90;
 
-    var parallaxOffsets = [0, 0, 0, 0];
+    var parallaxPhase = [0, 0, 0, 0];
     var parallaxSpeeds = [0.018, 0.028, 0.038, 0.052];
 
     var GROUND_PEAK_Y_RATIO = 0.7;
@@ -678,7 +678,7 @@
         var element = herdFollowerElements[followerIndex];
         var depth = followerIndex + 1;
         var seed = followerIndex * 2.17 + 0.61;
-        var baseOffsetX = 14 + depth * 11;
+        var baseOffsetX = -(14 + depth * 11);
         var shuffleX = Math.sin(herdShuffleTime * 2.35 + seed) * (2.5 + depth * 0.9);
         var shuffleY = Math.sin(herdShuffleTime * 1.85 + seed * 1.37) * (2 + depth * 0.55);
         var scale = 1 - depth * 0.035;
@@ -974,10 +974,10 @@
       damageParticles.length = 0;
       obstacleSpawnGap = 520;
       nextObstacleAt = 700;
-      parallaxOffsets[0] = 0;
-      parallaxOffsets[1] = 0;
-      parallaxOffsets[2] = 0;
-      parallaxOffsets[3] = 0;
+      parallaxPhase[0] = 0;
+      parallaxPhase[1] = 0;
+      parallaxPhase[2] = 0;
+      parallaxPhase[3] = 0;
       playerWorldX = playerScreenX;
       syncHerdFollowerElements();
       hudDistance.textContent = "0m";
@@ -1311,12 +1311,8 @@
       herdShuffleTime += deltaSeconds;
 
       var layerIndex;
-      var parallaxWrap = width * 2;
-      for (layerIndex = 0; layerIndex < parallaxOffsets.length; layerIndex++) {
-        parallaxOffsets[layerIndex] += scrollSpeed * parallaxSpeeds[layerIndex] * deltaSeconds;
-        if (parallaxWrap > 0) {
-          parallaxOffsets[layerIndex] = ((parallaxOffsets[layerIndex] % parallaxWrap) + parallaxWrap) % parallaxWrap;
-        }
+      for (layerIndex = 0; layerIndex < parallaxPhase.length; layerIndex++) {
+        parallaxPhase[layerIndex] += scrollSpeed * parallaxSpeeds[layerIndex] * deltaSeconds;
       }
 
       rebaseWorldCoordinates();
@@ -1475,17 +1471,22 @@
       var screenY;
       var distX;
       var distY;
-      var tilesX = Math.ceil(width / SKY_TILE_WIDTH) + 1;
+      var starScroll = parallaxPhase[0];
+      var starScrollWrapped = starScroll % SKY_TILE_WIDTH;
+      if (starScrollWrapped < 0) {
+        starScrollWrapped += SKY_TILE_WIDTH;
+      }
+      var tilesX = Math.ceil(width / SKY_TILE_WIDTH) + 2;
       var tilesY = Math.ceil(height / SKY_TILE_HEIGHT) + 1;
       var moonPos = getMoonScreenPosition();
       var moonX = moonPos.x;
       var moonY = moonPos.y;
       context.fillStyle = "rgba(220, 200, 255, 0.75)";
       for (tileY = 0; tileY < tilesY; tileY++) {
-        for (tileX = 0; tileX < tilesX; tileX++) {
+        for (tileX = -1; tileX < tilesX; tileX++) {
           for (index = 0; index < skyStars.length; index++) {
             star = skyStars[index];
-            screenX = star.x + tileX * SKY_TILE_WIDTH;
+            screenX = star.x + tileX * SKY_TILE_WIDTH - starScrollWrapped;
             screenY = star.y + tileY * SKY_TILE_HEIGHT;
             if (screenX < -4 || screenX > width + 4 || screenY < -4 || screenY > height + 4) {
               continue;
@@ -1504,9 +1505,7 @@
     }
 
     function drawParallaxHills(layerIndex, topColor, bottomColor, colorStroke, amplitude, frequency, yBase) {
-      var shift = parallaxOffsets[layerIndex];
-      var wrap = width * 2;
-      if (wrap > 0) shift = ((shift % wrap) + wrap) % wrap;
+      var shift = parallaxPhase[layerIndex];
       var hillGradient = context.createLinearGradient(0, yBase - amplitude * 1.6, 0, height);
       hillGradient.addColorStop(0, topColor);
       hillGradient.addColorStop(0.55, bottomColor);

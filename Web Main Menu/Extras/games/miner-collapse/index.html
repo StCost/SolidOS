@@ -158,7 +158,7 @@
     <div id="hud">
       <div id="scoreValue">0t</div>
     </div>
-    <div id="bestHud">best <span id="bestValue">0t</span></div>
+    <div id="bestHud"><span id="bestLabel">best</span> <span id="bestValue">0t</span></div>
     <div id="bottomHud">
       <div id="multiplierHud">100%</div>
       <div id="multiplierBarWrap">
@@ -178,9 +178,13 @@
       var ctx = canvas.getContext("2d");
       var scoreValueEl = document.getElementById("scoreValue");
       var bestValueEl = document.getElementById("bestValue");
+      var bestLabelEl = document.getElementById("bestLabel");
       var multiplierHudEl = document.getElementById("multiplierHud");
       var multiplierFillEl = document.getElementById("multiplierFill");
       var fpsValueEl = document.getElementById("fpsValue");
+
+      var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
+      var LOCALE_KEY_TONS_SUFFIX = "web.game.tons-suffix";
 
       var PIXEL = 5;
       var CELL_EMPTY = 0;
@@ -765,14 +769,47 @@
         return rarityGain + powerGain;
       }
 
+      function getLocaleApi() {
+        if (window.parent && window.parent !== window && window.parent.WebLocale) {
+          return window.parent.WebLocale;
+        }
+        if (window.WebLocale) {
+          return window.WebLocale;
+        }
+        return null;
+      }
+
+      function getLocalized(key, fallback) {
+        var locale = getLocaleApi();
+        if (locale) {
+          return locale.get(key, fallback);
+        }
+        if (fallback != null) {
+          return fallback;
+        }
+        return key;
+      }
+
+      function applyGameLocale() {
+        if (bestLabelEl) {
+          bestLabelEl.textContent = getLocalized(LOCALE_KEY_BEST_LABEL, "best");
+        }
+        updateHudDisplay();
+        if (bestScore > 0) {
+          bestValueEl.textContent = formatScoreTons(bestScore);
+        }
+      }
+
+      function bindLocaleListener() {
+        var localeTarget = window;
+        if (window.parent && window.parent !== window) {
+          localeTarget = window.parent;
+        }
+        localeTarget.addEventListener("web-locale-applied", applyGameLocale);
+      }
+
       function formatScoreTons(value) {
-        if (value >= 1000000) {
-          return (value / 1000000).toFixed(2) + "Mt";
-        }
-        if (value >= 1000) {
-          return (value / 1000).toFixed(1) + "kt";
-        }
-        return value.toFixed(0) + "t";
+        return String(Math.round(value)) + getLocalized(LOCALE_KEY_TONS_SUFFIX, "t");
       }
 
       function formatScoreGainLabel(earned) {
@@ -2524,8 +2561,9 @@
       });
 
       window.addEventListener("resize", resize);
+      bindLocaleListener();
       bestScore = loadBestScore();
-      bestValueEl.textContent = formatScoreTons(bestScore);
+      applyGameLocale();
       resize();
       updatePointer(window.innerWidth * 0.5, window.innerHeight * 0.65);
       requestAnimationFrame(frame);

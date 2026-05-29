@@ -96,10 +96,10 @@
   height: auto;
 }
 
-.os-workspace--connect.os-workspace--wm > .term-prompt--entry,
-.os-workspace--settings.os-workspace--wm > .term-prompt--entry,
-.os-workspace--credits.os-workspace--wm > .term-prompt--entry,
-.os-workspace--extras.os-workspace--wm > .term-prompt--entry {
+.os-workspace--connect.os-workspace--wm>.term-prompt--entry,
+.os-workspace--settings.os-workspace--wm>.term-prompt--entry,
+.os-workspace--credits.os-workspace--wm>.term-prompt--entry,
+.os-workspace--extras.os-workspace--wm>.term-prompt--entry {
   position: absolute;
   left: var(--wm-inset);
   top: var(--wm-inset);
@@ -165,14 +165,15 @@
 }
 
 .os-workspace--extras {
-  --wm-extras-nav-slot: var(--wm-menu-actions-slot);
-  --wm-extras-nav-gap: var(--wm-inset);
+  --wm-extras-nav-slot: 16rem;
+  --wm-extras-nav-gap: clamp(6px, 1vmin, 12px);
   --wm-extras-content-width: min(42rem, calc(100% - 2 * var(--wm-inset)));
+  --wm-extras-content-top: calc(var(--wm-inset) + 0.25em);
 }
 
 .os-workspace--extras .os-window[data-wm-preset="extras-content"] {
   left: 50%;
-  top: var(--wm-connect-prompt-top);
+  top: var(--wm-extras-content-top);
   bottom: calc(var(--wm-extras-nav-slot) + var(--wm-extras-nav-gap) + var(--wm-inset));
   width: var(--wm-extras-content-width);
   height: auto;
@@ -403,6 +404,7 @@ body[data-wm-resize="se"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .os-window--opening .os-window-chrome--drag,
   .os-window--opening .os-window-body-shell,
   .os-window--opening-body-only .os-window-body-shell {
