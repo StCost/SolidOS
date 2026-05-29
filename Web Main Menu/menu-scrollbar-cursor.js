@@ -116,6 +116,19 @@
     updateThumbLayout(instance);
   }
 
+  function onVerticalScrollbarWheel(instance, event) {
+    if (event.deltaY === 0) {
+      return;
+    }
+    if (instance.trackElement.classList.contains("is-hidden")) {
+      return;
+    }
+    instance.listElement.scrollTop += event.deltaY / 5;
+    updateThumbLayout(instance);
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   function attachScrollbarBehavior(instance) {
     var listElement = instance.listElement;
     var trackElement = instance.trackElement;
@@ -144,6 +157,10 @@
     trackElement.addEventListener("pointerdown", function (event) {
       onTrackPointerDown(instance, event);
     });
+
+    trackElement.addEventListener("wheel", function (event) {
+      onVerticalScrollbarWheel(instance, event);
+    }, { passive: false });
 
     if (typeof ResizeObserver !== "undefined") {
       instance.resizeObserver = new ResizeObserver(function () {
@@ -501,6 +518,23 @@
     updateHorizontalThumbLayout(instance);
   }
 
+  function onHorizontalScrollbarWheel(instance, event) {
+    var delta = event.deltaX;
+    if (delta === 0) {
+      delta = event.deltaY;
+    }
+    if (delta === 0) {
+      return;
+    }
+    if (instance.trackElement.classList.contains("is-hidden")) {
+      return;
+    }
+    instance.viewElement.scrollLeft += delta;
+    updateHorizontalThumbLayout(instance);
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   function attachHorizontalScrollbarBehavior(instance) {
     var viewElement = instance.viewElement;
     var trackElement = instance.trackElement;
@@ -529,6 +563,10 @@
     trackElement.addEventListener("pointerdown", function (event) {
       onHorizontalTrackPointerDown(instance, event);
     });
+
+    trackElement.addEventListener("wheel", function (event) {
+      onHorizontalScrollbarWheel(instance, event);
+    }, { passive: false });
 
     if (typeof ResizeObserver !== "undefined") {
       instance.resizeObserver = new ResizeObserver(function () {
