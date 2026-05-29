@@ -1325,6 +1325,48 @@
     }
   }
 
+  function stepSliderByDirection(field, slider, valueDisplay, direction) {
+    var min = Number(slider.min);
+    var max = Number(slider.max);
+    var step = Number(slider.step);
+    var current = Number(slider.value);
+    var next;
+    if (field.steppedOptions) {
+      next = current + direction;
+    } else {
+      next = current + direction * step;
+    }
+    if (next < min) {
+      next = min;
+    }
+    if (next > max) {
+      next = max;
+    }
+    if (next === current) {
+      return;
+    }
+    slider.value = String(next);
+    var wireValue = updateSliderDisplay(field, slider, valueDisplay);
+    postChange(field.key, field.parse ? field.parse(wireValue) : wireValue);
+    onAudioVolumeSliderInput(field);
+    if (!isUnityHost()) {
+      saveLocalPreview();
+    }
+  }
+
+  function onSettingsSliderWheel(field, slider, valueDisplay, event) {
+    if (event.deltaY === 0) {
+      return;
+    }
+    if (valueDisplay.tagName === "INPUT" && document.activeElement === valueDisplay) {
+      return;
+    }
+    var direction = event.deltaY < 0 ? 1 : -1;
+    stepSliderByDirection(field, slider, valueDisplay, direction);
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   function updateSliderDisplay(field, slider, valueDisplay) {
     var track = slider.parentElement;
     var minSpan = track ? track.querySelector(".settings-slider-min") : null;
@@ -1420,6 +1462,10 @@
       var wireValue = updateSliderDisplay(field, slider, valueDisplay);
       postChange(field.key, field.parse ? field.parse(wireValue) : wireValue);
     });
+
+    sliderTrack.addEventListener("wheel", function (event) {
+      onSettingsSliderWheel(field, slider, valueDisplay, event);
+    }, { passive: false });
 
     if (valueDisplay.tagName === "INPUT") {
       valueDisplay.addEventListener("pointerdown", function (event) {
