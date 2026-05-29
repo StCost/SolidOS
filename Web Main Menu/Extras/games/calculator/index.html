@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #040609;
+      color: #ffcc9f;
+      font-family: "Courier New", Courier, monospace;
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+    }
+
+    body {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 0.45rem;
+    }
+
+    .calc-shell {
+      position: relative;
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      border: 1px solid rgba(255, 128, 0, 0.35);
+      background:
+        linear-gradient(180deg, rgba(255, 128, 0, 0.04), transparent 18%),
+        #040609;
+      box-shadow:
+        inset 0 0 28px rgba(255, 128, 0, 0.05),
+        0 0 18px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+    }
+
+    .calc-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.08;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255, 128, 0, 0.12) 2px,
+        rgba(255, 128, 0, 0.12) 3px
+      );
+    }
+
+    .calc-header {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.45rem 0.55rem 0.35rem;
+      border-bottom: 1px solid rgba(255, 128, 0, 0.22);
+      background: rgba(4, 6, 9, 0.92);
+      flex-shrink: 0;
+    }
+
+    .calc-header-prompt {
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      color: rgba(255, 160, 96, 0.45);
+      white-space: nowrap;
+    }
+
+    .calc-header-title {
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      color: #ffb347;
+      text-shadow: 0 0 8px rgba(255, 140, 40, 0.35);
+    }
+
+    .calc-header-spacer {
+      flex: 1 1 auto;
+    }
+
+    .calc-mode-button,
+    .calc-memory-indicator {
+      flex-shrink: 0;
+      min-width: 3.1rem;
+      padding: 0.22rem 0.45rem;
+      border: 1px solid rgba(255, 128, 0, 0.35);
+      background: rgba(4, 6, 9, 0.88);
+      color: rgba(255, 160, 96, 0.65);
+      font: inherit;
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-align: center;
+      appearance: none;
+    }
+
+    .calc-mode-button {
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+      transition: border-color 0.12s ease, background-color 0.12s ease, color 0.12s ease;
+    }
+
+    .calc-mode-button:hover,
+    .calc-mode-button:focus-visible {
+      border-color: rgba(255, 128, 0, 0.6);
+      background: rgba(255, 128, 0, 0.08);
+      color: #ffcc9f;
+      outline: none;
+    }
+
+    .calc-mode-button.is-radians {
+      color: #7fd4ff;
+      border-color: rgba(90, 180, 255, 0.45);
+      text-shadow: 0 0 8px rgba(90, 180, 255, 0.35);
+    }
+
+    .calc-memory-indicator.is-active {
+      color: #ffb347;
+      border-color: rgba(255, 128, 0, 0.55);
+      box-shadow: inset 0 0 10px rgba(255, 90, 40, 0.12);
+    }
+
+    .calc-display-wrap {
+      position: relative;
+      z-index: 1;
+      flex-shrink: 0;
+      padding: 0.45rem 0.55rem 0.5rem;
+    }
+
+    .calc-display {
+      display: flex;
+      flex-direction: column;
+      gap: 0.28rem;
+      min-height: 4.6rem;
+      padding: 0.45rem 0.55rem;
+      border: 1px solid rgba(255, 128, 0, 0.28);
+      background:
+        linear-gradient(180deg, rgba(8, 12, 18, 0.95), rgba(2, 4, 7, 0.98));
+      box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.55);
+    }
+
+    .calc-expression {
+      min-height: 1.1rem;
+      font-size: clamp(0.62rem, 1.8vw, 0.74rem);
+      letter-spacing: 0.06em;
+      line-height: 1.25;
+      color: rgba(255, 160, 96, 0.42);
+      text-align: right;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .calc-result {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-height: clamp(1.35rem, 4.9vw, 1.95rem);
+      font-size: clamp(1.15rem, 4.2vw, 1.65rem);
+      letter-spacing: 0.05em;
+      line-height: 1.15;
+      color: #ffb347;
+      text-align: right;
+      text-shadow: 0 0 10px rgba(255, 140, 40, 0.35);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .calc-result.is-error {
+      color: #ff6a4a;
+      text-shadow: 0 0 10px rgba(255, 70, 40, 0.35);
+    }
+
+    .calc-status {
+      min-height: 0.85rem;
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      color: rgba(127, 212, 255, 0.45);
+      text-align: right;
+    }
+
+    .calc-keypad-wrap {
+      position: relative;
+      z-index: 1;
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      padding: 0 0.55rem 0.55rem;
+    }
+
+    .calc-keypad {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .calc-keypad--advanced {
+      flex-shrink: 0;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      grid-auto-rows: minmax(2.35rem, auto);
+    }
+
+    .calc-keypad-divider {
+      flex-shrink: 0;
+      height: 1px;
+      background: rgba(255, 128, 0, 0.22);
+      box-shadow: 0 0 10px rgba(255, 128, 0, 0.08);
+    }
+
+    .calc-keypad--basic {
+      flex: 1 1 auto;
+      min-height: 0;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-rows: repeat(4, minmax(2.85rem, 1fr));
+    }
+
+    .calc-key {
+      min-width: 0;
+      min-height: 0;
+      padding: 0.2rem 0.12rem;
+      border: 1px solid rgba(255, 128, 0, 0.28);
+      background: rgba(4, 6, 9, 0.88);
+      color: #ffcc9f;
+      font: inherit;
+      font-size: clamp(0.78rem, 2.1vw, 0.98rem);
+      letter-spacing: 0.04em;
+      line-height: 1.1;
+      appearance: none;
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+      transition: border-color 0.1s ease, background-color 0.1s ease, box-shadow 0.1s ease, transform 0.06s ease;
+    }
+
+    .calc-key:hover,
+    .calc-key:focus-visible {
+      border-color: rgba(255, 128, 0, 0.55);
+      background: rgba(255, 128, 0, 0.08);
+      box-shadow: inset 0 0 10px rgba(255, 90, 40, 0.1);
+      outline: none;
+    }
+
+    .calc-key:active {
+      transform: translateY(1px);
+      background: rgba(255, 128, 0, 0.14);
+    }
+
+    .calc-key--function {
+      color: rgba(127, 212, 255, 0.88);
+      border-color: rgba(90, 180, 255, 0.28);
+    }
+
+    .calc-key--function:hover,
+    .calc-key--function:focus-visible {
+      border-color: rgba(90, 180, 255, 0.5);
+      background: rgba(90, 180, 255, 0.08);
+      box-shadow: inset 0 0 10px rgba(90, 180, 255, 0.08);
+    }
+
+    .calc-key--operator {
+      color: #ffb347;
+      border-color: rgba(255, 128, 0, 0.42);
+    }
+
+    .calc-key--control {
+      color: rgba(255, 160, 96, 0.72);
+      border-color: rgba(255, 128, 0, 0.22);
+    }
+
+    .calc-key--memory {
+      font-size: clamp(0.72rem, 1.9vw, 0.88rem);
+      letter-spacing: 0.08em;
+    }
+
+    .calc-key--basic {
+      font-size: clamp(1rem, 3vw, 1.28rem);
+    }
+
+    .calc-key--basic.calc-key--operator {
+      font-size: clamp(1.05rem, 3.2vw, 1.35rem);
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 0.25rem;
+      }
+
+      .calc-header {
+        flex-wrap: wrap;
+      }
+
+      .calc-keypad--advanced {
+        grid-auto-rows: minmax(2.1rem, auto);
+      }
+
+      .calc-keypad--basic {
+        grid-template-rows: repeat(4, minmax(2.45rem, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="calc-shell">
+    <div class="calc-header">
+      <span class="calc-header-prompt">C:\CM\tools&gt;</span>
+      <span class="calc-header-title">CM-CALC.SYS</span>
+      <span class="calc-header-spacer"></span>
+      <span class="calc-memory-indicator" id="memoryIndicator">MEM</span>
+      <button type="button" class="calc-mode-button" id="angleModeButton">DEG</button>
+    </div>
+
+    <div class="calc-display-wrap">
+      <div class="calc-display">
+        <div class="calc-expression" id="expressionDisplay"></div>
+        <div class="calc-result" id="resultDisplay">0</div>
+        <div class="calc-status" id="statusDisplay"></div>
+      </div>
+    </div>
+
+    <div class="calc-keypad-wrap">
+      <div class="calc-keypad calc-keypad--advanced" id="keypadAdvanced"></div>
+      <div class="calc-keypad-divider" aria-hidden="true"></div>
+      <div class="calc-keypad calc-keypad--basic" id="keypadBasic"></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var TOKEN_NUMBER = "number";
+      var TOKEN_OPERATOR = "operator";
+      var TOKEN_FUNCTION = "function";
+      var TOKEN_LEFT_PAREN = "left_paren";
+      var TOKEN_RIGHT_PAREN = "right_paren";
+      var TOKEN_CONSTANT = "constant";
+
+      var ANGLE_MODE_DEGREES = "deg";
+      var ANGLE_MODE_RADIANS = "rad";
+
+      var ERROR_DIVIDE_BY_ZERO = "ERR: DIV/0";
+      var ERROR_INVALID_INPUT = "ERR: INVALID";
+      var ERROR_OVERFLOW = "ERR: OVERFLOW";
+      var ERROR_DOMAIN = "ERR: DOMAIN";
+
+      var expressionDisplay = document.getElementById("expressionDisplay");
+      var resultDisplay = document.getElementById("resultDisplay");
+      var statusDisplay = document.getElementById("statusDisplay");
+      var angleModeButton = document.getElementById("angleModeButton");
+      var memoryIndicator = document.getElementById("memoryIndicator");
+      var keypadAdvanced = document.getElementById("keypadAdvanced");
+      var keypadBasic = document.getElementById("keypadBasic");
+      var keypadWrap = document.querySelector(".calc-keypad-wrap");
+
+      var expressionText = "";
+      var lastAnswer = 0;
+      var memoryValue = 0;
+      var memoryActive = false;
+      var angleMode = ANGLE_MODE_DEGREES;
+      var justEvaluated = false;
+
+      var operatorPrecedence = {
+        "+": 1,
+        "-": 1,
+        "*": 2,
+        "/": 2,
+        "%": 2,
+        "^": 3
+      };
+
+      var operatorRightAssociative = {
+        "^": true
+      };
+
+      var KEYPAD_SECTION_ADVANCED = "advanced";
+      var KEYPAD_SECTION_BASIC = "basic";
+
+      var advancedKeypadRows = [
+        [
+          { label: "MC", action: "memoryClear", className: "calc-key--control calc-key--memory" },
+          { label: "MR", action: "memoryRecall", className: "calc-key--control calc-key--memory" },
+          { label: "M+", action: "memoryAdd", className: "calc-key--control calc-key--memory" },
+          { label: "M-", action: "memorySubtract", className: "calc-key--control calc-key--memory" },
+          { label: "(", insert: "(", className: "calc-key--control" },
+          { label: ")", insert: ")", className: "calc-key--control" },
+          { label: "C", action: "clear", className: "calc-key--control" },
+          { label: "\u232B", action: "backspace", className: "calc-key--control", title: "Backspace" }
+        ],
+        [
+          { label: "sin", insert: "sin(", className: "calc-key--function" },
+          { label: "cos", insert: "cos(", className: "calc-key--function" },
+          { label: "tan", insert: "tan(", className: "calc-key--function" },
+          { label: "ln", insert: "ln(", className: "calc-key--function" },
+          { label: "log", insert: "log(", className: "calc-key--function" },
+          { label: "\u221A", insert: "sqrt(", className: "calc-key--function", title: "Square root" },
+          { label: "x\u00B2", insert: "^2", className: "calc-key--function" },
+          { label: "x\u02B8", insert: "^", className: "calc-key--function" }
+        ],
+        [
+          { label: "asin", insert: "asin(", className: "calc-key--function" },
+          { label: "acos", insert: "acos(", className: "calc-key--function" },
+          { label: "atan", insert: "atan(", className: "calc-key--function" },
+          { label: "exp", insert: "exp(", className: "calc-key--function" },
+          { label: "n!", insert: "!", className: "calc-key--function" },
+          { label: "abs", insert: "abs(", className: "calc-key--function" },
+          { label: "1/x", insert: "1/", className: "calc-key--function" },
+          { label: "\u03C0", insert: "\u03C0", className: "calc-key--function" }
+        ],
+        [
+          { label: "e", insert: "e", className: "calc-key--function" },
+          { label: "mod", insert: "%", className: "calc-key--function" },
+          { label: "Ans", insert: "Ans", className: "calc-key--control" },
+          { label: "\u00B1", action: "toggleSign", className: "calc-key--control" }
+        ]
+      ];
+
+      var basicKeypadRows = [
+        [
+          { label: "7", insert: "7", className: "calc-key--basic" },
+          { label: "8", insert: "8", className: "calc-key--basic" },
+          { label: "9", insert: "9", className: "calc-key--basic" },
+          { label: "\u00F7", insert: "/", className: "calc-key--basic calc-key--operator" }
+        ],
+        [
+          { label: "4", insert: "4", className: "calc-key--basic" },
+          { label: "5", insert: "5", className: "calc-key--basic" },
+          { label: "6", insert: "6", className: "calc-key--basic" },
+          { label: "\u00D7", insert: "*", className: "calc-key--basic calc-key--operator" }
+        ],
+        [
+          { label: "1", insert: "1", className: "calc-key--basic" },
+          { label: "2", insert: "2", className: "calc-key--basic" },
+          { label: "3", insert: "3", className: "calc-key--basic" },
+          { label: "\u2212", insert: "-", className: "calc-key--basic calc-key--operator" }
+        ],
+        [
+          { label: "0", insert: "0", className: "calc-key--basic" },
+          { label: ".", insert: ".", className: "calc-key--basic" },
+          { label: "+", insert: "+", className: "calc-key--basic calc-key--operator" },
+          { label: "=", action: "evaluate", className: "calc-key--basic calc-key--operator" }
+        ]
+      ];
+
+      function getKeypadRows(sectionName) {
+        if (sectionName === KEYPAD_SECTION_BASIC) return basicKeypadRows;
+        return advancedKeypadRows;
+      }
+
+      function updateMemoryIndicator() {
+        if (!memoryIndicator) return;
+        if (memoryActive) {
+          memoryIndicator.classList.add("is-active");
+        } else {
+          memoryIndicator.classList.remove("is-active");
+        }
+      }
+
+      function updateAngleModeButton() {
+        if (!angleModeButton) return;
+        if (angleMode === ANGLE_MODE_RADIANS) {
+          angleModeButton.textContent = "RAD";
+          angleModeButton.classList.add("is-radians");
+        } else {
+          angleModeButton.textContent = "DEG";
+          angleModeButton.classList.remove("is-radians");
+        }
+      }
+
+      function setStatus(text) {
+        if (statusDisplay) statusDisplay.textContent = text || "";
+      }
+
+      function setResult(text, isError) {
+        if (!resultDisplay) return;
+        resultDisplay.textContent = text;
+        if (isError) {
+          resultDisplay.classList.add("is-error");
+        } else {
+          resultDisplay.classList.remove("is-error");
+        }
+      }
+
+      function refreshDisplays() {
+        if (expressionDisplay) expressionDisplay.textContent = expressionText;
+      }
+
+      function getTrailingNumber(text) {
+        var index = text.length - 1;
+        while (index >= 0) {
+          var character = text.charAt(index);
+          if ((character >= "0" && character <= "9") || character === ".") {
+            index -= 1;
+            continue;
+          }
+          break;
+        }
+        return text.slice(index + 1);
+      }
+
+      function formatNumber(value) {
+        if (!isFinite(value)) return ERROR_OVERFLOW;
+        if (Math.abs(value) >= 1e12 || (Math.abs(value) > 0 && Math.abs(value) < 1e-8)) {
+          return value.toExponential(8).replace(/(?:\.0+|(\.\d+?)0+)e/, "$1e");
+        }
+        var rounded = Math.round(value * 1e10) / 1e10;
+        var text = String(rounded);
+        if (text.indexOf("e") !== -1 || text.indexOf("E") !== -1) {
+          return text;
+        }
+        return text;
+      }
+
+      function endsWithOperator(text) {
+        if (!text) return false;
+        var last = text.charAt(text.length - 1);
+        return last === "+" || last === "-" || last === "*" || last === "/" || last === "%" || last === "^";
+      }
+
+      function endsWithFunctionOpen(text) {
+        if (!text) return false;
+        return /(?:sin|cos|tan|asin|acos|atan|ln|log|sqrt|exp|abs)\($/.test(text);
+      }
+
+      function canInsertDecimal(text) {
+        var trailing = getTrailingNumber(text);
+        return trailing.indexOf(".") === -1;
+      }
+
+      function appendInsert(value) {
+        if (justEvaluated && value !== "(" && value !== "Ans") {
+          expressionText = "";
+          justEvaluated = false;
+        }
+
+        if (value === "Ans") {
+          expressionText += "Ans";
+          refreshDisplays();
+          return;
+        }
+
+        if (value === "\u03C0" || value === "e") {
+          if (expressionText && !endsWithOperator(expressionText) && expressionText.charAt(expressionText.length - 1) !== "(") {
+            expressionText += "*";
+          }
+          expressionText += value;
+          refreshDisplays();
+          return;
+        }
+
+        if (value === "^2") {
+          expressionText += "^2";
+          refreshDisplays();
+          return;
+        }
+
+        if (value === "1/") {
+          if (expressionText && !endsWithOperator(expressionText) && expressionText.charAt(expressionText.length - 1) !== "(") {
+            expressionText += "*";
+          }
+          expressionText += "1/(";
+          refreshDisplays();
+          return;
+        }
+
+        if (value === "!") {
+          expressionText += "!";
+          refreshDisplays();
+          return;
+        }
+
+        if (value === ".") {
+          if (!canInsertDecimal(expressionText)) return;
+          if (!expressionText || endsWithOperator(expressionText) || expressionText.charAt(expressionText.length - 1) === "(") {
+            expressionText += "0.";
+          } else {
+            expressionText += ".";
+          }
+          refreshDisplays();
+          return;
+        }
+
+        if (value === "(") {
+          if (expressionText && !endsWithOperator(expressionText) && expressionText.charAt(expressionText.length - 1) !== "(" && expressionText.charAt(expressionText.length - 1) !== "/") {
+            expressionText += "*";
+          }
+          expressionText += "(";
+          refreshDisplays();
+          return;
+        }
+
+        if (value === ")") {
+          expressionText += ")";
+          refreshDisplays();
+          return;
+        }
+
+        if (value === "+" || value === "-" || value === "*" || value === "/" || value === "%" || value === "^") {
+          if (!expressionText && value !== "-") return;
+          if (endsWithOperator(expressionText)) {
+            expressionText = expressionText.slice(0, -1) + value;
+          } else {
+            expressionText += value;
+          }
+          refreshDisplays();
+          return;
+        }
+
+        if (value.charAt(value.length - 1) === "(") {
+          if (expressionText && !endsWithOperator(expressionText) && expressionText.charAt(expressionText.length - 1) !== "(") {
+            expressionText += "*";
+          }
+          expressionText += value;
+          refreshDisplays();
+          return;
+        }
+
+        if (value >= "0" && value <= "9") {
+          expressionText += value;
+          refreshDisplays();
+        }
+      }
+
+      function clearAll() {
+        expressionText = "";
+        justEvaluated = false;
+        setStatus("");
+        setResult("0", false);
+        if (expressionDisplay) expressionDisplay.textContent = "";
+      }
+
+      function backspace() {
+        if (!expressionText) return;
+        justEvaluated = false;
+        if (expressionText.slice(-3) === "Ans") {
+          expressionText = expressionText.slice(0, -3);
+        } else if (expressionText.slice(-2) === "^2") {
+          expressionText = expressionText.slice(0, -2);
+        } else if (expressionText.slice(-1) === "\u03C0") {
+          expressionText = expressionText.slice(0, -1);
+        } else {
+          var functionNames = ["asin", "acos", "atan", "sqrt", "sin", "cos", "tan", "log", "exp", "abs", "ln"];
+          var matched = false;
+          var index;
+          for (index = 0; index < functionNames.length; index++) {
+            var name = functionNames[index];
+            if (expressionText.slice(-(name.length + 1)) === name + "(") {
+              expressionText = expressionText.slice(0, -(name.length + 1));
+              matched = true;
+              break;
+            }
+          }
+          if (!matched) {
+            expressionText = expressionText.slice(0, -1);
+          }
+        }
+        refreshDisplays();
+        if (!expressionText) setResult("0", false);
+      }
+
+      function toggleSign() {
+        if (!expressionText) {
+          expressionText = "-";
+          refreshDisplays();
+          return;
+        }
+        var trailingNumber = getTrailingNumber(expressionText);
+        if (!trailingNumber) return;
+        var prefixIndex = expressionText.length - trailingNumber.length;
+        if (trailingNumber.charAt(0) === "-") {
+          expressionText = expressionText.slice(0, prefixIndex) + trailingNumber.slice(1);
+        } else {
+          expressionText = expressionText.slice(0, prefixIndex) + "-" + trailingNumber;
+        }
+        refreshDisplays();
+      }
+
+      function toggleAngleMode() {
+        if (angleMode === ANGLE_MODE_DEGREES) {
+          angleMode = ANGLE_MODE_RADIANS;
+        } else {
+          angleMode = ANGLE_MODE_DEGREES;
+        }
+        updateAngleModeButton();
+        setStatus(angleMode === ANGLE_MODE_DEGREES ? "ANGLE: DEG" : "ANGLE: RAD");
+      }
+
+      function memoryClear() {
+        memoryValue = 0;
+        memoryActive = false;
+        updateMemoryIndicator();
+        setStatus("MEM CLR");
+      }
+
+      function memoryRecall() {
+        if (justEvaluated) {
+          expressionText = "";
+          justEvaluated = false;
+        }
+        if (expressionText && !endsWithOperator(expressionText) && expressionText.charAt(expressionText.length - 1) !== "(") {
+          expressionText += "*";
+        }
+        expressionText += formatNumber(memoryValue);
+        refreshDisplays();
+        setStatus("MEM RECALL");
+      }
+
+      function memoryAdd() {
+        var result = evaluateExpressionText(expressionText, true);
+        if (result.error) {
+          setResult(result.error, true);
+          return;
+        }
+        memoryValue += result.value;
+        memoryActive = true;
+        updateMemoryIndicator();
+        setStatus("MEM +");
+      }
+
+      function memorySubtract() {
+        var result = evaluateExpressionText(expressionText, true);
+        if (result.error) {
+          setResult(result.error, true);
+          return;
+        }
+        memoryValue -= result.value;
+        memoryActive = true;
+        updateMemoryIndicator();
+        setStatus("MEM -");
+      }
+
+      function toRadians(value) {
+        if (angleMode === ANGLE_MODE_DEGREES) {
+          return value * Math.PI / 180;
+        }
+        return value;
+      }
+
+      function fromRadians(value) {
+        if (angleMode === ANGLE_MODE_DEGREES) {
+          return value * 180 / Math.PI;
+        }
+        return value;
+      }
+
+      function factorial(value) {
+        if (value < 0 || Math.floor(value) !== value) {
+          return null;
+        }
+        if (value > 170) return null;
+        var index;
+        var product = 1;
+        for (index = 2; index <= value; index += 1) {
+          product *= index;
+        }
+        return product;
+      }
+
+      function tokenize(input) {
+        var tokens = [];
+        var index = 0;
+        while (index < input.length) {
+          var character = input.charAt(index);
+
+          if (character === " " || character === "\t") {
+            index += 1;
+            continue;
+          }
+
+          if (character >= "0" && character <= "9") {
+            var numberText = character;
+            index += 1;
+            while (index < input.length) {
+              var digit = input.charAt(index);
+              if ((digit >= "0" && digit <= "9") || digit === ".") {
+                numberText += digit;
+                index += 1;
+                continue;
+              }
+              break;
+            }
+            tokens.push({ type: TOKEN_NUMBER, value: parseFloat(numberText) });
+            continue;
+          }
+
+          if (character === "(") {
+            tokens.push({ type: TOKEN_LEFT_PAREN, value: "(" });
+            index += 1;
+            continue;
+          }
+
+          if (character === ")") {
+            tokens.push({ type: TOKEN_RIGHT_PAREN, value: ")" });
+            index += 1;
+            continue;
+          }
+
+          if (character === "+" || character === "-" || character === "*" || character === "/" || character === "%" || character === "^") {
+            tokens.push({ type: TOKEN_OPERATOR, value: character });
+            index += 1;
+            continue;
+          }
+
+          if (character === "!") {
+            tokens.push({ type: TOKEN_FUNCTION, value: "!" });
+            index += 1;
+            continue;
+          }
+
+          if (character === "\u03C0") {
+            tokens.push({ type: TOKEN_CONSTANT, value: Math.PI });
+            index += 1;
+            continue;
+          }
+
+          if (input.slice(index, index + 3) === "Ans") {
+            tokens.push({ type: TOKEN_NUMBER, value: lastAnswer });
+            index += 3;
+            continue;
+          }
+
+          var functionNames = ["asin", "acos", "atan", "sqrt", "sin", "cos", "tan", "log", "exp", "abs", "ln"];
+          var functionIndex;
+          var matchedFunction = "";
+          for (functionIndex = 0; functionIndex < functionNames.length; functionIndex++) {
+            var functionName = functionNames[functionIndex];
+            if (input.slice(index, index + functionName.length) === functionName) {
+              matchedFunction = functionName;
+              break;
+            }
+          }
+          if (matchedFunction) {
+            tokens.push({ type: TOKEN_FUNCTION, value: matchedFunction });
+            index += matchedFunction.length;
+            continue;
+          }
+
+          if (character === "e" && (index === 0 || endsWithOperator(input.slice(0, index)) || input.charAt(index - 1) === "(")) {
+            tokens.push({ type: TOKEN_CONSTANT, value: Math.E });
+            index += 1;
+            continue;
+          }
+
+          return null;
+        }
+        return tokens;
+      }
+
+      function toRpn(tokens) {
+        var output = [];
+        var operators = [];
+        var index;
+        for (index = 0; index < tokens.length; index += 1) {
+          var token = tokens[index];
+          if (token.type === TOKEN_NUMBER || token.type === TOKEN_CONSTANT) {
+            output.push(token);
+            continue;
+          }
+          if (token.type === TOKEN_FUNCTION) {
+            operators.push(token);
+            continue;
+          }
+          if (token.type === TOKEN_OPERATOR) {
+            while (operators.length) {
+              var top = operators[operators.length - 1];
+              if (top.type !== TOKEN_OPERATOR && top.type !== TOKEN_FUNCTION) break;
+              if (top.type === TOKEN_FUNCTION) {
+                output.push(operators.pop());
+                continue;
+              }
+              var topPrecedence = operatorPrecedence[top.value];
+              var tokenPrecedence = operatorPrecedence[token.value];
+              var shouldPop = topPrecedence > tokenPrecedence;
+              if (topPrecedence === tokenPrecedence && !operatorRightAssociative[token.value]) {
+                shouldPop = true;
+              }
+              if (!shouldPop) break;
+              output.push(operators.pop());
+            }
+            operators.push(token);
+            continue;
+          }
+          if (token.type === TOKEN_LEFT_PAREN) {
+            operators.push(token);
+            continue;
+          }
+          if (token.type === TOKEN_RIGHT_PAREN) {
+            var foundLeftParen = false;
+            while (operators.length) {
+              var stackTop = operators.pop();
+              if (stackTop.type === TOKEN_LEFT_PAREN) {
+                foundLeftParen = true;
+                break;
+              }
+              output.push(stackTop);
+            }
+            if (!foundLeftParen) return null;
+            if (operators.length && operators[operators.length - 1].type === TOKEN_FUNCTION) {
+              output.push(operators.pop());
+            }
+          }
+        }
+        while (operators.length) {
+          var remaining = operators.pop();
+          if (remaining.type === TOKEN_LEFT_PAREN || remaining.type === TOKEN_RIGHT_PAREN) {
+            return null;
+          }
+          output.push(remaining);
+        }
+        return output;
+      }
+
+      function applyFunction(name, value) {
+        if (name === "sin") return Math.sin(toRadians(value));
+        if (name === "cos") return Math.cos(toRadians(value));
+        if (name === "tan") return Math.tan(toRadians(value));
+        if (name === "asin") return fromRadians(Math.asin(value));
+        if (name === "acos") return fromRadians(Math.acos(value));
+        if (name === "atan") return fromRadians(Math.atan(value));
+        if (name === "ln") return Math.log(value);
+        if (name === "log") return Math.log10(value);
+        if (name === "sqrt") return Math.sqrt(value);
+        if (name === "exp") return Math.exp(value);
+        if (name === "abs") return Math.abs(value);
+        if (name === "!") return factorial(value);
+        return null;
+      }
+
+      function evaluateRpn(rpnTokens) {
+        var stack = [];
+        var index;
+        for (index = 0; index < rpnTokens.length; index += 1) {
+          var token = rpnTokens[index];
+          if (token.type === TOKEN_NUMBER || token.type === TOKEN_CONSTANT) {
+            stack.push(token.value);
+            continue;
+          }
+          if (token.type === TOKEN_FUNCTION) {
+            if (!stack.length) return null;
+            var functionInput = stack.pop();
+            var functionResult = applyFunction(token.value, functionInput);
+            if (functionResult === null || !isFinite(functionResult)) return null;
+            stack.push(functionResult);
+            continue;
+          }
+          if (token.type === TOKEN_OPERATOR) {
+            if (stack.length < 2) return null;
+            var right = stack.pop();
+            var left = stack.pop();
+            var operatorResult = 0;
+            if (token.value === "+") operatorResult = left + right;
+            else if (token.value === "-") operatorResult = left - right;
+            else if (token.value === "*") operatorResult = left * right;
+            else if (token.value === "/") {
+              if (right === 0) return ERROR_DIVIDE_BY_ZERO;
+              operatorResult = left / right;
+            } else if (token.value === "%") {
+              if (right === 0) return ERROR_DIVIDE_BY_ZERO;
+              operatorResult = left % right;
+            } else if (token.value === "^") operatorResult = Math.pow(left, right);
+            if (!isFinite(operatorResult)) return null;
+            stack.push(operatorResult);
+          }
+        }
+        if (stack.length !== 1) return null;
+        return stack[0];
+      }
+
+      function normalizeExpression(input) {
+        var text = input;
+        var index = 0;
+        var output = "";
+        while (index < text.length) {
+          if (text.slice(index, index + 2) === "^2") {
+            output += "^2";
+            index += 2;
+            continue;
+          }
+          if (text.slice(index, index + 3) === "1/(") {
+            output += "(1/(";
+            index += 3;
+            continue;
+          }
+          output += text.charAt(index);
+          index += 1;
+        }
+        return output;
+      }
+
+      function evaluateExpressionText(text, silent) {
+        if (!text) {
+          return { error: ERROR_INVALID_INPUT };
+        }
+        var normalized = normalizeExpression(text);
+        var tokens = tokenize(normalized);
+        if (!tokens || !tokens.length) {
+          return { error: ERROR_INVALID_INPUT };
+        }
+        var rpnTokens = toRpn(tokens);
+        if (!rpnTokens) {
+          return { error: ERROR_INVALID_INPUT };
+        }
+        var result = evaluateRpn(rpnTokens);
+        if (result === ERROR_DIVIDE_BY_ZERO) {
+          return { error: ERROR_DIVIDE_BY_ZERO };
+        }
+        if (result === null) {
+          return { error: ERROR_DOMAIN };
+        }
+        if (!isFinite(result)) {
+          return { error: ERROR_OVERFLOW };
+        }
+        return { value: result };
+      }
+
+      function evaluateCurrentExpression() {
+        if (!expressionText) return;
+        var result = evaluateExpressionText(expressionText, false);
+        if (result.error) {
+          setResult(result.error, true);
+          setStatus("");
+          return;
+        }
+        lastAnswer = result.value;
+        var formatted = formatNumber(result.value);
+        if (expressionDisplay) expressionDisplay.textContent = expressionText + " =";
+        setResult(formatted, false);
+        setStatus("");
+        justEvaluated = true;
+      }
+
+      function handleKeyDefinition(definition) {
+        if (definition.action === "clear") {
+          clearAll();
+          return;
+        }
+        if (definition.action === "backspace") {
+          backspace();
+          return;
+        }
+        if (definition.action === "evaluate") {
+          evaluateCurrentExpression();
+          return;
+        }
+        if (definition.action === "toggleSign") {
+          toggleSign();
+          return;
+        }
+        if (definition.action === "memoryClear") {
+          memoryClear();
+          return;
+        }
+        if (definition.action === "memoryRecall") {
+          memoryRecall();
+          return;
+        }
+        if (definition.action === "memoryAdd") {
+          memoryAdd();
+          return;
+        }
+        if (definition.action === "memorySubtract") {
+          memorySubtract();
+          return;
+        }
+        if (definition.insert) {
+          appendInsert(definition.insert);
+        }
+      }
+
+      function buildKeypadSection(rootElement, sectionName, keypadRows) {
+        if (!rootElement) return;
+        var html = "";
+        var rowIndex;
+        var keyIndex;
+        for (rowIndex = 0; rowIndex < keypadRows.length; rowIndex += 1) {
+          var row = keypadRows[rowIndex];
+          for (keyIndex = 0; keyIndex < row.length; keyIndex += 1) {
+            var definition = row[keyIndex];
+            var className = "calc-key";
+            if (definition.className) className += " " + definition.className;
+            html +=
+              '<button type="button" class="' +
+              className +
+              '" data-key-section="' +
+              sectionName +
+              '" data-key-row="' +
+              rowIndex +
+              '" data-key-col="' +
+              keyIndex +
+              '"';
+            if (definition.title) {
+              html += ' title="' + definition.title + '"';
+            }
+            html += ">" + definition.label + "</button>";
+          }
+        }
+        rootElement.innerHTML = html;
+      }
+
+      function buildKeypads() {
+        buildKeypadSection(keypadAdvanced, KEYPAD_SECTION_ADVANCED, advancedKeypadRows);
+        buildKeypadSection(keypadBasic, KEYPAD_SECTION_BASIC, basicKeypadRows);
+      }
+
+      function onKeypadClick(event) {
+        var target = event.target;
+        if (!target || !target.closest) return;
+        var button = target.closest(".calc-key");
+        if (!button) return;
+        var sectionName = button.getAttribute("data-key-section");
+        var rowIndex = parseInt(button.getAttribute("data-key-row"), 10);
+        var columnIndex = parseInt(button.getAttribute("data-key-col"), 10);
+        if (!sectionName || isNaN(rowIndex) || isNaN(columnIndex)) return;
+        var keypadRows = getKeypadRows(sectionName);
+        var definition = keypadRows[rowIndex][columnIndex];
+        if (!definition) return;
+        handleKeyDefinition(definition);
+      }
+
+      function onDocumentKeyDown(event) {
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+        var key = event.key;
+        if (key === "Enter" || key === "=") {
+          event.preventDefault();
+          evaluateCurrentExpression();
+          return;
+        }
+        if (key === "Escape") {
+          event.preventDefault();
+          clearAll();
+          return;
+        }
+        if (key === "Backspace") {
+          event.preventDefault();
+          backspace();
+          return;
+        }
+        if (key >= "0" && key <= "9") {
+          event.preventDefault();
+          appendInsert(key);
+          return;
+        }
+        if (key === "." || key === ",") {
+          event.preventDefault();
+          appendInsert(".");
+          return;
+        }
+        if (key === "+" || key === "-" || key === "*" || key === "/") {
+          event.preventDefault();
+          appendInsert(key);
+          return;
+        }
+        if (key === "%") {
+          event.preventDefault();
+          appendInsert("%");
+          return;
+        }
+        if (key === "^") {
+          event.preventDefault();
+          appendInsert("^");
+          return;
+        }
+        if (key === "(" || key === ")") {
+          event.preventDefault();
+          appendInsert(key);
+        }
+      }
+
+      if (angleModeButton) {
+        angleModeButton.addEventListener("click", toggleAngleMode);
+      }
+      buildKeypads();
+      if (keypadWrap) {
+        keypadWrap.addEventListener("click", onKeypadClick);
+      }
+      document.addEventListener("keydown", onDocumentKeyDown);
+
+      updateAngleModeButton();
+      updateMemoryIndicator();
+      clearAll();
+    })();
+  </script>
+</body>
+</html>

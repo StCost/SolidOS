@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playing Cards</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #0c0a08;
+      color: #d4c4a8;
+      font-family: "Courier New", Courier, monospace;
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+    }
+
+    #gameRoot {
+      position: absolute;
+      inset: 0;
+      touch-action: none;
+    }
+
+    #gameCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    #actionFlash {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle at var(--fx-x, 50%) var(--fx-y, 50%), rgba(255, 180, 80, 0.35), transparent 55%);
+    }
+
+    #actionFlash.is-active {
+      animation: action-flash 0.28s ease-out forwards;
+    }
+
+    @keyframes action-flash {
+      0% {
+        opacity: 0.75;
+      }
+
+      100% {
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="gameRoot">
+    <canvas id="gameCanvas"></canvas>
+    <div id="actionFlash"></div>
+  </div>
+  <script>
+    (function () {
+      var canvas = document.getElementById("gameCanvas");
+      var context = canvas.getContext("2d");
+      var actionFlash = document.getElementById("actionFlash");
+
+      var CARD_WIDTH = 76;
+      var CARD_HEIGHT = 106;
+      var CARD_CORNER_RADIUS = 6;
+      var DECK_X = 52;
+      var DECK_Y = 72;
+      var DECK_RETURN_PADDING = 28;
+      var DRAG_HOLD_OFFSET_X = 10;
+      var DRAG_HOLD_OFFSET_Y = 12;
+      var SNAP_GRID = 9;
+      var POINTER_HISTORY_MAX = 12;
+      var RELEASE_VELOCITY_WINDOW_MS = 90;
+      var RELEASE_STALE_MS = 80;
+      var POINTER_STALE_GAP_MS = 120;
+      var FRICTION = 0.965;
+      var STOP_SPEED = 12;
+      var THROW_SPEED_MIN = 420;
+      var MAX_THROW_SPEED = 1800;
+      var ROTATION_FRICTION = 0.94;
+      var ANGULAR_STOP_SPEED = 0.08;
+      var THROW_SPIN_RANDOM = 5.5;
+      var THROW_TUMBLE_FORCE = 9;
+      var EDGE_BOUNCE = 0.42;
+      var GRAB_SCALE = 1.06;
+      var PARTICLE_COUNT_DRAW = 18;
+      var PARTICLE_COUNT_DROP = 12;
+      var PARTICLE_COUNT_RETURN = 14;
+      var PARTICLE_COUNT_GRAB = 16;
+
+      var SUIT_SPADE = 0;
+      var SUIT_HEART = 1;
+      var SUIT_DIAMOND = 2;
+      var SUIT_CLUB = 3;
+
+      var SUIT_SYMBOLS = ["\u2660", "\u2665", "\u2666", "\u2663"];
+      var RANK_LABELS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+
+      var COLOR_STEEL_LIGHT = "#8a9098";
+      var COLOR_STEEL_MID = "#4a5058";
+      var COLOR_STEEL_DARK = "#1e2228";
+      var COLOR_BRASS = "#c8943a";
+      var COLOR_BRASS_LIGHT = "#e8c060";
+      var COLOR_GOLD = "#ffd060";
+      var COLOR_GOLD_DARK = "#b8860b";
+      var COLOR_COPPER = "#c06040";
+      var COLOR_COPPER_LIGHT = "#e89070";
+      var COLOR_SILVER = "#c8d0d8";
+      var COLOR_SPARK = "#ffb040";
+
+      var availableCardIds = [];
+      var tableCards = [];
+      var particles = [];
+      var nextCardZIndex = 1;
+      var viewportWidth = 0;
+      var viewportHeight = 0;
+      var devicePixelRatioValue = 1;
+      var lastFrameTime = 0;
+      var animationFrameId = 0;
+
+      var activePointerId = -1;
+      var dragTarget = null;
+      var dragOffsetX = 0;
+      var dragOffsetY = 0;
+      var pointerHistory = [];
+      var deckPulse = 0;
+      var deckFlash = 0;
+
+      function buildFullDeck() {
+        var cardIds = [];
+        var suitIndex;
+        var rankIndex;
+        for (suitIndex = 0; suitIndex < 4; suitIndex += 1) {
+          for (rankIndex = 0; rankIndex < 13; rankIndex += 1) {
+            cardIds.push(suitIndex * 13 + rankIndex);
+          }
+        }
+        return cardIds;
+      }
+
+      function getCardSuit(cardId) {
+        return Math.floor(cardId / 13);
+      }
+
+      function getCardRank(cardId) {
+        return cardId % 13;
+      }
+
+      function isRedSuit(suitIndex) {
+        return suitIndex === SUIT_HEART || suitIndex === SUIT_DIAMOND;
+      }
+
+      function isHighCard(rankIndex) {
+        return rankIndex === 0 || rankIndex >= 10;
+      }
+
+      function getDeckStackCount() {
+        var count = availableCardIds.length;
+        if (count <= 0) {
+          return 0;
+        }
+        if (count >= 40) {
+          return 5;
+        }
+        if (count >= 25) {
+          return 4;
+        }
+        if (count >= 12) {
+          return 3;
+        }
+        if (count >= 4) {
+          return 2;
+        }
+        return 1;
+      }
+
+      function getDeckBounds() {
+        var stackCount = getDeckStackCount();
+        var stackOffset = Math.max(0, stackCount - 1) * 2;
+        return {
+          left: DECK_X - CARD_WIDTH * 0.5 - DECK_RETURN_PADDING,
+          top: DECK_Y - CARD_HEIGHT * 0.5 - DECK_RETURN_PADDING,
+          right: DECK_X + CARD_WIDTH * 0.5 + stackOffset + DECK_RETURN_PADDING,
+          bottom: DECK_Y + CARD_HEIGHT * 0.5 + stackOffset + DECK_RETURN_PADDING
+        };
+      }
+
+      function isPointInDeckZone(pointX, pointY) {
+        var bounds = getDeckBounds();
+        return pointX >= bounds.left && pointX <= bounds.right && pointY >= bounds.top && pointY <= bounds.bottom;
+      }
+
+      function drawRandomCardFromDeck() {
+        if (availableCardIds.length <= 0) {
+          return null;
+        }
+        var randomIndex = Math.floor(Math.random() * availableCardIds.length);
+        var cardId = availableCardIds[randomIndex];
+        availableCardIds.splice(randomIndex, 1);
+        return cardId;
+      }
+
+      function returnCardToDeck(cardEntry) {
+        var index;
+        for (index = 0; index < tableCards.length; index += 1) {
+          if (tableCards[index] === cardEntry) {
+            tableCards.splice(index, 1);
+            break;
+          }
+        }
+        availableCardIds.push(cardEntry.cardId);
+        deckPulse = 1;
+        deckFlash = 1;
+        spawnParticles(DECK_X, DECK_Y, PARTICLE_COUNT_RETURN, COLOR_BRASS_LIGHT, 140, 0.55);
+        triggerActionFlash(DECK_X, DECK_Y, "return");
+      }
+
+      function createTableCard(cardId, positionX, positionY, isFreshDraw) {
+        var cardEntry = {
+          cardId: cardId,
+          x: positionX,
+          y: positionY,
+          rotation: 0,
+          velocityX: 0,
+          velocityY: 0,
+          rotationVelocity: 0,
+          zIndex: nextCardZIndex,
+          isDragging: false,
+          grabGlow: 0,
+          isFreshDraw: !!isFreshDraw,
+          isThrown: false
+        };
+        nextCardZIndex += 1;
+        tableCards.push(cardEntry);
+        return cardEntry;
+      }
+
+      function getCardVisualPosition(cardEntry) {
+        if (!cardEntry.isDragging) {
+          return { x: cardEntry.x, y: cardEntry.y };
+        }
+        return {
+          x: cardEntry.x + DRAG_HOLD_OFFSET_X,
+          y: cardEntry.y + DRAG_HOLD_OFFSET_Y
+        };
+      }
+
+      function updateThrownCardRotation(cardEntry, deltaSeconds, linearSpeed) {
+        var angularSpeed = Math.abs(cardEntry.rotationVelocity);
+        if (linearSpeed <= STOP_SPEED && angularSpeed <= ANGULAR_STOP_SPEED) {
+          cardEntry.rotationVelocity = 0;
+          return;
+        }
+        cardEntry.rotation += cardEntry.rotationVelocity * deltaSeconds;
+        if (linearSpeed > STOP_SPEED) {
+          cardEntry.rotationVelocity += (Math.random() - 0.5) * THROW_TUMBLE_FORCE * deltaSeconds;
+        }
+        cardEntry.rotationVelocity *= ROTATION_FRICTION;
+      }
+
+      function beginCardGrab(cardEntry, grabX, grabY) {
+        cardEntry.rotation = 0;
+        cardEntry.rotationVelocity = 0;
+        cardEntry.velocityX = 0;
+        cardEntry.velocityY = 0;
+        cardEntry.isThrown = false;
+        cardEntry.grabGlow = 1;
+        spawnGrabParticles(grabX, grabY);
+        spawnParticles(grabX, grabY, 8, COLOR_BRASS_LIGHT, 70, 0.35);
+      }
+
+      function bringCardToFront(cardEntry) {
+        cardEntry.zIndex = nextCardZIndex;
+        nextCardZIndex += 1;
+        var index = tableCards.indexOf(cardEntry);
+        if (index >= 0) {
+          tableCards.splice(index, 1);
+          tableCards.push(cardEntry);
+        }
+      }
+
+      function findTopCardAt(pointX, pointY) {
+        var index;
+        for (index = tableCards.length - 1; index >= 0; index -= 1) {
+          var cardEntry = tableCards[index];
+          if (cardEntry.isDragging) {
+            continue;
+          }
+          if (isPointInsideCard(cardEntry, pointX, pointY)) {
+            return cardEntry;
+          }
+        }
+        return null;
+      }
+
+      function isPointInsideCard(cardEntry, pointX, pointY) {
+        var visual = getCardVisualPosition(cardEntry);
+        var halfWidth = CARD_WIDTH * 0.5;
+        var halfHeight = CARD_HEIGHT * 0.5;
+        var localX = pointX - visual.x;
+        var localY = pointY - visual.y;
+        var cosValue = Math.cos(-cardEntry.rotation);
+        var sinValue = Math.sin(-cardEntry.rotation);
+        var rotatedX = localX * cosValue - localY * sinValue;
+        var rotatedY = localX * sinValue + localY * cosValue;
+        return Math.abs(rotatedX) <= halfWidth && Math.abs(rotatedY) <= halfHeight;
+      }
+
+      function getDeckCountText() {
+        return String(availableCardIds.length);
+      }
+
+      function triggerActionFlash(screenX, screenY, actionKind) {
+        if (!actionFlash) {
+          return;
+        }
+        var percentX = (screenX / viewportWidth) * 100;
+        var percentY = (screenY / viewportHeight) * 100;
+        actionFlash.style.setProperty("--fx-x", String(percentX) + "%");
+        actionFlash.style.setProperty("--fx-y", String(percentY) + "%");
+        actionFlash.classList.remove("is-active");
+        void actionFlash.offsetWidth;
+        actionFlash.classList.add("is-active");
+      }
+
+      function spawnParticles(originX, originY, count, baseColor, speed, spread) {
+        var index;
+        for (index = 0; index < count; index += 1) {
+          var angle = Math.random() * Math.PI * 2;
+          var velocity = speed * (0.35 + Math.random() * spread);
+          particles.push({
+            x: originX,
+            y: originY,
+            velocityX: Math.cos(angle) * velocity,
+            velocityY: Math.sin(angle) * velocity,
+            life: 0.35 + Math.random() * 0.45,
+            maxLife: 0.55,
+            size: 1.5 + Math.random() * 3.5,
+            color: baseColor,
+            gravity: 280 + Math.random() * 120
+          });
+        }
+      }
+
+      function spawnSparkParticles(originX, originY, count) {
+        var index;
+        for (index = 0; index < count; index += 1) {
+          var angle = -Math.PI * 0.5 + (Math.random() - 0.5) * 1.4;
+          var velocity = 180 + Math.random() * 320;
+          particles.push({
+            x: originX,
+            y: originY,
+            velocityX: Math.cos(angle) * velocity,
+            velocityY: Math.sin(angle) * velocity,
+            life: 0.2 + Math.random() * 0.35,
+            maxLife: 0.45,
+            size: 1 + Math.random() * 2.5,
+            color: COLOR_SPARK,
+            gravity: 420
+          });
+        }
+      }
+
+      function spawnGrabParticles(originX, originY) {
+        var index;
+        for (index = 0; index < PARTICLE_COUNT_GRAB; index += 1) {
+          var angle = Math.random() * Math.PI * 2;
+          var velocity = 50 + Math.random() * 110;
+          var color = index % 3 === 0 ? COLOR_BRASS_LIGHT : COLOR_SILVER;
+          particles.push({
+            x: originX,
+            y: originY,
+            velocityX: Math.cos(angle) * velocity,
+            velocityY: Math.sin(angle) * velocity - 40,
+            life: 0.25 + Math.random() * 0.3,
+            maxLife: 0.45,
+            size: 1.2 + Math.random() * 2.8,
+            color: color,
+            gravity: 160
+          });
+        }
+      }
+
+      function resizeCanvas() {
+        var root = document.getElementById("gameRoot");
+        viewportWidth = root.clientWidth;
+        viewportHeight = root.clientHeight;
+        devicePixelRatioValue = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(viewportWidth * devicePixelRatioValue);
+        canvas.height = Math.floor(viewportHeight * devicePixelRatioValue);
+        canvas.style.width = viewportWidth + "px";
+        canvas.style.height = viewportHeight + "px";
+        context.setTransform(devicePixelRatioValue, 0, 0, devicePixelRatioValue, 0, 0);
+      }
+
+      function drawWorkshopBackground() {
+        var gradient = context.createLinearGradient(0, 0, viewportWidth, viewportHeight);
+        gradient.addColorStop(0, "#141210");
+        gradient.addColorStop(0.45, "#1a1814");
+        gradient.addColorStop(1, "#0e0c0a");
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, viewportWidth, viewportHeight);
+
+        var tableGradient = context.createLinearGradient(0, viewportHeight * 0.15, 0, viewportHeight);
+        tableGradient.addColorStop(0, "rgba(50, 48, 44, 0.15)");
+        tableGradient.addColorStop(0.35, "rgba(38, 36, 32, 0.55)");
+        tableGradient.addColorStop(1, "rgba(28, 26, 22, 0.85)");
+        context.fillStyle = tableGradient;
+        context.fillRect(0, viewportHeight * 0.12, viewportWidth, viewportHeight * 0.88);
+
+        context.save();
+        context.globalAlpha = 0.06;
+        context.strokeStyle = "#a0a8b0";
+        context.lineWidth = 1;
+        var lineIndex;
+        for (lineIndex = 0; lineIndex < 24; lineIndex += 1) {
+          var lineY = viewportHeight * 0.18 + lineIndex * 14;
+          context.beginPath();
+          context.moveTo(0, lineY);
+          context.lineTo(viewportWidth, lineY + 8);
+          context.stroke();
+        }
+        context.restore();
+
+        context.save();
+        context.globalAlpha = 0.08;
+        var rivetIndex;
+        for (rivetIndex = 0; rivetIndex < 18; rivetIndex += 1) {
+          var rivetX = 24 + (rivetIndex % 6) * (viewportWidth / 6);
+          var rivetY = viewportHeight * 0.14 + Math.floor(rivetIndex / 6) * 28;
+          context.fillStyle = "#707880";
+          context.beginPath();
+          context.arc(rivetX, rivetY, 3, 0, Math.PI * 2);
+          context.fill();
+        }
+        context.restore();
+
+        var vignette = context.createRadialGradient(
+          viewportWidth * 0.5,
+          viewportHeight * 0.5,
+          viewportWidth * 0.2,
+          viewportWidth * 0.5,
+          viewportHeight * 0.5,
+          viewportWidth * 0.75
+        );
+        vignette.addColorStop(0, "rgba(0, 0, 0, 0)");
+        vignette.addColorStop(1, "rgba(0, 0, 0, 0.45)");
+        context.fillStyle = vignette;
+        context.fillRect(0, 0, viewportWidth, viewportHeight);
+      }
+
+      function drawRoundedRect(x, y, width, height, radius) {
+        context.beginPath();
+        context.moveTo(x + radius, y);
+        context.lineTo(x + width - radius, y);
+        context.quadraticCurveTo(x + width, y, x + width, y + radius);
+        context.lineTo(x + width, y + height - radius);
+        context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        context.lineTo(x + radius, y + height);
+        context.quadraticCurveTo(x, y + height, x, y + height - radius);
+        context.lineTo(x, y + radius);
+        context.quadraticCurveTo(x, y, x + radius, y);
+        context.closePath();
+      }
+
+      function drawCardBack(centerX, centerY, rotation, scale) {
+        var width = CARD_WIDTH * scale;
+        var height = CARD_HEIGHT * scale;
+        context.save();
+        context.translate(centerX, centerY);
+        context.rotate(rotation);
+        var left = -width * 0.5;
+        var top = -height * 0.5;
+
+        var plateGradient = context.createLinearGradient(left, top, left + width, top + height);
+        plateGradient.addColorStop(0, "#3a4048");
+        plateGradient.addColorStop(0.35, "#2a3038");
+        plateGradient.addColorStop(0.7, "#1a1e24");
+        plateGradient.addColorStop(1, "#303840");
+        drawRoundedRect(left, top, width, height, CARD_CORNER_RADIUS * scale);
+        context.fillStyle = plateGradient;
+        context.fill();
+
+        context.lineWidth = 2 * scale;
+        context.strokeStyle = "#8a6830";
+        context.stroke();
+
+        context.lineWidth = 1 * scale;
+        context.strokeStyle = "rgba(200, 160, 80, 0.35)";
+        drawRoundedRect(left + 4 * scale, top + 4 * scale, width - 8 * scale, height - 8 * scale, CARD_CORNER_RADIUS * scale * 0.7);
+        context.stroke();
+
+        context.globalAlpha = 0.25;
+        context.strokeStyle = "#607080";
+        context.lineWidth = 1;
+        var gridIndex;
+        for (gridIndex = 0; gridIndex < 5; gridIndex += 1) {
+          context.beginPath();
+          context.moveTo(left + 10 * scale, top + (12 + gridIndex * 16) * scale);
+          context.lineTo(left + width - 10 * scale, top + (12 + gridIndex * 16) * scale);
+          context.stroke();
+        }
+        context.globalAlpha = 1;
+
+        context.fillStyle = "rgba(200, 150, 60, 0.55)";
+        context.font = "bold " + String(18 * scale) + "px Courier New, monospace";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText("\u2692", 0, 0);
+
+        context.restore();
+      }
+
+      function getCardAccentColors(suitIndex, rankIndex) {
+        var isHigh = isHighCard(rankIndex);
+        var isRed = isRedSuit(suitIndex);
+        var accent;
+        if (isRed) {
+          accent = {
+            border: COLOR_COPPER,
+            borderGlow: "rgba(200, 100, 60, 0.35)",
+            symbol: COLOR_COPPER_LIGHT,
+            symbolShadow: "#703020",
+            plateLight: "#484038",
+            plateMid: "#302820",
+            plateDark: "#1c1814"
+          };
+        } else {
+          accent = {
+            border: COLOR_STEEL_LIGHT,
+            borderGlow: "rgba(140, 160, 180, 0.25)",
+            symbol: COLOR_SILVER,
+            symbolShadow: COLOR_STEEL_DARK,
+            plateLight: COLOR_STEEL_LIGHT,
+            plateMid: COLOR_STEEL_MID,
+            plateDark: COLOR_STEEL_DARK
+          };
+        }
+        if (isHigh) {
+          accent.borderGlow = "rgba(255, 210, 80, 0.55)";
+          accent.goldShadow = "rgba(255, 210, 80, 0.75)";
+          accent.goldShadowSoft = "rgba(255, 200, 80, 0.35)";
+        }
+        return accent;
+      }
+
+      function drawCardSymbols(accent, rankLabel, suitSymbol, left, top, width, height) {
+        var symbolShadowBlur = accent.goldShadow ? 10 : 3;
+        var symbolShadowColor = accent.goldShadow ? accent.goldShadow : accent.symbolShadow;
+
+        context.fillStyle = accent.symbol;
+        context.shadowColor = symbolShadowColor;
+        context.shadowBlur = symbolShadowBlur;
+        context.textAlign = "left";
+        context.textBaseline = "top";
+        context.font = "bold 15px Courier New, monospace";
+        context.fillText(rankLabel, left + 7, top + 6);
+        context.font = "bold 14px Courier New, monospace";
+        context.fillText(suitSymbol, left + 7, top + 22);
+
+        context.textAlign = "right";
+        context.textBaseline = "bottom";
+        context.font = "bold 15px Courier New, monospace";
+        context.fillText(rankLabel, left + width - 7, top + height - 22);
+        context.font = "bold 14px Courier New, monospace";
+        context.fillText(suitSymbol, left + width - 7, top + height - 6);
+
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.font = "bold 42px Courier New, monospace";
+        context.fillText(suitSymbol, 0, 2);
+        context.shadowBlur = 0;
+      }
+
+      function drawCardFaceAt(cardEntry, centerX, centerY, drawOptions) {
+        var suitIndex = getCardSuit(cardEntry.cardId);
+        var rankIndex = getCardRank(cardEntry.cardId);
+        var rankLabel = RANK_LABELS[rankIndex];
+        var suitSymbol = SUIT_SYMBOLS[suitIndex];
+        var accent = getCardAccentColors(suitIndex, rankIndex);
+        var width = CARD_WIDTH;
+        var height = CARD_HEIGHT;
+        var drawScale = 1;
+        var isPreview = drawOptions && drawOptions.isPreview;
+        var isDraggingVisual = drawOptions && drawOptions.isDraggingVisual;
+
+        if (isDraggingVisual) {
+          drawScale = GRAB_SCALE;
+        }
+        if (isPreview) {
+          drawScale = 1;
+        }
+
+        context.save();
+        context.translate(centerX, centerY);
+        context.rotate(cardEntry.rotation);
+        context.scale(drawScale, drawScale);
+        var left = -width * 0.5;
+        var top = -height * 0.5;
+
+        if (isDraggingVisual && cardEntry.grabGlow > 0.01) {
+          context.save();
+          context.globalAlpha = cardEntry.grabGlow * 0.45;
+          context.shadowColor = COLOR_BRASS_LIGHT;
+          context.shadowBlur = 22 + cardEntry.grabGlow * 18;
+          drawRoundedRect(left - 3, top - 3, width + 6, height + 6, CARD_CORNER_RADIUS + 2);
+          context.strokeStyle = COLOR_BRASS_LIGHT;
+          context.lineWidth = 2;
+          context.stroke();
+          context.restore();
+        }
+
+        if (isPreview) {
+          context.globalAlpha = 0.22;
+        }
+
+        if (accent.goldShadowSoft) {
+          context.save();
+          context.shadowColor = accent.goldShadowSoft;
+          context.shadowBlur = 18;
+          drawRoundedRect(left - 1, top - 1, width + 2, height + 2, CARD_CORNER_RADIUS + 1);
+          context.strokeStyle = "rgba(255, 210, 80, 0.25)";
+          context.lineWidth = 3;
+          context.stroke();
+          context.restore();
+        }
+
+        context.shadowColor = accent.borderGlow;
+        context.shadowBlur = accent.goldShadow ? 18 : 6;
+        if (isDraggingVisual) {
+          context.shadowBlur = accent.goldShadow ? 26 : 14;
+        }
+        if (isPreview) {
+          context.shadowBlur = 0;
+        }
+        drawRoundedRect(left, top, width, height, CARD_CORNER_RADIUS);
+        var plateGradient = context.createLinearGradient(left, top, left + width, top + height);
+        plateGradient.addColorStop(0, accent.plateLight);
+        plateGradient.addColorStop(0.4, accent.plateMid);
+        plateGradient.addColorStop(1, accent.plateDark);
+        context.fillStyle = plateGradient;
+        context.fill();
+        context.shadowBlur = 0;
+
+        context.lineWidth = 2;
+        context.strokeStyle = accent.border;
+        if (isPreview) {
+          context.globalAlpha = 0.35;
+        }
+        context.stroke();
+
+        if (isPreview) {
+          context.globalAlpha = 0.35;
+          context.fillStyle = accent.symbol;
+          context.textAlign = "center";
+          context.textBaseline = "middle";
+          context.font = "bold 28px Courier New, monospace";
+          context.fillText(suitSymbol, 0, 0);
+        } else {
+          context.lineWidth = 1;
+          context.strokeStyle = "rgba(255, 255, 255, 0.08)";
+          drawRoundedRect(left + 3, top + 3, width - 6, height - 6, CARD_CORNER_RADIUS * 0.7);
+          context.stroke();
+
+          drawCardSymbols(accent, rankLabel, suitSymbol, left, top, width, height);
+
+          if (accent.goldShadow) {
+            context.globalAlpha = 0.2;
+            context.strokeStyle = COLOR_GOLD;
+            context.lineWidth = 1;
+            drawRoundedRect(left + 8, top + 8, width - 16, height - 16, CARD_CORNER_RADIUS * 0.5);
+            context.stroke();
+          }
+        }
+
+        context.restore();
+      }
+
+      function drawCardDropShadow(centerX, centerY) {
+        context.save();
+        context.globalAlpha = 0.42;
+        context.fillStyle = "#000000";
+        context.beginPath();
+        context.ellipse(centerX + 2, centerY + 8, CARD_WIDTH * 0.42, CARD_HEIGHT * 0.12, 0, 0, Math.PI * 2);
+        context.fill();
+        context.globalAlpha = 0.18;
+        context.beginPath();
+        context.ellipse(centerX + 2, centerY + 10, CARD_WIDTH * 0.48, CARD_HEIGHT * 0.16, 0, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+      }
+
+      function drawCardDropPreview(cardEntry) {
+        drawCardDropShadow(cardEntry.x, cardEntry.y);
+        drawCardFaceAt(cardEntry, cardEntry.x, cardEntry.y, { isPreview: true });
+      }
+
+      function drawCardFace(cardEntry) {
+        if (cardEntry.isDragging) {
+          return;
+        }
+        drawCardFaceAt(cardEntry, cardEntry.x, cardEntry.y, null);
+      }
+
+      function drawDraggingCard(cardEntry) {
+        var visual = getCardVisualPosition(cardEntry);
+        drawCardFaceAt(cardEntry, visual.x, visual.y, { isDraggingVisual: true });
+      }
+
+      function drawDeckCountLabel(stackOffset) {
+        var countText = getDeckCountText();
+        var deckBottom = DECK_Y + CARD_HEIGHT * 0.5 + stackOffset;
+        var labelTop = deckBottom + 8;
+        var labelLeft = DECK_X - CARD_WIDTH * 0.5;
+        context.save();
+        context.textAlign = "left";
+        context.textBaseline = "top";
+        context.font = "bold 22px Courier New, monospace";
+        context.fillStyle = "rgba(230, 200, 140, 0.9)";
+        context.shadowColor = "rgba(0, 0, 0, 0.85)";
+        context.shadowBlur = 4;
+        context.fillText(countText, labelLeft, labelTop);
+        context.shadowBlur = 0;
+        context.restore();
+      }
+
+      function drawDeck() {
+        var stackCount = getDeckStackCount();
+        var stackOffset = Math.max(0, stackCount - 1) * 2;
+        if (stackCount <= 0) {
+          context.save();
+          context.globalAlpha = 0.35;
+          context.strokeStyle = COLOR_BRASS;
+          context.lineWidth = 1;
+          context.setLineDash([4, 4]);
+          drawRoundedRect(
+            DECK_X - CARD_WIDTH * 0.5,
+            DECK_Y - CARD_HEIGHT * 0.5,
+            CARD_WIDTH,
+            CARD_HEIGHT,
+            CARD_CORNER_RADIUS
+          );
+          context.stroke();
+          context.setLineDash([]);
+          context.restore();
+          drawDeckCountLabel(0);
+          return;
+        }
+
+        var stackIndex;
+        for (stackIndex = 0; stackIndex < stackCount; stackIndex += 1) {
+          var offsetX = stackIndex * 2;
+          var offsetY = stackIndex * 2;
+          var pulseOffset = deckPulse * 3 * Math.sin(stackIndex * 0.8);
+          drawCardBack(DECK_X + offsetX + pulseOffset, DECK_Y + offsetY + pulseOffset, 0, 1);
+        }
+
+        if (deckFlash > 0) {
+          context.save();
+          context.globalAlpha = deckFlash * 0.35;
+          context.fillStyle = COLOR_BRASS_LIGHT;
+          drawRoundedRect(
+            DECK_X - CARD_WIDTH * 0.5 - 4,
+            DECK_Y - CARD_HEIGHT * 0.5 - 4,
+            CARD_WIDTH + 8 + (stackCount - 1) * 2,
+            CARD_HEIGHT + 8 + (stackCount - 1) * 2,
+            CARD_CORNER_RADIUS + 2
+          );
+          context.fill();
+          context.restore();
+        }
+
+        drawDeckCountLabel(stackOffset);
+      }
+
+      function drawParticles(deltaSeconds) {
+        var index;
+        for (index = particles.length - 1; index >= 0; index -= 1) {
+          var particle = particles[index];
+          particle.life -= deltaSeconds;
+          if (particle.life <= 0) {
+            particles.splice(index, 1);
+            continue;
+          }
+          particle.velocityY += particle.gravity * deltaSeconds;
+          particle.x += particle.velocityX * deltaSeconds;
+          particle.y += particle.velocityY * deltaSeconds;
+          var alpha = particle.life / particle.maxLife;
+          context.save();
+          context.globalAlpha = alpha;
+          context.fillStyle = particle.color;
+          context.shadowColor = particle.color;
+          context.shadowBlur = 6;
+          context.beginPath();
+          context.arc(particle.x, particle.y, particle.size * alpha, 0, Math.PI * 2);
+          context.fill();
+          context.restore();
+        }
+      }
+
+      function snapCardPositionToGrid(cardEntry) {
+        cardEntry.x = Math.round(cardEntry.x / SNAP_GRID) * SNAP_GRID;
+        cardEntry.y = Math.round(cardEntry.y / SNAP_GRID) * SNAP_GRID;
+      }
+
+      function setCardDropPosition(cardEntry, rawX, rawY) {
+        cardEntry.x = rawX;
+        cardEntry.y = rawY;
+        snapCardPositionToGrid(cardEntry);
+        clampCardToScreen(cardEntry);
+      }
+
+      function clampCardToScreen(cardEntry) {
+        var halfWidth = CARD_WIDTH * 0.5;
+        var halfHeight = CARD_HEIGHT * 0.5;
+        var minX = halfWidth;
+        var maxX = viewportWidth - halfWidth;
+        var minY = halfHeight;
+        var maxY = viewportHeight - halfHeight;
+
+        if (cardEntry.x < minX) {
+          cardEntry.x = minX;
+          if (cardEntry.velocityX < 0) {
+            cardEntry.velocityX = -cardEntry.velocityX * EDGE_BOUNCE;
+          }
+        } else if (cardEntry.x > maxX) {
+          cardEntry.x = maxX;
+          if (cardEntry.velocityX > 0) {
+            cardEntry.velocityX = -cardEntry.velocityX * EDGE_BOUNCE;
+          }
+        }
+
+        if (cardEntry.y < minY) {
+          cardEntry.y = minY;
+          if (cardEntry.velocityY < 0) {
+            cardEntry.velocityY = -cardEntry.velocityY * EDGE_BOUNCE;
+          }
+        } else if (cardEntry.y > maxY) {
+          cardEntry.y = maxY;
+          if (cardEntry.velocityY > 0) {
+            cardEntry.velocityY = -cardEntry.velocityY * EDGE_BOUNCE;
+          }
+        }
+      }
+
+      function updateTableCards(deltaSeconds) {
+        var index;
+        for (index = 0; index < tableCards.length; index += 1) {
+          var cardEntry = tableCards[index];
+          if (cardEntry.isDragging) {
+            if (cardEntry.grabGlow > 0) {
+              cardEntry.grabGlow -= deltaSeconds * 2.2;
+              if (cardEntry.grabGlow < 0) {
+                cardEntry.grabGlow = 0;
+              }
+            }
+            continue;
+          }
+          var speed = Math.sqrt(cardEntry.velocityX * cardEntry.velocityX + cardEntry.velocityY * cardEntry.velocityY);
+          if (speed > STOP_SPEED) {
+            cardEntry.x += cardEntry.velocityX * deltaSeconds;
+            cardEntry.y += cardEntry.velocityY * deltaSeconds;
+            cardEntry.velocityX *= FRICTION;
+            cardEntry.velocityY *= FRICTION;
+            clampCardToScreen(cardEntry);
+          } else {
+            cardEntry.velocityX = 0;
+            cardEntry.velocityY = 0;
+            snapCardPositionToGrid(cardEntry);
+            clampCardToScreen(cardEntry);
+          }
+          if (cardEntry.isThrown) {
+            updateThrownCardRotation(cardEntry, deltaSeconds, speed);
+          }
+          if (cardEntry.grabGlow > 0) {
+            cardEntry.grabGlow -= deltaSeconds * 3;
+            if (cardEntry.grabGlow < 0) {
+              cardEntry.grabGlow = 0;
+            }
+          }
+        }
+      }
+
+      function renderFrame(deltaSeconds) {
+        if (deckPulse > 0) {
+          deckPulse -= deltaSeconds * 3.5;
+          if (deckPulse < 0) {
+            deckPulse = 0;
+          }
+        }
+        if (deckFlash > 0) {
+          deckFlash -= deltaSeconds * 2.8;
+          if (deckFlash < 0) {
+            deckFlash = 0;
+          }
+        }
+
+        updateTableCards(deltaSeconds);
+        drawWorkshopBackground();
+        drawDeck();
+
+        var index;
+        var draggingCard = null;
+        for (index = 0; index < tableCards.length; index += 1) {
+          if (tableCards[index].isDragging) {
+            draggingCard = tableCards[index];
+            continue;
+          }
+          drawCardFace(tableCards[index]);
+        }
+
+        if (draggingCard) {
+          drawCardDropPreview(draggingCard);
+          drawDraggingCard(draggingCard);
+        }
+
+        drawParticles(deltaSeconds);
+      }
+
+      function gameLoop(timestamp) {
+        if (!lastFrameTime) {
+          lastFrameTime = timestamp;
+        }
+        var deltaSeconds = (timestamp - lastFrameTime) / 1000;
+        if (deltaSeconds > 0.05) {
+          deltaSeconds = 0.05;
+        }
+        lastFrameTime = timestamp;
+        renderFrame(deltaSeconds);
+        animationFrameId = window.requestAnimationFrame(gameLoop);
+      }
+
+      function recordPointerSample(pointX, pointY, timestamp) {
+        if (pointerHistory.length > 0) {
+          var previousSample = pointerHistory[pointerHistory.length - 1];
+          if (timestamp - previousSample.time > POINTER_STALE_GAP_MS) {
+            pointerHistory.length = 0;
+          }
+        }
+        pointerHistory.push({
+          x: pointX,
+          y: pointY,
+          time: timestamp
+        });
+        if (pointerHistory.length > POINTER_HISTORY_MAX) {
+          pointerHistory.shift();
+        }
+      }
+
+      function getPointerSamplesInWindow(releaseTimestamp) {
+        var windowStart = releaseTimestamp - RELEASE_VELOCITY_WINDOW_MS;
+        var samples = [];
+        var index;
+        for (index = 0; index < pointerHistory.length; index += 1) {
+          var sample = pointerHistory[index];
+          if (sample.time >= windowStart && sample.time <= releaseTimestamp) {
+            samples.push(sample);
+          }
+        }
+        return samples;
+      }
+
+      function getReleaseVelocity(releaseTimestamp) {
+        var zeroVelocity = {
+          velocityX: 0,
+          velocityY: 0,
+          rotationVelocity: 0,
+          speed: 0
+        };
+        if (pointerHistory.length < 2) {
+          return zeroVelocity;
+        }
+        var lastSample = pointerHistory[pointerHistory.length - 1];
+        if (releaseTimestamp - lastSample.time > RELEASE_STALE_MS) {
+          return zeroVelocity;
+        }
+        var windowSamples = getPointerSamplesInWindow(releaseTimestamp);
+        if (windowSamples.length < 2) {
+          return zeroVelocity;
+        }
+        var oldest = windowSamples[0];
+        var newest = windowSamples[windowSamples.length - 1];
+        var deltaTime = (newest.time - oldest.time) / 1000;
+        if (deltaTime <= 0.001) {
+          return zeroVelocity;
+        }
+        var velocityX = (newest.x - oldest.x) / deltaTime;
+        var velocityY = (newest.y - oldest.y) / deltaTime;
+        var speed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+        if (speed > MAX_THROW_SPEED) {
+          var scale = MAX_THROW_SPEED / speed;
+          velocityX *= scale;
+          velocityY *= scale;
+          speed = MAX_THROW_SPEED;
+        }
+        var rotationVelocity = 0;
+        if (speed >= THROW_SPEED_MIN) {
+          rotationVelocity = velocityX * 0.0025 + (Math.random() - 0.5) * THROW_SPIN_RANDOM;
+        }
+        return {
+          velocityX: velocityX,
+          velocityY: velocityY,
+          rotationVelocity: rotationVelocity,
+          speed: speed
+        };
+      }
+
+      function placeCardCarefully(cardEntry) {
+        cardEntry.velocityX = 0;
+        cardEntry.velocityY = 0;
+        cardEntry.rotationVelocity = 0;
+        cardEntry.rotation = 0;
+        cardEntry.isThrown = false;
+        snapCardPositionToGrid(cardEntry);
+        clampCardToScreen(cardEntry);
+      }
+
+      function clearPointerState() {
+        activePointerId = -1;
+        dragTarget = null;
+        pointerHistory.length = 0;
+      }
+
+      function onPointerDown(event) {
+        if (activePointerId >= 0) {
+          return;
+        }
+        var pointX = event.clientX;
+        var pointY = event.clientY;
+
+        var tableCard = findTopCardAt(pointX, pointY);
+        if (tableCard) {
+          activePointerId = event.pointerId;
+          dragTarget = tableCard;
+          dragTarget.isDragging = true;
+          dragTarget.isFreshDraw = false;
+          bringCardToFront(dragTarget);
+          dragOffsetX = pointX - dragTarget.x;
+          dragOffsetY = pointY - dragTarget.y;
+          beginCardGrab(dragTarget, dragTarget.x, dragTarget.y);
+          pointerHistory.length = 0;
+          recordPointerSample(pointX, pointY, event.timeStamp);
+          canvas.setPointerCapture(event.pointerId);
+          event.preventDefault();
+          return;
+        }
+
+        if (isPointInDeckZone(pointX, pointY)) {
+          var cardId = drawRandomCardFromDeck();
+          if (cardId === null) {
+            deckPulse = 0.5;
+            return;
+          }
+          activePointerId = event.pointerId;
+          dragTarget = createTableCard(cardId, DECK_X, DECK_Y, true);
+          dragTarget.isDragging = true;
+          bringCardToFront(dragTarget);
+          dragOffsetX = pointX - dragTarget.x;
+          dragOffsetY = pointY - dragTarget.y;
+          beginCardGrab(dragTarget, DECK_X, DECK_Y);
+          pointerHistory.length = 0;
+          recordPointerSample(pointX, pointY, event.timeStamp);
+          deckPulse = 1;
+          spawnSparkParticles(DECK_X, DECK_Y, PARTICLE_COUNT_DRAW);
+          spawnParticles(DECK_X, DECK_Y, 8, COLOR_BRASS, 90, 0.4);
+          triggerActionFlash(DECK_X, DECK_Y, "draw");
+          canvas.setPointerCapture(event.pointerId);
+          event.preventDefault();
+        }
+      }
+
+      function onPointerMove(event) {
+        if (event.pointerId !== activePointerId || !dragTarget) {
+          return;
+        }
+        var pointX = event.clientX;
+        var pointY = event.clientY;
+        setCardDropPosition(dragTarget, pointX - dragOffsetX, pointY - dragOffsetY);
+        dragTarget.rotation = 0;
+        recordPointerSample(pointX, pointY, event.timeStamp);
+        event.preventDefault();
+      }
+
+      function onPointerUp(event) {
+        if (event.pointerId !== activePointerId || !dragTarget) {
+          return;
+        }
+        var pointX = event.clientX;
+        var pointY = event.clientY;
+        var releasedCard = dragTarget;
+        releasedCard.isDragging = false;
+        var dropX = releasedCard.x;
+        var dropY = releasedCard.y;
+
+        if (isPointInDeckZone(pointX, pointY) && releasedCard.isFreshDraw) {
+          returnCardToDeck(releasedCard);
+        } else {
+          releasedCard.isFreshDraw = false;
+          var releaseVelocity = getReleaseVelocity(event.timeStamp);
+          if (releaseVelocity.speed < THROW_SPEED_MIN) {
+            placeCardCarefully(releasedCard);
+            spawnParticles(dropX, dropY, 4, COLOR_STEEL_LIGHT, 35, 0.25);
+          } else {
+            releasedCard.isThrown = true;
+            releasedCard.velocityX = releaseVelocity.velocityX;
+            releasedCard.velocityY = releaseVelocity.velocityY;
+            releasedCard.rotationVelocity = releaseVelocity.rotationVelocity;
+            clampCardToScreen(releasedCard);
+            spawnSparkParticles(dropX, dropY, PARTICLE_COUNT_DROP);
+            spawnParticles(dropX, dropY, 8, COLOR_STEEL_LIGHT, 60 + releaseVelocity.speed * 0.08, 0.35);
+            triggerActionFlash(dropX, dropY, "drop");
+          }
+        }
+
+        clearPointerState();
+        try {
+          canvas.releasePointerCapture(event.pointerId);
+        } catch (captureError) {
+        }
+        event.preventDefault();
+      }
+
+      function onPointerCancel(event) {
+        if (event.pointerId !== activePointerId) {
+          return;
+        }
+        if (dragTarget) {
+          dragTarget.isDragging = false;
+          placeCardCarefully(dragTarget);
+        }
+        clearPointerState();
+      }
+
+      function initGame() {
+        availableCardIds = buildFullDeck();
+        tableCards.length = 0;
+        particles.length = 0;
+        nextCardZIndex = 1;
+        resizeCanvas();
+        lastFrameTime = 0;
+        if (animationFrameId) {
+          window.cancelAnimationFrame(animationFrameId);
+        }
+        animationFrameId = window.requestAnimationFrame(gameLoop);
+      }
+
+      window.addEventListener("resize", resizeCanvas);
+      canvas.addEventListener("pointerdown", onPointerDown);
+      canvas.addEventListener("pointermove", onPointerMove);
+      canvas.addEventListener("pointerup", onPointerUp);
+      canvas.addEventListener("pointercancel", onPointerCancel);
+      canvas.addEventListener("lostpointercapture", onPointerCancel);
+
+      initGame();
+    })();
+  </script>
+</body>
+
+</html>
