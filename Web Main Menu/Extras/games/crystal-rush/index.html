@@ -415,6 +415,13 @@
     var CHUNK_SIZE = 512;
     var CHUNK_LOAD_RADIUS = 2;
     var CHUNK_UNLOAD_RADIUS = 4;
+    var WORLD_REBASE_THRESHOLD = 80000;
+    var WORLD_REBASE_TARGET = 0;
+    var DUST_PARTICLE_MAX = 140;
+    var IMPACT_PARTICLE_MAX = 48;
+    var SCORE_PARTICLE_MAX = 64;
+    var COLLECT_SPARK_MAX = 80;
+    var COLLECT_STREAK_MAX = 56;
     var CAR_RADIUS = 15;
     var CRYSTAL_PICKUP_RADIUS = 10;
     var CRYSTAL_MAGNET_RADIUS = 34;
@@ -565,6 +572,12 @@
     var lastFrameTime = 0;
     var fpsSampleTime = 0;
     var fpsSampleFrames = 0;
+    var chunkSurfaceCanvasPool = [];
+    var dustParticlePool = [];
+    var impactParticlePool = [];
+    var scoreParticlePool = [];
+    var collectSparkPool = [];
+    var collectStreakPool = [];
 
     function isPlaying() {
       return gamePhase === PHASE_PLAYING;
@@ -591,6 +604,215 @@
 
     function worldToChunk(worldValue) {
       return Math.floor(worldValue / CHUNK_SIZE);
+    }
+
+    function acquireChunkSurfaceCanvas() {
+      var surfaceCanvas;
+      if (chunkSurfaceCanvasPool.length > 0) {
+        surfaceCanvas = chunkSurfaceCanvasPool.pop();
+        if (surfaceCanvas.width !== CHUNK_SIZE || surfaceCanvas.height !== CHUNK_SIZE) {
+          surfaceCanvas.width = CHUNK_SIZE;
+          surfaceCanvas.height = CHUNK_SIZE;
+        }
+        return surfaceCanvas;
+      }
+      surfaceCanvas = document.createElement("canvas");
+      surfaceCanvas.width = CHUNK_SIZE;
+      surfaceCanvas.height = CHUNK_SIZE;
+      return surfaceCanvas;
+    }
+
+    function releaseChunkSurfaceCanvas(surfaceCanvas) {
+      if (surfaceCanvas) {
+        chunkSurfaceCanvasPool.push(surfaceCanvas);
+      }
+    }
+
+    function acquireDustParticle() {
+      if (dustParticlePool.length > 0) {
+        return dustParticlePool.pop();
+      }
+      return { x: 0, y: 0, velX: 0, velY: 0, life: 0, size: 0, alpha: 0 };
+    }
+
+    function releaseDustParticle(particle) {
+      dustParticlePool.push(particle);
+    }
+
+    function acquireImpactParticle() {
+      if (impactParticlePool.length > 0) {
+        return impactParticlePool.pop();
+      }
+      return { x: 0, y: 0, velX: 0, velY: 0, life: 0, size: 0 };
+    }
+
+    function releaseImpactParticle(particle) {
+      impactParticlePool.push(particle);
+    }
+
+    function acquireScoreParticle() {
+      if (scoreParticlePool.length > 0) {
+        return scoreParticlePool.pop();
+      }
+      return {
+        kind: "score",
+        x: 0,
+        y: 0,
+        velX: 0,
+        velY: 0,
+        age: 0,
+        travelTime: 0,
+        size: 0,
+        red: 0,
+        green: 0,
+        blue: 0
+      };
+    }
+
+    function releaseScoreParticle(particle) {
+      scoreParticlePool.push(particle);
+    }
+
+    function acquireCollectSpark() {
+      if (collectSparkPool.length > 0) {
+        return collectSparkPool.pop();
+      }
+      return { x: 0, y: 0, velX: 0, velY: 0, age: 0, life: 0, size: 0, red: 0, green: 0, blue: 0 };
+    }
+
+    function releaseCollectSpark(spark) {
+      collectSparkPool.push(spark);
+    }
+
+    function acquireCollectStreak() {
+      if (collectStreakPool.length > 0) {
+        return collectStreakPool.pop();
+      }
+      return { x: 0, y: 0, velX: 0, velY: 0, age: 0, life: 0, size: 0, red: 0, green: 0, blue: 0 };
+    }
+
+    function releaseCollectStreak(streak) {
+      collectStreakPool.push(streak);
+    }
+
+    function releaseAllDustParticles() {
+      var dustIndex;
+      for (dustIndex = 0; dustIndex < dustParticles.length; dustIndex += 1) {
+        releaseDustParticle(dustParticles[dustIndex]);
+      }
+      dustParticles.length = 0;
+    }
+
+    function releaseAllImpactParticles() {
+      var impactIndex;
+      for (impactIndex = 0; impactIndex < impactParticles.length; impactIndex += 1) {
+        releaseImpactParticle(impactParticles[impactIndex]);
+      }
+      impactParticles.length = 0;
+    }
+
+    function releaseAllScoreParticles() {
+      var particleIndex;
+      for (particleIndex = 0; particleIndex < particles.length; particleIndex += 1) {
+        releaseScoreParticle(particles[particleIndex]);
+      }
+      particles.length = 0;
+    }
+
+    function releaseAllCollectSparks() {
+      var sparkIndex;
+      for (sparkIndex = 0; sparkIndex < collectSparks.length; sparkIndex += 1) {
+        releaseCollectSpark(collectSparks[sparkIndex]);
+      }
+      collectSparks.length = 0;
+    }
+
+    function releaseAllCollectStreaks() {
+      var streakIndex;
+      for (streakIndex = 0; streakIndex < collectStreaks.length; streakIndex += 1) {
+        releaseCollectStreak(collectStreaks[streakIndex]);
+      }
+      collectStreaks.length = 0;
+    }
+
+    function releaseChunkResources(chunk) {
+      if (!chunk) {
+        return;
+      }
+      chunk.rocks.length = 0;
+      chunk.crystals.length = 0;
+      if (chunk.surfaceCanvas) {
+        releaseChunkSurfaceCanvas(chunk.surfaceCanvas);
+        chunk.surfaceCanvas = null;
+      }
+    }
+
+    function rebaseWorldCoordinates() {
+      if (Math.abs(carWorldX) < WORLD_REBASE_THRESHOLD && Math.abs(carWorldY) < WORLD_REBASE_THRESHOLD) {
+        return;
+      }
+      var shiftX = carWorldX - WORLD_REBASE_TARGET;
+      var shiftY = carWorldY - WORLD_REBASE_TARGET;
+      var keyIndex;
+      var key;
+      var chunk;
+      var rocksToRedistribute = [];
+      var crystalsToRedistribute = [];
+      var rockIndex;
+      var crystalIndex;
+      var rock;
+      var crystal;
+      var trailIndex;
+      var targetChunkX;
+      var targetChunkY;
+
+      carWorldX = WORLD_REBASE_TARGET;
+      carWorldY = WORLD_REBASE_TARGET;
+
+      for (keyIndex = 0; keyIndex < chunkKeys.length; keyIndex += 1) {
+        key = chunkKeys[keyIndex];
+        chunk = chunks[key];
+        if (!chunk) {
+          continue;
+        }
+        for (rockIndex = 0; rockIndex < chunk.rocks.length; rockIndex += 1) {
+          rocksToRedistribute.push(chunk.rocks[rockIndex]);
+        }
+        for (crystalIndex = 0; crystalIndex < chunk.crystals.length; crystalIndex += 1) {
+          crystalsToRedistribute.push(chunk.crystals[crystalIndex]);
+        }
+        chunk.rocks.length = 0;
+        chunk.crystals.length = 0;
+      }
+
+      for (rockIndex = 0; rockIndex < rocksToRedistribute.length; rockIndex += 1) {
+        rock = rocksToRedistribute[rockIndex];
+        rock.x -= shiftX;
+        rock.y -= shiftY;
+        targetChunkX = worldToChunk(rock.x);
+        targetChunkY = worldToChunk(rock.y);
+        chunk = getChunk(targetChunkX, targetChunkY);
+        chunk.rocks.push(rock);
+      }
+
+      for (crystalIndex = 0; crystalIndex < crystalsToRedistribute.length; crystalIndex += 1) {
+        crystal = crystalsToRedistribute[crystalIndex];
+        crystal.x -= shiftX;
+        crystal.y -= shiftY;
+        targetChunkX = worldToChunk(crystal.x);
+        targetChunkY = worldToChunk(crystal.y);
+        chunk = getChunk(targetChunkX, targetChunkY);
+        chunk.crystals.push(crystal);
+      }
+
+      for (trailIndex = 0; trailIndex < tireTrailLeft.length; trailIndex += 1) {
+        tireTrailLeft[trailIndex].x -= shiftX;
+        tireTrailLeft[trailIndex].y -= shiftY;
+      }
+      for (trailIndex = 0; trailIndex < tireTrailRight.length; trailIndex += 1) {
+        tireTrailRight[trailIndex].x -= shiftX;
+        tireTrailRight[trailIndex].y -= shiftY;
+      }
     }
 
     function createChunkRandom(chunkX, chunkY) {
@@ -1198,9 +1420,7 @@
     }
 
     function buildChunkSurface(chunk) {
-      var surfaceCanvas = document.createElement("canvas");
-      surfaceCanvas.width = CHUNK_SIZE;
-      surfaceCanvas.height = CHUNK_SIZE;
+      var surfaceCanvas = acquireChunkSurfaceCanvas();
       var surfaceContext = surfaceCanvas.getContext("2d");
       var random = createChunkRandom(chunk.chunkX * 17 + 3, chunk.chunkY * 31 + 7);
       var baseHue = 28 + chunk.seed * 14;
@@ -1299,6 +1519,7 @@
     }
 
     function updateChunksAroundCar() {
+      rebaseWorldCoordinates();
       var carChunkX = worldToChunk(carWorldX);
       var carChunkY = worldToChunk(carWorldY);
       var offsetX;
@@ -1334,6 +1555,8 @@
       var removeIndex;
       for (removeIndex = 0; removeIndex < removeKeys.length; removeIndex += 1) {
         key = removeKeys[removeIndex];
+        chunk = chunks[key];
+        releaseChunkResources(chunk);
         delete chunks[key];
         keyIndex = chunkKeys.indexOf(key);
         if (keyIndex >= 0) {
@@ -1635,6 +1858,7 @@
       var particleIndex;
       var angle;
       var speed;
+      var particle;
       if (count === undefined) {
         count = 2;
       }
@@ -1644,19 +1868,22 @@
       for (particleIndex = 0; particleIndex < count; particleIndex += 1) {
         angle = Math.random() * Math.PI * 2;
         speed = 25 + Math.random() * 60;
-        particles.push({
-          kind: "score",
-          x: screenX,
-          y: screenY,
-          velX: Math.cos(angle) * speed,
-          velY: Math.sin(angle) * speed,
-          age: 0,
-          travelTime: 0.32 + Math.random() * 0.18,
-          size: 1 + sparkSize * 0.35,
-          red: red,
-          green: green,
-          blue: blue
-        });
+        if (particles.length >= SCORE_PARTICLE_MAX) {
+          releaseScoreParticle(particles.shift());
+        }
+        particle = acquireScoreParticle();
+        particle.kind = "score";
+        particle.x = screenX;
+        particle.y = screenY;
+        particle.velX = Math.cos(angle) * speed;
+        particle.velY = Math.sin(angle) * speed;
+        particle.age = 0;
+        particle.travelTime = 0.32 + Math.random() * 0.18;
+        particle.size = 1 + sparkSize * 0.35;
+        particle.red = red;
+        particle.green = green;
+        particle.blue = blue;
+        particles.push(particle);
       }
     }
 
@@ -1686,6 +1913,8 @@
       var streakSpeed;
       var startX;
       var startY;
+      var spark;
+      var streak;
 
       collectFlashes.push({
         x: carCenterX,
@@ -1714,18 +1943,21 @@
       for (particleIndex = 0; particleIndex < sparkCount; particleIndex += 1) {
         angle = (particleIndex / sparkCount) * Math.PI * 2 + Math.random() * 0.5;
         speed = 80 + Math.random() * 150 * rarityScale;
-        collectSparks.push({
-          x: carCenterX,
-          y: carCenterY,
-          velX: Math.cos(angle) * speed,
-          velY: Math.sin(angle) * speed,
-          age: 0,
-          life: 0.26 + Math.random() * 0.24,
-          size: 1.8 + rarityScale * 1.6,
-          red: red,
-          green: green,
-          blue: blue
-        });
+        if (collectSparks.length >= COLLECT_SPARK_MAX) {
+          releaseCollectSpark(collectSparks.shift());
+        }
+        spark = acquireCollectSpark();
+        spark.x = carCenterX;
+        spark.y = carCenterY;
+        spark.velX = Math.cos(angle) * speed;
+        spark.velY = Math.sin(angle) * speed;
+        spark.age = 0;
+        spark.life = 0.26 + Math.random() * 0.24;
+        spark.size = 1.8 + rarityScale * 1.6;
+        spark.red = red;
+        spark.green = green;
+        spark.blue = blue;
+        collectSparks.push(spark);
       }
 
       deltaX = carCenterX - crystalScreenX;
@@ -1738,18 +1970,21 @@
         startX = crystalScreenX + (Math.random() - 0.5) * 14;
         startY = crystalScreenY + (Math.random() - 0.5) * 14;
         streakSpeed = dist / (0.16 + Math.random() * 0.12);
-        collectStreaks.push({
-          x: startX,
-          y: startY,
-          velX: (deltaX / dist) * streakSpeed,
-          velY: (deltaY / dist) * streakSpeed,
-          age: 0,
-          life: 0.18 + Math.random() * 0.14,
-          size: 2 + rarityScale * 1.2,
-          red: red,
-          green: green,
-          blue: blue
-        });
+        if (collectStreaks.length >= COLLECT_STREAK_MAX) {
+          releaseCollectStreak(collectStreaks.shift());
+        }
+        streak = acquireCollectStreak();
+        streak.x = startX;
+        streak.y = startY;
+        streak.velX = (deltaX / dist) * streakSpeed;
+        streak.velY = (deltaY / dist) * streakSpeed;
+        streak.age = 0;
+        streak.life = 0.18 + Math.random() * 0.14;
+        streak.size = 2 + rarityScale * 1.2;
+        streak.red = red;
+        streak.green = green;
+        streak.blue = blue;
+        collectStreaks.push(streak);
       }
 
       triggerCarCollectPulse(red, green, blue);
@@ -1762,17 +1997,21 @@
       var angle;
       var speed;
       var screenPos = worldToScreen(worldX, worldY);
+      var impact;
       for (particleIndex = 0; particleIndex < count; particleIndex += 1) {
         angle = Math.random() * Math.PI * 2;
         speed = 60 + Math.random() * 180;
-        impactParticles.push({
-          x: screenPos.x,
-          y: screenPos.y,
-          velX: Math.cos(angle) * speed,
-          velY: Math.sin(angle) * speed,
-          life: 0.35 + Math.random() * 0.35,
-          size: 2 + Math.random() * 5
-        });
+        if (impactParticles.length >= IMPACT_PARTICLE_MAX) {
+          releaseImpactParticle(impactParticles.shift());
+        }
+        impact = acquireImpactParticle();
+        impact.x = screenPos.x;
+        impact.y = screenPos.y;
+        impact.velX = Math.cos(angle) * speed;
+        impact.velY = Math.sin(angle) * speed;
+        impact.life = 0.35 + Math.random() * 0.35;
+        impact.size = 2 + Math.random() * 5;
+        impactParticles.push(impact);
       }
     }
 
@@ -1787,16 +2026,20 @@
       var originWorldX = carWorldX + Math.cos(backAngle) * offsetDist;
       var originWorldY = carWorldY + Math.sin(backAngle) * offsetDist;
       var screenPos = worldToScreen(originWorldX, originWorldY);
+      var dust;
       for (spawnIndex = 0; spawnIndex < spawnCount; spawnIndex += 1) {
-        dustParticles.push({
-          x: screenPos.x + (Math.random() - 0.5) * 16,
-          y: screenPos.y + (Math.random() - 0.5) * 16,
-          velX: (Math.random() - 0.5) * 30 - Math.cos(carAngle) * 20,
-          velY: (Math.random() - 0.5) * 30 - Math.sin(carAngle) * 20,
-          life: 0.4 + Math.random() * 0.5,
-          size: 4 + Math.random() * 10,
-          alpha: 0.25 + Math.random() * 0.35
-        });
+        if (dustParticles.length >= DUST_PARTICLE_MAX) {
+          releaseDustParticle(dustParticles.shift());
+        }
+        dust = acquireDustParticle();
+        dust.x = screenPos.x + (Math.random() - 0.5) * 16;
+        dust.y = screenPos.y + (Math.random() - 0.5) * 16;
+        dust.velX = (Math.random() - 0.5) * 30 - Math.cos(carAngle) * 20;
+        dust.velY = (Math.random() - 0.5) * 30 - Math.sin(carAngle) * 20;
+        dust.life = 0.4 + Math.random() * 0.5;
+        dust.size = 4 + Math.random() * 10;
+        dust.alpha = 0.25 + Math.random() * 0.35;
+        dustParticles.push(dust);
       }
     }
 
@@ -2148,19 +2391,25 @@
       rockHitCooldown = 0;
       score = 0;
       distanceMeters = 0;
-      particles = [];
-      dustParticles = [];
+      releaseAllScoreParticles();
+      releaseAllDustParticles();
+      releaseAllImpactParticles();
+      releaseAllCollectSparks();
+      releaseAllCollectStreaks();
       tireTrailLeft = [];
       tireTrailRight = [];
       tireTrailDistanceSinceLastPoint = 0;
-      impactParticles = [];
       collectArcs = [];
       collectFlashes = [];
       collectBursts = [];
-      collectSparks = [];
-      collectStreaks = [];
       scoreFlyLabels = [];
       collectEffectsDebounceTimer = 0;
+      var keyIndex;
+      var key;
+      for (keyIndex = 0; keyIndex < chunkKeys.length; keyIndex += 1) {
+        key = chunkKeys[keyIndex];
+        releaseChunkResources(chunks[key]);
+      }
       chunks = {};
       chunkKeys = [];
       clearKeysDown();
@@ -2421,6 +2670,7 @@
         spark.x += spark.velX * deltaSeconds;
         spark.y += spark.velY * deltaSeconds;
         if (spark.age >= spark.life) {
+          releaseCollectSpark(collectSparks[sparkIndex]);
           collectSparks.splice(sparkIndex, 1);
         }
       }
@@ -2431,6 +2681,7 @@
         streak.x += streak.velX * deltaSeconds;
         streak.y += streak.velY * deltaSeconds;
         if (streak.age >= streak.life) {
+          releaseCollectStreak(collectStreaks[streakIndex]);
           collectStreaks.splice(streakIndex, 1);
         }
       }
@@ -2459,6 +2710,7 @@
         toTargetY = targetY - particle.y;
         dist = Math.sqrt(toTargetX * toTargetX + toTargetY * toTargetY);
         if (dist < SCORE_ARRIVE_DIST) {
+          releaseScoreParticle(particles[particleIndex]);
           particles.splice(particleIndex, 1);
           continue;
         }
@@ -2482,6 +2734,7 @@
         dust.size += 18 * deltaSeconds;
         dust.alpha -= 0.7 * deltaSeconds;
         if (dust.life <= 0 || dust.alpha <= 0) {
+          releaseDustParticle(dustParticles[dustIndex]);
           dustParticles.splice(dustIndex, 1);
         }
       }
@@ -2494,6 +2747,7 @@
         impact.x += impact.velX * deltaSeconds;
         impact.y += impact.velY * deltaSeconds;
         if (impact.life <= 0) {
+          releaseImpactParticle(impactParticles[impactIndex]);
           impactParticles.splice(impactIndex, 1);
         }
       }
