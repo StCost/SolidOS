@@ -10,28 +10,28 @@
       },
       {
         id: "miner-collapse",
-        title: "Miner Collapse",
+        title: "Deep Collapse",
         path: "Extras/games/miner-collapse/index.html",
         image: "Extras/games/miner-collapse/miner-collapse-preview.png",
         difficulty: 2
       },
       {
-        id: "midnight-run",
-        title: "Midnight Run",
-        path: "Extras/games/midnight-run/index.html",
-        image: "Extras/games/midnight-run/midnight-run-preview.png",
+        id: "last-run",
+        title: "Last Run",
+        path: "Extras/games/last-run/index.html",
+        image: "Extras/games/last-run/last-run-preview.png",
         difficulty: 3
       },
       {
         id: "blackhole-golf",
-        title: "BlackHole Golf",
+        title: "Orbital Golf",
         path: "Extras/games/blackhole-golf/index.html",
         image: "Extras/games/blackhole-golf/blackhole-golf-preview.png",
         difficulty: 4
       },
       {
         id: "crystal-rush",
-        title: "Crystal Rush",
+        title: "Trouble Drivers",
         path: "Extras/games/crystal-rush/index.html",
         image: "Extras/games/crystal-rush/crystal-rush-preview.png",
         difficulty: 5

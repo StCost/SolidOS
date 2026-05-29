@@ -299,6 +299,10 @@
   margin: 0 0 1em;
 }
 
+.extras-link-overlay-menu .term-row {
+  width: 100%;
+}
+
 #extrasArtViewer.term-overlay {
   z-index: 19;
   padding: clamp(0.65rem, 2.5vh, 1.25rem) clamp(0.45rem, 1.25vw, 0.75rem);

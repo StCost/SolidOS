@@ -873,50 +873,6 @@ var WebWindowManager = (function () {
     );
   }
 
-  /* replaced by timer-tracked version above */
-  /*
-  function playBodyOpenAnimation(windowElement, delayMs) {
-    if (delayMs == null) delayMs = 0;
-    var openDoneMs = delayMs + BODY_OPEN_MS + OPEN_DONE_BUFFER_MS;
-
-    ensureWindowStructure(windowElement);
-    if (!windowElement.wmState) {
-      syncWindowLayout(windowElement);
-    }
-
-    if (reducedMotion) {
-      windowElement.classList.remove("os-window--opening-body-only");
-      windowElement.classList.remove("os-window--open-done");
-      setBodyMaxVar(windowElement);
-      dispatchWorkspaceLayoutSettled(windowElement);
-      if (window.WebScrollbarCursor) {
-        window.WebScrollbarCursor.scheduleScrollViewScan();
-      }
-      return;
-    }
-
-    windowElement.classList.remove("os-window--opening");
-    windowElement.classList.remove("os-window--opening-body-only");
-    windowElement.classList.remove("os-window--open-done");
-    windowElement.classList.add("os-window--opening-body-only");
-    setBodyMaxVar(windowElement);
-
-    window.setTimeout(function () {
-      windowElement.classList.add("os-window--open-done");
-    }, delayMs + BODY_OPEN_MS + 40);
-
-    window.setTimeout(function () {
-      windowElement.classList.remove("os-window--opening-body-only");
-      windowElement.classList.remove("os-window--open-done");
-      setBodyMaxVar(windowElement);
-      dispatchWorkspaceLayoutSettled(windowElement);
-      if (window.WebScrollbarCursor) {
-        window.WebScrollbarCursor.scheduleScrollViewScan();
-      }
-    }, openDoneMs);
-  }
-  */
-
   function getWorkspaceWindows(workspaceElement) {
     var windows = workspaceElement.querySelectorAll(".os-window[data-wm-preset]");
     var list = [];
@@ -1012,17 +968,61 @@ var WebWindowManager = (function () {
   }
 
   function initOverlayWindow() {
-    var overlayWindow = document.querySelector(".term-overlay .os-window[data-wm-preset]");
-    if (!overlayWindow) return;
-    ensureWindowStructure(overlayWindow);
-    syncWindowLayout(overlayWindow);
+    var overlayWindows = document.querySelectorAll(".term-overlay .os-window[data-wm-preset]");
+    var index = 0;
+    for (index = 0; index < overlayWindows.length; index++) {
+      ensureWindowStructure(overlayWindows[index]);
+    }
+  }
+
+  function centerOverlayWindow(windowElement, containerElement) {
+    var presetName = windowElement.getAttribute("data-wm-preset");
+    var minSize = getWindowMinSize(windowElement, presetName);
+    var bounds = getBounds(containerElement);
+    var rect = windowElement.getBoundingClientRect();
+    var windowWidth = rect.width;
+    var windowHeight = rect.height;
+
+    if (windowWidth < minSize.minWidth) {
+      windowWidth = minSize.minWidth;
+    }
+    if (windowHeight < minSize.minHeight) {
+      windowHeight = minSize.minHeight;
+    }
+
+    windowElement.wmState = {
+      left: Math.max(0, Math.round((bounds.width - windowWidth) * 0.5)),
+      top: Math.max(0, Math.round((bounds.height - windowHeight) * 0.5)),
+      width: windowWidth,
+      height: windowHeight,
+      minWidth: minSize.minWidth,
+      minHeight: minSize.minHeight
+    };
+    applyWindowRect(windowElement);
   }
 
   function syncOverlayWindow() {
-    var overlayWindow = document.querySelector(".term-overlay .os-window[data-wm-preset]");
-    var overlay = document.querySelector(".term-overlay");
-    if (!overlayWindow || !overlay || !overlay.classList.contains("is-open")) return;
-    syncWindowLayout(overlayWindow);
+    var overlay = document.querySelector(".term-overlay.is-open");
+    if (!overlay) return;
+
+    var overlayWindow = overlay.querySelector(".os-window[data-wm-preset]");
+    if (!overlayWindow) return;
+
+    ensureWindowStructure(overlayWindow);
+
+    var presetName = overlayWindow.getAttribute("data-wm-preset");
+    if (savedLayoutTable[presetName]) {
+      applySavedLayoutToWindow(overlayWindow);
+      return;
+    }
+
+    if (overlayWindow.wmHasInlineLayout && overlayWindow.wmState) {
+      applyWindowRect(overlayWindow);
+      setBodyMaxVar(overlayWindow);
+      return;
+    }
+
+    centerOverlayWindow(overlayWindow, overlay);
   }
 
   function initAll() {

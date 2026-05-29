@@ -69,6 +69,13 @@
       labelKey: "web.extras.link.design-guide",
       labelFallback: "Design Guide Lines",
       iconUrl: "https://cdn.simpleicons.org/rss/FF6600"
+    },
+    {
+      href: "https://stcost.github.io/collapse-machine-main-menu/",
+      title: "Main Menu",
+      labelKey: "web.extras.link.main-menu",
+      labelFallback: "Main Menu",
+      iconUrl: "favicon.png"
     }
   ];
 })();
