@@ -35,6 +35,20 @@
         path: "Extras/games/crystal-rush/index.html",
         image: "Extras/games/crystal-rush/crystal-rush-preview.png",
         difficulty: 5
+      },
+      {
+        id: "calculator",
+        title: "Calculator",
+        path: "Extras/games/calculator/index.html",
+        image: "Extras/games/calculator/calculator-preview.png",
+        difficulty: 0
+      },
+      {
+        id: "playing-cards",
+        title: "Playing Cards",
+        path: "Extras/games/playing-cards/index.html",
+        image: "Extras/games/playing-cards/playing-cards-preview.png",
+        difficulty: 0
       }
     ],
     art: [
