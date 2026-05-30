@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alien Slice</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      tap-highlight-color: transparent;
+    }
+
+    *:focus,
+    *:focus-visible,
+    *:active {
+      outline: none;
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #0a2838;
+      color: #d8f8ff;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+    }
+
+    #gameRoot {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    #gameCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    .hud-panel {
+      position: absolute;
+      z-index: 4;
+      pointer-events: none;
+      letter-spacing: 0.08em;
+      text-shadow: 0 1px 8px rgba(0, 40, 60, 0.55), 0 0 14px rgba(120, 240, 255, 0.35);
+    }
+
+    #hudScore {
+      top: 14px;
+      left: 16px;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #f0ffff;
+    }
+
+    #hudCombo {
+      top: 44px;
+      left: 16px;
+      font-size: 0.82rem;
+      color: #ffe878;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    #hudCombo.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #hudLives {
+      top: 14px;
+      right: 16px;
+      font-size: 1.1rem;
+      color: #ff98c8;
+    }
+
+    #hudMisses {
+      top: 44px;
+      right: 16px;
+      font-size: 0.78rem;
+      color: rgba(255, 160, 180, 0.55);
+      text-align: right;
+    }
+
+    #hudMisses.has-misses {
+      color: #ff7898;
+    }
+
+    #hudHighScore {
+      bottom: 12px;
+      right: 14px;
+      font-size: 0.78rem;
+      color: rgba(180, 230, 255, 0.65);
+    }
+
+    #hudHighScore.is-record {
+      color: #ffe878;
+    }
+
+    #gameScreen {
+      position: absolute;
+      inset: 0;
+      z-index: 6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      background: rgba(8, 40, 58, 0.52);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+
+    #gameScreen.hidden {
+      display: none;
+    }
+
+    #screenTitle {
+      margin: 0;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: #b8f8ff;
+      text-shadow: 0 2px 12px rgba(80, 220, 255, 0.45), 0 0 22px rgba(80, 220, 255, 0.3);
+    }
+
+    #screenSubtitle {
+      margin: 0;
+      font-size: 0.92rem;
+      color: rgba(200, 245, 255, 0.82);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    #controlHint {
+      margin: 0.4rem 0 0;
+      font-size: 0.88rem;
+      color: rgba(160, 230, 255, 0.75);
+      text-align: center;
+      max-width: 85%;
+      line-height: 1.5;
+    }
+
+    #screenScore {
+      margin: 0.2rem 0 0;
+      font-size: 1.05rem;
+      color: #b8f0ff;
+      letter-spacing: 0.1em;
+    }
+
+    #screenScore.hidden {
+      display: none;
+    }
+
+    #gameScreen.is-record #screenTitle {
+      color: #ffe878;
+      text-shadow: 0 2px 18px rgba(255, 220, 80, 0.75), 0 0 28px rgba(255, 200, 60, 0.55);
+      animation: record-title-glow 0.8s ease-in-out infinite alternate;
+    }
+
+    @keyframes record-title-glow {
+      from {
+        text-shadow: 0 2px 14px rgba(255, 220, 80, 0.55), 0 0 20px rgba(255, 200, 60, 0.4);
+      }
+      to {
+        text-shadow: 0 2px 22px rgba(255, 240, 140, 0.95), 0 0 36px rgba(255, 220, 80, 0.7);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="gameRoot">
+    <canvas id="gameCanvas"></canvas>
+    <div id="hudScore" class="hud-panel">0</div>
+    <div id="hudCombo" class="hud-panel">combo x2</div>
+    <div id="hudLives" class="hud-panel">♥ ♥ ♥</div>
+    <div id="hudMisses" class="hud-panel">missed 0</div>
+    <div id="hudHighScore" class="hud-panel">best 0</div>
+    <div id="gameScreen">
+      <h1 id="screenTitle">Alien Slice</h1>
+      <p id="screenSubtitle">Xeno Flora Harvest</p>
+      <p id="controlHint">Click to start — swipe pods, avoid bombs — misses don't end the run</p>
+      <p id="screenScore" class="hidden">0 pts</p>
+    </div>
+  </div>
+  <script>
+    var HIGH_SCORE_STORAGE_KEY = "cm-alien-slice-high-score";
+    var GAME_TITLE = "Alien Slice";
+    var GRAVITY = 920;
+    var MAX_LIVES = 3;
+    var SWIPE_MIN_SPEED = 140;
+    var SWIPE_MIN_DIST = 8;
+    var SWIPE_HIT_PADDING = 1.32;
+    var SWIPE_POINT_HIT_PADDING = 1.18;
+    var BOMB_SWIPE_HIT_PADDING = 0.88;
+    var BOMB_SWIPE_POINT_HIT_PADDING = 0.68;
+    var BOMB_SWIPE_CENTER_PADDING = 0.58;
+    var BOMB_SWIPE_MIN_SPEED = 175;
+    var BOMB_SWIPE_MIN_DIST = 8;
+    var SWIPE_INTERPOLATE_STEP = 5;
+    var SWIPE_POINTS_MAX = 220;
+    var SWIPE_HEAD_KEEP = 36;
+    var SWIPE_TAIL_KEEP = 160;
+    var MAX_PARTICLES = 90;
+    var FLOOR_TOUCH_INSET = 10;
+    var COMBO_TIMEOUT_MS = 1200;
+    var WAVE_CLEAR_COOLDOWN = 0.55;
+    var PERFECT_WAVE_BONUS = 50;
+
+    var COMBO_PRAISE_WORDS = [
+      "Nice!",
+      "Tasty!",
+      "Juicy!",
+      "Sweet!",
+      "Great!",
+      "Super!",
+      "Amazing!",
+      "Deluxe!",
+      "Unreal!",
+      "Sensational!",
+      "Incredible!",
+      "Legendary!"
+    ];
+    var SLICE_TONE_BASE_HZ = 360;
+    var SLICE_TONE_STEP_RATIO = 1.122462048;
+    var SLICE_TONE_MAX_STEPS = 16;
+    var SLICE_TONE_STAGGER_SEC = 0.042;
+    var pendingSliceToneStagger = 0;
+
+    var POD_TYPES = [
+      {
+        id: "bloom",
+        shape: "bloom",
+        radius: 34,
+        score: 10,
+        highlight: "rgba(255,255,255,0.95)",
+        mid: "#48e8c8",
+        shadow: "#148868",
+        glow: "rgba(72, 232, 200, 0.65)",
+        pulp: "#90ffe0",
+        juice: "#3ef0c0"
+      },
+      {
+        id: "berry",
+        shape: "heart",
+        radius: 28,
+        score: 15,
+        highlight: "rgba(255,255,255,0.9)",
+        mid: "#f068d8",
+        shadow: "#a02888",
+        glow: "rgba(240, 104, 216, 0.6)",
+        pulp: "#ffb0f0",
+        juice: "#ff58d0"
+      },
+      {
+        id: "melon",
+        shape: "capsule",
+        radius: 44,
+        score: 25,
+        highlight: "rgba(255,255,255,0.92)",
+        mid: "#88f048",
+        shadow: "#389818",
+        glow: "rgba(136, 240, 72, 0.55)",
+        pulp: "#c8ff90",
+        juice: "#70e820"
+      },
+      {
+        id: "nectar",
+        shape: "star",
+        radius: 30,
+        score: 40,
+        highlight: "rgba(255,255,255,0.98)",
+        mid: "#ffd848",
+        shadow: "#c89808",
+        glow: "rgba(255, 216, 72, 0.7)",
+        pulp: "#fff0a0",
+        juice: "#ffc820"
+      }
+    ];
+
+    var BOMB_TYPE = {
+      id: "thorn",
+      radius: 32,
+      highlight: "rgba(255,160,160,0.95)",
+      mid: "#e01828",
+      shadow: "#280408",
+      glow: "rgba(255, 32, 32, 0.9)",
+      pulp: "#600810",
+      juice: "#ff1830"
+    };
+
+    var PATTERN_LINE = "line";
+    var PATTERN_ARC = "arc";
+    var PATTERN_V = "v";
+    var PATTERN_DIAMOND = "diamond";
+    var PATTERN_RING = "ring";
+    var PATTERN_DOUBLE = "double";
+
+    var PATTERNS = [PATTERN_LINE, PATTERN_ARC, PATTERN_V, PATTERN_DIAMOND, PATTERN_RING, PATTERN_DOUBLE];
+
+    var gameCanvas = document.getElementById("gameCanvas");
+    var gameScreen = document.getElementById("gameScreen");
+    var screenTitle = document.getElementById("screenTitle");
+    var screenSubtitle = document.getElementById("screenSubtitle");
+    var controlHint = document.getElementById("controlHint");
+    var screenScore = document.getElementById("screenScore");
+    var hudScore = document.getElementById("hudScore");
+    var hudCombo = document.getElementById("hudCombo");
+    var hudLives = document.getElementById("hudLives");
+    var hudMisses = document.getElementById("hudMisses");
+    var hudHighScore = document.getElementById("hudHighScore");
+
+    var canvasContext = null;
+    var viewWidth = 0;
+    var viewHeight = 0;
+    var devicePixelRatioValue = 1;
+
+    var gameState = "menu";
+    var score = 0;
+    var highScore = 0;
+    var runStartHighScore = 0;
+    var lives = MAX_LIVES;
+    var missCount = 0;
+    var waveActive = false;
+    var wavePodTotal = 0;
+    var wavePodSliced = 0;
+    var wavePodMissed = 0;
+    var combo = 0;
+    var comboTimer = 0;
+    var waveIndex = 0;
+    var nextWaveTime = 0;
+    var lastFrameTime = 0;
+    var gameTime = 0;
+    var screenShake = 0;
+
+    var entities = [];
+    var halves = [];
+    var particles = [];
+    var bubbles = [];
+    var swipePoints = [];
+    var swipeActive = false;
+    var popups = [];
+
+    var audioContext = null;
+
+    function getLocalized(key, fallback) {
+      if (window.WebLocale) {
+        return window.WebLocale.get(key, fallback);
+      }
+      return fallback;
+    }
+
+    function loadHighScore() {
+      try {
+        var stored = window.localStorage.getItem(HIGH_SCORE_STORAGE_KEY);
+        if (stored) {
+          var parsed = parseInt(stored, 10);
+          if (!isNaN(parsed) && parsed > 0) {
+            highScore = parsed;
+          }
+        }
+      } catch (ignored) {}
+      updateHighScoreHud();
+    }
+
+    function saveHighScore() {
+      if (score <= highScore) return false;
+      highScore = score;
+      try {
+        window.localStorage.setItem(HIGH_SCORE_STORAGE_KEY, String(highScore));
+      } catch (ignored) {}
+      updateHighScoreHud();
+      return true;
+    }
+
+    function tryUpdateHighScoreDuringPlay() {
+      if (score <= highScore) return;
+      highScore = score;
+      try {
+        window.localStorage.setItem(HIGH_SCORE_STORAGE_KEY, String(highScore));
+      } catch (ignored) {}
+      updateHighScoreHud();
+    }
+
+    function updateHighScoreHud() {
+      var label = getLocalized("web.game.best-label", "best");
+      hudHighScore.textContent = label + " " + highScore;
+      if (score > 0 && score >= highScore) {
+        hudHighScore.classList.add("is-record");
+      } else {
+        hudHighScore.classList.remove("is-record");
+      }
+    }
+
+    function getLivesText() {
+      var text = "";
+      var index;
+      for (index = 0; index < MAX_LIVES; index++) {
+        if (index > 0) text += " ";
+        text += index < lives ? "♥" : "♡";
+      }
+      return text;
+    }
+
+    function updateMissHud() {
+      if (!hudMisses) return;
+      hudMisses.textContent = "missed " + missCount;
+      if (missCount > 0) {
+        hudMisses.classList.add("has-misses");
+      } else {
+        hudMisses.classList.remove("has-misses");
+      }
+    }
+
+    function hasAliveEntities() {
+      var index;
+      for (index = 0; index < entities.length; index++) {
+        if (entities[index].alive) return true;
+      }
+      return false;
+    }
+
+    function finishWaveIfClear() {
+      if (waveActive && !hasAliveEntities()) {
+        waveActive = false;
+        if (wavePodTotal > 0 && wavePodMissed === 0 && wavePodSliced === wavePodTotal) {
+          var bonus = PERFECT_WAVE_BONUS * wavePodTotal;
+          score += bonus;
+          hudScore.textContent = String(score);
+          tryUpdateHighScoreDuringPlay();
+          popups.push({
+            x: viewWidth * 0.5,
+            y: viewHeight * 0.38,
+            text: "PERFECT! +" + bonus,
+            life: 1.1,
+            maxLife: 1.1,
+            scale: 1.35
+          });
+          screenShake = 6;
+          playSliceTone(6);
+        }
+        nextWaveTime = gameTime + WAVE_CLEAR_COOLDOWN;
+      }
+    }
+
+    function initAudio() {
+      if (audioContext) return;
+      try {
+        var AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          audioContext = new AudioCtx();
+        }
+      } catch (ignored) {}
+    }
+
+    function getSliceTonePitch(comboLevel) {
+      var steps = comboLevel - 1;
+      if (steps < 0) steps = 0;
+      if (steps > SLICE_TONE_MAX_STEPS) steps = SLICE_TONE_MAX_STEPS;
+      return SLICE_TONE_BASE_HZ * Math.pow(SLICE_TONE_STEP_RATIO, steps);
+    }
+
+    function resetSliceToneStagger() {
+      pendingSliceToneStagger = 0;
+    }
+
+    function playSliceTone(comboLevel) {
+      if (!audioContext) return;
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+      var level = comboLevel;
+      if (level < 1) level = 1;
+      var pitch = getSliceTonePitch(level);
+      var startPitch = pitch * (0.78 - Math.min(level * 0.008, 0.06));
+      if (startPitch < 80) startPitch = 80;
+      var endPitch = pitch * (0.62 - Math.min(level * 0.01, 0.1));
+      if (endPitch < 90) endPitch = 90;
+      var duration = 0.09 + Math.min(level * 0.005, 0.06);
+      var volume = 0.17 + Math.min(level * 0.008, 0.12);
+      var now = audioContext.currentTime + pendingSliceToneStagger;
+      pendingSliceToneStagger += SLICE_TONE_STAGGER_SEC;
+      var oscillator = audioContext.createOscillator();
+      var gainNode = audioContext.createGain();
+      oscillator.type = level >= 6 ? "triangle" : "sine";
+      oscillator.frequency.setValueAtTime(startPitch, now);
+      oscillator.frequency.exponentialRampToValueAtTime(pitch, now + duration * 0.45);
+      oscillator.frequency.exponentialRampToValueAtTime(endPitch, now + duration);
+      gainNode.gain.setValueAtTime(volume, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration + 0.05);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.start(now);
+      oscillator.stop(now + duration + 0.06);
+    }
+
+    function playBombTone() {
+      if (!audioContext) return;
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+      var oscillator = audioContext.createOscillator();
+      var gainNode = audioContext.createGain();
+      oscillator.type = "sawtooth";
+      oscillator.frequency.setValueAtTime(90, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(40, audioContext.currentTime + 0.25);
+      gainNode.gain.setValueAtTime(0.22, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.32);
+    }
+
+    function resizeCanvas() {
+      var rect = gameCanvas.getBoundingClientRect();
+      viewWidth = rect.width;
+      viewHeight = rect.height;
+      devicePixelRatioValue = Math.min(window.devicePixelRatio || 1, 2);
+      gameCanvas.width = Math.floor(viewWidth * devicePixelRatioValue);
+      gameCanvas.height = Math.floor(viewHeight * devicePixelRatioValue);
+      canvasContext = gameCanvas.getContext("2d");
+      canvasContext.setTransform(devicePixelRatioValue, 0, 0, devicePixelRatioValue, 0, 0);
+      initBackgroundBubbles();
+    }
+
+    function initBackgroundBubbles() {
+      bubbles = [];
+      var count = Math.floor((viewWidth * viewHeight) / 18000);
+      if (count < 12) count = 12;
+      if (count > 40) count = 40;
+      var index;
+      for (index = 0; index < count; index++) {
+        bubbles.push({
+          x: Math.random() * viewWidth,
+          y: Math.random() * viewHeight,
+          radius: 4 + Math.random() * 22,
+          speed: 8 + Math.random() * 18,
+          wobble: Math.random() * Math.PI * 2,
+          alpha: 0.06 + Math.random() * 0.14
+        });
+      }
+    }
+
+    function getPatternPositions(pattern, count, peakY) {
+      var positions = [];
+      var centerX = viewWidth * 0.5;
+      var spread = Math.min(viewWidth * 0.72, count * 72);
+      var startX = centerX - spread * 0.5;
+      var index;
+
+      if (pattern === PATTERN_LINE) {
+        for (index = 0; index < count; index++) {
+          var t = count === 1 ? 0.5 : index / (count - 1);
+          positions.push({
+            x: startX + spread * t,
+            y: peakY
+          });
+        }
+      } else if (pattern === PATTERN_ARC) {
+        var arcRadius = spread * 0.55;
+        for (index = 0; index < count; index++) {
+          var angle = Math.PI + (Math.PI * index) / Math.max(count - 1, 1);
+          positions.push({
+            x: centerX + Math.cos(angle) * arcRadius,
+            y: peakY - Math.sin(angle) * arcRadius * 0.45
+          });
+        }
+      } else if (pattern === PATTERN_V) {
+        var half = Math.floor(count / 2);
+        for (index = 0; index < count; index++) {
+          var side = index <= half ? index : count - 1 - index;
+          var dir = index <= half ? -1 : 1;
+          positions.push({
+            x: centerX + dir * side * (spread / Math.max(half, 1)) * 0.55,
+            y: peakY + side * 28
+          });
+        }
+      } else if (pattern === PATTERN_DIAMOND) {
+        var ring = [
+          { x: 0, y: -50 },
+          { x: -0.45, y: 0 },
+          { x: 0.45, y: 0 },
+          { x: 0, y: 40 },
+          { x: -0.7, y: -20 },
+          { x: 0.7, y: -20 }
+        ];
+        for (index = 0; index < count; index++) {
+          var slot = ring[index % ring.length];
+          positions.push({
+            x: centerX + slot.x * spread * 0.5,
+            y: peakY + slot.y
+          });
+        }
+      } else if (pattern === PATTERN_RING) {
+        for (index = 0; index < count; index++) {
+          var ringAngle = (Math.PI * 2 * index) / count - Math.PI * 0.5;
+          var ringR = spread * 0.38;
+          positions.push({
+            x: centerX + Math.cos(ringAngle) * ringR,
+            y: peakY + Math.sin(ringAngle) * ringR * 0.55
+          });
+        }
+      } else if (pattern === PATTERN_DOUBLE) {
+        var rowCount = Math.ceil(count / 2);
+        for (index = 0; index < count; index++) {
+          var row = index < rowCount ? 0 : 1;
+          var col = index < rowCount ? index : index - rowCount;
+          var cols = row === 0 ? rowCount : count - rowCount;
+          var colT = cols === 1 ? 0.5 : col / (cols - 1);
+          positions.push({
+            x: startX + spread * colT,
+            y: peakY + row * 55 - 28
+          });
+        }
+      } else {
+        for (index = 0; index < count; index++) {
+          positions.push({
+            x: startX + (spread * index) / Math.max(count - 1, 1),
+            y: peakY
+          });
+        }
+      }
+
+      return positions;
+    }
+
+    function pickPodType() {
+      var roll = Math.random();
+      if (roll < 0.06) return POD_TYPES[3];
+      if (roll < 0.22) return POD_TYPES[2];
+      if (roll < 0.52) return POD_TYPES[1];
+      return POD_TYPES[0];
+    }
+
+    function getPodShapeForSpawn(podType) {
+      var roll = Math.random();
+      if (podType.id === "bloom" && roll < 0.3) return "pear";
+      if (podType.id === "berry" && roll < 0.25) return "orb";
+      if (podType.id === "melon" && roll < 0.2) return "pear";
+      return podType.shape;
+    }
+
+    function createEntityFromTrajectory(spawnTime, peakX, peakY, peakTime, podType, isBomb) {
+      var startX = peakX + (Math.random() - 0.5) * 50;
+      var startY = viewHeight + 50 + Math.random() * 30;
+      var velocityX = (peakX - startX) / peakTime;
+      var velocityY = (peakY - startY - 0.5 * GRAVITY * peakTime * peakTime) / peakTime;
+      var type = isBomb ? BOMB_TYPE : podType;
+      return {
+        id: spawnTime + Math.random(),
+        spawnTime: spawnTime,
+        startX: startX,
+        startY: startY,
+        velocityX: velocityX,
+        velocityY: velocityY,
+        peakX: peakX,
+        peakY: peakY,
+        peakTime: peakTime,
+        startRot: (Math.random() - 0.5) * 0.6,
+        rotSpeed: (Math.random() - 0.5) * 5,
+        type: type,
+        shape: isBomb ? "bomb" : getPodShapeForSpawn(podType),
+        isBomb: isBomb,
+        radius: type.radius,
+        sliced: false,
+        missed: false,
+        alive: true,
+        wobblePhase: Math.random() * Math.PI * 2,
+        wobbleAmp: 3 + Math.random() * 5
+      };
+    }
+
+    function spawnWave(now) {
+      var pattern = PATTERNS[waveIndex % PATTERNS.length];
+      waveIndex++;
+      var difficulty = Math.min(waveIndex * 0.08, 1.4);
+      var count = 3 + Math.floor(waveIndex / 2);
+      if (count > 8) count = 8;
+      var peakY = viewHeight * (0.28 + Math.random() * 0.1);
+      var peakTime = 0.95 + Math.random() * 0.35 - difficulty * 0.08;
+      if (peakTime < 0.75) peakTime = 0.75;
+      var positions = getPatternPositions(pattern, count, peakY);
+      var hasBomb = waveIndex > 2 && Math.random() < 0.22 + difficulty * 0.08;
+      var bombIndex = hasBomb ? Math.floor(Math.random() * count) : -1;
+      waveActive = true;
+      wavePodTotal = 0;
+      wavePodSliced = 0;
+      wavePodMissed = 0;
+      var index;
+      for (index = 0; index < count; index++) {
+        var isBomb = index === bombIndex;
+        var podType = pickPodType();
+        if (!isBomb) {
+          wavePodTotal++;
+        }
+        entities.push(createEntityFromTrajectory(
+          now,
+          positions[index].x,
+          positions[index].y,
+          peakTime,
+          podType,
+          isBomb
+        ));
+      }
+    }
+
+    function getEntityPosition(entity, elapsed) {
+      var time = elapsed - entity.spawnTime;
+      if (time < 0) {
+        return null;
+      }
+      var x = entity.startX + entity.velocityX * time;
+      var y = entity.startY + entity.velocityY * time + 0.5 * GRAVITY * time * time;
+      var wobbleScale = 1;
+      if (time > entity.peakTime - 0.12 && time < entity.peakTime + 0.12) {
+        wobbleScale = 0.15;
+      }
+      var wobble = Math.sin(time * 6 + entity.wobblePhase) * entity.wobbleAmp * wobbleScale;
+      x += wobble;
+      var rotation = entity.startRot + entity.rotSpeed * time;
+      var velocityYNow = entity.velocityY + GRAVITY * time;
+      return { x: x, y: y, rotation: rotation, time: time, velocityY: velocityYNow };
+    }
+
+    function segmentCircleHit(x1, y1, x2, y2, centerX, centerY, radius) {
+      var deltaX = x2 - x1;
+      var deltaY = y2 - y1;
+      var fx = x1 - centerX;
+      var fy = y1 - centerY;
+      var a = deltaX * deltaX + deltaY * deltaY;
+      if (a < 0.001) {
+        var distSq = fx * fx + fy * fy;
+        return distSq <= radius * radius;
+      }
+      var b = 2 * (fx * deltaX + fy * deltaY);
+      var c = fx * fx + fy * fy - radius * radius;
+      var disc = b * b - 4 * a * c;
+      if (disc < 0) return false;
+      disc = Math.sqrt(disc);
+      var t1 = (-b - disc) / (2 * a);
+      var t2 = (-b + disc) / (2 * a);
+      if (t1 >= 0 && t1 <= 1) return true;
+      if (t2 >= 0 && t2 <= 1) return true;
+      if (t1 < 0 && t2 > 1) return true;
+      return false;
+    }
+
+    function enforceParticleCap() {
+      if (particles.length <= MAX_PARTICLES) return;
+      particles.splice(0, particles.length - MAX_PARTICLES);
+    }
+
+    function addJuiceParticles(x, y, juiceColor, count) {
+      var spawnCount = count;
+      if (spawnCount > 10) spawnCount = 10;
+      var index;
+      for (index = 0; index < spawnCount; index++) {
+        var angle = Math.random() * Math.PI * 2;
+        var speed = 70 + Math.random() * 200;
+        particles.push({
+          x: x,
+          y: y,
+          velocityX: Math.cos(angle) * speed,
+          velocityY: Math.sin(angle) * speed - 50,
+          life: 0.35 + Math.random() * 0.35,
+          maxLife: 0.35 + Math.random() * 0.35,
+          radius: 2 + Math.random() * 3.5,
+          color: juiceColor,
+          gravity: 680,
+          kind: "juice"
+        });
+      }
+      enforceParticleCap();
+    }
+
+    function addSplashRing(x, y, color) {
+      particles.push({
+        x: x,
+        y: y,
+        velocityX: 0,
+        velocityY: 0,
+        life: 0.28,
+        maxLife: 0.28,
+        radius: 8,
+        maxRadius: 42,
+        color: color,
+        gravity: 0,
+        kind: "ring"
+      });
+      enforceParticleCap();
+    }
+
+    function addSparkParticles(x, y, color) {
+      var index;
+      for (index = 0; index < 3; index++) {
+        var angle = Math.random() * Math.PI * 2;
+        var speed = 100 + Math.random() * 140;
+        particles.push({
+          x: x,
+          y: y,
+          velocityX: Math.cos(angle) * speed,
+          velocityY: Math.sin(angle) * speed,
+          life: 0.18 + Math.random() * 0.15,
+          maxLife: 0.18 + Math.random() * 0.15,
+          radius: 1 + Math.random() * 1.5,
+          color: color,
+          gravity: 0,
+          kind: "spark"
+        });
+      }
+      enforceParticleCap();
+    }
+
+    function getComboPraiseWord(comboLevel, slicesInSwipe) {
+      var index = comboLevel - 2;
+      if (slicesInSwipe >= 3) {
+        index += slicesInSwipe - 2;
+      }
+      if (index < 0) {
+        return "";
+      }
+      if (index >= COMBO_PRAISE_WORDS.length) {
+        return COMBO_PRAISE_WORDS[COMBO_PRAISE_WORDS.length - 1];
+      }
+      return COMBO_PRAISE_WORDS[index];
+    }
+
+    function addComboPraisePopup(comboLevel, slicesInSwipe, posX, posY) {
+      var word = getComboPraiseWord(comboLevel, slicesInSwipe);
+      if (!word) return;
+      var intensity = comboLevel + slicesInSwipe * 0.5;
+      popups.push({
+        x: posX,
+        y: posY - 36,
+        text: word,
+        life: 0.85 + Math.min(intensity * 0.05, 0.35),
+        maxLife: 0.85 + Math.min(intensity * 0.05, 0.35),
+        scale: 1.05 + Math.min(intensity * 0.07, 0.75),
+        kind: "praise"
+      });
+    }
+
+    function sliceEntity(entity, pos, sliceAngle) {
+      if (entity.sliced || !entity.alive) return;
+      entity.sliced = true;
+      entity.alive = false;
+
+      if (entity.isBomb) {
+        lives--;
+        hudLives.textContent = getLivesText();
+        screenShake = 14;
+        playBombTone();
+        addJuiceParticles(pos.x, pos.y, entity.type.juice, 20);
+        combo = 0;
+        comboTimer = 0;
+        hudCombo.classList.remove("is-visible");
+        if (lives <= 0) {
+          endGame();
+        }
+        return;
+      }
+
+      combo++;
+      comboTimer = COMBO_TIMEOUT_MS / 1000;
+      wavePodSliced++;
+      var comboMult = combo > 1 ? combo : 1;
+      var points = entity.type.score * comboMult;
+      score += points;
+      hudScore.textContent = String(score);
+      tryUpdateHighScoreDuringPlay();
+
+      if (combo > 1) {
+        hudCombo.textContent = getComboPraiseWord(combo, 1) + "  x" + combo;
+        if (hudCombo.textContent.indexOf("!") === -1) {
+          hudCombo.textContent = "combo x" + combo;
+        }
+        hudCombo.classList.add("is-visible");
+      }
+
+      popups.push({
+        x: pos.x,
+        y: pos.y - 20,
+        text: "+" + points,
+        life: 0.7,
+        maxLife: 0.7,
+        scale: 1 + combo * 0.04
+      });
+
+      if (combo >= 3) {
+        screenShake = 4 + combo * 0.5;
+      }
+
+      playSliceTone(combo);
+
+      var halfOffset = entity.radius * 0.55;
+      var normalX = Math.cos(sliceAngle);
+      var normalY = Math.sin(sliceAngle);
+      var entityVelocityY = pos.velocityY != null ? pos.velocityY : entity.velocityY;
+      halves.push({
+        x: pos.x,
+        y: pos.y,
+        velocityX: normalX * 180 + entity.velocityX * 0.3,
+        velocityY: normalY * 180 + entityVelocityY * 0.3,
+        rotation: pos.rotation,
+        rotSpeed: -4,
+        radius: entity.radius,
+        type: entity.type,
+        shape: entity.shape,
+        side: -1,
+        life: 1.1,
+        maxLife: 1.1
+      });
+      halves.push({
+        x: pos.x,
+        y: pos.y,
+        velocityX: -normalX * 180 + entity.velocityX * 0.3,
+        velocityY: -normalY * 180 + entityVelocityY * 0.3,
+        rotation: pos.rotation,
+        rotSpeed: 4,
+        radius: entity.radius,
+        type: entity.type,
+        shape: entity.shape,
+        side: 1,
+        life: 1.1,
+        maxLife: 1.1
+      });
+
+      addJuiceParticles(pos.x, pos.y, entity.type.juice, 5 + Math.min(combo, 4));
+      if (combo <= 3 || combo % 2 === 0) {
+        addSplashRing(pos.x, pos.y, entity.type.juice);
+      }
+      if (combo >= 4) {
+        addSparkParticles(pos.x, pos.y, "#ffffff");
+      }
+    }
+
+    function pointCircleHit(pointX, pointY, centerX, centerY, radius) {
+      var deltaX = pointX - centerX;
+      var deltaY = pointY - centerY;
+      return deltaX * deltaX + deltaY * deltaY <= radius * radius;
+    }
+
+    function getSwipeHitForEntity(entity) {
+      if (!entity.alive || entity.sliced) return null;
+      var pos = getEntityPosition(entity, gameTime);
+      if (!pos) return null;
+      if (pos.y > viewHeight + 100 || pos.y < -100) return null;
+
+      var hitRadius = entity.radius * SWIPE_HIT_PADDING;
+      var pointHitRadius = entity.radius * SWIPE_POINT_HIT_PADDING;
+      var minSwipeSpeed = SWIPE_MIN_SPEED;
+      var minSegmentDist = SWIPE_MIN_DIST;
+      if (entity.isBomb) {
+        hitRadius = entity.radius * BOMB_SWIPE_HIT_PADDING;
+        pointHitRadius = entity.radius * BOMB_SWIPE_POINT_HIT_PADDING;
+        minSwipeSpeed = BOMB_SWIPE_MIN_SPEED;
+        minSegmentDist = BOMB_SWIPE_MIN_DIST;
+      }
+      var centerHitRadius = entity.isBomb ? entity.radius * BOMB_SWIPE_CENTER_PADDING : 0;
+      var sliceAngle = 0;
+      var foundHit = false;
+      var pointIndex;
+      var segmentIndex;
+
+      if (pointHitRadius > 0) {
+        for (pointIndex = 0; pointIndex < swipePoints.length; pointIndex++) {
+          var swipePoint = swipePoints[pointIndex];
+          if (pointCircleHit(swipePoint.x, swipePoint.y, pos.x, pos.y, pointHitRadius)) {
+            foundHit = true;
+            if (pointIndex > 0) {
+              var prevPoint = swipePoints[pointIndex - 1];
+              sliceAngle = Math.atan2(swipePoint.y - prevPoint.y, swipePoint.x - prevPoint.x);
+            }
+          }
+        }
+      }
+
+      for (segmentIndex = 1; segmentIndex < swipePoints.length; segmentIndex++) {
+        var pointA = swipePoints[segmentIndex - 1];
+        var pointB = swipePoints[segmentIndex];
+        var deltaX = pointB.x - pointA.x;
+        var deltaY = pointB.y - pointA.y;
+        var dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        if (entity.isBomb) {
+          if (dist < minSegmentDist) continue;
+        } else if (dist < 3) {
+          continue;
+        }
+        var speed = dist / Math.max(pointB.time - pointA.time, 0.006);
+        if (entity.isBomb) {
+          var centerCut = segmentCircleHit(pointA.x, pointA.y, pointB.x, pointB.y, pos.x, pos.y, centerHitRadius);
+          var outerCut = segmentCircleHit(pointA.x, pointA.y, pointB.x, pointB.y, pos.x, pos.y, hitRadius);
+          if (centerCut && dist >= 6) {
+            foundHit = true;
+            sliceAngle = Math.atan2(deltaY, deltaX);
+          } else if (outerCut && speed >= minSwipeSpeed) {
+            foundHit = true;
+            sliceAngle = Math.atan2(deltaY, deltaX);
+          }
+        } else {
+          if (segmentCircleHit(pointA.x, pointA.y, pointB.x, pointB.y, pos.x, pos.y, hitRadius)) {
+            foundHit = true;
+            sliceAngle = Math.atan2(deltaY, deltaX);
+          }
+        }
+      }
+
+      if (!foundHit) return null;
+      return { pos: pos, sliceAngle: sliceAngle };
+    }
+
+    function testSwipeSlice() {
+      if (swipePoints.length < 1) return;
+      resetSliceToneStagger();
+      var entityIndex;
+      var slicesThisSwipe = 0;
+      var praiseX = viewWidth * 0.5;
+      var praiseY = viewHeight * 0.34;
+      var comboBeforeSwipe = combo;
+      for (entityIndex = entities.length - 1; entityIndex >= 0; entityIndex--) {
+        var entity = entities[entityIndex];
+        if (entity.isBomb) continue;
+        var hit = getSwipeHitForEntity(entity);
+        if (hit) {
+          sliceEntity(entity, hit.pos, hit.sliceAngle);
+          slicesThisSwipe++;
+          praiseX = hit.pos.x;
+          praiseY = hit.pos.y;
+        }
+      }
+      if (slicesThisSwipe >= 2) {
+        addComboPraisePopup(combo, slicesThisSwipe, praiseX, praiseY);
+        if (slicesThisSwipe >= 4) {
+          screenShake = 5 + slicesThisSwipe;
+        }
+      } else if (combo > comboBeforeSwipe && combo >= 2) {
+        addComboPraisePopup(combo, 1, praiseX, praiseY);
+      }
+      for (entityIndex = entities.length - 1; entityIndex >= 0; entityIndex--) {
+        var bombEntity = entities[entityIndex];
+        if (!bombEntity.isBomb) continue;
+        var bombHit = getSwipeHitForEntity(bombEntity);
+        if (bombHit) {
+          sliceEntity(bombEntity, bombHit.pos, bombHit.sliceAngle);
+        }
+      }
+    }
+
+    function trimSwipePoints() {
+      if (swipePoints.length <= SWIPE_POINTS_MAX) return;
+      var head = swipePoints.slice(0, SWIPE_HEAD_KEEP);
+      var tail = swipePoints.slice(swipePoints.length - SWIPE_TAIL_KEEP);
+      swipePoints = head.concat(tail);
+    }
+
+    function pushSwipePoint(pointX, pointY, pointTime) {
+      if (swipePoints.length === 0) {
+        swipePoints.push({ x: pointX, y: pointY, time: pointTime });
+        return;
+      }
+      var lastPoint = swipePoints[swipePoints.length - 1];
+      var deltaX = pointX - lastPoint.x;
+      var deltaY = pointY - lastPoint.y;
+      var distSq = deltaX * deltaX + deltaY * deltaY;
+      if (distSq < 1) return;
+      var dist = Math.sqrt(distSq);
+      var stepCount = Math.floor(dist / SWIPE_INTERPOLATE_STEP);
+      if (stepCount > 1) {
+        var stepIndex;
+        for (stepIndex = 1; stepIndex <= stepCount; stepIndex++) {
+          var stepT = stepIndex / stepCount;
+          swipePoints.push({
+            x: lastPoint.x + deltaX * stepT,
+            y: lastPoint.y + deltaY * stepT,
+            time: lastPoint.time + (pointTime - lastPoint.time) * stepT
+          });
+        }
+      } else {
+        swipePoints.push({ x: pointX, y: pointY, time: pointTime });
+      }
+      trimSwipePoints();
+    }
+
+    function getPointerPos(event) {
+      var rect = gameCanvas.getBoundingClientRect();
+      var clientX;
+      var clientY;
+      if (event.touches && event.touches.length > 0) {
+        clientX = event.touches[0].clientX;
+        clientY = event.touches[0].clientY;
+      } else if (event.changedTouches && event.changedTouches.length > 0) {
+        clientX = event.changedTouches[0].clientX;
+        clientY = event.changedTouches[0].clientY;
+      } else {
+        clientX = event.clientX;
+        clientY = event.clientY;
+      }
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    }
+
+    function onPointerDown(event) {
+      if (gameState === "menu" || gameState === "over") {
+        startGame();
+        return;
+      }
+      if (gameState !== "playing") return;
+      event.preventDefault();
+      initAudio();
+      swipeActive = true;
+      swipePoints = [];
+      var pos = getPointerPos(event);
+      pushSwipePoint(pos.x, pos.y, gameTime);
+    }
+
+    function onPointerMove(event) {
+      if (!swipeActive || gameState !== "playing") return;
+      event.preventDefault();
+      var pos = getPointerPos(event);
+      pushSwipePoint(pos.x, pos.y, gameTime);
+      if (combo > 0) {
+        comboTimer = COMBO_TIMEOUT_MS / 1000;
+      }
+      testSwipeSlice();
+    }
+
+    function onPointerUp(event) {
+      if (!swipeActive) return;
+      if (gameState === "playing") {
+        var pos = getPointerPos(event);
+        pushSwipePoint(pos.x, pos.y, gameTime);
+        testSwipeSlice();
+      }
+      swipeActive = false;
+    }
+
+    function hasFruitReachedFloor(entity, pos) {
+      if (!pos || entity.isBomb || entity.sliced) return false;
+      if (pos.time <= entity.peakTime) return false;
+      if (pos.velocityY <= 0) return false;
+      var fruitBottom = pos.y + entity.radius * 1.08;
+      return fruitBottom >= viewHeight - FLOOR_TOUCH_INSET;
+    }
+
+    function shouldRemoveEntityBelowScreen(entity, pos) {
+      if (!pos) return false;
+      if (pos.time <= entity.peakTime) return false;
+      return pos.y > viewHeight + entity.radius + 80;
+    }
+
+    function updateEntities(deltaTime) {
+      var index;
+      for (index = entities.length - 1; index >= 0; index--) {
+        var entity = entities[index];
+        if (!entity.alive) {
+          entities.splice(index, 1);
+          continue;
+        }
+        var pos = getEntityPosition(entity, gameTime);
+        if (!pos) continue;
+        if (hasFruitReachedFloor(entity, pos) && !entity.missed) {
+          entity.missed = true;
+          missCount++;
+          wavePodMissed++;
+          updateMissHud();
+          combo = 0;
+          comboTimer = 0;
+          hudCombo.classList.remove("is-visible");
+          entity.alive = false;
+        } else if (shouldRemoveEntityBelowScreen(entity, pos)) {
+          entity.alive = false;
+        }
+      }
+      finishWaveIfClear();
+    }
+
+    function updateHalves(deltaTime) {
+      var index;
+      for (index = halves.length - 1; index >= 0; index--) {
+        var half = halves[index];
+        half.life -= deltaTime;
+        half.velocityY += GRAVITY * deltaTime * 0.85;
+        half.x += half.velocityX * deltaTime;
+        half.y += half.velocityY * deltaTime;
+        half.rotation += half.rotSpeed * deltaTime;
+        if (half.life <= 0) {
+          halves.splice(index, 1);
+        }
+      }
+    }
+
+    function updateParticles(deltaTime) {
+      var index;
+      for (index = particles.length - 1; index >= 0; index--) {
+        var particle = particles[index];
+        particle.life -= deltaTime;
+        particle.velocityY += particle.gravity * deltaTime;
+        particle.x += particle.velocityX * deltaTime;
+        particle.y += particle.velocityY * deltaTime;
+        particle.velocityX *= 0.98;
+        if (particle.kind === "ring") {
+          var grow = 1 - particle.life / particle.maxLife;
+          particle.radius = 8 + (particle.maxRadius - 8) * grow;
+        }
+        if (particle.life <= 0) {
+          particles.splice(index, 1);
+        }
+      }
+    }
+
+    function updatePopups(deltaTime) {
+      var index;
+      for (index = popups.length - 1; index >= 0; index--) {
+        popups[index].life -= deltaTime;
+        popups[index].y -= 40 * deltaTime;
+        if (popups[index].life <= 0) {
+          popups.splice(index, 1);
+        }
+      }
+    }
+
+    function updateBubbles(deltaTime) {
+      var index;
+      for (index = 0; index < bubbles.length; index++) {
+        var bubble = bubbles[index];
+        bubble.y -= bubble.speed * deltaTime;
+        bubble.x += Math.sin(gameTime * 0.5 + bubble.wobble) * 12 * deltaTime;
+        if (bubble.y < -bubble.radius * 2) {
+          bubble.y = viewHeight + bubble.radius;
+          bubble.x = Math.random() * viewWidth;
+        }
+      }
+    }
+
+    function drawBackground() {
+      var ctx = canvasContext;
+      var gradient = ctx.createLinearGradient(0, 0, 0, viewHeight);
+      gradient.addColorStop(0, "#1a6888");
+      gradient.addColorStop(0.35, "#2898b0");
+      gradient.addColorStop(0.65, "#48c8a8");
+      gradient.addColorStop(1, "#186858");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, viewWidth, viewHeight);
+
+      var glow = ctx.createRadialGradient(viewWidth * 0.5, viewHeight * 0.2, 0, viewWidth * 0.5, viewHeight * 0.35, viewWidth * 0.7);
+      glow.addColorStop(0, "rgba(255,255,255,0.18)");
+      glow.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, viewWidth, viewHeight);
+
+      var index;
+      for (index = 0; index < bubbles.length; index++) {
+        var bubble = bubbles[index];
+        ctx.beginPath();
+        ctx.arc(bubble.x, bubble.y, bubble.radius, 0, Math.PI * 2);
+        var bubbleGrad = ctx.createRadialGradient(
+          bubble.x - bubble.radius * 0.3,
+          bubble.y - bubble.radius * 0.35,
+          0,
+          bubble.x,
+          bubble.y,
+          bubble.radius
+        );
+        bubbleGrad.addColorStop(0, "rgba(255,255,255," + (bubble.alpha + 0.12) + ")");
+        bubbleGrad.addColorStop(0.5, "rgba(180,240,255," + bubble.alpha + ")");
+        bubbleGrad.addColorStop(1, "rgba(80,180,220,0)");
+        ctx.fillStyle = bubbleGrad;
+        ctx.fill();
+      }
+
+      drawAlienFloraBase();
+    }
+
+    function drawAlienFloraBase() {
+      var ctx = canvasContext;
+      var baseY = viewHeight - 8;
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      var index;
+      for (index = 0; index < 7; index++) {
+        var x = (viewWidth / 6) * index;
+        var height = 40 + Math.sin(index * 1.7) * 25;
+        var grad = ctx.createLinearGradient(x, baseY, x, baseY - height);
+        grad.addColorStop(0, "#0a4038");
+        grad.addColorStop(1, "#28a878");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(x - 18, baseY);
+        ctx.quadraticCurveTo(x - 8, baseY - height * 0.6, x, baseY - height);
+        ctx.quadraticCurveTo(x + 12, baseY - height * 0.5, x + 22, baseY);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawBomb(ctx, x, y, radius, rotation, pulsePhase) {
+      var pulse = 0.5 + 0.5 * Math.sin(gameTime * 9.5 + pulsePhase);
+      var pulseFast = 0.55 + 0.45 * Math.sin(gameTime * 17 + pulsePhase * 1.7);
+      var glowRadius = radius * (1.45 + pulse * 0.22);
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+
+      ctx.globalAlpha = 0.18 + pulse * 0.22;
+      ctx.fillStyle = "rgba(255, 20, 20, 1)";
+      ctx.shadowColor = "rgba(255, 40, 40, 0.95)";
+      ctx.shadowBlur = radius * (1.6 + pulse * 1.1);
+      ctx.beginPath();
+      ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+
+      ctx.strokeStyle = "rgba(255, 60, 60, " + (0.35 + pulse * 0.45) + ")";
+      ctx.lineWidth = 2.5 + pulse * 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * (1.18 + pulse * 0.1), 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.beginPath();
+      var spike;
+      for (spike = 0; spike < 12; spike++) {
+        var angle = (Math.PI * 2 * spike) / 12;
+        var outer = radius * (spike % 2 === 0 ? 1.2 : 0.9);
+        var px = Math.cos(angle) * outer;
+        var py = Math.sin(angle) * outer * 1.05;
+        if (spike === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+
+      ctx.shadowColor = "rgba(255, 30, 30, " + (0.55 + pulse * 0.4) + ")";
+      ctx.shadowBlur = radius * (0.7 + pulse * 0.5);
+      var bodyGrad = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius * 1.15);
+      bodyGrad.addColorStop(0, "#ff5050");
+      bodyGrad.addColorStop(0.35, "#c01020");
+      bodyGrad.addColorStop(0.72, "#600810");
+      bodyGrad.addColorStop(1, "#180004");
+      ctx.fillStyle = bodyGrad;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = "rgba(255, 80, 80, " + (0.25 + pulseFast * 0.35) + ")";
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(255, " + Math.floor(40 + pulseFast * 80) + ", " + Math.floor(40 + pulseFast * 60) + ", " + (0.7 + pulse * 0.3) + ")";
+      ctx.shadowColor = "rgba(255, 60, 60, 0.9)";
+      ctx.shadowBlur = 8 + pulse * 10;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * (0.22 + pulseFast * 0.06), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.strokeStyle = "rgba(255, 220, 220, " + (0.75 + pulse * 0.25) + ")";
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(-radius * 0.28, -radius * 0.28);
+      ctx.lineTo(radius * 0.28, radius * 0.28);
+      ctx.moveTo(radius * 0.28, -radius * 0.28);
+      ctx.lineTo(-radius * 0.28, radius * 0.28);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(80, 0, 0, 0.85)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-radius * 0.15, 0);
+      ctx.lineTo(radius * 0.15, 0);
+      ctx.moveTo(0, -radius * 0.15);
+      ctx.lineTo(0, radius * 0.15);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function tracePodShape(ctx, shape, radius, isHalf) {
+      if (isHalf) {
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, -Math.PI * 0.5, Math.PI * 0.5);
+        ctx.closePath();
+        return;
+      }
+
+      ctx.beginPath();
+      if (shape === "bloom") {
+        var petal;
+        for (petal = 0; petal < 5; petal++) {
+          var petalAngle = (Math.PI * 2 * petal) / 5 - Math.PI * 0.5;
+          var tipX = Math.cos(petalAngle) * radius * 0.95;
+          var tipY = Math.sin(petalAngle) * radius * 0.95;
+          var leftX = Math.cos(petalAngle - 0.55) * radius * 0.42;
+          var leftY = Math.sin(petalAngle - 0.55) * radius * 0.42;
+          var rightX = Math.cos(petalAngle + 0.55) * radius * 0.42;
+          var rightY = Math.sin(petalAngle + 0.55) * radius * 0.42;
+          ctx.moveTo(leftX, leftY);
+          ctx.quadraticCurveTo(Math.cos(petalAngle) * radius * 1.15, Math.sin(petalAngle) * radius * 1.15, tipX, tipY);
+          ctx.quadraticCurveTo(Math.cos(petalAngle) * radius * 1.15, Math.sin(petalAngle) * radius * 1.15, rightX, rightY);
+        }
+        ctx.closePath();
+      } else if (shape === "heart") {
+        ctx.moveTo(0, radius * 0.4);
+        ctx.bezierCurveTo(radius * 0.15, -radius * 0.15, radius * 0.95, -radius * 0.1, 0, -radius * 1.05);
+        ctx.bezierCurveTo(-radius * 0.95, -radius * 0.1, -radius * 0.15, -radius * 0.15, 0, radius * 0.4);
+        ctx.closePath();
+      } else if (shape === "capsule") {
+        ctx.ellipse(0, 0, radius * 0.68, radius * 1.14, 0, 0, Math.PI * 2);
+      } else if (shape === "star") {
+        var point;
+        for (point = 0; point < 10; point++) {
+          var starAngle = (Math.PI * 2 * point) / 10 - Math.PI * 0.5;
+          var starR = point % 2 === 0 ? radius * 1.08 : radius * 0.46;
+          var starX = Math.cos(starAngle) * starR;
+          var starY = Math.sin(starAngle) * starR;
+          if (point === 0) ctx.moveTo(starX, starY);
+          else ctx.lineTo(starX, starY);
+        }
+        ctx.closePath();
+      } else if (shape === "pear") {
+        ctx.moveTo(0, -radius * 1.12);
+        ctx.bezierCurveTo(radius * 0.92, -radius * 0.45, radius * 0.88, radius * 0.58, 0, radius * 1.05);
+        ctx.bezierCurveTo(-radius * 0.88, radius * 0.58, -radius * 0.92, -radius * 0.45, 0, -radius * 1.12);
+        ctx.closePath();
+      } else {
+        ctx.ellipse(0, 0, radius, radius * 1.08, 0, 0, Math.PI * 2);
+      }
+    }
+
+    function drawPod(ctx, x, y, radius, rotation, podType, shape, isHalf, side) {
+      var podShape = shape || podType.shape || "orb";
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+      if (isHalf) {
+        ctx.scale(side, 1);
+      }
+      tracePodShape(ctx, podShape, radius, isHalf);
+
+      ctx.shadowColor = podType.glow;
+      ctx.shadowBlur = radius * 0.9;
+      var bodyGrad = ctx.createRadialGradient(-radius * 0.28, -radius * 0.32, radius * 0.05, 0, 0, radius * 1.15);
+      bodyGrad.addColorStop(0, podType.highlight);
+      bodyGrad.addColorStop(0.35, podType.mid);
+      bodyGrad.addColorStop(1, podType.shadow);
+      ctx.fillStyle = bodyGrad;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      if (isHalf) {
+        ctx.fillStyle = podType.pulp;
+        ctx.beginPath();
+        ctx.ellipse(radius * 0.15, 0, radius * 0.35, radius * 0.55, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      var specGrad = ctx.createRadialGradient(-radius * 0.35, -radius * 0.42, 0, -radius * 0.15, -radius * 0.25, radius * 0.55);
+      specGrad.addColorStop(0, "rgba(255,255,255,0.88)");
+      specGrad.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = specGrad;
+      tracePodShape(ctx, podShape, radius, isHalf);
+      ctx.fill();
+
+      if (!isHalf && podType.id !== "thorn") {
+        ctx.strokeStyle = "rgba(255,255,255,0.25)";
+        ctx.lineWidth = 1.5;
+        if (podShape === "bloom" || podShape === "star") {
+          ctx.beginPath();
+          ctx.arc(0, -radius * 0.15, radius * 0.12, 0, Math.PI * 2);
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(0, -radius * 0.5);
+          ctx.quadraticCurveTo(radius * 0.4, -radius * 0.9, radius * 0.15, -radius * 1.25);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(-radius * 0.1, -radius * 0.55);
+          ctx.quadraticCurveTo(-radius * 0.45, -radius * 0.85, -radius * 0.2, -radius * 1.15);
+          ctx.stroke();
+        }
+      }
+
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = "rgba(255,255,255,0.6)";
+      ctx.lineWidth = 2;
+      tracePodShape(ctx, podShape, radius, isHalf);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      ctx.restore();
+    }
+
+    function drawSwipeTrail() {
+      if (swipePoints.length < 2) return;
+      var ctx = canvasContext;
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      var index;
+      for (index = 1; index < swipePoints.length; index++) {
+        var prev = swipePoints[index - 1];
+        var curr = swipePoints[index];
+        var t = index / swipePoints.length;
+        var width = 3 + t * 10;
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        ctx.lineTo(curr.x, curr.y);
+        ctx.strokeStyle = "rgba(255,255,255," + (0.25 + t * 0.55) + ")";
+        ctx.lineWidth = width;
+        ctx.shadowColor = "rgba(120,255,255,0.9)";
+        ctx.shadowBlur = 12 + t * 8;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        ctx.lineTo(curr.x, curr.y);
+        ctx.strokeStyle = "rgba(180,255,255," + (0.15 + t * 0.45) + ")";
+        ctx.lineWidth = width * 0.45;
+        ctx.shadowBlur = 6;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawParticlesLayer() {
+      var ctx = canvasContext;
+      var index;
+      for (index = 0; index < particles.length; index++) {
+        var particle = particles[index];
+        var alpha = particle.life / particle.maxLife;
+        ctx.globalAlpha = alpha;
+        if (particle.kind === "juice") {
+          ctx.fillStyle = particle.color;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (particle.kind === "ring") {
+          ctx.strokeStyle = particle.color;
+          ctx.lineWidth = 2.5 * alpha;
+          ctx.globalAlpha = alpha * 0.65;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = particle.color;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawPopups() {
+      var ctx = canvasContext;
+      var index;
+      for (index = 0; index < popups.length; index++) {
+        var popup = popups[index];
+        var alpha = popup.life / popup.maxLife;
+        var scale = popup.scale * (0.8 + alpha * 0.4);
+        ctx.save();
+        ctx.translate(popup.x, popup.y);
+        ctx.scale(scale, scale);
+        ctx.globalAlpha = alpha;
+        if (popup.kind === "praise") {
+          ctx.font = "bold " + Math.floor(24 + popup.scale * 8) + "px Segoe UI, sans-serif";
+          ctx.fillStyle = "#fffef0";
+          ctx.shadowColor = "rgba(255, 220, 100, 0.95)";
+          ctx.shadowBlur = 16 + popup.scale * 6;
+        } else {
+          ctx.font = "bold 22px Segoe UI, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillStyle = "#fff8c0";
+          ctx.shadowColor = "rgba(255,200,80,0.8)";
+          ctx.shadowBlur = 10;
+        }
+        ctx.textAlign = "center";
+        ctx.fillText(popup.text, 0, 0);
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function renderFrame() {
+      var ctx = canvasContext;
+      if (gameState !== "playing") {
+        ctx.save();
+        drawBackground();
+        ctx.restore();
+        return;
+      }
+      var shakeX = 0;
+      var shakeY = 0;
+      if (screenShake > 0.1) {
+        shakeX = (Math.random() - 0.5) * screenShake;
+        shakeY = (Math.random() - 0.5) * screenShake;
+        screenShake *= 0.82;
+      } else {
+        screenShake = 0;
+      }
+
+      ctx.save();
+      ctx.translate(shakeX, shakeY);
+      drawBackground();
+
+      var index;
+      for (index = 0; index < entities.length; index++) {
+        var entity = entities[index];
+        if (!entity.alive) continue;
+        var pos = getEntityPosition(entity, gameTime);
+        if (!pos) continue;
+        if (entity.isBomb) {
+          drawBomb(ctx, pos.x, pos.y, entity.radius, pos.rotation, entity.wobblePhase);
+        } else {
+          drawPod(ctx, pos.x, pos.y, entity.radius, pos.rotation, entity.type, entity.shape, false, 0);
+        }
+      }
+
+      for (index = 0; index < halves.length; index++) {
+        var half = halves[index];
+        var alpha = half.life / half.maxLife;
+        ctx.globalAlpha = alpha;
+        drawPod(ctx, half.x, half.y, half.radius, half.rotation, half.type, half.shape, true, half.side);
+      }
+      ctx.globalAlpha = 1;
+
+      drawParticlesLayer();
+      drawSwipeTrail();
+      drawPopups();
+      ctx.restore();
+    }
+
+    function updateGame(deltaTime) {
+      if (gameState !== "playing") return;
+
+      gameTime += deltaTime;
+
+      if (comboTimer > 0) {
+        comboTimer -= deltaTime;
+        if (comboTimer <= 0) {
+          combo = 0;
+          hudCombo.classList.remove("is-visible");
+        }
+      }
+
+      if (!waveActive && !hasAliveEntities() && gameTime >= nextWaveTime) {
+        spawnWave(gameTime);
+      }
+
+      updateEntities(deltaTime);
+      updateHalves(deltaTime);
+      updateParticles(deltaTime);
+      updatePopups(deltaTime);
+      updateBubbles(deltaTime);
+    }
+
+    function gameLoop(timestamp) {
+      if (!lastFrameTime) lastFrameTime = timestamp;
+      var deltaTime = (timestamp - lastFrameTime) / 1000;
+      if (deltaTime > 0.05) deltaTime = 0.05;
+      lastFrameTime = timestamp;
+
+      updateGame(deltaTime);
+      renderFrame();
+      window.requestAnimationFrame(gameLoop);
+    }
+
+    function resetGameState() {
+      score = 0;
+      lives = MAX_LIVES;
+      missCount = 0;
+      waveActive = false;
+      wavePodTotal = 0;
+      wavePodSliced = 0;
+      wavePodMissed = 0;
+      combo = 0;
+      comboTimer = 0;
+      waveIndex = 0;
+      gameTime = 0;
+      nextWaveTime = 0.6;
+      screenShake = 0;
+      entities = [];
+      halves = [];
+      particles = [];
+      swipePoints = [];
+      popups = [];
+      swipeActive = false;
+      hudScore.textContent = "0";
+      hudLives.textContent = getLivesText();
+      updateMissHud();
+      hudCombo.classList.remove("is-visible");
+    }
+
+    function startGame() {
+      initAudio();
+      runStartHighScore = highScore;
+      resetGameState();
+      gameState = "playing";
+      gameScreen.classList.add("hidden");
+      gameScreen.classList.remove("is-record");
+      waveActive = true;
+      spawnWave(0);
+      nextWaveTime = 99999;
+    }
+
+    function endGame() {
+      gameState = "over";
+      popups = [];
+      particles = [];
+      halves = [];
+      entities = [];
+      screenShake = 0;
+      swipePoints = [];
+      swipeActive = false;
+      var isNewRecord = score > 0 && score > runStartHighScore;
+      saveHighScore();
+      updateHighScoreHud();
+      gameScreen.classList.remove("hidden");
+      gameScreen.classList.remove("is-record");
+      var bestLabel = getLocalized("web.game.best-label", "best");
+      var statsSeparator = getLocalized("web.game.stats-separator", " · ");
+      if (isNewRecord) {
+        gameScreen.classList.add("is-record");
+        screenTitle.textContent = getLocalized("web.game.new-record", "NEW RECORD!");
+        screenSubtitle.textContent = getLocalized("web.game.record-congrats", "Excellent harvest!");
+        screenScore.textContent = score + " pts" + statsSeparator + bestLabel + " " + highScore;
+      } else {
+        screenTitle.textContent = getLocalized("web.game.game-over", "Game Over");
+        screenSubtitle.textContent = GAME_TITLE;
+        screenScore.textContent = score + " pts" + statsSeparator + bestLabel + " " + highScore;
+      }
+      if (missCount > 0) {
+        screenScore.textContent = screenScore.textContent + statsSeparator + "missed " + missCount;
+      }
+      controlHint.textContent = getLocalized("web.game.prompt.click-retry", "CLICK TO TRY AGAIN");
+      screenScore.classList.remove("hidden");
+    }
+
+    function showMenu() {
+      gameState = "menu";
+      gameScreen.classList.remove("hidden");
+      gameScreen.classList.remove("is-record");
+      screenTitle.textContent = GAME_TITLE;
+      screenSubtitle.textContent = "Xeno Flora Harvest";
+      var bestLabel = getLocalized("web.game.best-label", "best");
+      if (highScore > 0) {
+        screenScore.textContent = bestLabel + " " + highScore;
+        screenScore.classList.remove("hidden");
+      } else {
+        screenScore.classList.add("hidden");
+      }
+      controlHint.textContent = getLocalized("web.game.prompt.click-start", "CLICK TO START");
+    }
+
+    function bindEvents() {
+      gameCanvas.addEventListener("mousedown", onPointerDown);
+      window.addEventListener("mousemove", onPointerMove);
+      window.addEventListener("mouseup", onPointerUp);
+      gameCanvas.addEventListener("touchstart", onPointerDown, { passive: false });
+      gameCanvas.addEventListener("touchmove", onPointerMove, { passive: false });
+      window.addEventListener("touchend", onPointerUp);
+      window.addEventListener("touchcancel", onPointerUp);
+      window.addEventListener("resize", resizeCanvas);
+    }
+
+    function init() {
+      loadHighScore();
+      resizeCanvas();
+      bindEvents();
+      showMenu();
+      window.requestAnimationFrame(gameLoop);
+    }
+
+    init();
+  </script>
+</body>
+</html>
