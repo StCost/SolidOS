@@ -68,6 +68,7 @@
     <canvas id="gameCanvas"></canvas>
     <div id="actionFlash"></div>
   </div>
+  <script src="../extras-game-start-music-notify.js"></script>
   <script>
     (function () {
       var canvas = document.getElementById("gameCanvas");
@@ -1166,6 +1167,9 @@
       canvas.addEventListener("lostpointercapture", onPointerCancel);
 
       initGame();
+      if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
+        window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
+      }
     })();
   </script>
 </body>

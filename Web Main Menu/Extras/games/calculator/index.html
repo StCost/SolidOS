@@ -336,6 +336,7 @@
     </div>
   </div>
 
+  <script src="../extras-game-start-music-notify.js"></script>
   <script>
     (function () {
       var TOKEN_NUMBER = "number";
@@ -1187,6 +1188,9 @@
       updateAngleModeButton();
       updateMemoryIndicator();
       clearAll();
+      if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
+        window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
+      }
     })();
   </script>
 </body>

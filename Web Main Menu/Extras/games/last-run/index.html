@@ -425,6 +425,7 @@
       <div id="recordBurst" aria-hidden="true"></div>
     </div>
   </div>
+  <script src="../extras-game-start-music-notify.js"></script>
   <script>
     var HIGH_SCORE_STORAGE_KEY = "cm-last-run-high-score";
     var GAME_TITLE = "Last Run";
@@ -980,6 +981,9 @@
       runnerWrap.classList.remove("is-dead");
       runnerFollowers.style.visibility = "visible";
       positionRunnerDom();
+      if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
+        window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
+      }
     }
 
     function showGameOverScreen(newRecord) {
@@ -1277,6 +1281,9 @@
     function startGame() {
       if (isPlaying()) return;
       resetGame();
+      if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
+        window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
+      }
     }
 
     function endGame() {
