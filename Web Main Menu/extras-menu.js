@@ -713,6 +713,10 @@
   if (btnArtViewerClose) btnArtViewerClose.addEventListener("click", closeArtViewer);
 
   bindIframeEmbedReset(gameFrame);
+  if (window.WebGameFrameLocaleHost) {
+    window.WebGameFrameLocaleHost.setGameFrame(gameFrame);
+    window.WebGameFrameLocaleHost.bindGameFrameLocale(gameFrame);
+  }
 
   if (gamesListRoot) gamesListRoot.addEventListener("click", onGamesListClick);
   if (linksListRoot) linksListRoot.addEventListener("click", onLinksListClick);
