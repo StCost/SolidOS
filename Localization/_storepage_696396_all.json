@@ -233,5 +233,6 @@
       "app[content][sysreqs][windows][min][graphics]": "NVIDIA GeForce GTX 960 4 GB / AMD Radeon RX 570 4 GB",
       "app[content][sysreqs][windows][min][soundcard]": "DirectX-compatible"
     }
-  }
+  },
+  "web.game.label.bonus": "bonus"
 }

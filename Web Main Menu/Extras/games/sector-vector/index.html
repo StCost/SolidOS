@@ -254,6 +254,7 @@
 
     var PHASE_START = "start";
     var PHASE_PLAYING = "playing";
+    var PHASE_DEATH = "death";
     var PHASE_GAME_OVER = "gameover";
 
     var SECTOR_COUNT = 8;
@@ -309,6 +310,7 @@
     var tunnelScale = 1;
 
     var gamePhase = PHASE_START;
+    var finalDistanceUnits = 0;
     var forwardSpeed = 14;
     var forwardSpeedBase = 14;
     var distanceUnits = 0;
@@ -514,6 +516,10 @@
       event.preventDefault();
       if (isStart() || isGameOver()) {
         startPlaying();
+        return;
+      }
+      if (isDeath()) {
+        return;
       }
       setSteerKeyFromEvent(event, true);
       focusGameRoot();
@@ -540,6 +546,10 @@
 
     function isGameOver() {
       return gamePhase === PHASE_GAME_OVER;
+    }
+
+    function isDeath() {
+      return gamePhase === PHASE_DEATH;
     }
 
     function clamp(value, minValue, maxValue) {
@@ -729,7 +739,7 @@
       hudPlaying.classList.add("hidden");
     }
 
-    function showGameOverScreen(isRecord) {
+    function showGameOverScreen(isRecord, displayDistanceUnits) {
       gamePhase = PHASE_GAME_OVER;
       clearSteerKeys();
       clearPointerSteer();
@@ -737,7 +747,8 @@
       screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
       controlHint.textContent = getClickSteerHint();
       controlHint.classList.remove("hidden");
-      screenMeters.textContent = formatDistanceText(distanceUnits);
+      var distanceForDisplay = displayDistanceUnits != null ? displayDistanceUnits : distanceUnits;
+      screenMeters.textContent = formatDistanceText(distanceForDisplay);
       screenMeters.classList.remove("hidden");
       hudPlaying.classList.add("hidden");
       if (isRecord) {
@@ -898,6 +909,10 @@
       activePointerId = event.pointerId;
       if (isStart() || isGameOver()) {
         startPlaying();
+        return;
+      }
+      if (isDeath()) {
+        return;
       }
       point = getScreenPointFromEvent(event);
       applyScreenSteer(point.x, point.y);
@@ -1062,12 +1077,18 @@
     }
 
     function killPlayer() {
+      if (isDeath() || isGameOver()) {
+        return;
+      }
       triggerDamageFlash();
+      finalDistanceUnits = distanceUnits;
       var isRecord = saveHighScoreIfNeeded();
+      gamePhase = PHASE_DEATH;
+      clearSteerKeys();
+      clearPointerSteer();
       window.setTimeout(function () {
-        showGameOverScreen(isRecord);
+        showGameOverScreen(isRecord, finalDistanceUnits);
       }, 420);
-      gamePhase = PHASE_GAME_OVER;
     }
 
     function update(deltaSeconds) {
@@ -1380,7 +1401,7 @@
         screenTitle.textContent = getGameTitle();
       } else if (isGameOver()) {
         screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
-        screenMeters.textContent = formatDistanceText(distanceUnits);
+        screenMeters.textContent = formatDistanceText(finalDistanceUnits);
       }
       controlHint.textContent = getClickSteerHint();
       syncHighScoreHud(gameScreen.classList.contains("is-record"));

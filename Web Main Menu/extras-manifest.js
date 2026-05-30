@@ -23,13 +23,6 @@
         difficulty: 2
       },
       {
-        id: "sector-vector",
-        title: "Sector Vector",
-        path: "Extras/games/sector-vector/index.html",
-        image: "Extras/games/sector-vector/sector-vector-preview.png",
-        difficulty: 3
-      },
-      {
         id: "last-run",
         title: "Last Run",
         path: "Extras/games/last-run/index.html",
@@ -48,6 +41,13 @@
         title: "Trouble Drivers",
         path: "Extras/games/crystal-rush/index.html",
         image: "Extras/games/crystal-rush/crystal-rush-preview.png",
+        difficulty: 5
+      },
+      {
+        id: "sector-vector",
+        title: "Sector Vector",
+        path: "Extras/games/sector-vector/index.html",
+        image: "Extras/games/sector-vector/sector-vector-preview.png",
         difficulty: 5
       },
       {
