@@ -49,6 +49,20 @@
         path: "Extras/games/playing-cards/index.html",
         image: "Extras/games/playing-cards/playing-cards-preview.png",
         difficulty: 0
+      },
+      {
+        id: "tunnel-drift",
+        title: "Tunnel Drift",
+        path: "Extras/games/tunnel-drift/index.html",
+        image: "Extras/games/tunnel-drift/tunnel-drift-preview.png",
+        difficulty: 3
+      },
+      {
+        id: "alien-slice",
+        title: "Alien Slice",
+        path: "Extras/games/alien-slice/index.html",
+        image: "Extras/games/alien-slice/alien-slice-preview.png",
+        difficulty: 2
       }
     ],
     art: [
