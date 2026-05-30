@@ -30,6 +30,13 @@
         difficulty: 3
       },
       {
+        id: "airborne-robot",
+        title: "Airborne Robot",
+        path: "Extras/games/airborne-robot/index.html",
+        image: "Extras/games/airborne-robot/airborne-robot-preview.png",
+        difficulty: 4
+      },
+      {
         id: "blackhole-golf",
         title: "Orbital Golf",
         path: "Extras/games/blackhole-golf/index.html",
