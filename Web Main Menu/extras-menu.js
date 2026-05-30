@@ -7,6 +7,13 @@
   var VIEW_GAME = "game";
   var VIEW_LINKS = "links";
 
+  var LOCALE_KEY_NAV_GAMES = "web.extras.nav.games";
+  var LOCALE_KEY_NAV_ART = "web.extras.nav.art";
+  var LOCALE_KEY_NAV_LINKS = "web.extras.nav.links";
+  var NAV_GAMES_FALLBACK = "Games";
+  var NAV_ART_FALLBACK = "Art";
+  var NAV_LINKS_FALLBACK = "Links";
+
   var currentView = VIEW_GAMES;
   var pendingExternalUrl = "";
   var pendingExternalLabel = "";
@@ -74,6 +81,31 @@
   function getManifest() {
     if (window.WebExtrasManifest) return window.WebExtrasManifest;
     return { games: [], art: [] };
+  }
+
+  function setExtrasNavTabLabel(tabId, localeKey, fallback, count) {
+    if (!extrasNav) return;
+    var tabButton = extrasNav.querySelector(
+      '.extras-nav-tab[data-extras-tab="' + tabId + '"]'
+    );
+    if (!tabButton) return;
+    var titleElement = tabButton.querySelector(".extras-nav-tab-title");
+    var countElement = tabButton.querySelector(".extras-nav-tab-count");
+    if (!titleElement || !countElement) return;
+    var label = getLocalized(localeKey, fallback);
+    titleElement.textContent = label;
+    countElement.textContent = "(" + count + ")";
+    tabButton.setAttribute("aria-label", label + " (" + count + ")");
+  }
+
+  function updateExtrasNavTabLabels() {
+    var manifest = getManifest();
+    var games = manifest.games || [];
+    var artItems = manifest.art || [];
+    var links = getLinks();
+    setExtrasNavTabLabel(VIEW_GAMES, LOCALE_KEY_NAV_GAMES, NAV_GAMES_FALLBACK, games.length);
+    setExtrasNavTabLabel(VIEW_ART, LOCALE_KEY_NAV_ART, NAV_ART_FALLBACK, artItems.length);
+    setExtrasNavTabLabel(VIEW_LINKS, LOCALE_KEY_NAV_LINKS, NAV_LINKS_FALLBACK, links.length);
   }
 
   function notifyRouteChanged() {
@@ -463,6 +495,7 @@
     renderArt();
     renderGames();
     renderLinks();
+    updateExtrasNavTabLabels();
     if (currentView === VIEW_GAME) {
       showView(VIEW_GAME, false);
     } else if (currentView) {
