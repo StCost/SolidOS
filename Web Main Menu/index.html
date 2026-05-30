@@ -37,6 +37,7 @@
   <script src="menu-music.js" defer></script>
   <script src="extras-game-start-music.js" defer></script>
   <script src="menu-common.js" defer></script>
+  <script src="iframe-game-locale-host.js" defer></script>
   <script src="extras-menu.js" defer></script>
   <script src="menu-route.js" defer></script>
   <script src="menu-title-fx.js" defer></script>
@@ -411,15 +412,24 @@
                 <nav class="term-menu" id="extrasNav" data-locale-aria-label="web.aria.extras-menu" aria-label="Extras menu">
                   <button type="button" class="term-row extras-nav-tab is-active" id="btnExtrasGames" data-extras-tab="games">
                     <span class="term-row-prefix terminal-text--dim">[ ]</span>
-                    <span class="term-row-label terminal-text" data-locale-key="web.extras.nav.games">Games</span>
+                    <span class="term-row-label terminal-text extras-nav-tab-label">
+                      <span class="extras-nav-tab-title" data-locale-key="web.extras.nav.games">Games</span>
+                      <span class="extras-nav-tab-count terminal-text--dim" aria-hidden="true">(0)</span>
+                    </span>
                   </button>
                   <button type="button" class="term-row extras-nav-tab" id="btnExtrasArt" data-extras-tab="art">
                     <span class="term-row-prefix terminal-text--dim">[ ]</span>
-                    <span class="term-row-label terminal-text" data-locale-key="web.extras.nav.art">Art</span>
+                    <span class="term-row-label terminal-text extras-nav-tab-label">
+                      <span class="extras-nav-tab-title" data-locale-key="web.extras.nav.art">Art</span>
+                      <span class="extras-nav-tab-count terminal-text--dim" aria-hidden="true">(0)</span>
+                    </span>
                   </button>
                   <button type="button" class="term-row extras-nav-tab" id="btnExtrasLinks" data-extras-tab="links">
                     <span class="term-row-prefix terminal-text--dim">[ ]</span>
-                    <span class="term-row-label terminal-text" data-locale-key="web.extras.nav.links">Links</span>
+                    <span class="term-row-label terminal-text extras-nav-tab-label">
+                      <span class="extras-nav-tab-title" data-locale-key="web.extras.nav.links">Links</span>
+                      <span class="extras-nav-tab-count terminal-text--dim" aria-hidden="true">(0)</span>
+                    </span>
                   </button>
                   <button type="button" class="term-row term-row--primary" id="btnExtrasBackMenu">
                     <span class="term-row-prefix terminal-text--dim">[ ]</span>

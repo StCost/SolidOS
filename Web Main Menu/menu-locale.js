@@ -78,8 +78,20 @@
     window.__webPendingLocale = null;
   }
 
+  function getStrings() {
+    var copy = {};
+    var key;
+    for (key in strings) {
+      if (Object.prototype.hasOwnProperty.call(strings, key)) {
+        copy[key] = strings[key];
+      }
+    }
+    return copy;
+  }
+
   window.WebLocale = {
     get: get,
+    getStrings: getStrings,
     resolveLocaleKey: resolveLocaleKey,
     applyAll: applyAll,
     applyDom: applyDom

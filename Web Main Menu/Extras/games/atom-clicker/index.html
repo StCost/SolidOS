@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Atom Clicker</title>
+  <script src="../iframe-game-locale.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -11,14 +12,20 @@
       -webkit-user-select: none;
     }
 
-    html, body {
+    *:focus,
+    *:focus-visible {
+      outline: none;
+    }
+
+    html,
+    body {
       margin: 0;
       height: 100%;
       overflow: hidden;
       background: #040609;
       color: #ffcc9f;
       font-family: "Courier New", Courier, monospace;
-      cursor: url("../../cursor-pointer.svg") 2.1 0, pointer;
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
     }
 
     body {
@@ -30,10 +37,19 @@
     .game-box {
       position: absolute;
       inset: 0;
+      z-index: 2;
       border: 1px solid rgba(255, 128, 0, 0.28);
       box-shadow: inset 0 0 28px rgba(255, 128, 0, 0.05);
       background: #040609;
       overflow: hidden;
+      pointer-events: none;
+      --overspin-blur: 0px;
+      --star-drift-duration: 100s;
+    }
+
+    .game-box,
+    .game-box * {
+      pointer-events: none;
     }
 
     .space-bg {
@@ -53,7 +69,7 @@
       position: absolute;
       inset: -8%;
       opacity: 0.2;
-      animation: space-stars-drift 100s linear infinite;
+      animation: space-stars-drift var(--star-drift-duration, 100s) linear infinite;
     }
 
     .space-bg-stars::before,
@@ -79,7 +95,7 @@
       background-size: 96px 96px, 128px 128px;
       background-position: 12px 40px, 60px 8px;
       opacity: 0.4;
-      animation: space-stars-drift-alt 140s linear infinite reverse;
+      animation: space-stars-drift-alt calc(var(--star-drift-duration, 100s) * 1.4) linear infinite reverse;
     }
 
     .space-bg-fog {
@@ -184,19 +200,12 @@
       position: absolute;
       inset: 0;
       z-index: 1;
+      touch-action: none;
     }
 
-    #screenFlash {
-      position: absolute;
-      inset: 0;
-      z-index: 6;
+    #atom,
+    #atom * {
       pointer-events: none;
-      background: radial-gradient(circle at 50% 50%, rgba(120, 200, 255, 0.28), rgba(255, 128, 0, 0.2), transparent 72%);
-      opacity: 0;
-    }
-
-    #screenFlash.is-active {
-      animation: screen-flash 0.35s ease-out forwards;
     }
 
     .hud {
@@ -286,6 +295,47 @@
       align-items: center;
       justify-content: center;
       transition: transform 0.05s linear;
+      isolation: isolate;
+    }
+
+    .atom-overspin-glow {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: 0;
+      width: 10.5rem;
+      height: 10.5rem;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(var(--overspin-glow-scale, 1));
+      background: radial-gradient(
+        ellipse 58% 42% at 50% 50%,
+        rgba(64, 232, 255, 0.75) 0%,
+        rgba(100, 180, 255, 0.42) 30%,
+        rgba(255, 128, 0, 0.18) 54%,
+        transparent 72%
+      );
+      filter: blur(var(--overspin-blur));
+    }
+
+    #atom.is-overspin .atom-overspin-glow {
+      opacity: var(--overspin-glow-opacity, 0.45);
+    }
+
+    #atom.is-overspin-intense .atom-overspin-glow {
+      background: radial-gradient(
+        ellipse 62% 46% at 50% 50%,
+        rgba(90, 240, 255, 0.85) 0%,
+        rgba(120, 200, 255, 0.5) 28%,
+        rgba(255, 140, 60, 0.28) 52%,
+        transparent 74%
+      );
+    }
+
+    #atom.is-overspin-hyper .atom-overspin-glow {
+      width: 12rem;
+      height: 12rem;
     }
 
     .atom-shake.is-shaking {
@@ -339,10 +389,11 @@
       position: absolute;
       left: 50%;
       top: 50%;
+      z-index: 2;
       border: 1px solid rgba(120, 200, 255, 0.38);
       border-radius: 50%;
       transform: translate(-50%, -50%);
-      box-shadow: 0 0 10px rgba(100, 180, 255, 0.14);
+      box-shadow: none;
       pointer-events: none;
     }
 
@@ -355,6 +406,7 @@
       position: absolute;
       left: 50%;
       top: 50%;
+      z-index: 3;
       width: 8.4rem;
       height: 4.75rem;
       pointer-events: none;
@@ -364,13 +416,51 @@
       position: absolute;
       left: 50%;
       top: 50%;
+      z-index: 1;
       width: 0.5rem;
       height: 0.5rem;
       margin: 0;
       border-radius: 50%;
       background: radial-gradient(circle at 30% 30%, #e8ffff, #40e8ff 55%, #00a8cc);
-      box-shadow: 0 0 10px rgba(64, 232, 255, 0.95), 0 0 16px rgba(0, 200, 220, 0.5);
+      box-shadow: 0 0 6px rgba(64, 232, 255, 0.65);
       will-change: transform;
+    }
+
+    #atom.is-overspin .electron {
+      filter: brightness(1.2);
+      box-shadow: 0 0 6px rgba(64, 232, 255, 0.75);
+    }
+
+    #atom.is-overspin .orbit--shell {
+      border-width: 2px;
+      border-color: rgba(160, 220, 255, 0.72);
+    }
+
+    #atom.is-overspin-intense .nucleus-cluster {
+      filter: brightness(1.15);
+    }
+
+    #atom.is-overspin-extreme .atom-shake:not(.is-shaking) {
+      animation: overspin-atom-quake 0.1s linear infinite;
+    }
+
+    #atom.is-overspin-hyper .atom-shake:not(.is-shaking) {
+      animation: overspin-atom-quake 0.055s linear infinite;
+    }
+
+    #atom.is-overspin-hyper .electron {
+      width: 0.62rem;
+      height: 0.62rem;
+    }
+
+    @keyframes overspin-atom-quake {
+      0%,
+      100% {
+        transform: rotate(-1.2deg) scale(1.03);
+      }
+      50% {
+        transform: rotate(1.2deg) scale(1.03);
+      }
     }
 
     #fxLayer {
@@ -379,6 +469,42 @@
       z-index: 5;
       overflow: hidden;
       pointer-events: none;
+    }
+
+    .click-tap {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      display: block;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      min-width: 0;
+      min-height: 0;
+      border: 1px solid rgba(255, 128, 0, 0.28);
+      background: rgba(4, 6, 9, 0.88);
+      color: rgba(255, 160, 96, 0.65);
+      font: inherit;
+      font-size: clamp(1rem, 3vw, 1.28rem);
+      letter-spacing: 0.04em;
+      line-height: 1.1;
+      text-align: center;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+    }
+
+    .click-tap:hover,
+    .click-tap:focus-visible {
+      border-color: rgba(255, 128, 0, 0.55);
+      background: rgba(255, 128, 0, 0.08);
+      outline: none;
+    }
+
+    .click-tap:active {
+      transform: translateY(1px);
+      background: rgba(255, 128, 0, 0.14);
     }
 
     .click-ripple {
@@ -502,17 +628,10 @@
       }
     }
 
-    @keyframes screen-flash {
-      0% {
-        opacity: 0.55;
-      }
-      100% {
-        opacity: 0;
-      }
-    }
   </style>
 </head>
 <body>
+  <button type="button" class="click-tap" id="clickTap" aria-label="Click game area"> </button>
   <div class="game-box" id="gameBox">
       <h1 class="game-title">Atom Clicker</h1>
     <div class="space-bg" aria-hidden="true">
@@ -522,7 +641,6 @@
       <div class="space-bg-fog space-bg-fog--c"></div>
     </div>
     <div id="gameStage" aria-hidden="true"></div>
-    <div id="screenFlash" aria-hidden="true"></div>
     <div id="fxLayer" aria-hidden="true"></div>
     <div class="best-shake" id="bestScoreShake">
       <p class="hud-best" id="highScore">best 0°</p>
@@ -532,6 +650,7 @@
     </div>
     <div id="atom" aria-hidden="true">
     <div class="atom-shake" id="atomShake">
+      <div class="atom-overspin-glow" id="atomOverspinGlow" aria-hidden="true"></div>
       <div class="orbit orbit--shell" id="orbitShell" aria-hidden="true"></div>
       <div class="orbit-electron-layer" id="orbitElectronLayer">
         <span class="electron" id="electronA"></span>
@@ -559,11 +678,9 @@
     var nucleusCluster = document.getElementById("nucleusCluster");
     var atomShake = document.getElementById("atomShake");
     var gameBox = document.getElementById("gameBox");
-    var gameStage = document.getElementById("gameStage");
     var atomElement = document.getElementById("atom");
     var hudElement = document.querySelector(".hud");
     var fxLayer = document.getElementById("fxLayer");
-    var screenFlash = document.getElementById("screenFlash");
     var bonusChance = 0.34;
     var bonusPercent = 0.1;
     var clickMilestoneSize = 1000;
@@ -585,10 +702,20 @@
     var hudAnchorFractionY = 0.26;
 
     var electronSpeedScale = 1.35;
-    var spinMax = 6.8;
     var spinBoostClick = 0.14;
     var spinBoostBonusScale = 0.038;
-    var spinScoreFullScale = 900;
+    var spinBoostDiminish = 0.065;
+    var spinScoreReference = 50;
+    var spinScoreLogScale = 1.42;
+    var spinDecayBase = 2.8;
+    var spinDecayLogScale = 0.95;
+    var spinBaseCatchUpRate = 4.2;
+    var spinBaseDecayRate = 0.82;
+    var spinBaseSpeed = 0;
+    var overspinTierMild = 1.5;
+    var overspinTierIntense = 5;
+    var overspinTierExtreme = 12;
+    var overspinTierHyper = 28;
     var nucleusSpinAngle = 0;
     var nucleusSpinSpeed = 0.11;
 
@@ -645,9 +772,6 @@
     }
 
     function getLocaleApi() {
-      if (window.parent && window.parent !== window && window.parent.WebLocale) {
-        return window.parent.WebLocale;
-      }
       if (window.WebLocale) {
         return window.WebLocale;
       }
@@ -670,11 +794,7 @@
     }
 
     function bindLocaleListener() {
-      var localeTarget = window;
-      if (window.parent && window.parent !== window) {
-        localeTarget = window.parent;
-      }
-      localeTarget.addEventListener("web-locale-applied", applyGameLocale);
+      window.addEventListener("web-locale-applied", applyGameLocale);
     }
 
     function setScoreText() {
@@ -785,15 +905,6 @@
         fxLayer.appendChild(particle);
         removeNodeLater(particle, 650);
       }
-
-      if (screenFlash) {
-        screenFlash.classList.remove("is-active");
-        void screenFlash.offsetHeight;
-        screenFlash.classList.add("is-active");
-        window.setTimeout(function () {
-          screenFlash.classList.remove("is-active");
-        }, 320);
-      }
     }
 
     function updateHighScoreFromScore() {
@@ -808,9 +919,64 @@
 
     function getScoreSpinFactor() {
       if (score <= 0) return 0;
-      var factor = score / spinScoreFullScale;
-      if (factor > 1) factor = 1;
-      return factor;
+      return Math.log1p(score / spinScoreReference) * spinScoreLogScale;
+    }
+
+    function getSpinDecayRate() {
+      var excess = spinMultiplier - 1;
+      if (excess < 0) excess = 0;
+      return spinDecayBase + Math.log1p(excess) * spinDecayLogScale;
+    }
+
+    function updateOverspinPresentation(motionSpin) {
+      var intensity = Math.log1p(Math.max(motionSpin, 0));
+      var blurPx = intensity * 5.5;
+      if (blurPx > 16) blurPx = 16;
+      var glowOpacity = intensity * 0.2;
+      if (glowOpacity > 0.9) glowOpacity = 0.9;
+      var glowScale = 0.9 + intensity * 0.12;
+      if (glowScale > 1.55) glowScale = 1.55;
+      var starSeconds = 100 / (1 + motionSpin * 0.48);
+      if (starSeconds < 2.5) starSeconds = 2.5;
+      var scoreGlow = 6 + intensity * 5;
+      if (scoreGlow > 32) scoreGlow = 32;
+      var scoreGlowAlpha = 0.35 + intensity * 0.12;
+      if (scoreGlowAlpha > 0.95) scoreGlowAlpha = 0.95;
+
+      if (gameBox) {
+        gameBox.style.setProperty("--overspin-blur", String(blurPx) + "px");
+        gameBox.style.setProperty("--overspin-glow-opacity", String(glowOpacity));
+        gameBox.style.setProperty("--overspin-glow-scale", String(glowScale));
+        gameBox.style.setProperty("--star-drift-duration", String(starSeconds) + "s");
+      }
+      if (atomElement) {
+        atomElement.classList.toggle("is-overspin", motionSpin >= overspinTierMild);
+        atomElement.classList.toggle("is-overspin-intense", motionSpin >= overspinTierIntense);
+        atomElement.classList.toggle("is-overspin-extreme", motionSpin >= overspinTierExtreme);
+        atomElement.classList.toggle("is-overspin-hyper", motionSpin >= overspinTierHyper);
+      }
+      if (scoreElement) {
+        scoreElement.style.textShadow =
+          "0 0 " +
+          String(scoreGlow) +
+          "px rgba(255, 128, 0, " +
+          String(scoreGlowAlpha) +
+          ")";
+      }
+    }
+
+    function updateSpinBaseSpeed(deltaSeconds, totalSpin, scoreFloor) {
+      if (totalSpin > spinBaseSpeed) {
+        var riseBlend = 1 - Math.exp(-spinBaseCatchUpRate * deltaSeconds);
+        spinBaseSpeed = spinBaseSpeed + (totalSpin - spinBaseSpeed) * riseBlend;
+        return;
+      }
+      if (spinBaseSpeed <= scoreFloor) {
+        spinBaseSpeed = scoreFloor;
+        return;
+      }
+      var fallBlend = 1 - Math.exp(-spinBaseDecayRate * deltaSeconds);
+      spinBaseSpeed = spinBaseSpeed + (scoreFloor - spinBaseSpeed) * fallBlend;
     }
 
     function getClickMinimum(scoreValue) {
@@ -964,11 +1130,16 @@
     function updateAtomMotion(deltaSeconds) {
       var index;
       var electronIndex;
-      var decay = 1 - Math.min(deltaSeconds * 2.8, 0.12);
+      var decay = 1 - Math.min(deltaSeconds * getSpinDecayRate(), 0.14);
       spinMultiplier = 1 + (spinMultiplier - 1) * decay;
       if (spinMultiplier < 1.001) spinMultiplier = 1;
 
-      var motionSpin = getScoreSpinFactor() * spinMultiplier;
+      var scoreSpin = getScoreSpinFactor();
+      var totalSpin = scoreSpin * spinMultiplier;
+      updateSpinBaseSpeed(deltaSeconds, totalSpin, scoreSpin);
+      var motionSpin = totalSpin;
+      if (spinBaseSpeed > motionSpin) motionSpin = spinBaseSpeed;
+      updateOverspinPresentation(motionSpin);
 
       for (index = 0; index < orbitConfigs.length; index++) {
         var config = orbitConfigs[index];
@@ -1030,8 +1201,8 @@
 
     function addSpinBoost(power) {
       var boost = spinBoostClick + Math.min(power, 80) * spinBoostBonusScale;
-      spinMultiplier = spinMultiplier + boost;
-      if (spinMultiplier > spinMax) spinMultiplier = spinMax;
+      var diminish = 1 + spinMultiplier * spinBoostDiminish;
+      spinMultiplier = spinMultiplier + boost / diminish;
       ensureAnimationLoop();
     }
 
@@ -1121,20 +1292,13 @@
         fxLayer.appendChild(particle);
         removeNodeLater(particle, 650);
       }
-
-      if (tier >= 3) {
-        screenFlash.classList.remove("is-active");
-        void screenFlash.offsetHeight;
-        screenFlash.classList.add("is-active");
-        window.setTimeout(function () {
-          screenFlash.classList.remove("is-active");
-        }, 400);
-      }
     }
 
-    function registerClick(event) {
-      var x = event.clientX;
-      var y = event.clientY;
+    var lastGameInputStamp = 0;
+
+    function registerClickAt(clientX, clientY) {
+      var x = clientX;
+      var y = clientY;
       var clickValue = getClickMinimum(score);
       var clickPower = clickValue;
 
@@ -1180,6 +1344,7 @@
     }
 
     highScore = readHighScore();
+    bindClickTap();
     bindLocaleListener();
     applyGameLocale();
     setScoreText();
@@ -1188,13 +1353,34 @@
     window.addEventListener("resize", layoutAtomOrbit);
     ensureAnimationLoop();
 
-    gameStage.addEventListener("pointerdown", registerClick);
-    if (gameBox) {
-      gameBox.addEventListener("pointermove", function (event) {
+    function onClickTap(event) {
+      var stamp = event.timeStamp || Date.now();
+      if (stamp > 0 && stamp - lastGameInputStamp < 80) {
+        return;
+      }
+      lastGameInputStamp = stamp;
+      registerClickAt(event.clientX, event.clientY);
+    }
+
+    function onBodyClick(event) {
+      var target = event.target;
+      if (!target || !target.closest) {
+        return;
+      }
+      if (!target.closest("#clickTap")) {
+        return;
+      }
+      onClickTap(event);
+    }
+
+    function bindClickTap() {
+      document.body.addEventListener("click", onBodyClick);
+      document.addEventListener("pointermove", function (event) {
         setCursorPointer(event.clientX, event.clientY);
       });
-      gameBox.addEventListener("pointerleave", clearCursorPointer);
+      document.addEventListener("pointerleave", clearCursorPointer);
     }
+
     document.addEventListener("selectstart", function (event) {
       event.preventDefault();
     });

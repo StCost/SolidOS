@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Deep Collapse</title>
+  <script src="../iframe-game-locale.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -178,23 +179,6 @@
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
     }
 
-    #oreHud {
-      position: absolute;
-      left: 12px;
-      bottom: 14px;
-      z-index: 2;
-      pointer-events: none;
-      font-size: 11px;
-      color: rgba(180, 170, 150, 0.55);
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
-      white-space: nowrap;
-    }
-
-    #oreHud #oreValue {
-      color: rgba(255, 244, 216, 0.92);
-      font-weight: bold;
-    }
-
     #gameScreen {
       position: absolute;
       inset: 0;
@@ -228,6 +212,8 @@
       flex-direction: column;
       align-items: center;
       gap: 0.55rem;
+      width: auto;
+      max-width: min(88vw, 420px);
       padding: 1.15rem 1.45rem 1.05rem;
       background: rgba(48, 28, 18, 0.2);
       border: 1px solid rgba(255, 168, 88, 0.38);
@@ -292,7 +278,6 @@
       <span id="depthBestValue">0m</span>
     </div>
     <div id="fpsHud">fps <span id="fpsValue">--</span></div>
-    <div id="oreHud">Ore: <span id="oreValue">0/0 (0%)</span></div>
     <div id="hud">
       <div id="scoreValue">0t</div>
     </div>
@@ -301,8 +286,8 @@
       <div id="bonusHud">bonus 1</div>
       <div id="bonusBarWrap">
         <div id="bonusBarLabels">
-          <span>bonus 1</span>
-          <span>bonus 999</span>
+          <span id="bonusBarLabelMin">bonus 1</span>
+          <span id="bonusBarLabelMax">bonus 999</span>
         </div>
         <div id="bonusBar">
           <div id="bonusFill"></div>
@@ -332,8 +317,9 @@
       var depthBestLabelEl = document.getElementById("depthBestLabel");
       var bonusHudEl = document.getElementById("bonusHud");
       var bonusFillEl = document.getElementById("bonusFill");
+      var bonusBarLabelMinEl = document.getElementById("bonusBarLabelMin");
+      var bonusBarLabelMaxEl = document.getElementById("bonusBarLabelMax");
       var fpsValueEl = document.getElementById("fpsValue");
-      var oreValueEl = document.getElementById("oreValue");
       var gameScreenEl = document.getElementById("gameScreen");
       var screenTitleEl = document.getElementById("screenTitle");
       var controlHintEl = document.getElementById("controlHint");
@@ -343,6 +329,7 @@
       var LOCALE_KEY_START_HINT = "web.game.prompt.click-start";
       var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
       var LOCALE_KEY_DEPTH_LABEL = "web.game.label.depth";
+      var LOCALE_KEY_BONUS_LABEL = "web.game.label.bonus";
       var LOCALE_KEY_TONS_SUFFIX = "web.game.tons-suffix";
       var LOCALE_KEY_METERS_SUFFIX = "web.game.meters-suffix";
 
@@ -1183,9 +1170,6 @@
       }
 
       function getLocaleApi() {
-        if (window.parent && window.parent !== window && window.parent.WebLocale) {
-          return window.parent.WebLocale;
-        }
         if (window.WebLocale) {
           return window.WebLocale;
         }
@@ -1213,6 +1197,12 @@
         if (depthBestLabelEl) {
           depthBestLabelEl.textContent = getLocalized(LOCALE_KEY_BEST_LABEL, "best");
         }
+        if (bonusBarLabelMinEl) {
+          bonusBarLabelMinEl.textContent = formatBonus(1);
+        }
+        if (bonusBarLabelMaxEl) {
+          bonusBarLabelMaxEl.textContent = formatBonus(MAX_BONUS);
+        }
         if (!sessionStarted) {
           screenTitleEl.textContent = GAME_TITLE;
           controlHintEl.textContent = getStartHintText();
@@ -1227,11 +1217,7 @@
       }
 
       function bindLocaleListener() {
-        var localeTarget = window;
-        if (window.parent && window.parent !== window) {
-          localeTarget = window.parent;
-        }
-        localeTarget.addEventListener("web-locale-applied", applyGameLocale);
+        window.addEventListener("web-locale-applied", applyGameLocale);
       }
 
       function formatScoreTons(value) {
@@ -1264,20 +1250,21 @@
       }
 
       function formatBonus(bonusValue) {
+        var label = getLocalized(LOCALE_KEY_BONUS_LABEL, "bonus");
         var value = bonusValue;
         if (value < 1) {
           value = 1;
         }
         if (value >= 1000000) {
-          return "bonus " + (value / 1000000).toFixed(1) + "m";
+          return label + " " + (value / 1000000).toFixed(1) + "m";
         }
         if (value >= 1000) {
-          return "bonus " + (value / 1000).toFixed(1) + "k";
+          return label + " " + (value / 1000).toFixed(1) + "k";
         }
         if (value >= 100) {
-          return "bonus " + String(Math.floor(value));
+          return label + " " + String(Math.floor(value));
         }
-        return "bonus " + value.toFixed(1);
+        return label + " " + value.toFixed(1);
       }
 
       function formatBoostGainLabel(gain) {
@@ -1324,7 +1311,6 @@
         depthBestValueEl.textContent = formatDepth(bestDepth);
         bonusHudEl.textContent = formatBonus(bonus);
         bonusFillEl.style.width = String(getBonusBarFillPercent(bonus)) + "%";
-        oreValueEl.textContent = formatOreHud();
       }
 
       function loadBestScore() {

@@ -40,6 +40,10 @@ StreamingAssets/Web UI/
   Web Loading/
     index.html
     loading.css
+  Web Game HUD/
+    index.html
+    game-hud.css
+    game-hud.js
 ```
 
 ## Menu vs game mode

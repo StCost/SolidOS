@@ -9,6 +9,13 @@
   var VIEW_GAME = "game";
   var VIEW_LINKS = "links";
 
+  var LOCALE_KEY_NAV_GAMES = "web.extras.nav.games";
+  var LOCALE_KEY_NAV_ART = "web.extras.nav.art";
+  var LOCALE_KEY_NAV_LINKS = "web.extras.nav.links";
+  var NAV_GAMES_FALLBACK = "Games";
+  var NAV_ART_FALLBACK = "Art";
+  var NAV_LINKS_FALLBACK = "Links";
+
   var currentView = VIEW_GAMES;
   var pendingExternalUrl = "";
   var pendingExternalLabel = "";
@@ -21,6 +28,14 @@
   var ART_MODAL_OPEN_MS_DEFAULT = 340;
   var STORAGE_KEY_SKIP_EXTERNAL_LINK_CONFIRM = "cm-skip-external-link-confirm";
   var STORAGE_VALUE_TRUE = "1";
+  var IFRAME_EMBED_RESET_STYLE_ID = "cm-iframe-embed-reset";
+  var IFRAME_EMBED_RESET_LINK_ID = "cm-iframe-embed-reset-link";
+  var IFRAME_EMBED_RESET_HREF = "../../iframe-embed-reset.css";
+  var IFRAME_EMBED_RESET_INLINE =
+    "html,body{-webkit-tap-highlight-color:transparent;tap-highlight-color:transparent}" +
+    "*,*::before,*::after{-webkit-tap-highlight-color:transparent;tap-highlight-color:transparent}" +
+    "*:focus,*:focus-visible,*:active{outline:none}" +
+    "html{touch-action:manipulation}";
 
   var contentRoot = document.getElementById("extrasContent");
   var viewArt = document.getElementById("extrasViewArt");
@@ -68,6 +83,31 @@
   function getManifest() {
     if (window.WebExtrasManifest) return window.WebExtrasManifest;
     return { games: [], art: [] };
+  }
+
+  function setExtrasNavTabLabel(tabId, localeKey, fallback, count) {
+    if (!extrasNav) return;
+    var tabButton = extrasNav.querySelector(
+      '.extras-nav-tab[data-extras-tab="' + tabId + '"]'
+    );
+    if (!tabButton) return;
+    var titleElement = tabButton.querySelector(".extras-nav-tab-title");
+    var countElement = tabButton.querySelector(".extras-nav-tab-count");
+    if (!titleElement || !countElement) return;
+    var label = getLocalized(localeKey, fallback);
+    titleElement.textContent = label;
+    countElement.textContent = "(" + count + ")";
+    tabButton.setAttribute("aria-label", label + " (" + count + ")");
+  }
+
+  function updateExtrasNavTabLabels() {
+    var manifest = getManifest();
+    var games = manifest.games || [];
+    var artItems = manifest.art || [];
+    var links = getLinks();
+    setExtrasNavTabLabel(VIEW_GAMES, LOCALE_KEY_NAV_GAMES, NAV_GAMES_FALLBACK, games.length);
+    setExtrasNavTabLabel(VIEW_ART, LOCALE_KEY_NAV_ART, NAV_ART_FALLBACK, artItems.length);
+    setExtrasNavTabLabel(VIEW_LINKS, LOCALE_KEY_NAV_LINKS, NAV_LINKS_FALLBACK, links.length);
   }
 
   function notifyRouteChanged() {
@@ -257,7 +297,7 @@
     var index;
     for (index = 0; index < games.length; index++) {
       var game = games[index];
-      var title = game.title || game.titleFallback || game.id;
+      var title = getLocalized(game.titleKey, game.title || game.titleFallback || game.id);
       var imageSrc = game.image || "";
       var difficulty = game.difficulty || 0;
       html +=
@@ -329,15 +369,48 @@
     }
   }
 
+  function injectIframeEmbedResetIntoFrame(frame) {
+    var doc;
+    try {
+      doc = frame.contentDocument;
+    } catch (error) {
+      return;
+    }
+    if (!doc || !doc.head) return;
+
+    if (!doc.getElementById(IFRAME_EMBED_RESET_LINK_ID)) {
+      var link = doc.createElement("link");
+      link.id = IFRAME_EMBED_RESET_LINK_ID;
+      link.rel = "stylesheet";
+      link.href = IFRAME_EMBED_RESET_HREF;
+      doc.head.appendChild(link);
+    }
+
+    if (!doc.getElementById(IFRAME_EMBED_RESET_STYLE_ID)) {
+      var style = doc.createElement("style");
+      style.id = IFRAME_EMBED_RESET_STYLE_ID;
+      style.textContent = IFRAME_EMBED_RESET_INLINE;
+      doc.head.insertBefore(style, doc.head.firstChild);
+    }
+  }
+
+  function bindIframeEmbedReset(frame) {
+    if (!frame) return;
+    if (frame.getAttribute("data-embed-reset-bound") === "1") return;
+    frame.setAttribute("data-embed-reset-bound", "1");
+    frame.addEventListener("load", function () {
+      injectIframeEmbedResetIntoFrame(frame);
+    });
+  }
+
   function openGame(gameId) {
     var game = findGameById(gameId);
     if (!game || !gameFrame) return;
     activeGameId = gameId;
+    var title = getLocalized(game.titleKey, game.title || game.titleFallback || game.id);
     gameFrame.src = game.path;
     showView(VIEW_GAME);
-    if (window.WebExtrasGameStartMusic && window.WebExtrasGameStartMusic.start) {
-      window.WebExtrasGameStartMusic.start();
-    }
+    setContentPrompt("C:\\CM\\extras\\games&gt;", "run " + title);
   }
 
   function closeGame() {
@@ -458,6 +531,7 @@
     renderArt();
     renderGames();
     renderLinks();
+    updateExtrasNavTabLabels();
     if (currentView === VIEW_GAME) {
       showView(VIEW_GAME, false);
     } else if (currentView) {
@@ -675,6 +749,12 @@
 
   var btnArtViewerClose = document.getElementById("extrasArtViewerClose");
   if (btnArtViewerClose) btnArtViewerClose.addEventListener("click", closeArtViewer);
+
+  bindIframeEmbedReset(gameFrame);
+  if (window.WebGameFrameLocaleHost) {
+    window.WebGameFrameLocaleHost.setGameFrame(gameFrame);
+    window.WebGameFrameLocaleHost.bindGameFrameLocale(gameFrame);
+  }
 
   if (gamesListRoot) gamesListRoot.addEventListener("click", onGamesListClick);
   if (linksListRoot) linksListRoot.addEventListener("click", onLinksListClick);

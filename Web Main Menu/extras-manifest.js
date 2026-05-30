@@ -16,6 +16,13 @@
         difficulty: 2
       },
       {
+        id: "citrus-slice",
+        title: "Citrus Slice",
+        path: "Extras/games/citrus-slice/index.html",
+        image: "Extras/games/citrus-slice/citrus-slice-preview.png",
+        difficulty: 2
+      },
+      {
         id: "last-run",
         title: "Last Run",
         path: "Extras/games/last-run/index.html",
@@ -37,11 +44,11 @@
         difficulty: 5
       },
       {
-        id: "calculator",
-        title: "Calculator",
-        path: "Extras/games/calculator/index.html",
-        image: "Extras/games/calculator/calculator-preview.png",
-        difficulty: 0
+        id: "sector-vector",
+        title: "Sector Vector",
+        path: "Extras/games/sector-vector/index.html",
+        image: "Extras/games/sector-vector/sector-vector-preview.png",
+        difficulty: 5
       },
       {
         id: "playing-cards",
@@ -49,7 +56,14 @@
         path: "Extras/games/playing-cards/index.html",
         image: "Extras/games/playing-cards/playing-cards-preview.png",
         difficulty: 0
-      }
+      },
+      {
+        id: "calculator",
+        title: "Calculator",
+        path: "Extras/games/calculator/index.html",
+        image: "Extras/games/calculator/calculator-preview.png",
+        difficulty: 0
+      },
     ],
     art: [
       {
