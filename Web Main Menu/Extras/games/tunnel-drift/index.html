@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -19,7 +20,8 @@
       outline: none;
     }
 
-    html, body {
+    html,
+    body {
       margin: 0;
       height: 100%;
       overflow: hidden;
@@ -62,8 +64,13 @@
     }
 
     @keyframes damage-flash {
-      0% { opacity: 0.95; }
-      100% { opacity: 0; }
+      0% {
+        opacity: 0.95;
+      }
+
+      100% {
+        opacity: 0;
+      }
     }
 
     .hud-panel {
@@ -112,8 +119,13 @@
     }
 
     @keyframes record-glow {
-      from { text-shadow: 0 0 8px rgba(255, 200, 80, 0.4); }
-      to { text-shadow: 0 0 16px rgba(255, 220, 120, 0.85); }
+      from {
+        text-shadow: 0 0 8px rgba(255, 200, 80, 0.4);
+      }
+
+      to {
+        text-shadow: 0 0 16px rgba(255, 220, 120, 0.85);
+      }
     }
 
     #gameScreen {
@@ -213,6 +225,7 @@
     }
   </style>
 </head>
+
 <body>
   <div id="gameRoot" tabindex="0">
     <canvas id="gameCanvas" aria-hidden="true"></canvas>
@@ -250,13 +263,16 @@
     var Z_COLLIDE = 1.2;
     var Z_COLLIDE_NEAR = 0.35;
     var WALL_THICKNESS = 3.2;
-    var WALL_SPAWN_GAP = 16;
+    var WALL_SPAWN_GAP = 32;
     var FOCAL_LENGTH = 420;
     var TUNNEL_RADIUS = 0.88;
     var PLAYER_EDGE_LIMIT = 0.82;
+    var PLAYER_COLLIDE_RADIUS = 0.038;
     var PLAYER_MOVE_SPEED = 2.1;
     var KEY_STEER_SPEED = 2.1;
     var METERS_PER_UNIT = 0.18;
+    var SPEED_GROWTH_PER_UNIT = 0.024;
+    var FORWARD_SPEED_MAX = 52;
 
     var WALL_OUTER_NORM = 1.02;
     var WALL_FILL_COLOR = "#2d7aab";
@@ -269,8 +285,8 @@
     var ARC_SEGMENTS = 7;
     var GUIDE_DASH = 7;
     var GUIDE_GAP = 11;
-    var GUIDE_DASH_WORLD_SCALE = 0.38;
-    var GUIDE_DASH_SCROLL_SCALE = 2.85;
+    var TUNNEL_RING_STEP = 4.5;
+    var GUIDE_RING_STEP = 11;
 
     var canvas = document.getElementById("gameCanvas");
     var context = canvas.getContext("2d");
@@ -303,21 +319,24 @@
     var targetY = 0;
 
     var walls = [];
-    var nextWallAt = Z_FAR * 0.55;
     var stars = [];
     var speedStreaks = [];
 
     var screenShakeTimer = 0;
     var screenShakeStrength = 0;
     var moveShakeTimer = 0;
-    var reticleTimer = 0;
-    var reticleX = 0;
-    var reticleY = 0;
+
+    var pointerSteerActive = false;
+    var pointerSteerX = 0;
+    var pointerSteerY = 0;
+    var activePointerId = -1;
 
     var keySteerLeft = false;
     var keySteerRight = false;
     var keySteerUp = false;
     var keySteerDown = false;
+
+    var lastFrameWallMove = 0;
 
     function getLocaleApi() {
       if (window.parent && window.parent !== window && window.parent.WebLocale) {
@@ -337,8 +356,12 @@
       return fallback;
     }
 
+    function getGameTitle() {
+      return GAME_TITLE;
+    }
+
     function getClickSteerHint() {
-      return getLocalized(LOCALE_KEY_CLICK_STEER, "WASD or click relative to center to steer");
+      return getLocalized(LOCALE_KEY_CLICK_STEER, "WASD or hold click on a side to steer to the tunnel edge");
     }
 
     function focusGameRoot() {
@@ -373,21 +396,84 @@
       );
     }
 
-    function syncReticleToTarget() {
-      var projected = projectWorld(targetX, targetY, RETICLE_PLANE_Z);
-      reticleX = projected.x;
-      reticleY = projected.y;
-      clickReticle.style.left = reticleX + "px";
-      clickReticle.style.top = reticleY + "px";
+    function getScreenPointFromEvent(event) {
+      var rect = gameRoot.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function syncReticleToScreen(screenX, screenY) {
+      clickReticle.style.left = screenX + "px";
+      clickReticle.style.top = screenY + "px";
       clickReticle.classList.add("is-visible");
-      reticleTimer = 0.35;
+    }
+
+    function getKeyboardSteerDirection() {
+      var dirX = 0;
+      var dirY = 0;
+      if (keySteerLeft) dirX -= 1;
+      if (keySteerRight) dirX += 1;
+      if (keySteerUp) dirY -= 1;
+      if (keySteerDown) dirY += 1;
+      return { x: dirX, y: dirY };
+    }
+
+    function syncReticleDisplay() {
+      var center;
+      var keyDir;
+      var length;
+      var scale;
+      var offset;
+      if (!isPlaying()) {
+        clickReticle.classList.remove("is-visible");
+        return;
+      }
+      if (pointerSteerActive) {
+        syncReticleToScreen(pointerSteerX, pointerSteerY);
+        return;
+      }
+      keyDir = getKeyboardSteerDirection();
+      if (keyDir.x !== 0 || keyDir.y !== 0) {
+        center = getScreenCenter();
+        length = Math.sqrt(keyDir.x * keyDir.x + keyDir.y * keyDir.y);
+        scale = getWorldScale(RETICLE_PLANE_Z);
+        offset = PLAYER_EDGE_LIMIT * scale;
+        syncReticleToScreen(
+          center.x + (keyDir.x / length) * offset,
+          center.y + (keyDir.y / length) * offset
+        );
+        return;
+      }
+      clickReticle.classList.remove("is-visible");
     }
 
     function setTargetFromTunnelNorm(normX, normY) {
       var norm = clampTunnelNorm(normX, normY);
       targetX = norm.x;
       targetY = norm.y;
-      syncReticleToTarget();
+    }
+
+    function applyScreenSteer(screenX, screenY) {
+      var norm;
+      pointerSteerX = screenX;
+      pointerSteerY = screenY;
+      norm = screenToTunnelNorm(screenX, screenY);
+      setTargetFromTunnelNorm(norm.x, norm.y);
+      syncReticleToScreen(screenX, screenY);
+    }
+
+    function clearPointerSteer() {
+      pointerSteerActive = false;
+      activePointerId = -1;
+    }
+
+    function updatePointerSteer() {
+      var norm;
+      if (!pointerSteerActive || !isPlaying()) return;
+      norm = screenToTunnelNorm(pointerSteerX, pointerSteerY);
+      setTargetFromTunnelNorm(norm.x, norm.y);
     }
 
     function isSteerKey(key) {
@@ -414,7 +500,7 @@
     }
 
     function updateKeyboardSteer(deltaSeconds) {
-      if (!isPlaying()) return;
+      if (!isPlaying() || pointerSteerActive) return;
       var deltaNormX = 0;
       var deltaNormY = 0;
       if (keySteerLeft) deltaNormX -= KEY_STEER_SPEED * deltaSeconds;
@@ -443,6 +529,7 @@
 
     function onWindowBlur() {
       clearSteerKeys();
+      clearPointerSteer();
     }
 
     function isPlaying() {
@@ -503,6 +590,25 @@
         }
       }
       return blocked;
+    }
+
+    function getFarthestWallZ() {
+      var farthestZ = 0;
+      var index;
+      for (index = 0; index < walls.length; index += 1) {
+        if (walls[index].z > farthestZ) {
+          farthestZ = walls[index].z;
+        }
+      }
+      return farthestZ;
+    }
+
+    function fillWallsToHorizon(startZ) {
+      var spawnZ = startZ;
+      while (spawnZ < Z_FAR) {
+        walls.push(createWall(spawnZ));
+        spawnZ += WALL_SPAWN_GAP;
+      }
     }
 
     function createWallPattern() {
@@ -615,9 +721,10 @@
     function showStartScreen() {
       gamePhase = PHASE_START;
       clearSteerKeys();
+      clearPointerSteer();
       gameScreen.classList.remove("hidden");
       gameScreen.classList.remove("is-record");
-      screenTitle.textContent = GAME_TITLE;
+      screenTitle.textContent = getGameTitle();
       controlHint.textContent = getClickSteerHint();
       controlHint.classList.remove("hidden");
       screenMeters.classList.add("hidden");
@@ -627,6 +734,7 @@
     function showGameOverScreen(isRecord) {
       gamePhase = PHASE_GAME_OVER;
       clearSteerKeys();
+      clearPointerSteer();
       gameScreen.classList.remove("hidden");
       screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
       controlHint.textContent = getClickSteerHint();
@@ -648,14 +756,14 @@
       hudPlaying.classList.remove("hidden");
       distanceUnits = 0;
       forwardSpeed = forwardSpeedBase;
+      clearPointerSteer();
       playerX = 0;
       playerY = 0;
       targetX = 0;
       targetY = 0;
+      lastFrameWallMove = 0;
       walls.length = 0;
-      nextWallAt = Z_FAR * 0.45;
-      walls.push(createWall(nextWallAt));
-      nextWallAt += WALL_SPAWN_GAP + randomRange(0, 10);
+      fillWallsToHorizon(Z_FAR * 0.45);
       syncPlayingHud();
       focusGameRoot();
     }
@@ -780,52 +888,82 @@
       context.stroke();
     }
 
-    function setTargetFromScreen(screenX, screenY) {
-      var norm = screenToTunnelNorm(screenX, screenY);
-      setTargetFromTunnelNorm(norm.x, norm.y);
-      if (isPlaying()) {
-        triggerMoveShake();
-      }
-    }
-
     function onPointerDown(event) {
+      var point;
       if (event.button !== 0) return;
       event.preventDefault();
       focusGameRoot();
-      var rect = gameRoot.getBoundingClientRect();
-      var screenX = event.clientX - rect.left;
-      var screenY = event.clientY - rect.top;
+      if (gameRoot.setPointerCapture) {
+        gameRoot.setPointerCapture(event.pointerId);
+      }
+      pointerSteerActive = true;
+      activePointerId = event.pointerId;
       if (isStart() || isGameOver()) {
         startPlaying();
       }
-      setTargetFromScreen(screenX, screenY);
+      point = getScreenPointFromEvent(event);
+      applyScreenSteer(point.x, point.y);
+    }
+
+    function onPointerMove(event) {
+      var point;
+      if (!pointerSteerActive || event.pointerId !== activePointerId) return;
+      point = getScreenPointFromEvent(event);
+      applyScreenSteer(point.x, point.y);
+    }
+
+    function onPointerUp(event) {
+      if (!pointerSteerActive || event.pointerId !== activePointerId) return;
+      if (gameRoot.releasePointerCapture) {
+        gameRoot.releasePointerCapture(event.pointerId);
+      }
+      clearPointerSteer();
+    }
+
+    function onPointerCancel(event) {
+      if (activePointerId >= 0 && event.pointerId !== activePointerId) return;
+      if (gameRoot.releasePointerCapture && activePointerId >= 0) {
+        gameRoot.releasePointerCapture(activePointerId);
+      }
+      clearPointerSteer();
     }
 
     function updatePlayer(deltaSeconds) {
+      updatePointerSteer();
       updateKeyboardSteer(deltaSeconds);
-      var prevX = playerX;
-      var prevY = playerY;
       var moveBlend = 1 - Math.exp(-PLAYER_MOVE_SPEED * deltaSeconds);
       playerX = lerp(playerX, targetX, moveBlend);
       playerY = lerp(playerY, targetY, moveBlend);
-
-      var deltaX = playerX - prevX;
-      var deltaY = playerY - prevY;
-      var moveAmount = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-      if (moveAmount > 0.004 && isPlaying()) {
-        moveShakeTimer = Math.max(moveShakeTimer, 0.08);
-      }
     }
 
     function getGuideDashOffsetForWorldZ(worldZ) {
       var period = GUIDE_DASH + GUIDE_GAP;
-      var scroll = distanceUnits * GUIDE_DASH_SCROLL_SCALE + worldZ * GUIDE_DASH_WORLD_SCALE;
+      var scrollOffset = getTunnelScrollOffset(TUNNEL_RING_STEP);
+      var scroll = scrollOffset * getWorldScale(worldZ);
       var mod = scroll % period;
       if (mod < 0) {
         mod += period;
       }
       return mod;
+    }
+
+    function getTunnelScrollOffset(step) {
+      var mod = distanceUnits % step;
+      if (mod < 0) {
+        mod += step;
+      }
+      return mod;
+    }
+
+    function getTunnelDepthFade(z) {
+      var depthFade = 1 - z / Z_FAR;
+      if (depthFade < 0) {
+        depthFade = 0;
+      }
+      if (depthFade > 1) {
+        depthFade = 1;
+      }
+      return depthFade;
     }
 
     function getSectorIndex(wall, angle) {
@@ -841,16 +979,40 @@
       return wall.blocked[getSectorIndex(wall, angle)];
     }
 
+    function isPlayerCircleTouchesBlocked(wall, centerX, centerY, circleRadius) {
+      var sampleCount = 16;
+      var sampleIndex;
+      var sampleAngle;
+      var sampleX;
+      var sampleY;
+      for (sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+        sampleAngle = (sampleIndex / sampleCount) * TWO_PI;
+        sampleX = centerX + Math.cos(sampleAngle) * circleRadius;
+        sampleY = centerY + Math.sin(sampleAngle) * circleRadius;
+        if (isSectorBlocked(wall, Math.atan2(sampleY, sampleX))) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     function isPlayerBlockedByWall(wall) {
       var radius = Math.sqrt(playerX * playerX + playerY * playerY);
       if (radius > PLAYER_EDGE_LIMIT) {
         return true;
       }
-      if (radius < 0.035) {
+      if (radius < PLAYER_COLLIDE_RADIUS) {
+        return isSectorBlocked(wall, Math.atan2(playerY, playerX));
+      }
+      return isPlayerCircleTouchesBlocked(wall, playerX, playerY, PLAYER_COLLIDE_RADIUS);
+    }
+
+    function isWallInCollideZone(wall) {
+      var prevZ = wall.z + lastFrameWallMove;
+      if (wall.z > Z_COLLIDE || prevZ < Z_COLLIDE_NEAR) {
         return false;
       }
-      var angle = Math.atan2(playerY, playerX);
-      return isSectorBlocked(wall, angle);
+      return true;
     }
 
     function checkCollisions() {
@@ -858,7 +1020,7 @@
 
       for (index = 0; index < walls.length; index++) {
         var wall = walls[index];
-        if (wall.z > Z_COLLIDE || wall.z < Z_COLLIDE_NEAR) continue;
+        if (!isWallInCollideZone(wall)) continue;
         if (isPlayerBlockedByWall(wall)) {
           return true;
         }
@@ -874,26 +1036,30 @@
     function updateWalls(deltaSeconds) {
       var index;
       var move = forwardSpeed * deltaSeconds;
+      lastFrameWallMove = move;
       distanceUnits += move;
-      forwardSpeed = forwardSpeedBase + distanceUnits * 0.012;
+      forwardSpeed = forwardSpeedBase + distanceUnits * SPEED_GROWTH_PER_UNIT;
+      if (forwardSpeed > FORWARD_SPEED_MAX) {
+        forwardSpeed = FORWARD_SPEED_MAX;
+      }
 
       for (index = walls.length - 1; index >= 0; index--) {
         var wall = walls[index];
         wall.z -= move;
         wall.rotation += wall.rotateSpeed * deltaSeconds;
-        if (!wall.passed && wall.z <= Z_COLLIDE) {
+        if (!wall.passed && wall.z < Z_COLLIDE_NEAR) {
           wall.passed = true;
+          triggerMoveShake();
         }
         if (wall.z < -WALL_THICKNESS) {
           walls.splice(index, 1);
         }
       }
 
-      var farthest = walls.length ? walls[walls.length - 1].z : 0;
-      while (farthest < Z_FAR) {
-        farthest = nextWallAt;
-        walls.push(createWall(nextWallAt));
-        nextWallAt += WALL_SPAWN_GAP + randomRange(2, 14);
+      var farthestZ = getFarthestWallZ();
+      while (farthestZ < Z_FAR) {
+        farthestZ += WALL_SPAWN_GAP;
+        walls.push(createWall(farthestZ));
       }
     }
 
@@ -919,19 +1085,13 @@
         moveShakeTimer -= deltaSeconds;
       }
 
-      if (reticleTimer > 0) {
-        reticleTimer -= deltaSeconds;
-        if (reticleTimer <= 0) {
-          clickReticle.classList.remove("is-visible");
-        }
-      }
-
       if (!isPlaying()) {
         return;
       }
 
       updatePlayer(deltaSeconds);
       updateWalls(deltaSeconds);
+      syncReticleDisplay();
       syncPlayingHud();
 
       if (checkCollisions()) {
@@ -973,21 +1133,20 @@
     function drawTunnelGuideLines() {
       var sectorIndex;
       var angle;
-      var nearZ = 1.4;
-      var farZ = Z_FAR * 0.94;
+      var nearZ = 0.55;
+      var farZ = Z_FAR * 0.96;
       var z;
-      var zStep = 9;
-      var zNext;
+      var spokeSubStep = 3.5;
       var tickHalf;
       var tickAlpha;
       var depthFade;
       var ringAlpha;
       var point;
-      var pointNext;
       var tickAngle;
       var tickInner;
       var tickOuter;
-      var segmentMidZ;
+      var guideRingScroll = getTunnelScrollOffset(GUIDE_RING_STEP);
+      var started;
 
       context.lineCap = "round";
 
@@ -996,25 +1155,33 @@
         context.strokeStyle = "rgba(100, 210, 255, 0.24)";
         context.lineWidth = 1.1;
         context.setLineDash([GUIDE_DASH, GUIDE_GAP]);
-
-        for (z = nearZ; z < farZ; z += zStep) {
-          zNext = z + zStep;
-          if (zNext > farZ) {
-            zNext = farZ;
-          }
-          segmentMidZ = (z + zNext) * 0.5;
+        context.lineDashOffset = getGuideDashOffsetForWorldZ(nearZ);
+        context.beginPath();
+        started = false;
+        for (z = nearZ; z <= farZ; z += spokeSubStep) {
           point = projectWorld(Math.cos(angle), Math.sin(angle), z);
-          pointNext = projectWorld(Math.cos(angle), Math.sin(angle), zNext);
-          context.lineDashOffset = getGuideDashOffsetForWorldZ(segmentMidZ);
-          context.beginPath();
-          context.moveTo(point.x, point.y);
-          context.lineTo(pointNext.x, pointNext.y);
+          if (!started) {
+            context.moveTo(point.x, point.y);
+            started = true;
+          } else {
+            context.lineTo(point.x, point.y);
+          }
+        }
+        if (started) {
+          point = projectWorld(Math.cos(angle), Math.sin(angle), farZ);
+          context.lineTo(point.x, point.y);
           context.stroke();
         }
+      }
 
-        context.setLineDash([]);
+      context.setLineDash([]);
 
-        for (z = 10; z < farZ; z += 11) {
+      for (sectorIndex = 0; sectorIndex < SECTOR_COUNT; sectorIndex++) {
+        angle = sectorIndex * SECTOR_ANGLE;
+        for (z = 10 - guideRingScroll + GUIDE_RING_STEP; z < farZ + GUIDE_RING_STEP; z += GUIDE_RING_STEP) {
+          if (z < 10 || z >= farZ) {
+            continue;
+          }
           tickAlpha = 0.08 + (1 - z / farZ) * 0.18;
           tickHalf = 0.04;
           tickAngle = angle + SECTOR_ANGLE * 0.5;
@@ -1029,7 +1196,10 @@
         }
       }
 
-      for (z = 10; z < farZ; z += 11) {
+      for (z = 10 - guideRingScroll + GUIDE_RING_STEP; z < farZ + GUIDE_RING_STEP; z += GUIDE_RING_STEP) {
+        if (z < 10 || z >= farZ) {
+          continue;
+        }
         depthFade = 1 - z / farZ;
         ringAlpha = 0.06 + depthFade * 0.16;
         context.strokeStyle = "rgba(80, 190, 245, " + ringAlpha + ")";
@@ -1067,11 +1237,13 @@
     }
 
     function drawTunnelTube() {
+      var scrollOffset = getTunnelScrollOffset(TUNNEL_RING_STEP);
       var z;
-      var step = 4.5;
-      for (z = Z_FAR; z > 1; z -= step) {
-        var depthFade = 1 - z / Z_FAR;
-        var alpha = 0.08 + depthFade * 0.22;
+      var depthFade;
+      var alpha;
+      for (z = Z_FAR - scrollOffset + TUNNEL_RING_STEP; z > 0.5; z -= TUNNEL_RING_STEP) {
+        depthFade = getTunnelDepthFade(z);
+        alpha = 0.08 + depthFade * 0.22;
         drawTunnelRing(
           z,
           0.92,
@@ -1205,15 +1377,26 @@
     }
 
     function applyGameLocale() {
+      document.title = getGameTitle();
+      if (isStart()) {
+        screenTitle.textContent = getGameTitle();
+      } else if (isGameOver()) {
+        screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
+        screenMeters.textContent = formatDistanceText(distanceUnits);
+      }
       controlHint.textContent = getClickSteerHint();
-      syncHighScoreHud(false);
+      syncHighScoreHud(gameScreen.classList.contains("is-record"));
+      if (isPlaying()) {
+        syncPlayingHud();
+      }
     }
 
     function bindLocaleListener() {
-      window.addEventListener("web-locale-changed", applyGameLocale);
+      var localeTarget = window;
       if (window.parent && window.parent !== window) {
-        window.parent.addEventListener("web-locale-changed", applyGameLocale);
+        localeTarget = window.parent;
       }
+      localeTarget.addEventListener("web-locale-applied", applyGameLocale);
     }
 
     var lastFrameTime = 0;
@@ -1231,6 +1414,9 @@
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", onWindowBlur);
     gameRoot.addEventListener("pointerdown", onPointerDown);
+    gameRoot.addEventListener("pointermove", onPointerMove);
+    gameRoot.addEventListener("pointerup", onPointerUp);
+    gameRoot.addEventListener("pointercancel", onPointerCancel);
 
     initStars();
     initSpeedStreaks();
@@ -1243,4 +1429,5 @@
     window.requestAnimationFrame(gameLoop);
   </script>
 </body>
+
 </html>

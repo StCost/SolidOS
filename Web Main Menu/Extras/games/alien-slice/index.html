@@ -132,14 +132,6 @@
       text-shadow: 0 2px 12px rgba(80, 220, 255, 0.45), 0 0 22px rgba(80, 220, 255, 0.3);
     }
 
-    #screenSubtitle {
-      margin: 0;
-      font-size: 0.92rem;
-      color: rgba(200, 245, 255, 0.82);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-
     #controlHint {
       margin: 0.4rem 0 0;
       font-size: 0.88rem;
@@ -147,6 +139,7 @@
       text-align: center;
       max-width: 85%;
       line-height: 1.5;
+      white-space: pre-line;
     }
 
     #screenScore {
@@ -174,11 +167,68 @@
         text-shadow: 0 2px 22px rgba(255, 240, 140, 0.95), 0 0 36px rgba(255, 220, 80, 0.7);
       }
     }
+
+    #damageFlash {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+      opacity: 0;
+      background:
+        radial-gradient(circle at 50% 50%, transparent 42%, rgba(120, 8, 20, 0.55) 72%, rgba(60, 0, 12, 0.92) 100%),
+        radial-gradient(circle at 30% 70%, rgba(255, 40, 60, 0.35), transparent 55%),
+        radial-gradient(circle at 70% 65%, rgba(255, 60, 40, 0.3), transparent 50%);
+    }
+
+    #damageFlash.is-active {
+      animation: damage-flash 0.55s ease-out forwards;
+    }
+
+    @keyframes damage-flash {
+      0% {
+        opacity: 0.95;
+        filter: brightness(1.8) saturate(1.4);
+      }
+      35% {
+        opacity: 0.75;
+      }
+      100% {
+        opacity: 0;
+        filter: brightness(1) saturate(1);
+      }
+    }
+
+    #damageCrack {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+      opacity: 0;
+      background:
+        linear-gradient(118deg, transparent 46%, rgba(255, 80, 100, 0.12) 49.5%, transparent 53%),
+        linear-gradient(62deg, transparent 52%, rgba(255, 50, 80, 0.1) 54.5%, transparent 57%);
+      mix-blend-mode: screen;
+    }
+
+    #damageCrack.is-active {
+      animation: damage-crack 0.7s ease-out forwards;
+    }
+
+    @keyframes damage-crack {
+      0% {
+        opacity: 0.85;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
   </style>
 </head>
 <body>
   <div id="gameRoot">
     <canvas id="gameCanvas"></canvas>
+    <div id="damageFlash" aria-hidden="true"></div>
+    <div id="damageCrack" aria-hidden="true"></div>
     <div id="hudScore" class="hud-panel">0</div>
     <div id="hudCombo" class="hud-panel">combo x2</div>
     <div id="hudLives" class="hud-panel">♥ ♥ ♥</div>
@@ -186,7 +236,6 @@
     <div id="hudHighScore" class="hud-panel">best 0</div>
     <div id="gameScreen">
       <h1 id="screenTitle">Alien Slice</h1>
-      <p id="screenSubtitle">Xeno Flora Harvest</p>
       <p id="controlHint">Click to start — swipe pods, avoid bombs — misses don't end the run</p>
       <p id="screenScore" class="hidden">0 pts</p>
     </div>
@@ -228,6 +277,33 @@
       "Sensational!",
       "Incredible!",
       "Legendary!"
+    ];
+    var LOCALE_KEY_START_HINT = "web.game.alien-slice.prompt-start-hint";
+    var LOCALE_KEY_MISSED = "web.game.alien-slice.missed";
+    var LOCALE_KEY_COMBO = "web.game.alien-slice.combo";
+    var LOCALE_KEY_PERFECT = "web.game.alien-slice.perfect";
+    var LOCALE_KEY_POINTS = "web.game.alien-slice.points";
+    var LOCALE_KEY_POINTS_PLUS = "web.game.alien-slice.points-plus";
+    var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
+    var LOCALE_KEY_GAME_OVER = "web.game.game-over";
+    var LOCALE_KEY_NEW_RECORD = "web.game.new-record";
+    var LOCALE_KEY_RECORD_CONGRATS = "web.game.record-congrats";
+    var LOCALE_KEY_CLICK_RETRY = "web.game.prompt.click-retry";
+    var LOCALE_KEY_CLICK_START = "web.game.prompt.click-start";
+    var LOCALE_KEY_STATS_SEPARATOR = "web.game.stats-separator";
+    var COMBO_PRAISE_KEYS = [
+      "web.game.alien-slice.praise.nice",
+      "web.game.alien-slice.praise.tasty",
+      "web.game.alien-slice.praise.juicy",
+      "web.game.alien-slice.praise.sweet",
+      "web.game.alien-slice.praise.great",
+      "web.game.alien-slice.praise.super",
+      "web.game.alien-slice.praise.amazing",
+      "web.game.alien-slice.praise.deluxe",
+      "web.game.alien-slice.praise.unreal",
+      "web.game.alien-slice.praise.sensational",
+      "web.game.alien-slice.praise.incredible",
+      "web.game.alien-slice.praise.legendary"
     ];
     var SLICE_TONE_BASE_HZ = 360;
     var SLICE_TONE_STEP_RATIO = 1.122462048;
@@ -303,13 +379,27 @@
     var PATTERN_DIAMOND = "diamond";
     var PATTERN_RING = "ring";
     var PATTERN_DOUBLE = "double";
+    var PATTERN_SLASH = "slash";
+    var PATTERN_BACKSLASH = "backslash";
+    var PATTERN_STAIR = "stair";
 
-    var PATTERNS = [PATTERN_LINE, PATTERN_ARC, PATTERN_V, PATTERN_DIAMOND, PATTERN_RING, PATTERN_DOUBLE];
+    var PATTERNS = [
+      PATTERN_LINE,
+      PATTERN_ARC,
+      PATTERN_V,
+      PATTERN_DIAMOND,
+      PATTERN_RING,
+      PATTERN_DOUBLE,
+      PATTERN_SLASH,
+      PATTERN_BACKSLASH,
+      PATTERN_STAIR
+    ];
+
+    var PATTERN_ANGLE_OPTIONS = [-0.55, -0.38, -0.22, 0, 0.22, 0.38, 0.55];
 
     var gameCanvas = document.getElementById("gameCanvas");
     var gameScreen = document.getElementById("gameScreen");
     var screenTitle = document.getElementById("screenTitle");
-    var screenSubtitle = document.getElementById("screenSubtitle");
     var controlHint = document.getElementById("controlHint");
     var screenScore = document.getElementById("screenScore");
     var hudScore = document.getElementById("hudScore");
@@ -324,6 +414,7 @@
     var devicePixelRatioValue = 1;
 
     var gameState = "menu";
+    var lastGameOverWasRecord = false;
     var score = 0;
     var highScore = 0;
     var runStartHighScore = 0;
@@ -350,12 +441,72 @@
     var popups = [];
 
     var audioContext = null;
+    var audioSliceGain = null;
+    var audioBombGain = null;
+    var bombSoundLockUntil = 0;
+    var BOMB_SOUND_LOCK_SEC = 0.42;
+
+    var damageFlash = null;
+    var damageCrack = null;
+
+    function getLocaleApi() {
+      if (window.parent && window.parent !== window && window.parent.WebLocale) {
+        return window.parent.WebLocale;
+      }
+      if (window.WebLocale) {
+        return window.WebLocale;
+      }
+      return null;
+    }
 
     function getLocalized(key, fallback) {
-      if (window.WebLocale) {
-        return window.WebLocale.get(key, fallback);
+      var locale = getLocaleApi();
+      if (locale) {
+        return locale.get(key, fallback);
       }
       return fallback;
+    }
+
+    function formatLocalized(template, value0, value1) {
+      var text = template;
+      if (value0 != null) {
+        text = text.replace("{0}", String(value0));
+      }
+      if (value1 != null) {
+        text = text.replace("{1}", String(value1));
+      }
+      return text;
+    }
+
+    function getRetryHintText() {
+      return getLocalized(LOCALE_KEY_CLICK_RETRY, "CLICK TO TRY AGAIN");
+    }
+
+    function getGameOverHintText(isNewRecord) {
+      if (isNewRecord) {
+        return getLocalized(LOCALE_KEY_RECORD_CONGRATS, "Excellent harvest!") + "\n" + getRetryHintText();
+      }
+      return getRetryHintText();
+    }
+
+    function getPointsText(points) {
+      return formatLocalized(getLocalized(LOCALE_KEY_POINTS, "{0} pts"), points);
+    }
+
+    function getPointsPlusText(points) {
+      return formatLocalized(getLocalized(LOCALE_KEY_POINTS_PLUS, "+{0}"), points);
+    }
+
+    function getMissedText(count) {
+      return formatLocalized(getLocalized(LOCALE_KEY_MISSED, "missed {0}"), count);
+    }
+
+    function getComboHudText(count) {
+      return formatLocalized(getLocalized(LOCALE_KEY_COMBO, "combo x{0}"), count);
+    }
+
+    function getPerfectWaveText(bonus) {
+      return formatLocalized(getLocalized(LOCALE_KEY_PERFECT, "PERFECT! +{0}"), bonus);
     }
 
     function loadHighScore() {
@@ -391,7 +542,7 @@
     }
 
     function updateHighScoreHud() {
-      var label = getLocalized("web.game.best-label", "best");
+      var label = getLocalized(LOCALE_KEY_BEST_LABEL, "best");
       hudHighScore.textContent = label + " " + highScore;
       if (score > 0 && score >= highScore) {
         hudHighScore.classList.add("is-record");
@@ -412,7 +563,7 @@
 
     function updateMissHud() {
       if (!hudMisses) return;
-      hudMisses.textContent = "missed " + missCount;
+      hudMisses.textContent = getMissedText(missCount);
       if (missCount > 0) {
         hudMisses.classList.add("has-misses");
       } else {
@@ -439,7 +590,7 @@
           popups.push({
             x: viewWidth * 0.5,
             y: viewHeight * 0.38,
-            text: "PERFECT! +" + bonus,
+            text: getPerfectWaveText(bonus),
             life: 1.1,
             maxLife: 1.1,
             scale: 1.35
@@ -457,8 +608,32 @@
         var AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (AudioCtx) {
           audioContext = new AudioCtx();
+          audioSliceGain = audioContext.createGain();
+          audioBombGain = audioContext.createGain();
+          audioSliceGain.gain.value = 1;
+          audioBombGain.gain.value = 1;
+          audioSliceGain.connect(audioContext.destination);
+          audioBombGain.connect(audioContext.destination);
         }
       } catch (ignored) {}
+    }
+
+    function isBombSoundLocked() {
+      if (!audioContext) return false;
+      return audioContext.currentTime < bombSoundLockUntil;
+    }
+
+    function triggerDamageFlash() {
+      if (damageFlash) {
+        damageFlash.classList.remove("is-active");
+        void damageFlash.offsetWidth;
+        damageFlash.classList.add("is-active");
+      }
+      if (damageCrack) {
+        damageCrack.classList.remove("is-active");
+        void damageCrack.offsetWidth;
+        damageCrack.classList.add("is-active");
+      }
     }
 
     function getSliceTonePitch(comboLevel) {
@@ -473,7 +648,8 @@
     }
 
     function playSliceTone(comboLevel) {
-      if (!audioContext) return;
+      if (!audioContext || !audioSliceGain) return;
+      if (isBombSoundLocked()) return;
       if (audioContext.state === "suspended") {
         audioContext.resume();
       }
@@ -497,27 +673,33 @@
       gainNode.gain.setValueAtTime(volume, now);
       gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration + 0.05);
       oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      gainNode.connect(audioSliceGain);
       oscillator.start(now);
       oscillator.stop(now + duration + 0.06);
     }
 
     function playBombTone() {
-      if (!audioContext) return;
+      if (!audioContext || !audioBombGain || !audioSliceGain) return;
       if (audioContext.state === "suspended") {
         audioContext.resume();
       }
+      var now = audioContext.currentTime;
+      bombSoundLockUntil = now + BOMB_SOUND_LOCK_SEC;
+      audioSliceGain.gain.cancelScheduledValues(now);
+      audioSliceGain.gain.setValueAtTime(audioSliceGain.gain.value, now);
+      audioSliceGain.gain.linearRampToValueAtTime(0.04, now + 0.03);
+      audioSliceGain.gain.linearRampToValueAtTime(1, now + BOMB_SOUND_LOCK_SEC);
       var oscillator = audioContext.createOscillator();
       var gainNode = audioContext.createGain();
       oscillator.type = "sawtooth";
-      oscillator.frequency.setValueAtTime(90, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(40, audioContext.currentTime + 0.25);
-      gainNode.gain.setValueAtTime(0.22, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+      oscillator.frequency.setValueAtTime(95, now);
+      oscillator.frequency.exponentialRampToValueAtTime(38, now + 0.28);
+      gainNode.gain.setValueAtTime(0.28, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
       oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      oscillator.start();
-      oscillator.stop(audioContext.currentTime + 0.32);
+      gainNode.connect(audioBombGain);
+      oscillator.start(now);
+      oscillator.stop(now + 0.36);
     }
 
     function resizeCanvas() {
@@ -621,6 +803,29 @@
             y: peakY + row * 55 - 28
           });
         }
+      } else if (pattern === PATTERN_SLASH) {
+        for (index = 0; index < count; index++) {
+          var slashT = count === 1 ? 0.5 : index / (count - 1);
+          positions.push({
+            x: startX + spread * slashT,
+            y: peakY - spread * 0.32 * (slashT - 0.5) * 2
+          });
+        }
+      } else if (pattern === PATTERN_BACKSLASH) {
+        for (index = 0; index < count; index++) {
+          var backT = count === 1 ? 0.5 : index / (count - 1);
+          positions.push({
+            x: startX + spread * backT,
+            y: peakY + spread * 0.32 * (backT - 0.5) * 2
+          });
+        }
+      } else if (pattern === PATTERN_STAIR) {
+        for (index = 0; index < count; index++) {
+          positions.push({
+            x: startX + (spread * index) / Math.max(count - 1, 1),
+            y: peakY - index * 24
+          });
+        }
       } else {
         for (index = 0; index < count; index++) {
           positions.push({
@@ -631,6 +836,19 @@
       }
 
       return positions;
+    }
+
+    function rotatePatternPositions(positions, pivotX, pivotY, angle) {
+      if (Math.abs(angle) < 0.001) return;
+      var cosAngle = Math.cos(angle);
+      var sinAngle = Math.sin(angle);
+      var index;
+      for (index = 0; index < positions.length; index++) {
+        var relX = positions[index].x - pivotX;
+        var relY = positions[index].y - pivotY;
+        positions[index].x = pivotX + relX * cosAngle - relY * sinAngle;
+        positions[index].y = pivotY + relX * sinAngle + relY * cosAngle;
+      }
     }
 
     function pickPodType() {
@@ -688,7 +906,17 @@
       var peakY = viewHeight * (0.28 + Math.random() * 0.1);
       var peakTime = 0.95 + Math.random() * 0.35 - difficulty * 0.08;
       if (peakTime < 0.75) peakTime = 0.75;
+      var centerX = viewWidth * 0.5;
       var positions = getPatternPositions(pattern, count, peakY);
+      var waveAngle = PATTERN_ANGLE_OPTIONS[Math.floor(Math.random() * PATTERN_ANGLE_OPTIONS.length)];
+      if (pattern === PATTERN_SLASH) {
+        waveAngle += 0.15;
+      } else if (pattern === PATTERN_BACKSLASH) {
+        waveAngle -= 0.15;
+      } else if (pattern === PATTERN_STAIR) {
+        waveAngle += 0.28;
+      }
+      rotatePatternPositions(positions, centerX, peakY, waveAngle);
       var hasBomb = waveIndex > 2 && Math.random() < 0.22 + difficulty * 0.08;
       var bombIndex = hasBomb ? Math.floor(Math.random() * count) : -1;
       waveActive = true;
@@ -828,10 +1056,10 @@
       if (index < 0) {
         return "";
       }
-      if (index >= COMBO_PRAISE_WORDS.length) {
-        return COMBO_PRAISE_WORDS[COMBO_PRAISE_WORDS.length - 1];
+      if (index >= COMBO_PRAISE_KEYS.length) {
+        return getLocalized(COMBO_PRAISE_KEYS[COMBO_PRAISE_KEYS.length - 1], COMBO_PRAISE_WORDS[COMBO_PRAISE_WORDS.length - 1]);
       }
-      return COMBO_PRAISE_WORDS[index];
+      return getLocalized(COMBO_PRAISE_KEYS[index], COMBO_PRAISE_WORDS[index]);
     }
 
     function addComboPraisePopup(comboLevel, slicesInSwipe, posX, posY) {
@@ -857,9 +1085,10 @@
       if (entity.isBomb) {
         lives--;
         hudLives.textContent = getLivesText();
-        screenShake = 14;
+        screenShake = 16;
+        triggerDamageFlash();
         playBombTone();
-        addJuiceParticles(pos.x, pos.y, entity.type.juice, 20);
+        addJuiceParticles(pos.x, pos.y, entity.type.juice, 10);
         combo = 0;
         comboTimer = 0;
         hudCombo.classList.remove("is-visible");
@@ -881,7 +1110,7 @@
       if (combo > 1) {
         hudCombo.textContent = getComboPraiseWord(combo, 1) + "  x" + combo;
         if (hudCombo.textContent.indexOf("!") === -1) {
-          hudCombo.textContent = "combo x" + combo;
+          hudCombo.textContent = getComboHudText(combo);
         }
         hudCombo.classList.add("is-visible");
       }
@@ -889,7 +1118,7 @@
       popups.push({
         x: pos.x,
         y: pos.y - 20,
-        text: "+" + points,
+        text: getPointsPlusText(points),
         life: 0.7,
         maxLife: 0.7,
         scale: 1 + combo * 0.04
@@ -1027,6 +1256,14 @@
       var praiseY = viewHeight * 0.34;
       var comboBeforeSwipe = combo;
       for (entityIndex = entities.length - 1; entityIndex >= 0; entityIndex--) {
+        var bombEntity = entities[entityIndex];
+        if (!bombEntity.isBomb) continue;
+        var bombHit = getSwipeHitForEntity(bombEntity);
+        if (bombHit) {
+          sliceEntity(bombEntity, bombHit.pos, bombHit.sliceAngle);
+        }
+      }
+      for (entityIndex = entities.length - 1; entityIndex >= 0; entityIndex--) {
         var entity = entities[entityIndex];
         if (entity.isBomb) continue;
         var hit = getSwipeHitForEntity(entity);
@@ -1039,19 +1276,11 @@
       }
       if (slicesThisSwipe >= 2) {
         addComboPraisePopup(combo, slicesThisSwipe, praiseX, praiseY);
-        if (slicesThisSwipe >= 4) {
+        if (slicesThisSwipe >= 4 && !isBombSoundLocked()) {
           screenShake = 5 + slicesThisSwipe;
         }
       } else if (combo > comboBeforeSwipe && combo >= 2) {
         addComboPraisePopup(combo, 1, praiseX, praiseY);
-      }
-      for (entityIndex = entities.length - 1; entityIndex >= 0; entityIndex--) {
-        var bombEntity = entities[entityIndex];
-        if (!bombEntity.isBomb) continue;
-        var bombHit = getSwipeHitForEntity(bombEntity);
-        if (bombHit) {
-          sliceEntity(bombEntity, bombHit.pos, bombHit.sliceAngle);
-        }
       }
     }
 
@@ -1284,24 +1513,58 @@
 
     function drawAlienFloraBase() {
       var ctx = canvasContext;
-      var baseY = viewHeight - 8;
-      ctx.save();
-      ctx.globalAlpha = 0.35;
+      var floorY = viewHeight - 2;
       var index;
-      for (index = 0; index < 7; index++) {
-        var x = (viewWidth / 6) * index;
-        var height = 40 + Math.sin(index * 1.7) * 25;
-        var grad = ctx.createLinearGradient(x, baseY, x, baseY - height);
-        grad.addColorStop(0, "#0a4038");
-        grad.addColorStop(1, "#28a878");
-        ctx.fillStyle = grad;
+      ctx.save();
+
+      var floorGlow = ctx.createLinearGradient(0, viewHeight - 100, 0, viewHeight);
+      floorGlow.addColorStop(0, "rgba(16, 70, 62, 0)");
+      floorGlow.addColorStop(0.55, "rgba(32, 110, 95, 0.22)");
+      floorGlow.addColorStop(1, "rgba(48, 150, 125, 0.42)");
+      ctx.fillStyle = floorGlow;
+      ctx.fillRect(0, viewHeight - 100, viewWidth, 100);
+
+      var moundCount = Math.floor(viewWidth / 70) + 2;
+      for (index = 0; index < moundCount; index++) {
+        var x = (viewWidth / (moundCount - 1)) * index;
+        var moundWidth = 28 + (index % 4) * 10;
+        var moundHeight = 14 + Math.sin(index * 1.9) * 7;
+        var moundGrad = ctx.createRadialGradient(
+          x,
+          floorY - moundHeight * 0.45,
+          2,
+          x,
+          floorY - moundHeight * 0.35,
+          moundWidth
+        );
+        moundGrad.addColorStop(0, "rgba(100, 240, 200, 0.38)");
+        moundGrad.addColorStop(0.55, "rgba(40, 140, 115, 0.28)");
+        moundGrad.addColorStop(1, "rgba(14, 55, 48, 0)");
+        ctx.fillStyle = moundGrad;
         ctx.beginPath();
-        ctx.moveTo(x - 18, baseY);
-        ctx.quadraticCurveTo(x - 8, baseY - height * 0.6, x, baseY - height);
-        ctx.quadraticCurveTo(x + 12, baseY - height * 0.5, x + 22, baseY);
-        ctx.closePath();
+        ctx.ellipse(x, floorY - moundHeight * 0.32, moundWidth, moundHeight, 0, 0, Math.PI * 2);
         ctx.fill();
       }
+
+      for (index = 0; index < 6; index++) {
+        var stemX = viewWidth * (0.08 + index * 0.17);
+        var stemH = 22 + Math.sin(index * 2.4) * 12;
+        var stemGrad = ctx.createLinearGradient(stemX, floorY, stemX, floorY - stemH);
+        stemGrad.addColorStop(0, "rgba(55, 180, 150, 0.5)");
+        stemGrad.addColorStop(1, "rgba(120, 255, 220, 0.15)");
+        ctx.strokeStyle = stemGrad;
+        ctx.lineWidth = 5 + (index % 2) * 2;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(stemX, floorY);
+        ctx.quadraticCurveTo(stemX + 8, floorY - stemH * 0.55, stemX - 4, floorY - stemH);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(160, 255, 230, 0.35)";
+        ctx.beginPath();
+        ctx.ellipse(stemX - 4, floorY - stemH, 7, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       ctx.restore();
     }
 
@@ -1725,26 +1988,25 @@
       swipePoints = [];
       swipeActive = false;
       var isNewRecord = score > 0 && score > runStartHighScore;
+      lastGameOverWasRecord = isNewRecord;
       saveHighScore();
       updateHighScoreHud();
       gameScreen.classList.remove("hidden");
       gameScreen.classList.remove("is-record");
-      var bestLabel = getLocalized("web.game.best-label", "best");
-      var statsSeparator = getLocalized("web.game.stats-separator", " · ");
+      var bestLabel = getLocalized(LOCALE_KEY_BEST_LABEL, "best");
+      var statsSeparator = getLocalized(LOCALE_KEY_STATS_SEPARATOR, " · ");
       if (isNewRecord) {
         gameScreen.classList.add("is-record");
-        screenTitle.textContent = getLocalized("web.game.new-record", "NEW RECORD!");
-        screenSubtitle.textContent = getLocalized("web.game.record-congrats", "Excellent harvest!");
-        screenScore.textContent = score + " pts" + statsSeparator + bestLabel + " " + highScore;
+        screenTitle.textContent = getLocalized(LOCALE_KEY_NEW_RECORD, "NEW RECORD!");
+        screenScore.textContent = getPointsText(score) + statsSeparator + bestLabel + " " + highScore;
       } else {
-        screenTitle.textContent = getLocalized("web.game.game-over", "Game Over");
-        screenSubtitle.textContent = GAME_TITLE;
-        screenScore.textContent = score + " pts" + statsSeparator + bestLabel + " " + highScore;
+        screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
+        screenScore.textContent = getPointsText(score) + statsSeparator + bestLabel + " " + highScore;
       }
       if (missCount > 0) {
-        screenScore.textContent = screenScore.textContent + statsSeparator + "missed " + missCount;
+        screenScore.textContent = screenScore.textContent + statsSeparator + getMissedText(missCount);
       }
-      controlHint.textContent = getLocalized("web.game.prompt.click-retry", "CLICK TO TRY AGAIN");
+      controlHint.textContent = getGameOverHintText(isNewRecord);
       screenScore.classList.remove("hidden");
     }
 
@@ -1753,15 +2015,57 @@
       gameScreen.classList.remove("hidden");
       gameScreen.classList.remove("is-record");
       screenTitle.textContent = GAME_TITLE;
-      screenSubtitle.textContent = "Xeno Flora Harvest";
-      var bestLabel = getLocalized("web.game.best-label", "best");
+      var bestLabel = getLocalized(LOCALE_KEY_BEST_LABEL, "best");
       if (highScore > 0) {
         screenScore.textContent = bestLabel + " " + highScore;
         screenScore.classList.remove("hidden");
       } else {
         screenScore.classList.add("hidden");
       }
-      controlHint.textContent = getLocalized("web.game.prompt.click-start", "CLICK TO START");
+      controlHint.textContent = getLocalized(LOCALE_KEY_START_HINT, "Click to start — swipe pods, avoid bombs — misses don't end the run");
+    }
+
+    function applyGameLocale() {
+      document.title = GAME_TITLE;
+      updateHighScoreHud();
+      updateMissHud();
+      if (gameState === "menu") {
+        screenTitle.textContent = GAME_TITLE;
+        var menuBestLabel = getLocalized(LOCALE_KEY_BEST_LABEL, "best");
+        if (highScore > 0) {
+          screenScore.textContent = menuBestLabel + " " + highScore;
+        }
+        controlHint.textContent = getLocalized(LOCALE_KEY_START_HINT, "Click to start — swipe pods, avoid bombs — misses don't end the run");
+      } else if (gameState === "over") {
+        var bestLabel = getLocalized(LOCALE_KEY_BEST_LABEL, "best");
+        var statsSeparator = getLocalized(LOCALE_KEY_STATS_SEPARATOR, " · ");
+        if (lastGameOverWasRecord) {
+          screenTitle.textContent = getLocalized(LOCALE_KEY_NEW_RECORD, "NEW RECORD!");
+        } else {
+          screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
+        }
+        screenScore.textContent = getPointsText(score) + statsSeparator + bestLabel + " " + highScore;
+        if (missCount > 0) {
+          screenScore.textContent = screenScore.textContent + statsSeparator + getMissedText(missCount);
+        }
+        controlHint.textContent = getGameOverHintText(lastGameOverWasRecord);
+      } else if (gameState === "playing") {
+        hudLives.textContent = getLivesText();
+        if (combo > 1) {
+          hudCombo.textContent = getComboPraiseWord(combo, 1) + "  x" + combo;
+          if (hudCombo.textContent.indexOf("!") === -1) {
+            hudCombo.textContent = getComboHudText(combo);
+          }
+        }
+      }
+    }
+
+    function bindLocaleListener() {
+      var localeTarget = window;
+      if (window.parent && window.parent !== window) {
+        localeTarget = window.parent;
+      }
+      localeTarget.addEventListener("web-locale-applied", applyGameLocale);
     }
 
     function bindEvents() {
@@ -1776,9 +2080,13 @@
     }
 
     function init() {
+      damageFlash = document.getElementById("damageFlash");
+      damageCrack = document.getElementById("damageCrack");
       loadHighScore();
       resizeCanvas();
       bindEvents();
+      bindLocaleListener();
+      document.title = GAME_TITLE;
       showMenu();
       window.requestAnimationFrame(gameLoop);
     }
