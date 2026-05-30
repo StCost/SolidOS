@@ -59,7 +59,8 @@
       <div class="os-shell" id="screenInner">
         <header class="os-statusbar" aria-hidden="true">
           <span class="os-statusbar-segment terminal-text--dim" data-locale-key="web.status.node">NODE CM-LOCAL</span>
-          <span class="os-statusbar-segment terminal-text--dim" id="osStatusModule" data-locale-key="web.status.shell">SHELL 2.4</span>
+          <span class="os-statusbar-segment terminal-text--dim" id="osStatusModule"
+            data-locale-key="web.status.shell">SHELL 2.4</span>
           <span class="os-statusbar-segment os-statusbar-segment--right terminal-text--dim os-clock">00:00:00</span>
         </header>
 
@@ -72,7 +73,8 @@
                 <span class="os-window-dot"></span>
                 <span class="os-window-dot os-window-dot--active"></span>
               </div>
-              <p class="os-window-title terminal-text--dim" id="splashWindowTitle" data-locale-key="web.window.cm-boot">cm_boot.sys</p>
+              <p class="os-window-title terminal-text--dim" id="splashWindowTitle" data-locale-key="web.window.cm-boot">
+                cm_boot.sys</p>
             </div>
             <div class="os-window-body os-window-body--terminal">
               <header class="term-header" id="titleBlock">
@@ -83,24 +85,27 @@
                   <span class="term-divider-line"></span>
                 </div>
                 <p class="term-credit">
-                  <button type="button" class="term-credit-button terminal-text" id="btnCredit" data-locale-key="web.menu.credit">by Dreaming Saints</button>
+                  <button type="button" class="term-credit-button terminal-text" id="btnCredit"
+                    data-locale-key="web.menu.credit">by Dreaming Saints</button>
                 </p>
               </header>
             </div>
           </section>
 
-          <section class="os-window os-window--actions os-window--menu-actions" data-wm-preset="menu-actions" data-wm-order="1"
-            aria-labelledby="menuWindowTitle">
+          <section class="os-window os-window--actions os-window--menu-actions" data-wm-preset="menu-actions"
+            data-wm-order="1" aria-labelledby="menuWindowTitle">
             <div class="os-window-chrome">
               <div class="os-window-controls" aria-hidden="true">
                 <span class="os-window-dot"></span>
                 <span class="os-window-dot os-window-dot--active"></span>
                 <span class="os-window-dot"></span>
               </div>
-              <p class="os-window-title terminal-text--dim" id="menuWindowTitle" data-locale-key="web.window.cmd-menu">cmd_menu.sys</p>
+              <p class="os-window-title terminal-text--dim" id="menuWindowTitle" data-locale-key="web.window.cmd-menu">
+                cmd_menu.sys</p>
             </div>
             <div class="os-window-body os-window-body--terminal menu-v-scroll-view">
-              <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM&gt;</span> <span data-locale-key="web.menu.prompt.dir">dir</span></p>
+              <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM&gt;</span> <span
+                  data-locale-key="web.menu.prompt.dir">dir</span></p>
               <nav class="term-menu" id="actions" data-locale-aria-label="web.aria.main-menu" aria-label="Main menu">
                 <button type="button" class="term-row term-row--primary" id="btnStart">
                   <span class="term-row-prefix terminal-text--dim">&gt;&gt;</span>
@@ -133,14 +138,17 @@
       <div class="os-shell os-shell--start">
         <header class="os-statusbar" aria-hidden="true">
           <span class="os-statusbar-segment terminal-text--dim" data-locale-key="web.status.node">NODE CM-LOCAL</span>
-          <span class="os-statusbar-segment terminal-text--dim" aria-hidden="true" data-locale-key="web.status.conn-mgr">conn_mgr.exe</span>
+          <span class="os-statusbar-segment terminal-text--dim" aria-hidden="true"
+            data-locale-key="web.status.conn-mgr">conn_mgr.exe</span>
           <span class="os-statusbar-segment os-statusbar-segment--right terminal-text--dim os-clock">00:00:00</span>
         </header>
 
         <div class="os-workspace os-workspace--connect os-workspace--wm">
           <p class="term-prompt term-prompt--entry terminal-text--dim"><span class="term-prompt-path">C:\CM&gt;</span>
-            <span data-locale-key="web.connect.cd-connect">cd connect</span></p>
-          <div class="worlds-board os-wm-board" role="region" data-locale-aria-label="web.aria.connection-targets" aria-label="Connection targets">
+            <span data-locale-key="web.connect.cd-connect">cd connect</span>
+          </p>
+          <div class="worlds-board os-wm-board" role="region" data-locale-aria-label="web.aria.connection-targets"
+            aria-label="Connection targets">
             <section class="os-window worlds-column" data-wm-preset="connect-col-0" data-wm-order="0"
               aria-labelledby="worldsColSingle">
               <div class="os-window-chrome">
@@ -149,23 +157,29 @@
                   <span class="os-window-dot"></span>
                   <span class="os-window-dot"></span>
                 </div>
-                <h2 class="os-window-title terminal-text--dim" id="worldsColSingle" data-locale-key="web.connect.col.single">local_worlds.lst</h2>
+                <h2 class="os-window-title terminal-text--dim" id="worldsColSingle"
+                  data-locale-key="web.connect.col.single">local_worlds.lst</h2>
               </div>
               <div class="os-window-body os-window-body--terminal">
                 <p class="term-prompt term-prompt--list terminal-text--dim"><span
-                    class="term-prompt-path">C:\CM\connect\local&gt;</span> <span data-locale-key="web.connect.prompt.dir-local">dir</span></p>
+                    class="term-prompt-path">C:\CM\connect\local&gt;</span> <span
+                    data-locale-key="web.connect.prompt.dir-local">dir</span></p>
                 <ul class="worlds-list menu-v-scroll-view" id="singleplayerList"></ul>
                 <div class="worlds-column-bottom">
                   <form class="worlds-compose worlds-compose-dock" id="formNewWorld" data-compose-kind="singleplayer">
                     <div class="worlds-compose-fields">
                       <label class="worlds-compose-field worlds-compose-field--name">
-                        <span class="worlds-compose-label terminal-text--dim" data-locale-key="web.connect.label.name">NAME=</span>
-                        <input type="text" class="worlds-compose-input" name="name" data-locale-placeholder="web.connect.placeholder.name" placeholder="untitled"
+                        <span class="worlds-compose-label terminal-text--dim"
+                          data-locale-key="web.connect.label.name">NAME=</span>
+                        <input type="text" class="worlds-compose-input" name="name"
+                          data-locale-placeholder="web.connect.placeholder.name" placeholder="untitled"
                           autocomplete="off" spellcheck="false" />
                       </label>
                       <label class="worlds-compose-field worlds-compose-field--meta">
-                        <span class="worlds-compose-label terminal-text--dim" data-locale-key="web.connect.label.seed">SEED=</span>
-                        <input type="text" class="worlds-compose-input" name="seed" data-locale-placeholder="web.connect.placeholder.seed" placeholder="0" autocomplete="off"
+                        <span class="worlds-compose-label terminal-text--dim"
+                          data-locale-key="web.connect.label.seed">SEED=</span>
+                        <input type="text" class="worlds-compose-input" name="seed"
+                          data-locale-placeholder="web.connect.placeholder.seed" placeholder="0" autocomplete="off"
                           spellcheck="false" />
                       </label>
                     </div>
@@ -177,7 +191,8 @@
                     </div>
                   </form>
                   <p class="term-prompt term-prompt--compose terminal-text--dim"><span
-                      class="term-prompt-path">C:\CM\connect\local&gt;</span> <span data-locale-key="web.connect.prompt.mkdir">mkdir</span></p>
+                      class="term-prompt-path">C:\CM\connect\local&gt;</span> <span
+                      data-locale-key="web.connect.prompt.mkdir">mkdir</span></p>
                 </div>
               </div>
             </section>
@@ -190,24 +205,30 @@
                   <span class="os-window-dot os-window-dot--active"></span>
                   <span class="os-window-dot"></span>
                 </div>
-                <h2 class="os-window-title terminal-text--dim" id="worldsColIp" data-locale-key="web.connect.col.ip">ip_nodes.lst</h2>
+                <h2 class="os-window-title terminal-text--dim" id="worldsColIp" data-locale-key="web.connect.col.ip">
+                  ip_nodes.lst</h2>
               </div>
               <div class="os-window-body os-window-body--terminal">
                 <p class="term-prompt term-prompt--list terminal-text--dim"><span
-                    class="term-prompt-path">C:\CM\connect\net&gt;</span> <span data-locale-key="web.connect.prompt.net-view">net view</span></p>
+                    class="term-prompt-path">C:\CM\connect\net&gt;</span> <span
+                    data-locale-key="web.connect.prompt.net-view">net view</span></p>
                 <ul class="worlds-list menu-v-scroll-view" id="ipMultiplayerList"></ul>
                 <div class="worlds-column-bottom">
                   <form class="worlds-compose worlds-compose-dock" id="formNewServer"
                     data-compose-kind="ip-multiplayer">
                     <div class="worlds-compose-fields">
                       <label class="worlds-compose-field worlds-compose-field--name">
-                        <span class="worlds-compose-label terminal-text--dim" data-locale-key="web.connect.label.name">NAME=</span>
-                        <input type="text" class="worlds-compose-input" name="name" data-locale-placeholder="web.connect.placeholder.name" placeholder="untitled"
+                        <span class="worlds-compose-label terminal-text--dim"
+                          data-locale-key="web.connect.label.name">NAME=</span>
+                        <input type="text" class="worlds-compose-input" name="name"
+                          data-locale-placeholder="web.connect.placeholder.name" placeholder="untitled"
                           autocomplete="off" spellcheck="false" />
                       </label>
                       <label class="worlds-compose-field worlds-compose-field--meta">
-                        <span class="worlds-compose-label terminal-text--dim" data-locale-key="web.connect.label.addr">ADDR=</span>
-                        <input type="text" class="worlds-compose-input" name="ip" data-locale-placeholder="web.connect.placeholder.ip" placeholder="127.0.0.1"
+                        <span class="worlds-compose-label terminal-text--dim"
+                          data-locale-key="web.connect.label.addr">ADDR=</span>
+                        <input type="text" class="worlds-compose-input" name="ip"
+                          data-locale-placeholder="web.connect.placeholder.ip" placeholder="127.0.0.1"
                           autocomplete="off" spellcheck="false" />
                       </label>
                     </div>
@@ -219,7 +240,8 @@
                     </div>
                   </form>
                   <p class="term-prompt term-prompt--compose terminal-text--dim"><span
-                      class="term-prompt-path">C:\CM\connect\net&gt;</span> <span data-locale-key="web.connect.prompt.net-use">net use</span></p>
+                      class="term-prompt-path">C:\CM\connect\net&gt;</span> <span
+                      data-locale-key="web.connect.prompt.net-use">net use</span></p>
                 </div>
               </div>
             </section>
@@ -232,15 +254,18 @@
                   <span class="os-window-dot"></span>
                   <span class="os-window-dot os-window-dot--active"></span>
                 </div>
-                <h2 class="os-window-title terminal-text--dim" id="worldsColSteam" data-locale-key="web.connect.col.steam">steam_peers.lst</h2>
+                <h2 class="os-window-title terminal-text--dim" id="worldsColSteam"
+                  data-locale-key="web.connect.col.steam">steam_peers.lst</h2>
               </div>
               <div class="os-window-body os-window-body--terminal">
                 <p class="term-prompt term-prompt--list terminal-text--dim"><span
-                    class="term-prompt-path">C:\CM\connect\steam&gt;</span> <span data-locale-key="web.connect.prompt.net-friends">net friends</span></p>
+                    class="term-prompt-path">C:\CM\connect\steam&gt;</span> <span
+                    data-locale-key="web.connect.prompt.net-friends">net friends</span></p>
                 <ul class="worlds-list menu-v-scroll-view" id="steamMultiplayerList"></ul>
                 <div class="worlds-column-bottom worlds-column-bottom--compose-only">
                   <p class="term-prompt term-prompt--compose terminal-text--dim"><span
-                      class="term-prompt-path">C:\CM\connect\steam&gt;</span> <span data-locale-key="web.connect.prompt.net-join">net join</span></p>
+                      class="term-prompt-path">C:\CM\connect\steam&gt;</span> <span
+                      data-locale-key="web.connect.prompt.net-join">net join</span></p>
                 </div>
               </div>
             </section>
@@ -254,10 +279,12 @@
                 <span class="os-window-dot"></span>
                 <span class="os-window-dot"></span>
               </div>
-              <p class="os-window-title terminal-text--dim" id="navWindowTitle" data-locale-key="web.window.cmd-nav">cmd_nav.sys</p>
+              <p class="os-window-title terminal-text--dim" id="navWindowTitle" data-locale-key="web.window.cmd-nav">
+                cmd_nav.sys</p>
             </div>
             <div class="os-window-body os-window-body--terminal menu-v-scroll-view">
-              <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\connect&gt;</span> <span data-locale-key="web.connect.prompt.cd-up">cd ..</span>
+              <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\connect&gt;</span> <span
+                  data-locale-key="web.connect.prompt.cd-up">cd ..</span>
               </p>
               <nav class="term-menu" data-locale-aria-label="web.aria.connection-menu" aria-label="Connection menu">
                 <button type="button" class="term-row term-row--primary" id="btnWorldsBack">
@@ -281,8 +308,10 @@
 
         <div class="os-workspace os-workspace--settings os-workspace--wm">
           <p class="term-prompt term-prompt--entry terminal-text--dim"><span class="term-prompt-path">C:\CM&gt;</span>
-            <span data-locale-key="web.settings.prompt.cd-config">cd config</span></p>
-          <div class="settings-board os-wm-board" role="region" data-locale-aria-label="web.aria.client-settings" aria-label="Client settings">
+            <span data-locale-key="web.settings.prompt.cd-config">cd config</span>
+          </p>
+          <div class="settings-board os-wm-board" role="region" data-locale-aria-label="web.aria.client-settings"
+            aria-label="Client settings">
             <section class="os-window settings-tabs-window" data-wm-preset="settings-tabs" data-wm-order="0"
               aria-labelledby="settingsTabsTitle">
               <div class="os-window-chrome">
@@ -291,12 +320,15 @@
                   <span class="os-window-dot"></span>
                   <span class="os-window-dot"></span>
                 </div>
-                <h2 class="os-window-title terminal-text--dim" id="settingsTabsTitle" data-locale-key="web.window.config-tabs">config_tabs.ini</h2>
+                <h2 class="os-window-title terminal-text--dim" id="settingsTabsTitle"
+                  data-locale-key="web.window.config-tabs">config_tabs.ini</h2>
               </div>
               <div class="os-window-body os-window-body--terminal">
-                <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\config&gt;</span> <span data-locale-key="web.settings.prompt.dir">dir</span>
+                <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\config&gt;</span> <span
+                    data-locale-key="web.settings.prompt.dir">dir</span>
                 </p>
-                <nav class="settings-tabs menu-v-scroll-view" id="settingsTabs" data-locale-aria-label="web.aria.settings-categories" aria-label="Settings categories"></nav>
+                <nav class="settings-tabs menu-v-scroll-view" id="settingsTabs"
+                  data-locale-aria-label="web.aria.settings-categories" aria-label="Settings categories"></nav>
               </div>
             </section>
 
@@ -308,7 +340,8 @@
                   <span class="os-window-dot os-window-dot--active"></span>
                   <span class="os-window-dot"></span>
                 </div>
-                <p class="os-window-title terminal-text--dim" id="settingsContentTitle" data-locale-key="web.window.client-settings">client_settings.json</p>
+                <p class="os-window-title terminal-text--dim" id="settingsContentTitle"
+                  data-locale-key="web.window.client-settings">client_settings.json</p>
               </div>
               <div class="os-window-body os-window-body--terminal">
                 <h2 id="settingsHeading" class="term-line-heading terminal-text settings-heading"></h2>
@@ -326,15 +359,18 @@
                   <span class="os-window-dot"></span>
                   <span class="os-window-dot"></span>
                 </div>
-                <p class="os-window-title terminal-text--dim" id="settingsNavTitle" data-locale-key="web.window.cmd-config">cmd_config.sys</p>
+                <p class="os-window-title terminal-text--dim" id="settingsNavTitle"
+                  data-locale-key="web.window.cmd-config">cmd_config.sys</p>
               </div>
               <div class="os-window-body os-window-body--terminal menu-v-scroll-view">
-                <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\config&gt;</span> <span data-locale-key="web.settings.prompt.cd-up">cd ..</span>
+                <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\config&gt;</span> <span
+                    data-locale-key="web.settings.prompt.cd-up">cd ..</span>
                 </p>
                 <nav class="term-menu" data-locale-aria-label="web.aria.settings-menu" aria-label="Settings menu">
                   <button type="button" class="term-row" id="btnSettingsReset">
                     <span class="term-row-prefix terminal-text--dim">[!]</span>
-                    <span class="term-row-label terminal-text" data-locale-key="settings.web.reset-defaults">Reset defaults</span>
+                    <span class="term-row-label terminal-text" data-locale-key="settings.web.reset-defaults">Reset
+                      defaults</span>
                   </button>
                   <button type="button" class="term-row term-row--primary" id="btnSettingsClose">
                     <span class="term-row-prefix terminal-text--dim">[ ]</span>
@@ -358,8 +394,10 @@
 
         <div class="os-workspace os-workspace--extras os-workspace--wm">
           <p class="term-prompt term-prompt--entry terminal-text--dim"><span class="term-prompt-path">C:\CM&gt;</span>
-            <span data-locale-key="web.extras.prompt.cd-extras">cd extras</span></p>
-          <div class="extras-board os-wm-board" role="region" data-locale-aria-label="web.aria.extras-content" aria-label="Extras">
+            <span data-locale-key="web.extras.prompt.cd-extras">cd extras</span>
+          </p>
+          <div class="extras-board os-wm-board" role="region" data-locale-aria-label="web.aria.extras-content"
+            aria-label="Extras">
             <section class="os-window extras-content-window" data-wm-preset="extras-content" data-wm-order="0"
               aria-labelledby="extrasContentTitle">
               <div class="os-window-chrome">
@@ -368,12 +406,16 @@
                   <span class="os-window-dot"></span>
                   <span class="os-window-dot"></span>
                 </div>
-                <p class="os-window-title terminal-text--dim" id="extrasContentTitle" data-locale-key="web.window.extras-data">extras.dat</p>
+                <p class="os-window-title terminal-text--dim" id="extrasContentTitle"
+                  data-locale-key="web.window.extras-data">extras.dat</p>
               </div>
               <div class="os-window-body os-window-body--terminal">
-                <p class="term-prompt terminal-text--dim"><span class="term-prompt-path" id="extrasContentPromptPath">C:\CM\extras&gt;</span>
-                  <span id="extrasContentPromptCommand" data-locale-key="web.extras.prompt.dir">dir</span></p>
-                <div class="extras-scroll menu-v-scroll-view" id="extrasContent" role="region" data-locale-aria-label="web.aria.extras-panel" aria-label="Extras panel">
+                <p class="term-prompt terminal-text--dim"><span class="term-prompt-path"
+                    id="extrasContentPromptPath">C:\CM\extras&gt;</span>
+                  <span id="extrasContentPromptCommand" data-locale-key="web.extras.prompt.dir">dir</span>
+                </p>
+                <div class="extras-scroll menu-v-scroll-view" id="extrasContent" role="region"
+                  data-locale-aria-label="web.aria.extras-panel" aria-label="Extras panel">
                   <div class="extras-view" id="extrasViewArt" hidden>
                     <div class="extras-art-grid" id="extrasArtGrid"></div>
                   </div>
@@ -383,33 +425,40 @@
                   <div class="extras-view" id="extrasViewGame" hidden>
                     <button type="button" class="term-row extras-game-back" id="btnExtrasGameBack">
                       <span class="term-row-prefix terminal-text--dim">[ ]</span>
-                      <span class="term-row-label terminal-text" data-locale-key="web.extras.game.back">Back to games</span>
+                      <span class="term-row-label terminal-text" data-locale-key="web.extras.game.back">Back to
+                        games</span>
                     </button>
-                    <iframe class="extras-game-frame" id="extrasGameFrame" title="Extras game" sandbox="allow-scripts allow-same-origin"></iframe>
+                    <iframe class="extras-game-frame" id="extrasGameFrame" title="Extras game"
+                      sandbox="allow-scripts allow-same-origin"></iframe>
                   </div>
                   <div class="extras-view" id="extrasViewLinks" hidden>
-                    <p class="extras-links-intro" data-locale-key="web.extras.links.intro">Community and project links open in your system browser after confirmation.</p>
+                    <p class="extras-links-intro" data-locale-key="web.extras.links.intro">Community and project links
+                      open in your system browser after confirmation.</p>
                     <div class="extras-links-list" id="extrasLinksList"></div>
                   </div>
                 </div>
               </div>
             </section>
 
-            <section class="os-window os-window--actions os-window--menu-actions" data-wm-preset="extras-nav" data-wm-order="1"
-              aria-labelledby="extrasNavTitle">
+            <section class="os-window os-window--actions os-window--menu-actions" data-wm-preset="extras-nav"
+              data-wm-order="1" aria-labelledby="extrasNavTitle">
               <div class="os-window-chrome">
                 <div class="os-window-controls" aria-hidden="true">
                   <span class="os-window-dot"></span>
                   <span class="os-window-dot os-window-dot--active"></span>
                   <span class="os-window-dot"></span>
                 </div>
-                <p class="os-window-title terminal-text--dim" id="extrasNavTitle" data-locale-key="web.window.cmd-menu">cmd_menu.sys</p>
+                <p class="os-window-title terminal-text--dim" id="extrasNavTitle" data-locale-key="web.window.cmd-menu">
+                  cmd_menu.sys</p>
               </div>
               <div class="os-window-body os-window-body--terminal menu-v-scroll-view">
                 <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM&gt;</span>
-                  <span data-locale-key="web.menu.prompt.dir">dir</span></p>
-                <nav class="term-menu" id="extrasNav" data-locale-aria-label="web.aria.extras-menu" aria-label="Extras menu">
-                  <button type="button" class="term-row extras-nav-tab is-active" id="btnExtrasGames" data-extras-tab="games">
+                  <span data-locale-key="web.menu.prompt.dir">dir</span>
+                </p>
+                <nav class="term-menu" id="extrasNav" data-locale-aria-label="web.aria.extras-menu"
+                  aria-label="Extras menu">
+                  <button type="button" class="term-row extras-nav-tab is-active" id="btnExtrasGames"
+                    data-extras-tab="games">
                     <span class="term-row-prefix terminal-text--dim">[ ]</span>
                     <span class="term-row-label terminal-text extras-nav-tab-label">
                       <span class="extras-nav-tab-title" data-locale-key="web.extras.nav.games">Games</span>
@@ -452,8 +501,10 @@
 
         <div class="os-workspace os-workspace--credits os-workspace--wm">
           <p class="term-prompt term-prompt--entry terminal-text--dim"><span class="term-prompt-path">C:\CM&gt;</span>
-            <span data-locale-key="web.credits.prompt.cd-credits">cd credits</span></p>
-          <div class="credits-board os-wm-board" role="region" data-locale-aria-label="web.aria.credits-content" aria-label="Credits">
+            <span data-locale-key="web.credits.prompt.cd-credits">cd credits</span>
+          </p>
+          <div class="credits-board os-wm-board" role="region" data-locale-aria-label="web.aria.credits-content"
+            aria-label="Credits">
             <section class="os-window credits-content-window" data-wm-preset="credits-content" data-wm-order="0"
               aria-labelledby="creditsContentTitle">
               <div class="os-window-chrome">
@@ -462,11 +513,14 @@
                   <span class="os-window-dot"></span>
                   <span class="os-window-dot"></span>
                 </div>
-                <p class="os-window-title terminal-text--dim" id="creditsContentTitle" data-locale-key="web.window.credits-list">credits.lst</p>
+                <p class="os-window-title terminal-text--dim" id="creditsContentTitle"
+                  data-locale-key="web.window.credits-list">credits.lst</p>
               </div>
               <div class="os-window-body os-window-body--terminal">
-                <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\credits&gt;</span> <span data-locale-key="web.credits.prompt.type">type credits.lst</span></p>
-                <div class="credits-scroll menu-v-scroll-view" id="creditsContent" role="region" data-locale-aria-label="web.aria.credits-list" aria-label="Credits list"></div>
+                <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\credits&gt;</span> <span
+                    data-locale-key="web.credits.prompt.type">type credits.lst</span></p>
+                <div class="credits-scroll menu-v-scroll-view" id="creditsContent" role="region"
+                  data-locale-aria-label="web.aria.credits-list" aria-label="Credits list"></div>
               </div>
             </section>
 
@@ -478,12 +532,15 @@
                   <span class="os-window-dot"></span>
                   <span class="os-window-dot"></span>
                 </div>
-                <p class="os-window-title terminal-text--dim" id="creditsNavTitle" data-locale-key="web.window.cmd-credits">cmd_credits.sys</p>
+                <p class="os-window-title terminal-text--dim" id="creditsNavTitle"
+                  data-locale-key="web.window.cmd-credits">cmd_credits.sys</p>
               </div>
               <div class="os-window-body os-window-body--terminal menu-v-scroll-view">
-                <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\credits&gt;</span> <span data-locale-key="web.credits.prompt.cd-up">cd ..</span></p>
+                <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\credits&gt;</span> <span
+                    data-locale-key="web.credits.prompt.cd-up">cd ..</span></p>
                 <nav class="term-menu" data-locale-aria-label="web.aria.credits-menu" aria-label="Credits menu">
-                  <button type="button" class="term-row term-row--primary is-active" id="btnCreditsBack" tabindex="-1" aria-current="page">
+                  <button type="button" class="term-row term-row--primary is-active" id="btnCreditsBack" tabindex="-1"
+                    aria-current="page">
                     <span class="term-row-prefix terminal-text--dim">[ ]</span>
                     <span class="term-row-label terminal-text" data-locale-key="menu.back">Back</span>
                   </button>
@@ -506,10 +563,12 @@
             <span class="os-window-dot os-window-dot--active"></span>
             <span class="os-window-dot"></span>
           </div>
-          <p class="os-window-title terminal-text--dim" id="extrasLinkOverlayTitle" data-locale-key="web.extras.link.confirm-title">open_url.exe</p>
+          <p class="os-window-title terminal-text--dim" id="extrasLinkOverlayTitle"
+            data-locale-key="web.extras.link.confirm-title">open_url.exe</p>
         </div>
         <div class="os-window-body os-window-body--terminal">
-          <p class="extras-link-overlay-text" id="extrasLinkOverlayText" data-locale-key="web.extras.link.confirm-message">Open this link in your browser?</p>
+          <p class="extras-link-overlay-text" id="extrasLinkOverlayText"
+            data-locale-key="web.extras.link.confirm-message">Open this link in your browser?</p>
           <p class="extras-link-overlay-url terminal-text--dim" id="extrasLinkOverlayUrl"></p>
           <nav class="term-menu extras-link-overlay-menu">
             <button type="button" class="term-row" id="extrasLinkOverlayCancel">
@@ -518,11 +577,13 @@
             </button>
             <button type="button" class="term-row term-row--primary" id="extrasLinkOverlayConfirm">
               <span class="term-row-prefix terminal-text--dim">&gt;&gt;</span>
-              <span class="term-row-label terminal-text" data-locale-key="web.extras.link.confirm-open">Open in browser</span>
+              <span class="term-row-label terminal-text" data-locale-key="web.extras.link.confirm-open">Open in
+                browser</span>
             </button>
             <button type="button" class="term-row" id="extrasLinkOverlayConfirmNoAsk">
               <span class="term-row-prefix terminal-text--dim">[ ]</span>
-              <span class="term-row-label terminal-text" data-locale-key="web.extras.link.confirm-open-no-ask">Open, don't ask again</span>
+              <span class="term-row-label terminal-text" data-locale-key="web.extras.link.confirm-open-no-ask">Open,
+                don't ask again</span>
             </button>
           </nav>
         </div>
@@ -538,7 +599,8 @@
             <span class="os-window-dot os-window-dot--active"></span>
             <span class="os-window-dot"></span>
           </div>
-          <p class="os-window-title terminal-text--dim" id="extrasArtViewerTitle" data-locale-key="web.extras.art.viewer-title">art_viewer.exe</p>
+          <p class="os-window-title terminal-text--dim" id="extrasArtViewerTitle"
+            data-locale-key="web.extras.art.viewer-title">art_viewer.exe</p>
         </div>
         <div class="os-window-body os-window-body--terminal extras-art-window-body">
           <img class="extras-art-viewer-image" id="extrasArtViewerImage" alt="" />
