@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trouble Drivers</title>
+  <script src="../iframe-game-locale.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -2178,9 +2179,6 @@
     }
 
     function getLocaleApi() {
-      if (window.parent && window.parent !== window && window.parent.WebLocale) {
-        return window.parent.WebLocale;
-      }
       if (window.WebLocale) {
         return window.WebLocale;
       }
@@ -2234,11 +2232,7 @@
     }
 
     function bindLocaleListener() {
-      var localeTarget = window;
-      if (window.parent && window.parent !== window) {
-        localeTarget = window.parent;
-      }
-      localeTarget.addEventListener("web-locale-applied", applyGameLocale);
+      window.addEventListener("web-locale-applied", applyGameLocale);
     }
 
     function loadHighScore() {
