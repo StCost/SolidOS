@@ -374,8 +374,10 @@
     var game = findGameById(gameId);
     if (!game || !gameFrame) return;
     activeGameId = gameId;
+    var title = getLocalized(game.titleKey, game.title || game.titleFallback || game.id);
     gameFrame.src = game.path;
     showView(VIEW_GAME);
+    setContentPrompt("C:\\CM\\extras\\games&gt;", "run " + title);
   }
 
   function closeGame() {

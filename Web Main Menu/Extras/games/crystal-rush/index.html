@@ -776,6 +776,7 @@
     var DEATH_EXPLOSION_FLASH_DURATION = 0.42;
     var DEATH_EXPLOSION_FLASH_RADIUS = 118;
     var SCORE_ARRIVE_DIST = 14;
+    var SCORE_ARRIVE_DIST_SQ = SCORE_ARRIVE_DIST * SCORE_ARRIVE_DIST;
     var SCORE_LABEL_ARRIVE_DIST = 18;
     var SCORE_LABEL_RISE_MIN = 36;
     var SCORE_LABEL_RISE_RANGE = 32;
@@ -872,6 +873,7 @@
     var scoreParticlePool = [];
     var collectSparkPool = [];
     var collectStreakPool = [];
+    var simulationFrameIndex = 0;
 
     function isPlaying() {
       return gamePhase === PHASE_PLAYING;
@@ -2007,6 +2009,18 @@
 
     function getLoadedChunk(chunkX, chunkY) {
       return chunks[chunkKey(chunkX, chunkY)] || null;
+    }
+
+    function preloadChunksAroundWorld(worldX, worldY) {
+      var centerChunkX = worldToChunk(worldX);
+      var centerChunkY = worldToChunk(worldY);
+      var offsetX;
+      var offsetY;
+      for (offsetY = -CHUNK_LOAD_RADIUS; offsetY <= CHUNK_LOAD_RADIUS; offsetY += 1) {
+        for (offsetX = -CHUNK_LOAD_RADIUS; offsetX <= CHUNK_LOAD_RADIUS; offsetX += 1) {
+          getChunk(centerChunkX + offsetX, centerChunkY + offsetY);
+        }
+      }
     }
 
     function getChunk(chunkX, chunkY) {
@@ -3702,6 +3716,10 @@
       var speedLerp;
       var turnBlend;
       var enemyDied;
+      var deltaX;
+      var deltaY;
+      var distSq;
+      var useSimpleUpdate;
 
       enemySpawnCooldown -= deltaSeconds;
       if (enemySpawnCooldown <= 0) {
@@ -3720,6 +3738,16 @@
 
         if (enemy.health <= 0) {
           enemyCars.splice(enemyIndex, 1);
+          continue;
+        }
+
+        deltaX = enemy.x - carWorldX;
+        deltaY = enemy.y - carWorldY;
+        distSq = deltaX * deltaX + deltaY * deltaY;
+        useSimpleUpdate = distSq > 640000;
+        if (useSimpleUpdate && simulationFrameIndex % 2 === 0) {
+          enemy.x += Math.cos(enemy.angle) * enemy.speed * deltaSeconds;
+          enemy.y += Math.sin(enemy.angle) * enemy.speed * deltaSeconds;
           continue;
         }
 
@@ -4504,7 +4532,7 @@
       screenTitle.textContent = GAME_TITLE;
       controlHint.textContent = getStartHintText();
       setCrystalPreviewRowVisible(true);
-      getChunk(0, 0);
+      preloadChunksAroundWorld(0, 0);
       updateCheckEngineHud();
       setCarWrapTransform();
     }
@@ -4775,8 +4803,8 @@
         particle.age += deltaSeconds;
         toTargetX = targetX - particle.x;
         toTargetY = targetY - particle.y;
-        dist = Math.sqrt(toTargetX * toTargetX + toTargetY * toTargetY);
-        if (dist < SCORE_ARRIVE_DIST) {
+        dist = toTargetX * toTargetX + toTargetY * toTargetY;
+        if (dist < SCORE_ARRIVE_DIST_SQ) {
           releaseScoreParticle(particles[particleIndex]);
           particles.splice(particleIndex, 1);
           continue;
@@ -4899,8 +4927,8 @@
         screenPos = worldToScreen(chunk.chunkX * CHUNK_SIZE, chunk.chunkY * CHUNK_SIZE);
         screenX = screenPos.x;
         screenY = screenPos.y;
-        if (screenX + chunkDrawSize < -64 || screenX > width + 64 ||
-          screenY + chunkDrawSize < -64 || screenY > height + 64) {
+        if (screenX + chunkDrawSize < -CHUNK_SIZE || screenX > width + CHUNK_SIZE ||
+          screenY + chunkDrawSize < -CHUNK_SIZE || screenY > height + CHUNK_SIZE) {
           continue;
         }
         context.drawImage(chunk.surfaceCanvas, screenX, screenY, chunkDrawSize, chunkDrawSize);
@@ -5268,8 +5296,21 @@
       context.setTransform(devicePixelRatioScale, 0, 0, devicePixelRatioScale, 0, 0);
     }
 
+    function hasActiveParticles() {
+      return particles.length > 0 ||
+        dustParticles.length > 0 ||
+        impactParticles.length > 0 ||
+        collectArcs.length > 0 ||
+        collectFlashes.length > 0 ||
+        collectBursts.length > 0 ||
+        collectSparks.length > 0 ||
+        collectStreaks.length > 0 ||
+        scoreFlyLabels.length > 0;
+    }
+
     function update(deltaSeconds) {
       gameAnimTime += deltaSeconds;
+      simulationFrameIndex += 1;
       if (isPlaying()) {
         updateCar(deltaSeconds);
         updateChunksAroundCar();
@@ -5283,7 +5324,9 @@
         }
         updateRockDeflectStreakEntity(carRockDeflectEntity, deltaSeconds);
       }
-      updateParticles(deltaSeconds);
+      if (isPlaying() || hasActiveParticles()) {
+        updateParticles(deltaSeconds);
+      }
       updateStartCrystalPreviews(deltaSeconds);
     }
 
