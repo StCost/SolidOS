@@ -16,6 +16,20 @@
         difficulty: 2
       },
       {
+        id: "alien-slice",
+        title: "Alien Slice",
+        path: "Extras/games/alien-slice/index.html",
+        image: "Extras/games/alien-slice/alien-slice-preview.png",
+        difficulty: 2
+      },
+      {
+        id: "tunnel-drift",
+        title: "Tunnel Drift",
+        path: "Extras/games/tunnel-drift/index.html",
+        image: "Extras/games/tunnel-drift/tunnel-drift-preview.png",
+        difficulty: 3
+      },
+      {
         id: "last-run",
         title: "Last Run",
         path: "Extras/games/last-run/index.html",
@@ -37,13 +51,6 @@
         difficulty: 5
       },
       {
-        id: "calculator",
-        title: "Calculator",
-        path: "Extras/games/calculator/index.html",
-        image: "Extras/games/calculator/calculator-preview.png",
-        difficulty: 0
-      },
-      {
         id: "playing-cards",
         title: "Playing Cards",
         path: "Extras/games/playing-cards/index.html",
@@ -51,19 +58,12 @@
         difficulty: 0
       },
       {
-        id: "tunnel-drift",
-        title: "Tunnel Drift",
-        path: "Extras/games/tunnel-drift/index.html",
-        image: "Extras/games/tunnel-drift/tunnel-drift-preview.png",
-        difficulty: 3
+        id: "calculator",
+        title: "Calculator",
+        path: "Extras/games/calculator/index.html",
+        image: "Extras/games/calculator/calculator-preview.png",
+        difficulty: 0
       },
-      {
-        id: "alien-slice",
-        title: "Alien Slice",
-        path: "Extras/games/alien-slice/index.html",
-        image: "Extras/games/alien-slice/alien-slice-preview.png",
-        difficulty: 2
-      }
     ],
     art: [
       {

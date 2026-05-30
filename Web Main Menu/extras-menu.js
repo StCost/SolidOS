@@ -263,7 +263,7 @@
     var index;
     for (index = 0; index < games.length; index++) {
       var game = games[index];
-      var title = game.title || game.titleFallback || game.id;
+      var title = getLocalized(game.titleKey, game.title || game.titleFallback || game.id);
       var imageSrc = game.image || "";
       var difficulty = game.difficulty || 0;
       html +=
