@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alien Slice</title>
+  <title>Citrus Slice</title>
   <style>
     * {
       box-sizing: border-box;
@@ -235,14 +235,14 @@
     <div id="hudMisses" class="hud-panel">missed 0</div>
     <div id="hudHighScore" class="hud-panel">best 0</div>
     <div id="gameScreen">
-      <h1 id="screenTitle">Alien Slice</h1>
+      <h1 id="screenTitle">Citrus Slice</h1>
       <p id="controlHint">Click to start — swipe pods, avoid bombs — misses don't end the run</p>
       <p id="screenScore" class="hidden">0 pts</p>
     </div>
   </div>
   <script>
-    var HIGH_SCORE_STORAGE_KEY = "cm-alien-slice-high-score";
-    var GAME_TITLE = "Alien Slice";
+    var HIGH_SCORE_STORAGE_KEY = "cm-citrus-slice-high-score";
+    var GAME_TITLE = "Citrus Slice";
     var GRAVITY = 920;
     var MAX_LIVES = 3;
     var SWIPE_MIN_SPEED = 140;
@@ -278,12 +278,12 @@
       "Incredible!",
       "Legendary!"
     ];
-    var LOCALE_KEY_START_HINT = "web.game.alien-slice.prompt-start-hint";
-    var LOCALE_KEY_MISSED = "web.game.alien-slice.missed";
-    var LOCALE_KEY_COMBO = "web.game.alien-slice.combo";
-    var LOCALE_KEY_PERFECT = "web.game.alien-slice.perfect";
-    var LOCALE_KEY_POINTS = "web.game.alien-slice.points";
-    var LOCALE_KEY_POINTS_PLUS = "web.game.alien-slice.points-plus";
+    var LOCALE_KEY_START_HINT = "web.game.citrus-slice.prompt-start-hint";
+    var LOCALE_KEY_MISSED = "web.game.citrus-slice.missed";
+    var LOCALE_KEY_COMBO = "web.game.citrus-slice.combo";
+    var LOCALE_KEY_PERFECT = "web.game.citrus-slice.perfect";
+    var LOCALE_KEY_POINTS = "web.game.citrus-slice.points";
+    var LOCALE_KEY_POINTS_PLUS = "web.game.citrus-slice.points-plus";
     var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
     var LOCALE_KEY_GAME_OVER = "web.game.game-over";
     var LOCALE_KEY_NEW_RECORD = "web.game.new-record";
@@ -292,18 +292,18 @@
     var LOCALE_KEY_CLICK_START = "web.game.prompt.click-start";
     var LOCALE_KEY_STATS_SEPARATOR = "web.game.stats-separator";
     var COMBO_PRAISE_KEYS = [
-      "web.game.alien-slice.praise.nice",
-      "web.game.alien-slice.praise.tasty",
-      "web.game.alien-slice.praise.juicy",
-      "web.game.alien-slice.praise.sweet",
-      "web.game.alien-slice.praise.great",
-      "web.game.alien-slice.praise.super",
-      "web.game.alien-slice.praise.amazing",
-      "web.game.alien-slice.praise.deluxe",
-      "web.game.alien-slice.praise.unreal",
-      "web.game.alien-slice.praise.sensational",
-      "web.game.alien-slice.praise.incredible",
-      "web.game.alien-slice.praise.legendary"
+      "web.game.citrus-slice.praise.nice",
+      "web.game.citrus-slice.praise.tasty",
+      "web.game.citrus-slice.praise.juicy",
+      "web.game.citrus-slice.praise.sweet",
+      "web.game.citrus-slice.praise.great",
+      "web.game.citrus-slice.praise.super",
+      "web.game.citrus-slice.praise.amazing",
+      "web.game.citrus-slice.praise.deluxe",
+      "web.game.citrus-slice.praise.unreal",
+      "web.game.citrus-slice.praise.sensational",
+      "web.game.citrus-slice.praise.incredible",
+      "web.game.citrus-slice.praise.legendary"
     ];
     var SLICE_TONE_BASE_HZ = 360;
     var SLICE_TONE_STEP_RATIO = 1.122462048;

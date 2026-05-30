@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="transparent" content="true" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>COLLAPSE MACHINE - HUD</title>
+  <link rel="stylesheet" href="../Web Main Menu/screen-shared.css" />
+  <link rel="stylesheet" href="game-hud.css" />
+  <script src="game-hud.js" defer></script>
+</head>
+
+<body>
+  <main class="game-hud" id="gameHudRoot" aria-hidden="false">
+    <div class="game-hud-anchor">
+      <div class="game-hud-panel" role="group" aria-label="Player status">
+        <div class="game-hud-health" id="healthBar" role="meter" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"></div>
+        <ol class="game-hud-hotbar" id="hotbarSlots"></ol>
+      </div>
+    </div>
+  </main>
+</body>
+
+</html>

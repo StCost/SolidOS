@@ -16,17 +16,17 @@
         difficulty: 2
       },
       {
-        id: "alien-slice",
-        title: "Alien Slice",
-        path: "Extras/games/alien-slice/index.html",
-        image: "Extras/games/alien-slice/alien-slice-preview.png",
+        id: "citrus-slice",
+        title: "Citrus Slice",
+        path: "Extras/games/citrus-slice/index.html",
+        image: "Extras/games/citrus-slice/citrus-slice-preview.png",
         difficulty: 2
       },
       {
-        id: "tunnel-drift",
-        title: "Tunnel Drift",
-        path: "Extras/games/tunnel-drift/index.html",
-        image: "Extras/games/tunnel-drift/tunnel-drift-preview.png",
+        id: "sector-vector",
+        title: "Sector Vector",
+        path: "Extras/games/sector-vector/index.html",
+        image: "Extras/games/sector-vector/sector-vector-preview.png",
         difficulty: 3
       },
       {
