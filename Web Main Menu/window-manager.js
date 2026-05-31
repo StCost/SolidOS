@@ -532,7 +532,7 @@ var WebWindowManager = (function () {
     previous.zIndex = inlineZIndex;
   }
 
-  function applySavedWindowStackOrder() {
+  function applySavedWindowStackOrder(suppressRouteNotify) {
     var desktopSurface = document.getElementById("desktopSurface");
     if (!desktopSurface) return null;
 
@@ -576,6 +576,9 @@ var WebWindowManager = (function () {
       managed[index].classList.remove("os-window--focused");
     }
     topWindowElement.classList.add("os-window--focused");
+    if (!suppressRouteNotify && isDesktopWindowElement(topWindowElement)) {
+      dispatchDesktopWindowFocused(topWindowElement.getAttribute("data-wm-preset") || "");
+    }
     return topWindowElement;
   }
 
@@ -980,7 +983,7 @@ var WebWindowManager = (function () {
     mergePersistedWindowLayoutPayload(getPersistedLayoutsPayload());
     applyAllSavedLayoutsInDocument();
     applyDesktopWindowVisibilityFromSaved();
-    applySavedWindowStackOrder();
+    applySavedWindowStackOrder(true);
     applySavedChromeStatesFromSaved();
   }
 
@@ -1132,6 +1135,52 @@ var WebWindowManager = (function () {
     }
   }
 
+  function getFocusedDesktopWindowPreset() {
+    var focused = document.querySelector(
+      "#desktopSurface .os-window.os-window--focused[data-wm-preset]"
+    );
+    if (!focused) return "";
+    return focused.getAttribute("data-wm-preset") || "";
+  }
+
+  function isDesktopWindowPreset(presetName) {
+    if (!presetName) return false;
+    return !!document.querySelector(
+      '#desktopSurface .os-window[data-wm-preset="' + presetName + '"]'
+    );
+  }
+
+  function openDesktopWindowFromRoute(presetName) {
+    if (!isDesktopWindowPreset(presetName)) return false;
+
+    var windowElement = document.querySelector(
+      '#desktopSurface .os-window[data-wm-preset="' + presetName + '"]'
+    );
+    if (!windowElement) return false;
+
+    var layoutKey = getLayoutKey(windowElement);
+    var savedLayout = savedLayoutTable[layoutKey];
+
+    setSavedWindowOpen(windowElement, true);
+    savedLayout = savedLayoutTable[layoutKey];
+    if (savedLayout) {
+      savedLayout.minimized = false;
+    }
+
+    applySavedOpenStateToWindow(windowElement);
+    if (windowElement.classList.contains("os-window--minimized")) {
+      restoreManagedWindow(windowElement);
+    }
+
+    ensureWindowStructure(windowElement);
+    syncWindowLayout(windowElement);
+    layoutMinimizedWindowsInContainer(document.getElementById("desktopWorkspace"), null);
+    focusWindow(windowElement);
+    setWindowKeyboardFocus(windowElement);
+    scheduleWindowLayoutsSave();
+    return true;
+  }
+
   function focusWindow(windowElement) {
     if (!windowElement) return;
     zIndexCounter = zIndexCounter + 1;
@@ -1144,6 +1193,9 @@ var WebWindowManager = (function () {
     windowElement.classList.add("os-window--focused");
     syncSavedLayoutZIndex(windowElement);
     scheduleWindowLayoutsSave();
+    if (isDesktopWindowElement(windowElement)) {
+      dispatchDesktopWindowFocused(windowElement.getAttribute("data-wm-preset") || "");
+    }
   }
 
   function shouldSkipWindowFocusEvent(event) {
@@ -1514,6 +1566,63 @@ var WebWindowManager = (function () {
     return false;
   }
 
+  function hasPersistedWindowLayouts() {
+    var payload = getPersistedLayoutsPayload();
+    if (!payload || !payload.layouts || !payload.layouts.length) {
+      return false;
+    }
+    return true;
+  }
+
+  function dispatchDesktopWindowFocused(presetName) {
+    window.dispatchEvent(
+      new CustomEvent("web-desktop-window-focused", {
+        detail: { preset: presetName || "" }
+      })
+    );
+  }
+
+  function clearDesktopWindowFocus() {
+    var managed = document.querySelectorAll("#desktopSurface .os-window.os-window--focused");
+    var index = 0;
+    for (index = 0; index < managed.length; index++) {
+      managed[index].classList.remove("os-window--focused");
+    }
+    dispatchDesktopWindowFocused("");
+  }
+
+  function setRouteBootDesktopVisibility(routePresetName) {
+    var presetName;
+    if (!routePresetName || !DEFAULT_DESKTOP_WINDOW_LAYOUTS[routePresetName]) {
+      return;
+    }
+    for (presetName in DEFAULT_DESKTOP_WINDOW_LAYOUTS) {
+      if (!Object.prototype.hasOwnProperty.call(DEFAULT_DESKTOP_WINDOW_LAYOUTS, presetName)) {
+        continue;
+      }
+      if (!savedLayoutTable[presetName]) {
+        continue;
+      }
+      if (presetName === routePresetName) {
+        savedLayoutTable[presetName].open = true;
+        savedLayoutTable[presetName].minimized = false;
+      } else {
+        savedLayoutTable[presetName].open = false;
+      }
+    }
+    applyDesktopWindowVisibilityFromSaved();
+  }
+
+  function syncDesktopFocusAfterClose() {
+    var topWindowElement = applySavedWindowStackOrder();
+    if (!topWindowElement) {
+      clearDesktopWindowFocus();
+      return;
+    }
+    var presetName = topWindowElement.getAttribute("data-wm-preset") || "";
+    dispatchDesktopWindowFocused(presetName);
+  }
+
   function syncWindowLayout(windowElement) {
     var presetName = windowElement.getAttribute("data-wm-preset");
     if (!getPreset(presetName)) return;
@@ -1869,8 +1978,13 @@ var WebWindowManager = (function () {
 
   function closeManagedWindow(windowElement) {
     var containerElement = getLayoutContainer(windowElement);
+    var presetName = windowElement.getAttribute("data-wm-preset") || "";
+    var wasDesktopWindow = isDesktopWindowElement(windowElement);
     clearWindowChromeStates(windowElement);
     windowElement.classList.add("os-window--closed");
+    if (windowElement.classList.contains("os-window--focused")) {
+      windowElement.classList.remove("os-window--focused");
+    }
     syncSavedLayoutFromWindow(windowElement);
     scheduleWindowLayoutsSave();
     syncActivePageWindows();
@@ -1878,6 +1992,14 @@ var WebWindowManager = (function () {
       layoutMinimizedWindowsInContainer(containerElement, null);
     }
     syncDesktopTabOrder();
+    if (wasDesktopWindow) {
+      syncDesktopFocusAfterClose();
+      window.dispatchEvent(
+        new CustomEvent("web-desktop-window-closed", {
+          detail: { preset: presetName }
+        })
+      );
+    }
   }
 
   function restoreFromMinimized(windowElement) {
@@ -2551,10 +2673,17 @@ var WebWindowManager = (function () {
       loadPersistedLayouts();
     }
     initAll();
-    if (!isUnityHost() && hasSavedLayouts()) {
+    if (!isUnityHost() && hasPersistedWindowLayouts()) {
+      var routePreset = "";
+      if (window.WebMenuRoute && window.WebMenuRoute.getInitialWindowPreset) {
+        routePreset = window.WebMenuRoute.getInitialWindowPreset();
+      }
+      if (routePreset && setRouteBootDesktopVisibility) {
+        setRouteBootDesktopVisibility(routePreset);
+      }
       applyAllSavedLayoutsInDocument();
       applyDesktopWindowVisibilityFromSaved();
-      applySavedWindowStackOrder();
+      applySavedWindowStackOrder(true);
       applySavedChromeStatesFromSaved();
       clearLayoutBootstrap();
       window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
@@ -2591,6 +2720,9 @@ var WebWindowManager = (function () {
     flushLayoutsSave: flushWindowLayoutsSave,
     relayoutOverlayWindow: syncOverlayWindow,
     focusWindow: focusWindow,
+    getFocusedDesktopWindowPreset: getFocusedDesktopWindowPreset,
+    isDesktopWindowPreset: isDesktopWindowPreset,
+    openDesktopWindowFromRoute: openDesktopWindowFromRoute,
     setWindowKeyboardFocus: setWindowKeyboardFocus,
     closeWindow: closeManagedWindow,
     maximizeWindow: maximizeManagedWindow,
@@ -2610,6 +2742,9 @@ var WebWindowManager = (function () {
     areAllVisibleDesktopWindowsMinimized: areAllVisibleDesktopWindowsMinimized,
     scheduleWindowLayoutsSave: scheduleWindowLayoutsSave,
     hasSavedLayouts: hasSavedLayouts,
+    hasPersistedWindowLayouts: hasPersistedWindowLayouts,
+    setRouteBootDesktopVisibility: setRouteBootDesktopVisibility,
+    clearDesktopWindowFocus: clearDesktopWindowFocus,
     resetAllLayouts: resetAllWindowLayouts,
     logLayoutDiffFromDefaults: logWindowLayoutsDiffFromDefaults,
     buildLayoutDiffFromDefaultsPayload: buildWindowLayoutsDiffFromDefaultsPayload

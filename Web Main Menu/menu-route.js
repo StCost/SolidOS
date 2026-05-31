@@ -1,10 +1,18 @@
 (function () {
-  var HASH_PREFIX = "#/";
-  var ROUTE_QUERY_KEYS = ["route", "p"];
+  var WINDOW_QUERY_KEY = "window";
+  var TAB_QUERY_KEY = "tab";
+  var LEGACY_ROUTE_QUERY_KEYS = ["route", "p"];
   var applyingRoute = false;
+  var routeBootComplete = false;
+  var initialRouteWindow = "";
+  var initialRouteTab = "";
 
   function isWebMode() {
     return typeof window.vuplex === "undefined" || !window.vuplex.postMessage;
+  }
+
+  function getWindowManager() {
+    return window.WebWindowManager || null;
   }
 
   function trimSlashes(path) {
@@ -12,67 +20,95 @@
     return path.replace(/^\/+|\/+$/g, "");
   }
 
-  function normalizeRouteSegment(segment) {
-    if (!segment) return "";
-    var value = decodeURIComponent(segment).toLowerCase();
-    if (value === "arts") return "art";
-    if (value === "game") return "games";
-    if (value === "links" || value === "link") return "links";
-    return value;
-  }
-
-  function parseRouteFromLocation() {
-    var path = "";
-    var hash = window.location.hash || "";
-    if (hash.indexOf("#") === 0) {
-      hash = hash.slice(1);
-    }
-    if (hash.indexOf("/") === 0) {
-      hash = hash.slice(1);
-    }
-    path = trimSlashes(hash);
-
-    if (!path && window.location.search) {
-      var index;
+  function readRouteFromLocation() {
+    var windowPreset = "";
+    var tabValue = "";
+    if (window.location.search) {
       var params = new URLSearchParams(window.location.search);
-      for (index = 0; index < ROUTE_QUERY_KEYS.length; index++) {
-        var queryPath = params.get(ROUTE_QUERY_KEYS[index]);
-        if (queryPath) {
-          path = trimSlashes(queryPath);
-          break;
-        }
+      windowPreset = params.get(WINDOW_QUERY_KEY) || "";
+      tabValue = params.get(TAB_QUERY_KEY) || "";
+      if (windowPreset) {
+        windowPreset = windowPreset.trim();
+      }
+      if (tabValue) {
+        tabValue = tabValue.trim();
       }
     }
-
-    if (!path) return [];
-    var rawSegments = path.split("/");
-    var segments = [];
-    var segmentIndex;
-    for (segmentIndex = 0; segmentIndex < rawSegments.length; segmentIndex++) {
-      var part = rawSegments[segmentIndex];
-      if (!part) continue;
-      segments.push(part);
+    if (!windowPreset) {
+      var hash = window.location.hash || "";
+      if (hash.indexOf("#") === 0) {
+        hash = hash.slice(1);
+      }
+      if (hash.indexOf("/") === 0) {
+        hash = hash.slice(1);
+      }
+      hash = trimSlashes(hash);
+      if (hash && hash.indexOf("/") < 0) {
+        windowPreset = hash.trim();
+      }
     }
-    return segments;
+    return { window: windowPreset, tab: tabValue };
   }
 
-  function buildHashFromSegments(segments) {
-    if (!segments || !segments.length) return "";
+  function captureInitialRouteFromLocation() {
+    var route = readRouteFromLocation();
+    initialRouteWindow = route.window;
+    initialRouteTab = route.tab;
+  }
+
+  function isValidDesktopWindowPreset(presetName) {
+    if (!presetName) return false;
+    var windowManager = getWindowManager();
+    if (windowManager && windowManager.isDesktopWindowPreset) {
+      return windowManager.isDesktopWindowPreset(presetName);
+    }
+    return !!document.querySelector(
+      '#desktopSurface .os-window[data-wm-preset="' + presetName + '"]'
+    );
+  }
+
+  function windowSupportsTabParam(presetName) {
+    if (presetName === "settings-content") return true;
+    if (presetName === "extras-games") return true;
+    if (presetName === "extras-art") return true;
+    return false;
+  }
+
+  function parseWindowPresetFromLocation() {
+    return readRouteFromLocation().window;
+  }
+
+  function parseTabFromLocation() {
+    return readRouteFromLocation().tab;
+  }
+
+  function buildLocationUrl(windowPreset, tabValue) {
+    var url = new URL(window.location.href);
     var index;
-    var encoded = "";
-    for (index = 0; index < segments.length; index++) {
-      if (index > 0) encoded += "/";
-      encoded += encodeURIComponent(segments[index]);
+    if (windowPreset) {
+      url.searchParams.set(WINDOW_QUERY_KEY, windowPreset);
+    } else {
+      url.searchParams.delete(WINDOW_QUERY_KEY);
     }
-    return HASH_PREFIX + encoded;
+    if (tabValue && windowPreset && windowSupportsTabParam(windowPreset)) {
+      url.searchParams.set(TAB_QUERY_KEY, tabValue);
+    } else {
+      url.searchParams.delete(TAB_QUERY_KEY);
+    }
+    for (index = 0; index < LEGACY_ROUTE_QUERY_KEYS.length; index++) {
+      url.searchParams.delete(LEGACY_ROUTE_QUERY_KEYS[index]);
+    }
+    if (url.hash) {
+      url.hash = "";
+    }
+    return url.pathname + url.search;
   }
 
-  function setLocationRoute(segments, useReplace) {
+  function setLocationRoute(windowPreset, tabValue, useReplace) {
     if (!isWebMode()) return;
-    var nextHash = buildHashFromSegments(segments);
-    var base = window.location.pathname + window.location.search;
-    var nextUrl = base + nextHash;
-    if (window.location.pathname + window.location.search + window.location.hash === nextUrl) {
+    var nextUrl = buildLocationUrl(windowPreset, tabValue);
+    var currentUrl = window.location.pathname + window.location.search + window.location.hash;
+    if (currentUrl === nextUrl) {
       return;
     }
     if (useReplace) {
@@ -82,128 +118,162 @@
     }
   }
 
-  function openSettingsForRoute(tabId) {
-    if (!window.WebMenu) return;
-    window.WebMenu.goToSettingsPage();
-    if (window.WebSettingsBridge) {
-      window.WebSettingsBridge.open();
+  function getFocusedWindowPreset() {
+    var windowManager = getWindowManager();
+    if (windowManager && windowManager.getFocusedDesktopWindowPreset) {
+      return windowManager.getFocusedDesktopWindowPreset();
     }
-    window.dispatchEvent(new CustomEvent("web-settings-open"));
-    if (tabId && window.WebSettings && window.WebSettings.setActiveTab) {
-      window.WebSettings.setActiveTab(tabId);
-    }
+    var focused = document.querySelector(
+      "#desktopSurface .os-window.os-window--focused[data-wm-preset]"
+    );
+    if (!focused) return "";
+    return focused.getAttribute("data-wm-preset") || "";
   }
 
-  function applyRouteSegments(segments) {
-    if (!window.WebMenu || !segments) return;
-    if (!segments.length) {
-      window.WebMenu.goToIndexPage();
-      return;
+  function getTabForFocusedWindow(windowPreset) {
+    if (!windowPreset || !windowSupportsTabParam(windowPreset)) {
+      return "";
     }
-
-    var page = normalizeRouteSegment(segments[0]);
-    if (page === "start") {
-      window.WebMenu.goToStartPage();
-      return;
-    }
-    if (page === "settings") {
-      var settingsTab = "";
-      if (segments.length > 1) {
-        settingsTab = segments[1];
-      }
-      openSettingsForRoute(settingsTab);
-      return;
-    }
-    if (page === "extras") {
-      window.WebMenu.goToExtrasPage();
-      if (window.WebExtras && window.WebExtras.applyRoute) {
-        window.WebExtras.applyRoute(segments.slice(1));
-      }
-      return;
-    }
-    if (page === "credits") {
-      window.WebMenu.goToCreditsPage();
-      return;
-    }
-
-    window.WebMenu.goToIndexPage();
-  }
-
-  function getRouteSegmentsFromUi() {
-    if (!window.WebMenu) return [];
-    var pageId = window.WebMenu.getCurrentPageId();
-    if (pageId === window.WebMenu.PAGE_START) {
-      return ["start"];
-    }
-    if (pageId === window.WebMenu.PAGE_SETTINGS) {
-      var settingsSegments = ["settings"];
+    if (windowPreset === "settings-content") {
       if (window.WebSettings && window.WebSettings.getActiveTabId) {
-        var tabId = window.WebSettings.getActiveTabId();
-        if (tabId) settingsSegments.push(tabId);
+        return window.WebSettings.getActiveTabId() || "";
       }
-      return settingsSegments;
+      return "";
     }
-    if (pageId === window.WebMenu.PAGE_EXTRAS) {
-      if (window.WebExtras && window.WebExtras.getRouteSegments) {
-        return window.WebExtras.getRouteSegments();
-      }
-      return ["extras"];
+    if (window.WebExtras && window.WebExtras.getTabForRoute) {
+      return window.WebExtras.getTabForRoute(windowPreset) || "";
     }
-    if (pageId === window.WebMenu.PAGE_CREDITS) {
-      return ["credits"];
-    }
-    return [];
+    return "";
   }
 
-  function syncRouteFromUi(useReplace) {
-    if (!isWebMode() || applyingRoute) return;
-    setLocationRoute(getRouteSegmentsFromUi(), useReplace === true);
+  function applyTabForWindow(windowPreset, tabValue) {
+    if (!tabValue || !windowPreset) return;
+    if (windowPreset === "settings-content") {
+      if (window.WebSettings && window.WebSettings.setActiveTab) {
+        window.WebSettings.setActiveTab(tabValue);
+      }
+      return;
+    }
+    if (window.WebExtras && window.WebExtras.applyTabForRoute) {
+      window.WebExtras.applyTabForRoute(windowPreset, tabValue);
+    }
+  }
+
+  function applyWindowPresetFromRoute(presetName, tabValue) {
+    if (!presetName || !isValidDesktopWindowPreset(presetName)) {
+      return false;
+    }
+    var windowManager = getWindowManager();
+    if (!windowManager || !windowManager.openDesktopWindowFromRoute) {
+      return false;
+    }
+    if (tabValue && window.WebExtras && window.WebExtras.prepareRouteTab) {
+      window.WebExtras.prepareRouteTab(presetName, tabValue);
+    }
+    if (windowManager.setRouteBootDesktopVisibility) {
+      windowManager.setRouteBootDesktopVisibility(presetName);
+    }
+    if (!windowManager.openDesktopWindowFromRoute(presetName)) {
+      return false;
+    }
+    if (window.WebDesktop && window.WebDesktop.openWindow) {
+      window.WebDesktop.openWindow(presetName, false);
+    }
+    if (tabValue && presetName !== "extras-games") {
+      applyTabForWindow(presetName, tabValue);
+    }
+    if (tabValue && presetName === "extras-games" && window.WebExtras && window.WebExtras.applyPendingRouteTab) {
+      window.WebExtras.applyPendingRouteTab(presetName);
+    }
+    return true;
+  }
+
+  function syncRouteFromFocusedWindow(useReplace) {
+    if (!isWebMode() || applyingRoute || !routeBootComplete) return;
+    var windowPreset = getFocusedWindowPreset();
+    var tabValue = getTabForFocusedWindow(windowPreset);
+    setLocationRoute(windowPreset, tabValue, useReplace === true);
   }
 
   function bootRouteFromLocation() {
     if (!isWebMode()) return;
-    var segments = parseRouteFromLocation();
-    applyingRoute = true;
-    if (segments.length) {
-      applyRouteSegments(segments);
+    var presetName = initialRouteWindow || parseWindowPresetFromLocation();
+    var tabValue = initialRouteTab || parseTabFromLocation();
+    if (!presetName) {
+      routeBootComplete = true;
+      syncRouteFromFocusedWindow(true);
+      return;
     }
+    if (!isValidDesktopWindowPreset(presetName)) {
+      routeBootComplete = true;
+      setLocationRoute("", "", true);
+      return;
+    }
+    applyingRoute = true;
+    applyWindowPresetFromRoute(presetName, tabValue);
     applyingRoute = false;
-    syncRouteFromUi(true);
+    routeBootComplete = true;
+    setLocationRoute(presetName, getRouteTabForUrl(presetName, tabValue), true);
   }
 
-  function onHashChange() {
+  function getRouteTabForUrl(windowPreset, requestedTab) {
+    var syncedTab = getTabForFocusedWindow(windowPreset);
+    if (syncedTab) {
+      return syncedTab;
+    }
+    return requestedTab || "";
+  }
+
+  function onLocationRouteChange() {
     if (!isWebMode() || applyingRoute) return;
+    var route = readRouteFromLocation();
+    var presetName = route.window;
+    var tabValue = route.tab;
     applyingRoute = true;
-    applyRouteSegments(parseRouteFromLocation());
+    if (presetName && isValidDesktopWindowPreset(presetName)) {
+      applyWindowPresetFromRoute(presetName, tabValue);
+      setLocationRoute(presetName, getRouteTabForUrl(presetName, tabValue), true);
+    } else {
+      setLocationRoute("", "", true);
+    }
     applyingRoute = false;
+    routeBootComplete = true;
+    if (!presetName) {
+      syncRouteFromFocusedWindow(true);
+    }
   }
 
   function isApplyingRoute() {
     return applyingRoute;
   }
 
+  captureInitialRouteFromLocation();
+
   window.WebMenuRoute = {
     isWebMode: isWebMode,
     isApplyingRoute: isApplyingRoute,
-    parseRouteFromLocation: parseRouteFromLocation,
-    applyRouteSegments: applyRouteSegments,
-    syncFromUi: syncRouteFromUi
+    parseWindowPresetFromLocation: parseWindowPresetFromLocation,
+    parseTabFromLocation: parseTabFromLocation,
+    getInitialWindowPreset: function () {
+      return initialRouteWindow;
+    },
+    getInitialTab: function () {
+      return initialRouteTab;
+    },
+    applyWindowPresetFromRoute: applyWindowPresetFromRoute,
+    syncFromFocusedWindow: syncRouteFromFocusedWindow
   };
 
-  window.addEventListener("hashchange", onHashChange);
-  window.addEventListener("web-page-changed", function () {
-    syncRouteFromUi(false);
+  window.addEventListener("popstate", onLocationRouteChange);
+  window.addEventListener("web-desktop-window-focused", function () {
+    syncRouteFromFocusedWindow(false);
   });
   window.addEventListener("web-settings-tab-changed", function () {
-    syncRouteFromUi(false);
+    syncRouteFromFocusedWindow(false);
   });
   window.addEventListener("web-extras-route-changed", function () {
-    syncRouteFromUi(false);
+    if (applyingRoute) return;
+    syncRouteFromFocusedWindow(false);
   });
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bootRouteFromLocation);
-  } else {
-    bootRouteFromLocation();
-  }
+  window.addEventListener("web-desktop-windows-restored", bootRouteFromLocation);
 })();

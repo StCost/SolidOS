@@ -78,6 +78,42 @@ var WebDesktop = (function () {
     return typeof window.vuplex !== "undefined" && window.vuplex.postMessage;
   }
 
+  function postQuitToUnity() {
+    if (!isUnityHost()) return;
+    window.vuplex.postMessage(JSON.stringify({ eventName: "web-quit" }));
+  }
+
+  function closeWebBrowserTab() {
+    if (isUnityHost()) return;
+    var closed = false;
+    try {
+      window.open("", "_self");
+      closed = window.close();
+    } catch (error) {
+    }
+    if (closed) return;
+    try {
+      if (window.top && window.top !== window) {
+        window.top.open("", "_self");
+        closed = window.top.close();
+      }
+    } catch (error) {
+    }
+    if (closed) return;
+    try {
+      if (window.opener) {
+        window.opener.focus();
+        closed = window.close();
+      }
+    } catch (error) {
+    }
+    if (closed) return;
+    try {
+      window.location.replace("about:blank");
+    } catch (error) {
+    }
+  }
+
   function getIconIdFromElement(iconElement) {
     if (!iconElement) return "";
     return iconElement.getAttribute("data-desktop-icon") || "";
@@ -140,9 +176,6 @@ var WebDesktop = (function () {
         window.WebSettingsBridge.open();
       }
       window.dispatchEvent(new CustomEvent("web-settings-open"));
-      if (window.WebSettings && window.WebSettings.refreshOnOpen) {
-        window.WebSettings.refreshOnOpen();
-      }
       return;
     }
     if (presetName === "extras-games") {
@@ -366,11 +399,10 @@ var WebDesktop = (function () {
     }
 
     if (iconId === ICON_ACTION_QUIT) {
-      if (window.WebMenu) {
-        window.WebMenu.dispatchMenuEvent("web-quit");
-      }
-      if (!isGameMode() && window.close) {
-        window.close();
+      if (isUnityHost()) {
+        postQuitToUnity();
+      } else {
+        closeWebBrowserTab();
       }
       return;
     }
@@ -1696,10 +1728,15 @@ var WebDesktop = (function () {
     desktopSurface.wmDesktopMarqueeBound = true;
 
     function onMarqueePointerDown(event) {
+      var windowManager;
       if (event.button != null && event.button !== 0) return;
       if (event.isPrimary === false) return;
       if (activeIconDrag || pendingIconPress) return;
       if (!shouldBeginDesktopMarqueeFromTarget(event.target)) return;
+      windowManager = getWindowManager();
+      if (windowManager && windowManager.clearDesktopWindowFocus) {
+        windowManager.clearDesktopWindowFocus();
+      }
       if (!desktopMarqueeBox) return;
       var point = clientPointToLayoutPoint(event.clientX, event.clientY);
       activeMarqueeSelect = {
@@ -2236,20 +2273,46 @@ var WebDesktop = (function () {
     updateDesktopTabOrder();
   }
 
+  function getRouteWindowPresetFromLocation() {
+    if (window.WebMenuRoute && window.WebMenuRoute.getInitialWindowPreset) {
+      var initialPreset = window.WebMenuRoute.getInitialWindowPreset();
+      if (initialPreset) {
+        return initialPreset;
+      }
+    }
+    if (!window.WebMenuRoute || !window.WebMenuRoute.parseWindowPresetFromLocation) {
+      return "";
+    }
+    return window.WebMenuRoute.parseWindowPresetFromLocation();
+  }
+
   function initDefaultWindows() {
     var windowManager = getWindowManager();
-    if (windowManager && windowManager.hasSavedLayouts && windowManager.hasSavedLayouts()) {
+    var routePreset = getRouteWindowPresetFromLocation();
+    if (
+      windowManager &&
+      windowManager.hasPersistedWindowLayouts &&
+      windowManager.hasPersistedWindowLayouts()
+    ) {
+      if (routePreset && windowManager.setRouteBootDesktopVisibility) {
+        windowManager.setRouteBootDesktopVisibility(routePreset);
+      }
       if (windowManager.applyDesktopWindowVisibility) {
         windowManager.applyDesktopWindowVisibility();
       }
       if (windowManager.applySavedWindowStackOrder) {
-        windowManager.applySavedWindowStackOrder();
+        windowManager.applySavedWindowStackOrder(true);
       }
       window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
       return;
     }
     closeAllAppWindows();
+    if (routePreset && windowManager && windowManager.isDesktopWindowPreset(routePreset)) {
+      window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
+      return;
+    }
     openWindow(WINDOW_PRESET_TITLE, false);
+    window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
   }
 
   function onDesktopWindowsRestored() {

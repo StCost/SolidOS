@@ -91,10 +91,66 @@
 }
 
 .settings-tabs .settings-tab.is-active {
+  position: relative;
+  z-index: 1;
   border-color: rgba(255, 128, 0, 0.85);
+  border-bottom-color: transparent;
   background: rgba(18, 10, 4, 0.95);
   box-shadow: inset 0 0 12px rgba(255, 90, 40, 0.08);
-  transform: translateY(0.34em);
+  transform: translateY(0);
+}
+
+.settings-tabs .settings-tab.is-active::after {
+  content: "";
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  top: 100%;
+  height: 0.34em;
+  overflow: hidden;
+  pointer-events: none;
+  box-sizing: border-box;
+  z-index: 2;
+  border-left: 1px solid rgba(255, 128, 0, 0.85);
+  border-right: 1px solid rgba(255, 128, 0, 0.85);
+  border-bottom: 1px solid rgba(255, 128, 0, 0.85);
+  background-color: rgba(255, 128, 0, 0.06);
+  background-image: var(--scrollbar-thumb-stripe), url("hazard-tile.png");
+  background-size: auto, 16px 16px;
+  background-repeat: repeat, repeat;
+  background-blend-mode: screen, normal;
+  clip-path: inset(0 0 100% 0);
+  animation:
+    settings-tab-bump-slide 0.24s ease-out forwards,
+    settings-tab-hazard-scroll 14s linear infinite;
+}
+
+@keyframes settings-tab-bump-slide {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes settings-tab-hazard-scroll {
+  from {
+    background-position: 0 0, 0 0;
+  }
+
+  to {
+    background-position: 10px 0, 16px 0;
+  }
+}
+
+.menu-screen.terminal-animations-off .settings-tabs .settings-tab.is-active::after {
+  clip-path: inset(0 0 0 0);
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-tabs .settings-tab.is-active::after {
+    clip-path: inset(0 0 0 0);
+    animation: none;
+  }
 }
 
 .settings-content-window .os-window-body-shell {
