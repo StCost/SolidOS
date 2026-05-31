@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Airborne Robot</title>
+  <link rel="stylesheet" href="../../../screen-shared.css" />
+  <link rel="stylesheet" href="../../../settings-menu.css" />
   <script src="../iframe-game-locale.js"></script>
   <style>
     * {
@@ -312,26 +314,72 @@
       animation: record-title-glow 0.7s ease-in-out infinite alternate;
     }
 
-    #testModeIndicator {
+    #debugPanel {
       position: absolute;
       top: 12px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 10;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 0.78rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: #ffb060;
-      background: rgba(20, 28, 48, 0.82);
-      border: 1px solid rgba(255, 176, 96, 0.45);
-      box-shadow: 0 0 10px rgba(255, 140, 60, 0.25);
-      pointer-events: none;
+      min-width: min(92vw, 22rem);
+      padding: 0.55em 0.65em 0.7em;
+      border: 1px solid rgba(255, 128, 0, 0.55);
+      background: rgba(6, 8, 12, 0.96);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+      pointer-events: auto;
+      font-family: "IBM3270", "CMFallback", "IBM 3270", ui-monospace, monospace;
+      font-size: clamp(0.82rem, 1.75vmin, 1.02rem);
+      --settings-choice-btn-height: clamp(2rem, 3.2vmin, 2.35rem);
     }
 
-    #testModeIndicator.hidden {
+    #debugPanel.hidden {
       display: none;
+    }
+
+    #debugPanelTitle {
+      margin: 0 0 0.35em;
+      text-align: center;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    #debugPanel .settings-controls-block {
+      gap: 0;
+    }
+
+    #debugPanel .settings-row.settings-row--toggle:last-child {
+      border-bottom: none;
+      padding-bottom: 0.2em;
+    }
+
+    #debugPanel .debug-spawn-control {
+      flex-direction: row;
+      align-items: center;
+      gap: 0.35em;
+    }
+
+    #debugPanel .debug-spawn-input {
+      width: 5.5em;
+      max-width: 100%;
+      text-align: right;
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    #debugPanel .debug-spawn-input::-webkit-outer-spin-button,
+    #debugPanel .debug-spawn-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    #debugPanel .debug-spawn-unit {
+      color: rgba(255, 200, 140, 0.45);
+      letter-spacing: 0.08em;
+      line-height: 1;
+    }
+
+    #debugPanel input {
+      user-select: text;
+      -webkit-user-select: text;
     }
 
     #gameScreen {
@@ -552,7 +600,40 @@
       <div id="hudParts" class="hud-panel"></div>
     </div>
     <div id="hudHighScore" class="hud-panel">best 0m</div>
-    <div id="testModeIndicator" class="hidden" aria-hidden="true">On</div>
+    <div id="debugPanel" class="hidden" aria-hidden="true">
+      <div id="debugPanelTitle" class="term-row-label terminal-text">Debug</div>
+      <div class="settings-controls-block">
+        <div class="settings-row settings-row--toggle">
+          <div class="settings-field-line">
+            <div class="settings-field-label-box">
+              <span class="settings-label">
+                <span class="settings-label-text term-row-label terminal-text">Initial position</span>
+              </span>
+            </div>
+            <div class="settings-field-control-box settings-field-control-box--toggle debug-spawn-control">
+              <input id="debugSpawnInput" type="number" min="0" step="100" class="settings-slider-value-input debug-spawn-input" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="Initial position" />
+              <span class="debug-spawn-unit terminal-text--dim">m</span>
+            </div>
+          </div>
+        </div>
+        <div class="settings-row settings-row--toggle">
+          <div class="settings-field-line">
+            <div class="settings-field-label-box">
+              <span class="settings-label">
+                <span class="settings-label-text term-row-label terminal-text">Godmode</span>
+              </span>
+            </div>
+            <div class="settings-field-control-box settings-field-control-box--toggle">
+              <button id="debugGodmodeSwitch" type="button" class="settings-switch" role="switch" aria-checked="false" aria-label="Godmode">
+                <span class="settings-switch-track" aria-hidden="true">
+                  <span class="settings-switch-thumb"></span>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div id="gameScreen">
       <h1 id="screenTitle">Airborne Robot</h1>
       <p id="controlHint">Hold to reverse spin &mdash; land on your feet</p>
@@ -576,11 +657,11 @@
 
     var METERS_PER_UNIT = 0.06;
 
-    // ========== TEST-ONLY — revert: delete this entire block ==========
-    var TEST_SPAWN_AT_METERS = 2500;
-    var TEST_MODE_KEY_CODE = "F8";
-    var testModeEnabled = false;
-    // ========== end TEST-ONLY ==========
+    // ========== DEBUG-ONLY — revert: delete this entire block ==========
+    var DEBUG_MODE_KEY_CODE = "F8";
+    var DEBUG_SPAWN_DEFAULT_METERS = 2500;
+    var debugModeEnabled = false;
+    // ========== end DEBUG-ONLY ==========
 
     var PHASE_START = "start";
     var PHASE_LAUNCH = "launch";
@@ -654,7 +735,9 @@
     var hudCombo = document.getElementById("hudCombo");
     var hudParts = document.getElementById("hudParts");
     var hudHighScore = document.getElementById("hudHighScore");
-    var testModeIndicator = document.getElementById("testModeIndicator");
+    var debugPanel = document.getElementById("debugPanel");
+    var debugSpawnInput = document.getElementById("debugSpawnInput");
+    var debugGodmodeSwitch = document.getElementById("debugGodmodeSwitch");
     var gameScreen = document.getElementById("gameScreen");
     var screenTitle = document.getElementById("screenTitle");
     var screenMeters = document.getElementById("screenMeters");
@@ -872,6 +955,7 @@
     var explosionBursts = [];
     var headTrailPoints = [];
     var headTrailSampleTimer = 0;
+    var headTrailActive = false;
     var exhaustParticles = [];
     var dustParticles = [];
     var dustParticleMax = 50;
@@ -1541,36 +1625,67 @@
       if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
         window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
       }
-      updateTestModeIndicator();
+      updateDebugPanel();
     }
 
-    // ========== TEST-ONLY — revert: delete this entire block ==========
-    function updateTestModeIndicator() {
-      if (testModeEnabled && isStart()) {
-        testModeIndicator.classList.remove("hidden");
-        testModeIndicator.setAttribute("aria-hidden", "false");
+    // ========== DEBUG-ONLY — revert: delete this entire block ==========
+    function updateDebugPanel() {
+      if (debugModeEnabled && isStart()) {
+        debugPanel.classList.remove("hidden");
+        debugPanel.setAttribute("aria-hidden", "false");
       } else {
-        testModeIndicator.classList.add("hidden");
-        testModeIndicator.setAttribute("aria-hidden", "true");
+        debugPanel.classList.add("hidden");
+        debugPanel.setAttribute("aria-hidden", "true");
       }
     }
 
-    function toggleTestMode() {
-      testModeEnabled = !testModeEnabled;
-      updateTestModeIndicator();
+    function getDebugSpawnMeters() {
+      var value = parseFloat(debugSpawnInput.value);
+      if (!isFinite(value) || value <= 0) {
+        return 0;
+      }
+      return value;
     }
 
-    function onTestModeKeyDown(event) {
-      if (event.code !== TEST_MODE_KEY_CODE) {
+    function isDebugGodmodeEnabled() {
+      return debugModeEnabled && debugGodmodeSwitch.classList.contains("is-on");
+    }
+
+    function setDebugGodmodeSwitch(isOn) {
+      if (isOn) {
+        debugGodmodeSwitch.classList.add("is-on");
+        debugGodmodeSwitch.setAttribute("aria-checked", "true");
+      } else {
+        debugGodmodeSwitch.classList.remove("is-on");
+        debugGodmodeSwitch.setAttribute("aria-checked", "false");
+      }
+    }
+
+    function onDebugGodmodeSwitchClick(event) {
+      event.stopPropagation();
+      setDebugGodmodeSwitch(!debugGodmodeSwitch.classList.contains("is-on"));
+    }
+
+    function toggleDebugMode() {
+      debugModeEnabled = !debugModeEnabled;
+      updateDebugPanel();
+    }
+
+    function onDebugKeyDown(event) {
+      if (event.code !== DEBUG_MODE_KEY_CODE) {
         return;
       }
       if (!isStart()) {
         return;
       }
       event.preventDefault();
-      toggleTestMode();
+      toggleDebugMode();
     }
-    // ========== end TEST-ONLY ==========
+
+    function onDebugPanelPointerDown(event) {
+      event.stopPropagation();
+    }
+    // ========== end DEBUG-ONLY ==========
 
     function showGameOverScreen(newRecord) {
       gamePhase = PHASE_GAME_OVER;
@@ -1681,7 +1796,7 @@
       }
       resetForLaunch();
       gamePhase = PHASE_LAUNCH;
-      updateTestModeIndicator();
+      updateDebugPanel();
       launchTimer = 0;
       kickTimer = 0;
       launchKicked = false;
@@ -1697,11 +1812,15 @@
       positionLaunchLeg();
     }
 
-    function applyTestSpawnAtMeters() {
-      if (!testModeEnabled || TEST_SPAWN_AT_METERS <= 0) {
+    function applyDebugSpawnAtMeters() {
+      if (!debugModeEnabled) {
         return;
       }
-      distanceMeters = TEST_SPAWN_AT_METERS;
+      var spawnMeters = getDebugSpawnMeters();
+      if (spawnMeters <= 0) {
+        return;
+      }
+      distanceMeters = spawnMeters;
       beaconsSpawnedCount = Math.floor(distanceMeters / BEACON_INTERVAL_METERS);
       beacons.length = 0;
       spawnBeacons();
@@ -1719,7 +1838,7 @@
       legWorldAnchorX = worldScroll + (playerScreenX - robotPx * 0.62);
       launchLegFadeTimer = 0;
       triggerKickImpact();
-      applyTestSpawnAtMeters();
+      applyDebugSpawnAtMeters();
       if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
         window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
       }
@@ -1755,6 +1874,9 @@
     function onPointerDown(event) {
       event.preventDefault();
       if (event.target && event.target.closest && event.target.closest("#robotColorPicker")) {
+        return;
+      }
+      if (event.target && event.target.closest && event.target.closest("#debugPanel")) {
         return;
       }
       pointerHeld = true;
@@ -2036,10 +2158,17 @@
     function clearHeadTrail() {
       headTrailPoints.length = 0;
       headTrailSampleTimer = 0;
+      headTrailActive = false;
+    }
+
+    function startHeadTrail() {
+      headTrailPoints.length = 0;
+      headTrailSampleTimer = 0;
+      headTrailActive = true;
     }
 
     function updateHeadTrail(deltaSeconds) {
-      if (!headDetached) {
+      if (!headDetached || !headTrailActive) {
         return;
       }
       headTrailSampleTimer -= deltaSeconds;
@@ -2162,7 +2291,7 @@
     }
 
     function applyBadLanding(impactSpeed) {
-      if (testModeEnabled) {
+      if (isDebugGodmodeEnabled()) {
         playerVelocityY = -(impactSpeed * 0.32 + 180);
         playerYOffset = 0;
         landingLockTimer = 0.12;
@@ -2214,8 +2343,8 @@
       spinBonus = 0;
       comboCount = 0;
       setComboHud();
-      clearHeadTrail();
       setHeadDetachOffsets();
+      startHeadTrail();
       var neckOrigin = getLimbWorldAnchor(HEAD_NECK_X, HEAD_NECK_Y);
       spawnHeadDetachExplosion(neckOrigin.x, neckOrigin.y);
     }
@@ -2241,6 +2370,7 @@
     }
 
     function applyHeadGameOverLanding(impactSpeed) {
+      clearHeadTrail();
       playerYOffset = 0;
       landingLockTimer = HEAD_LANDING_LOCK_SECONDS;
       var bounceUp = impactSpeed * HEAD_GAME_OVER_BOUNCE_FACTOR + HEAD_GAME_OVER_BOUNCE_MIN;
@@ -2299,7 +2429,7 @@
         return;
       }
       if (lostLimbCount >= TOTAL_LIMBS) {
-        if (!testModeEnabled) {
+        if (!isDebugGodmodeEnabled()) {
           launchHead();
         }
         return;
@@ -3853,7 +3983,9 @@
     }
 
     window.addEventListener("resize", resizeCanvas);
-    window.addEventListener("keydown", onTestModeKeyDown);
+    window.addEventListener("keydown", onDebugKeyDown);
+    debugPanel.addEventListener("pointerdown", onDebugPanelPointerDown);
+    debugGodmodeSwitch.addEventListener("click", onDebugGodmodeSwitchClick);
     canvas.addEventListener("pointerdown", onPointerDown);
     gameScreen.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointerup", onPointerUp);
@@ -3867,6 +3999,7 @@
     initSkyCraft();
     bindLocaleListener();
     loadHighScore();
+    debugSpawnInput.value = String(DEBUG_SPAWN_DEFAULT_METERS);
     resizeCanvas();
     showStartScreen();
     applyGameLocale();
