@@ -53,6 +53,36 @@ var WebDesktop = (function () {
     art: { centerOffsetX: 320, centerOffsetY: 365 }
   };
 
+  var PORTRAIT_DEFAULT_ICON_LAYOUTS = {
+    servers: { centerOffsetX: -155, centerOffsetY: -265 },
+    worlds: { centerOffsetX: -45, centerOffsetY: -265 },
+    steam: { centerOffsetX: 70, centerOffsetY: -265 },
+    settings: { centerOffsetX: -45, centerOffsetY: -155 },
+    games: { centerOffsetX: 70, centerOffsetY: -45 },
+    links: { centerOffsetX: -155, centerOffsetY: 65 },
+    credits: { centerOffsetX: 70, centerOffsetY: 65 },
+    art: { centerOffsetX: -45, centerOffsetY: 65 },
+    disconnect: { centerOffsetX: -155, centerOffsetY: 180 },
+    quit: { centerOffsetX: -45, centerOffsetY: 180 },
+    title: { centerOffsetX: 70, centerOffsetY: 180 }
+  };
+
+  var ICON_LAYOUT_RESOLVE_ORDER = [
+    "servers",
+    "worlds",
+    "steam",
+    "settings",
+    "games",
+    "links",
+    "credits",
+    "art",
+    "disconnect",
+    "quit",
+    "title"
+  ];
+
+  var menuLayoutPhoneVertical = false;
+
   var savedIconLayoutTable = {};
   var iconLayoutSaveTimer = 0;
   var activeIconDrag = null;
@@ -229,6 +259,9 @@ var WebDesktop = (function () {
     if (windowManager.syncWindowLayout) {
       windowManager.syncWindowLayout(windowElement);
     }
+    if (windowManager.clampManagedWindowToContainer) {
+      windowManager.clampManagedWindowToContainer(windowElement);
+    }
     if (windowManager.relayoutActivePage) {
       windowManager.relayoutActivePage();
     }
@@ -290,6 +323,9 @@ var WebDesktop = (function () {
     if (windowManager && windowManager.syncWindowLayout) {
       windowManager.syncWindowLayout(windowElement);
     }
+    if (windowManager && windowManager.clampManagedWindowToContainer) {
+      windowManager.clampManagedWindowToContainer(windowElement);
+    }
     if (windowManager && windowManager.relayoutActivePage) {
       windowManager.relayoutActivePage();
     }
@@ -337,6 +373,39 @@ var WebDesktop = (function () {
       if (isWindowVisible(windowElement)) return true;
     }
     return false;
+  }
+
+  function isMenuLayoutPhoneVertical() {
+    return menuLayoutPhoneVertical;
+  }
+
+  function updateMenuLayoutPhoneMode() {
+    var coords = getLayoutCoords();
+    var nextPhone = false;
+    if (coords && coords.isMenuLayoutPhoneVertical) {
+      nextPhone = coords.isMenuLayoutPhoneVertical();
+    } else {
+      nextPhone = window.innerHeight > window.innerWidth;
+    }
+    menuLayoutPhoneVertical = nextPhone;
+    if (coords && coords.updateMenuLayoutPhoneMode) {
+      coords.updateMenuLayoutPhoneMode();
+    } else if (document.documentElement) {
+      document.documentElement.classList.toggle("menu-layout-phone-vertical", nextPhone);
+    }
+  }
+
+  function getActiveDefaultIconLayoutsTable() {
+    if (menuLayoutPhoneVertical) {
+      return PORTRAIT_DEFAULT_ICON_LAYOUTS;
+    }
+    return DEFAULT_ICON_LAYOUTS;
+  }
+
+  function shouldSkipPersistedIconLayoutOnPhone(iconId) {
+    if (!menuLayoutPhoneVertical) return false;
+    if (iconId.indexOf("game-") === 0) return false;
+    return Object.prototype.hasOwnProperty.call(PORTRAIT_DEFAULT_ICON_LAYOUTS, iconId);
   }
 
   function showDesktopHome() {
@@ -412,6 +481,11 @@ var WebDesktop = (function () {
       return;
     }
 
+    if (iconId.indexOf("game-") === 0) {
+      openGameFromDesktopIcon(iconId.substring(5));
+      return;
+    }
+
     var presetName = getPresetForIconId(iconId);
     if (presetName) {
       toggleWindow(presetName, true);
@@ -435,12 +509,104 @@ var WebDesktop = (function () {
     savedIconLayoutTable[iconId] = storedLayout;
   }
 
+  function shiftAllSavedIconCenterOffsetY(deltaY) {
+    var iconId;
+    var layout;
+    var coords;
+    if (!deltaY) return;
+    coords = getLayoutCoords();
+    if (!coords) return;
+    for (iconId in savedIconLayoutTable) {
+      if (!Object.prototype.hasOwnProperty.call(savedIconLayoutTable, iconId)) continue;
+      layout = savedIconLayoutTable[iconId];
+      if (!coords.isCenterLayoutEntry(layout)) continue;
+      setSavedIconLayout(iconId, {
+        anchor: coords.ANCHOR_CENTER,
+        centerOffsetX: layout.centerOffsetX || 0,
+        centerOffsetY: Math.round((layout.centerOffsetY || 0) + deltaY)
+      });
+    }
+  }
+
+  function getDesktopIconsBottomOverflowFromLayoutTable() {
+    var coords;
+    var layoutRoot;
+    var iconId;
+    var layout;
+    var absolutePosition;
+    var placementHeight;
+    var iconHeight;
+    var maxBottom;
+    if (menuLayoutPhoneVertical) return 0;
+    coords = getLayoutCoords();
+    layoutRoot = getIconLayoutRoot();
+    if (!coords || !layoutRoot) return 0;
+    placementHeight = layoutRoot.clientHeight;
+    if (placementHeight < 1) return 0;
+    iconHeight = ICON_GRID_CELL_HEIGHT;
+    maxBottom = 0;
+    for (iconId in savedIconLayoutTable) {
+      if (!Object.prototype.hasOwnProperty.call(savedIconLayoutTable, iconId)) continue;
+      layout = savedIconLayoutTable[iconId];
+      if (!coords.isCenterLayoutEntry(layout)) continue;
+      absolutePosition = coords.resolveAbsolutePosition(layout, layoutRoot);
+      if (absolutePosition.top + iconHeight > maxBottom) {
+        maxBottom = absolutePosition.top + iconHeight;
+      }
+    }
+    if (maxBottom <= placementHeight + 1) return 0;
+    return Math.ceil(maxBottom - placementHeight);
+  }
+
+  function measureDesktopIconsBottomOverflow() {
+    var layoutRoot;
+    var layoutRect;
+    var icons;
+    var index;
+    var iconElement;
+    var iconRect;
+    var maxOverflow;
+    var overflow;
+    if (menuLayoutPhoneVertical || !desktopIconsRoot) return 0;
+    layoutRoot = getIconLayoutRoot();
+    if (!layoutRoot) return 0;
+    layoutRect = layoutRoot.getBoundingClientRect();
+    if (layoutRect.height < 1) return 0;
+    icons = desktopIconsRoot.querySelectorAll(".os-desktop-icon[data-desktop-icon]");
+    maxOverflow = 0;
+    for (index = 0; index < icons.length; index++) {
+      iconElement = icons[index];
+      if (iconElement.hidden) continue;
+      iconRect = iconElement.getBoundingClientRect();
+      overflow = iconRect.bottom - layoutRect.bottom;
+      if (overflow > maxOverflow) maxOverflow = overflow;
+    }
+    if (maxOverflow <= 1) return 0;
+    return Math.ceil(maxOverflow);
+  }
+
+  function fitDesktopIconLayoutsToViewport() {
+    var overflow;
+    if (menuLayoutPhoneVertical) return;
+    overflow = measureDesktopIconsBottomOverflow();
+    if (overflow < 1) return;
+    shiftAllSavedIconCenterOffsetY(-overflow);
+  }
+
   function populateDefaultIconLayoutTable() {
     var iconId;
+    var defaultTable = getActiveDefaultIconLayoutsTable();
+    var bottomOverflow;
     savedIconLayoutTable = {};
-    for (iconId in DEFAULT_ICON_LAYOUTS) {
-      if (!Object.prototype.hasOwnProperty.call(DEFAULT_ICON_LAYOUTS, iconId)) continue;
+    for (iconId in defaultTable) {
+      if (!Object.prototype.hasOwnProperty.call(defaultTable, iconId)) continue;
       setSavedIconLayout(iconId, getDefaultIconLayoutEntry(iconId));
+    }
+    if (!menuLayoutPhoneVertical) {
+      bottomOverflow = getDesktopIconsBottomOverflowFromLayoutTable();
+      if (bottomOverflow > 0) {
+        shiftAllSavedIconCenterOffsetY(-bottomOverflow);
+      }
     }
   }
 
@@ -458,6 +624,7 @@ var WebDesktop = (function () {
       if (iconId === "about") {
         iconId = "credits";
       }
+      if (shouldSkipPersistedIconLayoutOnPhone(iconId)) continue;
       setSavedIconLayout(iconId, entry);
     }
   }
@@ -524,7 +691,10 @@ var WebDesktop = (function () {
     var layoutRoot;
     var coords;
     var absolutePosition;
-    if (!savedLayout || !desktopSurface) return;
+    if (!savedLayout) return;
+
+    layoutRoot = getIconLayoutRoot();
+    if (!layoutRoot) return;
 
     coords = getLayoutCoords();
     if (!coords) return;
@@ -533,8 +703,6 @@ var WebDesktop = (function () {
       return;
     }
 
-    layoutRoot = getIconLayoutRoot();
-    if (!layoutRoot) return;
     absolutePosition = coords.resolveAbsolutePosition(savedLayout, layoutRoot);
     applyIconPosition(iconElement, absolutePosition.left, absolutePosition.top, false);
   }
@@ -684,6 +852,155 @@ var WebDesktop = (function () {
     updateDesktopTabOrder();
   }
 
+  function applyAllSavedIconLayoutsAndResolve() {
+    applyAllSavedIconLayouts();
+    if (menuLayoutPhoneVertical) return;
+    fitDesktopIconLayoutsToViewport();
+    applyAllSavedIconLayouts();
+    resolveAllDesktopIconLayouts();
+  }
+
+  function getOrderedDesktopIconsForLayoutResolve() {
+    var orderLookup = {};
+    var orderedEntries = [];
+    var remainingIcons = [];
+    var sortedIcons = [];
+    var icons;
+    var index;
+    var compareIndex;
+    var iconElement;
+    var iconId;
+    var orderIndex;
+    var tempEntry;
+    if (!desktopIconsRoot) return sortedIcons;
+    for (index = 0; index < ICON_LAYOUT_RESOLVE_ORDER.length; index++) {
+      orderLookup[ICON_LAYOUT_RESOLVE_ORDER[index]] = index;
+    }
+    icons = desktopIconsRoot.querySelectorAll(".os-desktop-icon[data-desktop-icon]");
+    for (index = 0; index < icons.length; index++) {
+      iconElement = icons[index];
+      if (iconElement.hidden) continue;
+      iconId = iconElement.getAttribute("data-desktop-icon");
+      if (!iconId) continue;
+      if (Object.prototype.hasOwnProperty.call(orderLookup, iconId)) {
+        orderIndex = orderLookup[iconId];
+        orderedEntries.push({ orderIndex: orderIndex, iconElement: iconElement });
+      } else {
+        remainingIcons.push(iconElement);
+      }
+    }
+    for (index = 0; index < orderedEntries.length; index++) {
+      for (compareIndex = index + 1; compareIndex < orderedEntries.length; compareIndex++) {
+        if (orderedEntries[compareIndex].orderIndex < orderedEntries[index].orderIndex) {
+          tempEntry = orderedEntries[index];
+          orderedEntries[index] = orderedEntries[compareIndex];
+          orderedEntries[compareIndex] = tempEntry;
+        }
+      }
+    }
+    for (index = 0; index < orderedEntries.length; index++) {
+      sortedIcons.push(orderedEntries[index].iconElement);
+    }
+    for (index = 0; index < remainingIcons.length; index++) {
+      sortedIcons.push(remainingIcons[index]);
+    }
+    return sortedIcons;
+  }
+
+  function buildPlacedIconsExcludeElement(excludeIconElement) {
+    var placedIcons = [];
+    var icons;
+    var index;
+    if (!desktopIconsRoot) return placedIcons;
+    icons = desktopIconsRoot.querySelectorAll(".os-desktop-icon[data-desktop-icon]");
+    for (index = 0; index < icons.length; index++) {
+      if (icons[index] === excludeIconElement) continue;
+      if (icons[index].hidden) continue;
+      placedIcons.push(icons[index]);
+    }
+    return placedIcons;
+  }
+
+  function isIconLayoutPositionWithinBounds(iconElement, left, top) {
+    var layoutRoot = getIconLayoutRoot();
+    var layoutRect;
+    var metrics;
+    var maxLeft;
+    var maxTop;
+    if (!layoutRoot) return true;
+    layoutRect = layoutRoot.getBoundingClientRect();
+    metrics = getIconMetrics(iconElement);
+    maxLeft = Math.max(0, layoutRect.width - metrics.width);
+    maxTop = Math.max(0, layoutRect.height - metrics.height);
+    if (left < 0 || top < 0) return false;
+    if (left > maxLeft + 1 || top > maxTop + 1) return false;
+    return true;
+  }
+
+  function resolveIconLayoutFitAndCollision(iconElement, placedIcons) {
+    var iconId;
+    var savedLayout;
+    var coords;
+    var layoutPosition;
+    var clampedPosition;
+    var freePosition;
+    var needsCollisionResolve;
+    if (!iconElement || iconElement.hidden) return;
+    iconId = iconElement.getAttribute("data-desktop-icon");
+    savedLayout = savedIconLayoutTable[iconId];
+    coords = getLayoutCoords();
+    if (savedLayout && coords && coords.isCenterLayoutEntry(savedLayout)) {
+      placedIcons.push(iconElement);
+      return;
+    }
+    layoutPosition = getIconLayoutPosition(iconElement);
+    if (!isIconLayoutPositionWithinBounds(iconElement, layoutPosition.left, layoutPosition.top)) {
+      clampedPosition = clampIconPosition(iconElement, layoutPosition.left, layoutPosition.top);
+      freePosition = findClosestFreeIconPosition(
+        iconElement,
+        clampedPosition.left,
+        clampedPosition.top,
+        placedIcons
+      );
+      applyIconPosition(iconElement, freePosition.left, freePosition.top, false);
+      syncIconLayoutFromElement(iconElement);
+      placedIcons.push(iconElement);
+      return;
+    }
+    needsCollisionResolve = isIconDropPositionTooClose(
+      layoutPosition.left,
+      layoutPosition.top,
+      iconElement,
+      getIconMinimumSeparation(iconElement),
+      placedIcons
+    );
+    if (needsCollisionResolve) {
+      freePosition = findClosestFreeIconPosition(
+        iconElement,
+        layoutPosition.left,
+        layoutPosition.top,
+        placedIcons
+      );
+      if (
+        freePosition.left !== layoutPosition.left ||
+        freePosition.top !== layoutPosition.top
+      ) {
+        applyIconPosition(iconElement, freePosition.left, freePosition.top, false);
+        syncIconLayoutFromElement(iconElement);
+      }
+    }
+    placedIcons.push(iconElement);
+  }
+
+  function resolveAllDesktopIconLayouts() {
+    var icons = getOrderedDesktopIconsForLayoutResolve();
+    var placedIcons = [];
+    var index = 0;
+    for (index = 0; index < icons.length; index++) {
+      resolveIconLayoutFitAndCollision(icons[index], placedIcons);
+    }
+  }
+
   function syncIconLayoutFromElement(iconElement) {
     if (!desktopSurface) return;
     var iconId = iconElement.getAttribute("data-desktop-icon");
@@ -727,13 +1044,14 @@ var WebDesktop = (function () {
 
   function getDefaultIconLayoutEntry(iconId) {
     var layout;
+    var defaultTable = getActiveDefaultIconLayoutsTable();
     if (!iconId) return null;
-    if (!Object.prototype.hasOwnProperty.call(DEFAULT_ICON_LAYOUTS, iconId)) return null;
-    layout = DEFAULT_ICON_LAYOUTS[iconId];
+    if (!Object.prototype.hasOwnProperty.call(defaultTable, iconId)) return null;
+    layout = defaultTable[iconId];
     return {
       anchor: "center",
-      centerOffsetX: layout.centerOffsetX,
-      centerOffsetY: layout.centerOffsetY
+      centerOffsetX: layout.centerOffsetX || 0,
+      centerOffsetY: layout.centerOffsetY || 0
     };
   }
 
@@ -754,8 +1072,9 @@ var WebDesktop = (function () {
   function captureAllDefaultIconLayouts() {
     var defaultsTable = {};
     var iconId;
-    for (iconId in DEFAULT_ICON_LAYOUTS) {
-      if (!Object.prototype.hasOwnProperty.call(DEFAULT_ICON_LAYOUTS, iconId)) continue;
+    var defaultTable = getActiveDefaultIconLayoutsTable();
+    for (iconId in defaultTable) {
+      if (!Object.prototype.hasOwnProperty.call(defaultTable, iconId)) continue;
       defaultsTable[iconId] = getDefaultIconLayoutEntry(iconId);
     }
     return defaultsTable;
@@ -878,7 +1197,7 @@ var WebDesktop = (function () {
   function loadPersistedIconLayouts() {
     populateDefaultIconLayoutTable();
     mergePersistedIconLayoutPayload(getPersistedIconLayoutsPayload());
-    applyAllSavedIconLayouts();
+    applyAllSavedIconLayoutsAndResolve();
   }
 
   function isIconSnapToGridEnabled() {
@@ -2053,7 +2372,6 @@ var WebDesktop = (function () {
       placedGroupIcons.push(iconElement);
     }
     scheduleIconLayoutsSave();
-    applyAllSavedIconLayouts();
     updateDesktopTabOrder();
     setSuppressIconClickAfterDrag(drag.iconElements);
   }
@@ -2231,6 +2549,8 @@ var WebDesktop = (function () {
     desktopWorkspace = document.getElementById("desktopWorkspace");
     if (!desktopSurface || !desktopIconsRoot) return;
 
+    updateMenuLayoutPhoneMode();
+
     if (window.WebDesktopAppIcons && window.WebDesktopAppIcons.mountDesktopIcons) {
       window.WebDesktopAppIcons.mountDesktopIcons();
     }
@@ -2249,7 +2569,7 @@ var WebDesktop = (function () {
       bindDesktopIcon(icons[index]);
     }
 
-    applyAllSavedIconLayouts();
+    applyAllSavedIconLayoutsAndResolve();
     updateActionIconsState();
 
     document.addEventListener("pointermove", onIconPointerMove);
@@ -2268,9 +2588,17 @@ var WebDesktop = (function () {
   }
 
   function onDesktopIconsResize() {
-    clearIconGridLayoutCache();
-    applyAllSavedIconLayouts();
-    updateDesktopTabOrder();
+    var wasPhone = menuLayoutPhoneVertical;
+    updateMenuLayoutPhoneMode();
+    if (wasPhone !== menuLayoutPhoneVertical) {
+      populateDefaultIconLayoutTable();
+      if (!isUnityHost()) {
+        mergePersistedIconLayoutPayload(readIconLayoutsFromStorage());
+      }
+    } else {
+      clearIconGridLayoutCache();
+    }
+    applyAllSavedIconLayoutsAndResolve();
   }
 
   function getRouteWindowPresetFromLocation() {
@@ -2308,6 +2636,11 @@ var WebDesktop = (function () {
     }
     closeAllAppWindows();
     if (routePreset && windowManager && windowManager.isDesktopWindowPreset(routePreset)) {
+      window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
+      return;
+    }
+    if (menuLayoutPhoneVertical) {
+      hideWindowElement(getWindowByPreset(WINDOW_PRESET_TITLE));
       window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
       return;
     }
@@ -2413,12 +2746,171 @@ var WebDesktop = (function () {
     window.addEventListener("web-wm-layout-settled", updateDesktopWindowsToggleLabel);
   }
 
+  function getGameDesktopIconId(gameId) {
+    return "game-" + gameId;
+  }
+
+  function findGameDesktopIcon(gameId) {
+    if (!desktopIconsRoot || !gameId) return null;
+    return desktopIconsRoot.querySelector(
+      '.os-desktop-icon[data-desktop-icon="' + getGameDesktopIconId(gameId) + '"]'
+    );
+  }
+
+  function getGamesReferenceCenterLayout() {
+    var gamesIcon;
+    var layout;
+    var coords;
+    var layoutRoot;
+    var position;
+    if (!desktopIconsRoot) {
+      desktopIconsRoot = document.getElementById("desktopIcons");
+    }
+    gamesIcon = desktopIconsRoot
+      ? desktopIconsRoot.querySelector('.os-desktop-icon[data-desktop-icon="games"]')
+      : null;
+    layout = savedIconLayoutTable.games;
+    if (gamesIcon) {
+      coords = getLayoutCoords();
+      layoutRoot = getIconLayoutRoot();
+      if (coords && layoutRoot) {
+        if (!gamesIcon.classList.contains("os-desktop-icon--center-anchor")) {
+          applySavedIconLayout(gamesIcon);
+        }
+        position = getIconLayoutPosition(gamesIcon);
+        layout = coords.absoluteToCenterOffset(position.left, position.top, layoutRoot);
+      }
+    }
+    if (!layout) {
+      layout = getDefaultIconLayoutEntry("games");
+    }
+    if (!layout) {
+      return { anchor: "center", centerOffsetX: 230, centerOffsetY: 365 };
+    }
+    return layout;
+  }
+
+  function isGameShortcutCenterOffsetOccupied(offsetX, offsetY) {
+    var iconId;
+    for (iconId in savedIconLayoutTable) {
+      if (!Object.prototype.hasOwnProperty.call(savedIconLayoutTable, iconId)) continue;
+      if (iconId.indexOf("game-") !== 0) continue;
+      if (
+        Math.abs((savedIconLayoutTable[iconId].centerOffsetX || 0) - offsetX) < 44 &&
+        Math.abs((savedIconLayoutTable[iconId].centerOffsetY || 0) - offsetY) < 52
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function getGameShortcutCenterLayout() {
+    var gamesLayout = getGamesReferenceCenterLayout();
+    var offsetX = (gamesLayout.centerOffsetX || 0) + 88;
+    var offsetY = (gamesLayout.centerOffsetY || 0) - 104;
+    var attemptIndex = 0;
+    while (isGameShortcutCenterOffsetOccupied(offsetX, offsetY) && attemptIndex < 16) {
+      offsetX = offsetX + 88;
+      attemptIndex = attemptIndex + 1;
+    }
+    return {
+      anchor: "center",
+      centerOffsetX: offsetX,
+      centerOffsetY: offsetY
+    };
+  }
+
+  function createGameDesktopIcon(game) {
+    var gameId;
+    var iconId;
+    var iconElement;
+    var labelElement;
+    var glyphElement;
+    var imageElement;
+    var shortcutLayout;
+    if (!desktopIconsRoot || !game || !game.id) return null;
+    gameId = game.id;
+    iconId = getGameDesktopIconId(gameId);
+    if (findGameDesktopIcon(gameId)) {
+      return findGameDesktopIcon(gameId);
+    }
+    iconElement = document.createElement("button");
+    iconElement.type = "button";
+    iconElement.className = "os-desktop-icon os-desktop-icon--game-shortcut";
+    iconElement.setAttribute("data-desktop-icon", iconId);
+    iconElement.setAttribute("data-game-id", gameId);
+    if (game.path) {
+      iconElement.setAttribute("data-game-path", game.path);
+    }
+    glyphElement = document.createElement("span");
+    glyphElement.className = "os-desktop-icon-glyph";
+    if (game.image) {
+      imageElement = document.createElement("img");
+      imageElement.className = "os-app-icon os-app-icon--game-shortcut";
+      imageElement.src = game.image;
+      imageElement.alt = "";
+      imageElement.draggable = false;
+      imageElement.width = 52;
+      imageElement.height = 52;
+      glyphElement.appendChild(imageElement);
+    } else if (window.WebDesktopAppIcons && window.WebDesktopAppIcons.ensureDesktopIconGlyph) {
+      iconElement.setAttribute("data-desktop-icon", "games");
+      window.WebDesktopAppIcons.ensureDesktopIconGlyph(iconElement);
+      iconElement.setAttribute("data-desktop-icon", iconId);
+    }
+    labelElement = document.createElement("span");
+    labelElement.className = "os-desktop-icon-label terminal-text";
+    labelElement.textContent = game.title || game.titleFallback || gameId;
+    iconElement.appendChild(glyphElement);
+    iconElement.appendChild(labelElement);
+    desktopIconsRoot.appendChild(iconElement);
+    bindDesktopIcon(iconElement);
+    shortcutLayout = getGameShortcutCenterLayout();
+    setSavedIconLayout(iconId, shortcutLayout);
+    applyIconCenterOffsetPosition(iconElement, shortcutLayout);
+    if (!menuLayoutPhoneVertical) {
+      resolveIconLayoutFitAndCollision(iconElement, buildPlacedIconsExcludeElement(iconElement));
+    }
+    scheduleIconLayoutsSave();
+    return iconElement;
+  }
+
+  function removeGameDesktopIcon(gameId) {
+    var iconElement;
+    var iconId;
+    if (!gameId) return false;
+    iconElement = findGameDesktopIcon(gameId);
+    if (!iconElement) return false;
+    if (iconElement.parentNode) {
+      iconElement.parentNode.removeChild(iconElement);
+    }
+    iconId = getGameDesktopIconId(gameId);
+    if (savedIconLayoutTable && savedIconLayoutTable[iconId]) {
+      delete savedIconLayoutTable[iconId];
+    }
+    scheduleIconLayoutsSave();
+    return true;
+  }
+
+  function openGameFromDesktopIcon(gameId) {
+    if (!gameId || !window.WebExtras) return false;
+    openGamesDesktop();
+    if (window.WebExtras.openGame) {
+      window.WebExtras.openGame(gameId);
+      return true;
+    }
+    return false;
+  }
+
   function initOnReady() {
     initDesktopIcons();
     bindStatusNodeButton();
     bindDesktopWindowsToggle();
     window.addEventListener("web-desktop-windows-restored", onDesktopWindowsRestored);
     initDefaultWindows();
+    window.__cmMenuBootDesktopReady = true;
+    window.dispatchEvent(new CustomEvent("web-desktop-icons-ready"));
   }
 
   if (document.readyState === "loading") {
@@ -2439,11 +2931,17 @@ var WebDesktop = (function () {
     openGamesDesktop: openGamesDesktop,
     openArtDesktop: openArtDesktop,
     openLinksDesktop: openLinksDesktop,
+    createGameDesktopIcon: createGameDesktopIcon,
+    removeGameDesktopIcon: removeGameDesktopIcon,
+    findGameDesktopIcon: findGameDesktopIcon,
+    hasGameDesktopIcon: function (gameId) {
+      return !!findGameDesktopIcon(gameId);
+    },
     isWindowOpen: isWindowOpen,
     getWindowByPreset: getWindowByPreset,
     applyIconLayouts: function (payload) {
       populateSavedIconLayoutTable(payload);
-      applyAllSavedIconLayouts();
+      applyAllSavedIconLayoutsAndResolve();
       clearIconLayoutBootstrap();
     },
     flushIconLayoutsSave: function () {
@@ -2456,6 +2954,10 @@ var WebDesktop = (function () {
     logIconLayoutDiffFromDefaults: logIconLayoutsDiffFromDefaults,
     buildIconLayoutDiffFromDefaultsPayload: buildIconLayoutsDiffFromDefaultsPayload,
     hasOpenAppWindows: hasOpenAppWindows,
-    updateDesktopTabOrder: updateDesktopTabOrder
+    updateDesktopTabOrder: updateDesktopTabOrder,
+    isMenuLayoutPhoneVertical: isMenuLayoutPhoneVertical,
+    updateMenuLayoutPhoneMode: updateMenuLayoutPhoneMode
   };
 })();
+
+window.WebDesktop = WebDesktop;

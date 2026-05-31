@@ -301,6 +301,14 @@ var WebWindowManager = (function () {
       layout = DEFAULT_DESKTOP_WINDOW_LAYOUTS[presetName];
       containerElement = getDefaultWindowLayoutContainer(presetName);
       if (!layout || !containerElement) continue;
+      if (presetName === "menu-splash") {
+        layout = mergeLayoutWithDesktopDefault(presetName, {
+          open: getInitialDesktopOpenDefault(presetName)
+        });
+        if (isMenuLayoutPhoneVertical()) {
+          layout.centerOffsetY = -210;
+        }
+      }
       setSavedLayout(presetName, layout, containerElement);
     }
   }
@@ -442,6 +450,7 @@ var WebWindowManager = (function () {
     };
     applyWindowRect(windowElement);
     windowElement.wmHasInlineLayout = true;
+    clampManagedWindowToContainer(windowElement);
   }
 
   function setSavedWindowOpen(windowElement, isOpen) {
@@ -487,7 +496,7 @@ var WebWindowManager = (function () {
       shouldOpen = false;
     }
     if (!savedLayout && presetName === "menu-splash") {
-      shouldOpen = true;
+      shouldOpen = !isMenuLayoutPhoneVertical();
     }
     if (shouldOpen) {
       windowElement.classList.remove("os-window--closed");
@@ -596,30 +605,30 @@ var WebWindowManager = (function () {
 
   function syncSavedLayoutFromWindow(windowElement) {
     var layoutKey = getLayoutKey(windowElement);
+    var previous;
+    var isMinimized;
+    var isMaximized;
+    var entry;
+    var inlineZIndex;
+    var restoreState;
+    var containerElement;
     if (!layoutKey) return;
-    var previous = savedLayoutTable[layoutKey];
-    var isMinimized = windowElement.classList.contains("os-window--minimized");
-    var isMaximized = windowElement.classList.contains("os-window--maximized");
-    var entry = {
+    previous = savedLayoutTable[layoutKey];
+    isMinimized = windowElement.classList.contains("os-window--minimized");
+    isMaximized = windowElement.classList.contains("os-window--maximized");
+    entry = {
       open: !windowElement.classList.contains("os-window--closed"),
       minimized: isMinimized,
       maximized: isMaximized && !isMinimized
     };
-    if (previous) {
-      entry.width = previous.width;
-      entry.height = previous.height;
-      if (previous.zIndex !== undefined) {
-        entry.zIndex = previous.zIndex;
-      }
-      entry.anchor = previous.anchor;
-      entry.centerOffsetX = previous.centerOffsetX;
-      entry.centerOffsetY = previous.centerOffsetY;
+    if (previous && previous.zIndex !== undefined) {
+      entry.zIndex = previous.zIndex;
     }
-    var inlineZIndex = getWindowInlineZIndex(windowElement);
+    inlineZIndex = getWindowInlineZIndex(windowElement);
     if (inlineZIndex > 0) {
       entry.zIndex = inlineZIndex;
     }
-    var restoreState = null;
+    restoreState = null;
     if (isMinimized && windowElement.wmBeforeMinimizeState) {
       restoreState = windowElement.wmBeforeMinimizeState;
     } else if (isMaximized && windowElement.wmBeforeMaximizeState) {
@@ -632,6 +641,13 @@ var WebWindowManager = (function () {
         height: windowElement.wmState.height
       };
     }
+    if (previous) {
+      entry.anchor = previous.anchor;
+      entry.centerOffsetX = previous.centerOffsetX;
+      entry.centerOffsetY = previous.centerOffsetY;
+      if (previous.width !== undefined) entry.width = previous.width;
+      if (previous.height !== undefined) entry.height = previous.height;
+    }
     if (restoreState) {
       entry.left = restoreState.left;
       entry.top = restoreState.top;
@@ -641,7 +657,7 @@ var WebWindowManager = (function () {
     if (entry.width === undefined || entry.height === undefined) {
       return;
     }
-    var containerElement = getLayoutContainer(windowElement);
+    containerElement = getLayoutContainer(windowElement);
     if (!containerElement) return;
     setSavedLayout(layoutKey, entry, containerElement);
   }
@@ -693,7 +709,9 @@ var WebWindowManager = (function () {
   }
 
   function getInitialDesktopOpenDefault(presetName) {
-    if (presetName === "menu-splash") return true;
+    if (presetName === "menu-splash") {
+      return !isMenuLayoutPhoneVertical();
+    }
     return false;
   }
 
@@ -1186,6 +1204,7 @@ var WebWindowManager = (function () {
 
     ensureWindowStructure(windowElement);
     syncWindowLayout(windowElement);
+    clampManagedWindowToContainer(windowElement);
     layoutMinimizedWindowsInContainer(document.getElementById("desktopWorkspace"), null);
     focusWindow(windowElement);
     setWindowKeyboardFocus(windowElement);
@@ -1538,6 +1557,7 @@ var WebWindowManager = (function () {
       minHeight: minSize.minHeight
     };
     applyWindowRect(windowElement);
+    clampManagedWindowToContainer(windowElement);
   }
 
   function applyWindowRect(windowElement) {
@@ -1648,6 +1668,12 @@ var WebWindowManager = (function () {
     if (savedLayoutTable[layoutKey]) {
       applySavedLayoutToWindow(windowElement);
       applySavedChromeStateToWindow(windowElement);
+      if (
+        !windowElement.classList.contains("os-window--minimized") &&
+        !windowElement.classList.contains("os-window--maximized")
+      ) {
+        clampManagedWindowToContainer(windowElement);
+      }
       return;
     }
 
@@ -1655,6 +1681,7 @@ var WebWindowManager = (function () {
       clearWindowInlineGeometry(windowElement);
       applySavedLayoutToWindow(windowElement);
       if (windowElement.wmHasInlineLayout) {
+        clampManagedWindowToContainer(windowElement);
         setBodyMaxVar(windowElement);
         return;
       }
@@ -1664,6 +1691,7 @@ var WebWindowManager = (function () {
     }
 
     syncWindowStateFromLayout(windowElement, containerElement, presetName);
+    clampManagedWindowToContainer(windowElement);
     setBodyMaxVar(windowElement);
   }
 
@@ -1681,6 +1709,7 @@ var WebWindowManager = (function () {
       if (!container) return;
 
       prepareWindowDragStart(windowElement);
+      clearMaximizedStateForUserGeometry(windowElement);
 
       focusWindow(windowElement);
       activeDrag = {
@@ -1735,6 +1764,8 @@ var WebWindowManager = (function () {
         if (!windowElement.wmState) {
           syncWindowLayout(windowElement);
         }
+        prepareWindowDragStart(windowElement);
+        clearMaximizedStateForUserGeometry(windowElement);
 
         focusWindow(windowElement);
         activeResize = {
@@ -1888,12 +1919,64 @@ var WebWindowManager = (function () {
     activeResize = null;
   }
 
+  function isMenuLayoutPhoneVertical() {
+    return document.documentElement.classList.contains("menu-layout-phone-vertical");
+  }
+
   function getWorkspaceInset(containerElement) {
     var styles = window.getComputedStyle(containerElement);
     var insetValue = styles.getPropertyValue("--wm-inset");
     var inset = parseFloat(insetValue);
     if (!inset || inset < 0) inset = 16;
+    if (isMenuLayoutPhoneVertical()) {
+      inset = 0;
+    }
     return inset;
+  }
+
+  function clampManagedWindowToContainer(windowElement) {
+    var containerElement;
+    var bounds;
+    var inset;
+    var state;
+    var maxWidth;
+    var maxHeight;
+    var maxLeft;
+    var maxTop;
+    if (!windowElement || !windowElement.wmState) return;
+    if (windowElement.classList.contains("os-window--maximized")) {
+      setMaximizedWindowRect(windowElement);
+      return;
+    }
+    if (windowElement.classList.contains("os-window--minimized")) return;
+    containerElement = getLayoutContainer(windowElement);
+    if (!containerElement) return;
+    bounds = getBounds(containerElement);
+    inset = getWorkspaceInset(containerElement);
+    state = windowElement.wmState;
+    maxWidth = Math.max(state.minWidth, bounds.width - inset * 2);
+    maxHeight = Math.max(state.minHeight, bounds.height - inset * 2);
+    if (state.width > maxWidth) {
+      state.width = maxWidth;
+    }
+    if (state.height > maxHeight) {
+      state.height = maxHeight;
+    }
+    maxLeft = Math.max(inset, bounds.width - inset - state.width);
+    maxTop = Math.max(inset, bounds.height - inset - state.height);
+    if (state.left < inset) {
+      state.left = inset;
+    }
+    if (state.top < inset) {
+      state.top = inset;
+    }
+    if (state.left > maxLeft) {
+      state.left = maxLeft;
+    }
+    if (state.top > maxTop) {
+      state.top = maxTop;
+    }
+    applyWindowRect(windowElement);
   }
 
   function captureWindowRestoreState(windowElement) {
@@ -1913,6 +1996,13 @@ var WebWindowManager = (function () {
     windowElement.wmState.width = restoreState.width;
     windowElement.wmState.height = restoreState.height;
     applyWindowRect(windowElement);
+  }
+
+  function clearMaximizedStateForUserGeometry(windowElement) {
+    if (!windowElement.classList.contains("os-window--maximized")) return;
+    windowElement.classList.remove("os-window--maximized");
+    windowElement.wmBeforeMaximizeState = null;
+    updateWindowControlChrome(windowElement);
   }
 
   function clearWindowChromeStates(windowElement) {
@@ -2028,6 +2118,7 @@ var WebWindowManager = (function () {
     setWindowMinSizeFromPreset(windowElement);
     windowElement.wmHasInlineLayout = true;
     applyWindowRect(windowElement);
+    clampManagedWindowToContainer(windowElement);
     windowElement.wmBeforeMinimizeState = null;
     windowElement.wmMinimizedUserAdjusted = false;
     windowElement.wmMinimizedLayoutWidth = 0;
@@ -2045,9 +2136,10 @@ var WebWindowManager = (function () {
   function restoreFromMaximized(windowElement) {
     if (!windowElement.wmBeforeMaximizeState) return false;
     prepareWindowDragStart(windowElement);
+    windowElement.classList.remove("os-window--maximized");
     applyRestoreState(windowElement, windowElement.wmBeforeMaximizeState);
     windowElement.wmBeforeMaximizeState = null;
-    windowElement.classList.remove("os-window--maximized");
+    clampManagedWindowToContainer(windowElement);
     updateWindowControlChrome(windowElement);
     focusWindow(windowElement);
     syncSavedLayoutFromWindow(windowElement);
@@ -2067,11 +2159,10 @@ var WebWindowManager = (function () {
     if (!containerElement || !windowElement.wmState) return;
 
     var bounds = getBounds(containerElement);
-    var inset = getWorkspaceInset(containerElement);
-    var left = inset;
-    var top = inset;
-    var width = Math.max(windowElement.wmState.minWidth, bounds.width - inset * 2);
-    var height = Math.max(windowElement.wmState.minHeight, bounds.height - inset * 2);
+    var left = 0;
+    var top = 0;
+    var width = Math.max(windowElement.wmState.minWidth, bounds.width);
+    var height = Math.max(windowElement.wmState.minHeight, bounds.height);
 
     windowElement.wmState.left = left;
     windowElement.wmState.top = top;
@@ -2710,6 +2801,8 @@ var WebWindowManager = (function () {
     } else if (pageMenuElement && !pageMenuElement.hidden) {
       activatePage(pageMenuElement);
     }
+    window.__cmMenuBootModulesReady = true;
+    window.dispatchEvent(new CustomEvent("web-menu-boot-modules-ready"));
   }
 
   window.addEventListener("web-menu-canvas-shown", onMainMenuCanvasShown);
@@ -2717,11 +2810,11 @@ var WebWindowManager = (function () {
     syncActivePageWindows();
   });
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initOnReady);
-  } else {
-    initOnReady();
-  }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initOnReady);
+    } else {
+      initOnReady();
+    }
 
   return {
     initAll: initAll,
@@ -2743,6 +2836,7 @@ var WebWindowManager = (function () {
     playWindowOpen: playOpenAnimation,
     playWindowBodyOpen: playBodyOpenAnimation,
     syncWindowLayout: syncWindowLayout,
+    clampManagedWindowToContainer: clampManagedWindowToContainer,
     setSavedWindowOpen: setSavedWindowOpen,
     ensureWindowStructure: ensureWindowStructure,
     applyWindowRect: applyWindowRect,
