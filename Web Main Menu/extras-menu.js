@@ -807,18 +807,23 @@
 
   function hasActiveGameDesktopLink() {
     if (!activeGameId) return false;
-    if (isGameDesktopLinkEnabledInStorage(activeGameId)) return true;
-    if (isGameDesktopIconLayoutInStorage(activeGameId)) return true;
-    if (!window.WebDesktop) return false;
+    if (!window.WebDesktop) {
+      if (isGameDesktopLinkEnabledInStorage(activeGameId)) return true;
+      if (!readGameDesktopLinksPayloadFromStorage() && isGameDesktopIconLayoutInStorage(activeGameId)) {
+        return true;
+      }
+      return false;
+    }
+    if (window.WebDesktop.hasGameDesktopIcon && window.WebDesktop.hasGameDesktopIcon(activeGameId)) {
+      return true;
+    }
     if (
       window.WebDesktop.isGameDesktopLinkEnabled &&
       window.WebDesktop.isGameDesktopLinkEnabled(activeGameId)
     ) {
       return true;
     }
-    if (window.WebDesktop.hasGameDesktopIcon) {
-      return window.WebDesktop.hasGameDesktopIcon(activeGameId);
-    }
+    if (isGameDesktopLinkEnabledInStorage(activeGameId)) return true;
     return false;
   }
 
