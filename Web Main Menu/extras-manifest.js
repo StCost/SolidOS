@@ -41,14 +41,16 @@
         title: "Trouble Drivers",
         path: "Extras/games/crystal-rush/index.html",
         image: "Extras/games/crystal-rush/crystal-rush-preview.png",
-        difficulty: 5
+        difficulty: 5,
+        inputMode: "movement"
       },
       {
         id: "sector-vector",
         title: "Sector Vector",
         path: "Extras/games/sector-vector/index.html",
         image: "Extras/games/sector-vector/sector-vector-preview.png",
-        difficulty: 5
+        difficulty: 5,
+        inputMode: "movement"
       },
       {
         id: "playing-cards",

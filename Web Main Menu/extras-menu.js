@@ -29,6 +29,9 @@
   var IFRAME_EMBED_RESET_STYLE_ID = "cm-iframe-embed-reset";
   var IFRAME_EMBED_RESET_LINK_ID = "cm-iframe-embed-reset-link";
   var IFRAME_EMBED_RESET_HREF = "../../../iframe-embed-reset.css";
+  var IFRAME_GAME_CURSOR_SCRIPT_ID = "cm-iframe-game-cursor";
+  var IFRAME_GAME_CURSOR_SRC = "../iframe-game-cursor.js";
+  var EVENT_GAME_CURSOR = "cm-game-cursor";
   var IFRAME_EMBED_RESET_INLINE =
     "html,body{-webkit-tap-highlight-color:transparent;tap-highlight-color:transparent}" +
     "*,*::before,*::after{-webkit-tap-highlight-color:transparent;tap-highlight-color:transparent}" +
@@ -361,6 +364,32 @@
       style.textContent = IFRAME_EMBED_RESET_INLINE;
       doc.head.insertBefore(style, doc.head.firstChild);
     }
+
+    if (!doc.getElementById(IFRAME_GAME_CURSOR_SCRIPT_ID) && !doc.querySelector('script[src*="iframe-game-cursor.js"]')) {
+      var cursorScript = doc.createElement("script");
+      cursorScript.id = IFRAME_GAME_CURSOR_SCRIPT_ID;
+      cursorScript.src = IFRAME_GAME_CURSOR_SRC;
+      doc.head.appendChild(cursorScript);
+    }
+  }
+
+  function onGameFrameCursorMessage(event) {
+    if (!event || !event.data || event.data.eventName !== EVENT_GAME_CURSOR) {
+      return;
+    }
+    if (!gameFrame) {
+      return;
+    }
+    try {
+      if (event.source !== gameFrame.contentWindow) {
+        return;
+      }
+    } catch (error) {
+      return;
+    }
+    if (window.WebMenuCursorBridge && window.WebMenuCursorBridge.setTokenFromGameFrame) {
+      window.WebMenuCursorBridge.setTokenFromGameFrame(event.data.token);
+    }
   }
 
   function bindIframeEmbedReset(frame) {
@@ -370,6 +399,35 @@
     frame.addEventListener("load", function () {
       injectIframeEmbedResetIntoFrame(frame);
     });
+  }
+
+  function getGameInputMode(gameId) {
+    var game = findGameById(gameId);
+    if (game && game.inputMode === "movement") {
+      return "movement";
+    }
+    if (gameId === "crystal-rush" || gameId === "sector-vector") {
+      return "movement";
+    }
+    return "cursor";
+  }
+
+  function setGameInputProfile(gameId) {
+    var inputMode = getGameInputMode(gameId);
+    if (window.WebGameFrameInputHost) {
+      window.WebGameFrameInputHost.setInputMode(inputMode);
+    }
+    window.dispatchEvent(
+      new CustomEvent("web-extras-game-profile", {
+        detail: { gameId: gameId, inputMode: inputMode, name: gameId }
+      })
+    );
+  }
+
+  function syncFrameGameInputMode() {
+    if (window.WebGameFrameInputHost && window.WebGameFrameInputHost.syncFrameInputMode) {
+      window.WebGameFrameInputHost.syncFrameInputMode();
+    }
   }
 
   function setGameInputForwarding(enabled) {
@@ -400,11 +458,13 @@
     if (!game || !gameFrame) return;
     activeGameId = gameId;
     var title = getLocalized(game.titleKey, game.title || game.titleFallback || game.id);
+    setGameInputProfile(gameId);
     setGameInputForwarding(true);
     gameFrame.addEventListener(
       "load",
       function () {
         focusGameKeyboardTarget();
+        syncFrameGameInputMode();
       },
       { once: true }
     );
@@ -417,6 +477,9 @@
   function closeGame() {
     activeGameId = "";
     setGameInputForwarding(false);
+    if (window.WebGameFrameInputHost) {
+      window.WebGameFrameInputHost.setInputMode("cursor");
+    }
     if (gameFrame) gameFrame.src = "about:blank";
     showView(VIEW_GAMES);
   }
@@ -752,6 +815,7 @@
   if (btnArtViewerClose) btnArtViewerClose.addEventListener("click", closeArtViewer);
 
   bindIframeEmbedReset(gameFrame);
+  window.addEventListener("message", onGameFrameCursorMessage);
   if (window.WebGameFrameLocaleHost) {
     window.WebGameFrameLocaleHost.setGameFrame(gameFrame);
     window.WebGameFrameLocaleHost.bindGameFrameLocale(gameFrame);

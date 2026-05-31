@@ -1,16 +1,17 @@
-.menu-screen,
-.menu-screen * {
+.menu-scroll-host,
+.menu-scroll-host * {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-.menu-screen *::-webkit-scrollbar {
+.menu-scroll-host *::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
 }
 
-.menu-v-scroll {
+.menu-v-scroll,
+.worlds-list-scroll {
   position: relative;
   display: flex;
   flex-direction: row;
@@ -21,27 +22,8 @@
   box-sizing: border-box;
 }
 
-.os-window--managed .os-window-body--terminal:has(> .menu-v-scroll) {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.os-window--managed .os-window-body--terminal>.menu-v-scroll,
-.os-window--managed>.menu-v-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.menu-v-scroll-view,
-.menu-v-scroll > :first-child:not(.menu-v-scrollbar) {
-  scrollbar-gutter: auto;
-}
-
-.menu-v-scroll > :first-child:not(.menu-v-scrollbar),
-.menu-v-scroll > .menu-v-scroll-view {
+.menu-v-scroll > .menu-v-scroll-view,
+.worlds-list-scroll > .worlds-list {
   flex: 1 1 auto;
   min-width: 0;
   width: auto;
@@ -53,39 +35,48 @@
   -ms-overflow-style: none;
 }
 
-.menu-v-scroll > :first-child:not(.menu-v-scrollbar)::-webkit-scrollbar,
-.menu-v-scroll > .menu-v-scroll-view::-webkit-scrollbar {
+.menu-v-scroll > .menu-v-scroll-view::-webkit-scrollbar,
+.worlds-list-scroll > .worlds-list::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
 }
 
-.menu-v-scrollbar {
+.menu-v-scrollbar,
+.worlds-list-scrollbar {
   position: relative;
-  flex: 0 0 var(--scrollbar-size);
+  flex: 0 0 var(--scrollbar-size, 8px);
   align-self: stretch;
-  width: var(--scrollbar-size);
+  width: var(--scrollbar-size, 8px);
   height: auto;
-  background: var(--scrollbar-track);
-  cursor: var(--cursor-scroll);
+  background: var(--scrollbar-track, rgba(4, 6, 9, 0.5));
+  cursor: default;
   touch-action: none;
   z-index: 4;
   pointer-events: auto;
   opacity: 1;
 }
 
-.menu-screen:not(.terminal-animations-off) .os-window--opening .menu-v-scrollbar,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .menu-v-scrollbar {
+.worlds-list-scrollbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  flex: none;
+}
+
+.menu-v-scrollbar.is-hidden,
+.worlds-list-scrollbar.is-hidden {
   opacity: 0;
   pointer-events: none;
 }
 
-.menu-v-scrollbar.is-hidden {
-  opacity: 0;
-  pointer-events: none;
+.worlds-list-scrollbar.is-hidden {
+  display: none;
 }
 
-.menu-v-scrollbar-thumb {
+.menu-v-scrollbar-thumb,
+.worlds-list-scrollbar-thumb {
   position: absolute;
   left: 0;
   right: 0;
@@ -95,40 +86,35 @@
   background-image: var(--scrollbar-thumb-stripe), url("hazard-tile.png");
   background-size: auto, 16px 16px;
   background-blend-mode: screen, normal;
-  border: 1px solid var(--scrollbar-thumb-border);
-  cursor: var(--cursor-scroll);
+  border: 1px solid var(--scrollbar-thumb-border, rgba(255, 128, 0, 0.1));
+  cursor: var(--cursor-scroll, url("cursor-scroll.svg?v=1") 11.2 11.2, default);
   touch-action: none;
 }
 
 .menu-v-scrollbar-thumb:hover,
-.menu-v-scrollbar-thumb.is-dragging {
-  background-color: var(--scrollbar-thumb-hover);
+.menu-v-scrollbar-thumb.is-dragging,
+.worlds-list-scrollbar-thumb:hover,
+.worlds-list-scrollbar-thumb.is-dragging {
+  background-color: var(--scrollbar-thumb-hover, rgba(255, 128, 0, 0.22));
   border-color: rgba(255, 128, 0, 0.22);
 }
 
 .menu-h-scroll {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
   box-sizing: border-box;
 }
 
-.menu-h-scroll > :first-child:not(.menu-h-scrollbar),
 .menu-h-scroll > .menu-h-scroll-view {
-  flex: 1 1 auto;
-  min-height: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
   box-sizing: border-box;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-.menu-h-scroll > :first-child:not(.menu-h-scrollbar)::-webkit-scrollbar,
 .menu-h-scroll > .menu-h-scroll-view::-webkit-scrollbar {
   display: none;
   width: 0;
@@ -136,28 +122,20 @@
 }
 
 .menu-h-scrollbar {
-  position: relative;
-  flex: 0 0 var(--scrollbar-size);
-  align-self: stretch;
-  width: 100%;
-  height: var(--scrollbar-size);
-  background: var(--scrollbar-track);
-  cursor: var(--cursor-scroll-h);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--scrollbar-size, 8px);
+  background: var(--scrollbar-track, rgba(4, 6, 9, 0.5));
+  cursor: default;
   touch-action: none;
   z-index: 4;
   pointer-events: auto;
-  opacity: 1;
-}
-
-.menu-screen:not(.terminal-animations-off) .os-window--opening .menu-h-scrollbar,
-.menu-screen:not(.terminal-animations-off) .os-window--opening-body-only .menu-h-scrollbar {
-  opacity: 0;
-  pointer-events: none;
 }
 
 .menu-h-scrollbar.is-hidden {
-  opacity: 0;
-  pointer-events: none;
+  display: none;
 }
 
 .menu-h-scrollbar-thumb {
@@ -170,13 +148,13 @@
   background-image: var(--scrollbar-thumb-stripe), url("hazard-tile.png");
   background-size: auto, 16px 16px;
   background-blend-mode: screen, normal;
-  border: 1px solid var(--scrollbar-thumb-border);
-  cursor: var(--cursor-scroll-h);
+  border: 1px solid var(--scrollbar-thumb-border, rgba(255, 128, 0, 0.1));
+  cursor: var(--cursor-scroll-h, url("cursor-scroll-h.svg?v=1") 11.2 11.2, ew-resize);
   touch-action: none;
 }
 
 .menu-h-scrollbar-thumb:hover,
 .menu-h-scrollbar-thumb.is-dragging {
-  background-color: var(--scrollbar-thumb-hover);
+  background-color: var(--scrollbar-thumb-hover, rgba(255, 128, 0, 0.22));
   border-color: rgba(255, 128, 0, 0.22);
 }
