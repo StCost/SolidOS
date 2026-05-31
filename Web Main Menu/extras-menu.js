@@ -349,6 +349,17 @@
     }
   }
 
+  function setExtrasGameMusicPaths(gameId) {
+    var game = findGameById(gameId);
+    if (!window.WebExtrasGameStartMusic || !window.WebExtrasGameStartMusic.setMusicPaths) {
+      return;
+    }
+    if (!game) {
+      return;
+    }
+    window.WebExtrasGameStartMusic.setMusicPaths(game.startMusicPath, game.gameplayMusicPath);
+  }
+
   function onGameFrameMessage(event) {
     if (!gameFrame || !gameFrame.contentWindow) return;
     if (event.source !== gameFrame.contentWindow) return;
@@ -490,6 +501,7 @@
     var game = findGameById(gameId);
     if (!game || !gameFrame) return;
     activeGameId = gameId;
+    setExtrasGameMusicPaths(gameId);
     var title = getLocalized(game.titleKey, game.title || game.titleFallback || game.id);
     setGameInputProfile(gameId);
     setGameInputForwarding(true);

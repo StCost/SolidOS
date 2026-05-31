@@ -34,7 +34,9 @@
         title: "Airborne Robot",
         path: "Extras/games/airborne-robot/index.html",
         image: "Extras/games/airborne-robot/airborne-robot-preview.png",
-        difficulty: 4
+        difficulty: 4,
+        startMusicPath: "../audio/ui-robot-start-music.wav",
+        gameplayMusicPath: "../audio/ui-robot-game-music.wav"
       },
       {
         id: "blackhole-golf",

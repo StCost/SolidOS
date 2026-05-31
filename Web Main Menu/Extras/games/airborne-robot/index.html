@@ -357,9 +357,12 @@
     }
 
     #robotColorPicker {
+      position: absolute;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
       display: flex;
       gap: 0.55rem;
-      margin-top: 0.75rem;
       pointer-events: auto;
     }
 
@@ -413,9 +416,9 @@
             <circle cx="44" cy="30" r="3.4" fill="#28324c" stroke="none" />
             <path d="M34 32 L58 30 L100 104 L74 117 Z" fill="#5c6b8c" />
             <rect x="51" y="40" width="9" height="58" rx="4" fill="#9aa8c6" transform="rotate(28 55 70)" />
+            <path d="M74 104 L100 110 L86 178 L62 172 Z" fill="#4a5878" />
             <circle cx="86" cy="110" r="16" fill="#7e8eb2" />
             <circle cx="86" cy="110" r="6" fill="#28324c" stroke="none" />
-            <path d="M74 104 L100 110 L86 178 L62 172 Z" fill="#4a5878" />
             <circle cx="74" cy="174" r="9" fill="#7e8eb2" />
             <path d="M58 166 L94 162 Q114 164 118 182 L118 190 Q118 197 109 197 L60 197 Q51 197 51 188 Z" fill="#8694b8" />
             <rect x="93" y="176" width="24" height="9" rx="3" fill="#28324c" stroke="none" />
@@ -479,8 +482,8 @@
     <div id="gameScreen">
       <h1 id="screenTitle">Airborne Robot</h1>
       <p id="controlHint">Hold to reverse spin &mdash; land on your feet</p>
-      <div id="robotColorPicker" aria-label="Robot color"></div>
       <p id="screenMeters" class="hidden">0m</p>
+      <div id="robotColorPicker" aria-label="Robot color"></div>
       <div id="recordBurst" aria-hidden="true"></div>
     </div>
   </div>
@@ -1211,6 +1214,9 @@
         recordBurst.innerHTML = "";
       }
       setHighScoreHud();
+      if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
+        window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
+      }
     }
 
     function hideGameScreen() {

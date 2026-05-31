@@ -1,6 +1,9 @@
 (function () {
-  var START_MUSIC_PATH = "../audio/ui-extras-game-start-music.wav";
-  var GAMEPLAY_MUSIC_PATH = "../audio/ui-extras-game-music.wav";
+  var DEFAULT_START_MUSIC_PATH = "../audio/ui-extras-game-start-music.wav";
+  var DEFAULT_GAMEPLAY_MUSIC_PATH = "../audio/ui-extras-game-music.wav";
+
+  var startMusicPath = DEFAULT_START_MUSIC_PATH;
+  var gameplayMusicPath = DEFAULT_GAMEPLAY_MUSIC_PATH;
 
   var startMusicAudio = null;
   var gameplayMusicAudio = null;
@@ -17,9 +20,42 @@
     return 0.5;
   }
 
+  function resetStartMusicAudio() {
+    if (startMusicAudio) {
+      startMusicAudio.pause();
+      startMusicAudio = null;
+    }
+    startMusicStarted = false;
+  }
+
+  function resetGameplayMusicAudio() {
+    if (gameplayMusicAudio) {
+      gameplayMusicAudio.pause();
+      gameplayMusicAudio = null;
+    }
+    gameplayMusicStarted = false;
+  }
+
+  function setMusicPaths(nextStartMusicPath, nextGameplayMusicPath) {
+    var startPath = nextStartMusicPath || DEFAULT_START_MUSIC_PATH;
+    var gameplayPath = nextGameplayMusicPath || DEFAULT_GAMEPLAY_MUSIC_PATH;
+    if (startPath !== startMusicPath) {
+      startMusicPath = startPath;
+      resetStartMusicAudio();
+    }
+    if (gameplayPath !== gameplayMusicPath) {
+      gameplayMusicPath = gameplayPath;
+      resetGameplayMusicAudio();
+    }
+  }
+
+  function resetMusicPaths() {
+    setMusicPaths(DEFAULT_START_MUSIC_PATH, DEFAULT_GAMEPLAY_MUSIC_PATH);
+  }
+
   function ensureStartMusicAudio() {
     if (startMusicAudio) return startMusicAudio;
-    startMusicAudio = new Audio(START_MUSIC_PATH);
+    startMusicAudio = new Audio(startMusicPath);
     startMusicAudio.loop = true;
     startMusicAudio.preload = "auto";
     startMusicAudio.volume = 0;
@@ -28,7 +64,7 @@
 
   function ensureGameplayMusicAudio() {
     if (gameplayMusicAudio) return gameplayMusicAudio;
-    gameplayMusicAudio = new Audio(GAMEPLAY_MUSIC_PATH);
+    gameplayMusicAudio = new Audio(gameplayMusicPath);
     gameplayMusicAudio.loop = true;
     gameplayMusicAudio.preload = "auto";
     gameplayMusicAudio.volume = 0;
@@ -145,6 +181,7 @@
     usesStartScreenMusic = false;
     stopStartMusicOnly();
     stopGameplayMusicOnly();
+    resetMusicPaths();
     resumeMenuMusic();
   }
 
@@ -162,6 +199,7 @@
   }
 
   window.WebExtrasGameStartMusic = {
+    setMusicPaths: setMusicPaths,
     setUsesStartScreenMusic: setUsesStartScreenMusic,
     start: start,
     stop: stop,
