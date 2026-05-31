@@ -59,6 +59,19 @@
       100% { opacity: 0; }
     }
 
+    #damageFlash.is-head-burst {
+      background: radial-gradient(circle at 50% 64%, rgba(255, 45, 25, 0.75), rgba(255, 110, 35, 0.42) 38%, transparent 62%);
+    }
+
+    #damageFlash.is-head-burst.is-active {
+      animation: head-burst-flash 0.52s ease-out forwards;
+    }
+
+    @keyframes head-burst-flash {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
     #robotWrap {
       position: absolute;
       left: 0;
@@ -90,6 +103,35 @@
 
     .robot-part.is-lost {
       display: none;
+    }
+
+    #detachedLimbsRoot {
+      position: absolute;
+      inset: 0;
+      overflow: visible;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .detached-limb-wrap {
+      position: absolute;
+      left: 0;
+      top: 0;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .detached-limb-spin {
+      width: 100%;
+      height: 100%;
+    }
+
+    .detached-limb-spin svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+      filter: drop-shadow(0 2px 6px rgba(10, 12, 26, 0.45));
     }
 
     #robotWrap.is-headless #robotTorso,
@@ -270,6 +312,28 @@
       animation: record-title-glow 0.7s ease-in-out infinite alternate;
     }
 
+    #testModeIndicator {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #ffb060;
+      background: rgba(20, 28, 48, 0.82);
+      border: 1px solid rgba(255, 176, 96, 0.45);
+      box-shadow: 0 0 10px rgba(255, 140, 60, 0.25);
+      pointer-events: none;
+    }
+
+    #testModeIndicator.hidden {
+      display: none;
+    }
+
     #gameScreen {
       position: absolute;
       inset: 0;
@@ -412,6 +476,7 @@
   <div id="gameRoot">
     <canvas id="gameCanvas" aria-hidden="true"></canvas>
     <div id="damageFlash" aria-hidden="true"></div>
+    <div id="detachedLimbsRoot" aria-hidden="true"></div>
     <div id="launchLeg" aria-hidden="true">
       <div id="launchLegPivot">
         <svg id="launchLegSvg" viewBox="0 0 140 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -487,6 +552,7 @@
       <div id="hudParts" class="hud-panel"></div>
     </div>
     <div id="hudHighScore" class="hud-panel">best 0m</div>
+    <div id="testModeIndicator" class="hidden" aria-hidden="true">On</div>
     <div id="gameScreen">
       <h1 id="screenTitle">Airborne Robot</h1>
       <p id="controlHint">Hold to reverse spin &mdash; land on your feet</p>
@@ -512,7 +578,8 @@
 
     // ========== TEST-ONLY — revert: delete this entire block ==========
     var TEST_SPAWN_AT_METERS = 2500;
-    var TEST_ROBOT_INVULNERABLE = true;
+    var TEST_MODE_KEY_CODE = "F8";
+    var testModeEnabled = false;
     // ========== end TEST-ONLY ==========
 
     var PHASE_START = "start";
@@ -546,12 +613,30 @@
     var LIMB_LOSS_ORDER = ["robotArmRight", "robotArmLeft", "robotLegRight", "robotLegLeft"];
     var TOTAL_LIMBS = LIMB_LOSS_ORDER.length;
     var LIMB_HIT_POINTS = 2;
+    var SVG_NS = "http://www.w3.org/2000/svg";
+    var DEG_TO_RAD = Math.PI / 180;
+    var DETACHED_LIMB_GRAVITY = 780;
+    var DETACHED_LIMB_GROUND_FRICTION = 2.4;
+    var DETACHED_LIMB_BOUNCE = 0.32;
+    var DETACHED_LIMB_OFFSCREEN_MARGIN = 420;
+    var LIMB_DETACH_CONFIG = {
+      robotArmRight: { centerX: 64.5, centerY: 54, rollRadiusSvg: 16 },
+      robotArmLeft: { centerX: 15.5, centerY: 54, rollRadiusSvg: 16 },
+      robotLegRight: { centerX: 46, centerY: 83, rollRadiusSvg: 18 },
+      robotLegLeft: { centerX: 34, centerY: 83, rollRadiusSvg: 18 }
+    };
     var BEACON_INTERVAL_METERS = 450;
     var BEACON_SPAWN_LEAD_METERS = 60;
     var BEACON_FADE_SECONDS = 0.6;
     var SPARK_DEFAULT_HUE = 20;
     var SPARK_BEACON_HUE = 30;
     var SPARK_SHIELD_HUE = 52;
+    var SPARK_HEAD_HUE = 0;
+    var HEAD_DETACH_SHAKE_DURATION = 0.44;
+    var HEAD_DETACH_SHAKE_STRENGTH = 18;
+    var HEAD_TRAIL_MAX_POINTS = 36;
+    var HEAD_TRAIL_POINT_INTERVAL = 0.016;
+    var HEAD_TRAIL_POINT_LIFE = 0.55;
     var SHIELD_OUTLINE_INNER_ALPHA = 0.82;
     var SHIELD_OUTLINE_MID_ALPHA = 0.52;
     var SHIELD_OUTLINE_OUTER_ALPHA = 0.28;
@@ -569,6 +654,7 @@
     var hudCombo = document.getElementById("hudCombo");
     var hudParts = document.getElementById("hudParts");
     var hudHighScore = document.getElementById("hudHighScore");
+    var testModeIndicator = document.getElementById("testModeIndicator");
     var gameScreen = document.getElementById("gameScreen");
     var screenTitle = document.getElementById("screenTitle");
     var screenMeters = document.getElementById("screenMeters");
@@ -576,9 +662,11 @@
     var recordBurst = document.getElementById("recordBurst");
     var launchLeg = document.getElementById("launchLeg");
     var launchLegPivot = document.getElementById("launchLegPivot");
+    var detachedLimbsRoot = document.getElementById("detachedLimbsRoot");
     var countdownText = document.getElementById("countdownText");
     var robotColorPicker = document.getElementById("robotColorPicker");
     var robotSvg = document.getElementById("robotSvg");
+    var robotHeadElement = document.getElementById("robotHead");
 
     var ROBOT_COLOR_SCHEMES = [
       {
@@ -726,9 +814,23 @@
     var ARM_SWAY_SPEED = 5.4;
     var ARM_SWAY_AMOUNT = 4.5;
     var ARM_ANGLE_LERP_RATE = 12;
+    var LEG_HIP_LEFT_X = 34;
+    var LEG_HIP_LEFT_Y = 66;
+    var LEG_HIP_RIGHT_X = 46;
+    var LEG_HIP_RIGHT_Y = 66;
+    var LEG_SWAY_SPEED = 3.5;
+    var LEG_SWAY_AMOUNT = 2.6;
+    var HEAD_NECK_X = 40;
+    var HEAD_NECK_Y = 34;
+    var HEAD_CENTER_X = 40;
+    var HEAD_CENTER_Y = 23;
+    var HEAD_SWAY_AMOUNT = 3.2;
     var armLeftAngle = 0;
     var armRightAngle = 0;
     var armSwayPhase = 0;
+    var legLeftSwayAngle = 0;
+    var legRightSwayAngle = 0;
+    var legHeadSwayPhase = 0;
     var baseSpinRate = 0.45;
     var SPIN_SPEED_FACTOR = 0.009;
     var spinBonus = 0;
@@ -752,6 +854,8 @@
     var currentLimbDamage = 0;
     var shieldActive = false;
     var headDetached = false;
+    var headDetachOffsetNaturalX = 0;
+    var headDetachOffsetNaturalY = 0;
     var headLaunchBeaconBonus = 0;
     var beacons = [];
     var beaconsSpawnedCount = 0;
@@ -760,9 +864,14 @@
 
     var screenShakeTimer = 0;
     var screenShakeStrength = 0;
+    var screenShakeDuration = 0.24;
 
+    var detachedLimbs = [];
     var debrisParticles = [];
     var sparkParticles = [];
+    var explosionBursts = [];
+    var headTrailPoints = [];
+    var headTrailSampleTimer = 0;
     var exhaustParticles = [];
     var dustParticles = [];
     var dustParticleMax = 50;
@@ -1265,6 +1374,24 @@
       return (ROBOT_BODY_CENTER_Y + ROBOT_VIEW_PAD_TOP) * getRobotUnitScale();
     }
 
+    function getHeadCenterOffsetX() {
+      return (HEAD_CENTER_X + ROBOT_VIEW_PAD_LEFT) * getRobotUnitScale();
+    }
+
+    function getHeadCenterOffsetY() {
+      return (HEAD_CENTER_Y + ROBOT_VIEW_PAD_TOP) * getRobotUnitScale();
+    }
+
+    function setHeadDetachOffsets() {
+      var unitScale = getRobotUnitScale();
+      var localOffsetX = (HEAD_CENTER_X - ROBOT_BODY_CENTER_X) * unitScale;
+      var localOffsetY = (HEAD_CENTER_Y - ROBOT_BODY_CENTER_Y) * unitScale;
+      var cos = Math.cos(robotAngle);
+      var sin = Math.sin(robotAngle);
+      headDetachOffsetNaturalX = localOffsetX * cos - localOffsetY * sin;
+      headDetachOffsetNaturalY = localOffsetX * sin + localOffsetY * cos;
+    }
+
     function resizeCanvas() {
       var rect = canvas.getBoundingClientRect();
       width = Math.max(320, Math.floor(rect.width));
@@ -1357,6 +1484,9 @@
       for (index = 0; index < beacons.length; index++) {
         beacons[index].worldX -= shift;
       }
+      for (index = 0; index < detachedLimbs.length; index++) {
+        detachedLimbs[index].worldX -= shift;
+      }
     }
 
     function showStartScreen() {
@@ -1376,6 +1506,8 @@
       currentLimbDamage = 0;
       shieldActive = false;
       headDetached = false;
+      headDetachOffsetNaturalX = 0;
+      headDetachOffsetNaturalY = 0;
       beacons.length = 0;
       beaconsSpawnedCount = 0;
       comboCount = 0;
@@ -1395,6 +1527,7 @@
       launchLegFadeTimer = -1;
       showAllLimbs();
       resetRobotArms();
+      clearDetachedLimbs();
       syncPartPips();
       robotWrap.classList.remove("is-dead");
       robotWrap.classList.remove("is-thrusting");
@@ -1408,7 +1541,36 @@
       if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
         window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
       }
+      updateTestModeIndicator();
     }
+
+    // ========== TEST-ONLY — revert: delete this entire block ==========
+    function updateTestModeIndicator() {
+      if (testModeEnabled && isStart()) {
+        testModeIndicator.classList.remove("hidden");
+        testModeIndicator.setAttribute("aria-hidden", "false");
+      } else {
+        testModeIndicator.classList.add("hidden");
+        testModeIndicator.setAttribute("aria-hidden", "true");
+      }
+    }
+
+    function toggleTestMode() {
+      testModeEnabled = !testModeEnabled;
+      updateTestModeIndicator();
+    }
+
+    function onTestModeKeyDown(event) {
+      if (event.code !== TEST_MODE_KEY_CODE) {
+        return;
+      }
+      if (!isStart()) {
+        return;
+      }
+      event.preventDefault();
+      toggleTestMode();
+    }
+    // ========== end TEST-ONLY ==========
 
     function showGameOverScreen(newRecord) {
       gamePhase = PHASE_GAME_OVER;
@@ -1470,6 +1632,8 @@
       currentLimbDamage = 0;
       shieldActive = false;
       headDetached = false;
+      headDetachOffsetNaturalX = 0;
+      headDetachOffsetNaturalY = 0;
       beacons.length = 0;
       beaconsSpawnedCount = 0;
       comboCount = 0;
@@ -1478,6 +1642,7 @@
       landingLockTimer = 0;
       screenShakeTimer = 0;
       screenShakeStrength = 0;
+      screenShakeDuration = 0.24;
       playerYOffset = 0;
       playerVelocityY = 0;
       cameraScale = 1;
@@ -1485,8 +1650,11 @@
       robotAngularVelocity = 0;
       resetRobotGlow();
       resetRobotArms();
+      clearDetachedLimbs();
+      clearHeadTrail();
       debrisParticles.length = 0;
       sparkParticles.length = 0;
+      explosionBursts.length = 0;
       exhaustParticles.length = 0;
       dustParticles.length = 0;
       landingRings.length = 0;
@@ -1513,6 +1681,7 @@
       }
       resetForLaunch();
       gamePhase = PHASE_LAUNCH;
+      updateTestModeIndicator();
       launchTimer = 0;
       kickTimer = 0;
       launchKicked = false;
@@ -1529,7 +1698,7 @@
     }
 
     function applyTestSpawnAtMeters() {
-      if (TEST_SPAWN_AT_METERS <= 0) {
+      if (!testModeEnabled || TEST_SPAWN_AT_METERS <= 0) {
         return;
       }
       distanceMeters = TEST_SPAWN_AT_METERS;
@@ -1615,32 +1784,188 @@
     }
 
     function spawnLimbDebris(limbId) {
-      var anchorMap = {
-        robotArmRight: [64, 53],
-        robotArmLeft: [15, 53],
-        robotLegRight: [46, 84],
-        robotLegLeft: [34, 84]
-      };
-      var anchor = anchorMap[limbId];
-      var origin = getLimbWorldAnchor(anchor[0], anchor[1]);
-      var index;
-      var count = 4;
-      var debrisColors = getDebrisColorPair();
-      for (index = 0; index < count; index++) {
-        debrisParticles.push({
-          x: origin.x,
-          y: origin.y,
-          velocityX: (Math.random() - 0.4) * 180 - forwardSpeed * 0.25,
-          velocityY: -120 - Math.random() * 200,
-          rotation: Math.random() * TWO_PI,
-          spin: (Math.random() - 0.5) * 14,
-          size: 6 + Math.random() * 8,
-          age: 0,
-          life: 1.1 + Math.random() * 0.6,
-          color: index % 2 === 0 ? debrisColors.dark : debrisColors.light
-        });
-      }
+      var config = LIMB_DETACH_CONFIG[limbId];
+      var origin = getLimbWorldAnchor(config.centerX, config.centerY);
       spawnSparks(origin.x, origin.y, 8);
+    }
+
+    function getDetachedLimbDetachAngle(limbId) {
+      var localRadians = 0;
+      if (limbId === "robotArmLeft") {
+        localRadians = armLeftAngle * DEG_TO_RAD;
+      } else if (limbId === "robotArmRight") {
+        localRadians = armRightAngle * DEG_TO_RAD;
+      } else if (limbId === "robotLegLeft") {
+        localRadians = legLeftSwayAngle * DEG_TO_RAD;
+      } else if (limbId === "robotLegRight") {
+        localRadians = legRightSwayAngle * DEG_TO_RAD;
+      }
+      return robotAngle + localRadians;
+    }
+
+    function getDetachedLimbLaunchVelocity(limbId) {
+      var lateral = Math.sin(robotAngle);
+      var vertical = -Math.cos(robotAngle);
+      return {
+        velocityWorldX: forwardSpeed * 0.22 + lateral * 130 + (Math.random() - 0.5) * 90,
+        velocityY: vertical * 80 - 150 - Math.random() * 110
+      };
+    }
+
+    function createDetachedLimbElement(limbId) {
+      var wrap = document.createElement("div");
+      wrap.className = "detached-limb-wrap";
+      var spin = document.createElement("div");
+      spin.className = "detached-limb-spin";
+      var svg = document.createElementNS(SVG_NS, "svg");
+      svg.setAttribute("viewBox", "-24 -28 128 164");
+      svg.setAttribute("aria-hidden", "true");
+      var group = limbElements[limbId].cloneNode(true);
+      group.removeAttribute("id");
+      group.removeAttribute("class");
+      group.removeAttribute("transform");
+      svg.appendChild(group);
+      spin.appendChild(svg);
+      wrap.appendChild(spin);
+      detachedLimbsRoot.appendChild(wrap);
+      return {
+        wrapElement: wrap,
+        spinElement: spin
+      };
+    }
+
+    function removeDetachedLimbAt(index) {
+      var limb = detachedLimbs[index];
+      if (limb.wrapElement.parentNode === detachedLimbsRoot) {
+        detachedLimbsRoot.removeChild(limb.wrapElement);
+      }
+      detachedLimbs.splice(index, 1);
+    }
+
+    function removeDetachedLimbById(limbId) {
+      var index;
+      for (index = detachedLimbs.length - 1; index >= 0; index--) {
+        if (detachedLimbs[index].limbId === limbId) {
+          removeDetachedLimbAt(index);
+          return;
+        }
+      }
+    }
+
+    function clearDetachedLimbs() {
+      while (detachedLimbs.length > 0) {
+        removeDetachedLimbAt(0);
+      }
+    }
+
+    function spawnDetachedLimb(limbId) {
+      var config = LIMB_DETACH_CONFIG[limbId];
+      var origin = getLimbWorldAnchor(config.centerX, config.centerY);
+      var launch = getDetachedLimbLaunchVelocity(limbId);
+      var elements = createDetachedLimbElement(limbId);
+      detachedLimbs.push({
+        limbId: limbId,
+        worldX: worldScroll + origin.x,
+        screenY: origin.y,
+        velocityWorldX: launch.velocityWorldX,
+        velocityY: launch.velocityY,
+        angle: getDetachedLimbDetachAngle(limbId),
+        angularVelocity: robotAngularVelocity * 0.55 + (Math.random() - 0.5) * 9,
+        rollRadiusSvg: config.rollRadiusSvg,
+        grounded: false,
+        wrapElement: elements.wrapElement,
+        spinElement: elements.spinElement
+      });
+      spawnLimbDebris(limbId);
+    }
+
+    function getDetachedLimbRollRadius(limb) {
+      return limb.rollRadiusSvg * getRobotUnitScale();
+    }
+
+    function getDetachedLimbPivotOffset(limbId) {
+      var config = LIMB_DETACH_CONFIG[limbId];
+      var unitScale = getRobotUnitScale();
+      return {
+        x: (config.centerX + ROBOT_VIEW_PAD_LEFT) * unitScale,
+        y: (config.centerY + ROBOT_VIEW_PAD_TOP) * unitScale
+      };
+    }
+
+    function updateDetachedLimbs(deltaSeconds) {
+      if (detachedLimbs.length === 0) {
+        return;
+      }
+      var index = 0;
+      while (index < detachedLimbs.length) {
+        var limb = detachedLimbs[index];
+        var rollRadius = getDetachedLimbRollRadius(limb);
+        if (!limb.grounded) {
+          limb.velocityY += DETACHED_LIMB_GRAVITY * deltaSeconds;
+          limb.screenY += limb.velocityY * deltaSeconds;
+          limb.worldX += limb.velocityWorldX * deltaSeconds;
+          limb.angle += limb.angularVelocity * deltaSeconds;
+          var groundY = groundWave(limb.worldX);
+          if (limb.screenY + rollRadius >= groundY) {
+            limb.screenY = groundY - rollRadius;
+            if (Math.abs(limb.velocityY) > 55) {
+              limb.velocityY = -Math.abs(limb.velocityY) * DETACHED_LIMB_BOUNCE;
+              limb.velocityWorldX *= 0.88;
+              limb.angularVelocity += limb.velocityWorldX / rollRadius * 0.35;
+            } else {
+              limb.velocityY = 0;
+              limb.grounded = true;
+              limb.angularVelocity = limb.velocityWorldX / rollRadius;
+            }
+          }
+        } else {
+          var slopeAngle = getGroundSlopeAngle(limb.worldX);
+          limb.velocityWorldX += DETACHED_LIMB_GRAVITY * Math.sin(slopeAngle) * deltaSeconds;
+          limb.velocityWorldX *= Math.exp(-DETACHED_LIMB_GROUND_FRICTION * deltaSeconds);
+          limb.worldX += limb.velocityWorldX * deltaSeconds;
+          limb.screenY = groundWave(limb.worldX) - rollRadius;
+          if (Math.abs(limb.velocityWorldX) > 8) {
+            limb.angularVelocity = limb.velocityWorldX / rollRadius;
+          } else {
+            limb.velocityWorldX = 0;
+            limb.angularVelocity *= Math.exp(-DETACHED_LIMB_GROUND_FRICTION * deltaSeconds);
+          }
+          limb.angle += limb.angularVelocity * deltaSeconds;
+        }
+        if (limb.worldX < worldScroll - DETACHED_LIMB_OFFSCREEN_MARGIN) {
+          removeDetachedLimbAt(index);
+        } else {
+          index += 1;
+        }
+      }
+    }
+
+    function positionDetachedLimbsDom() {
+      if (detachedLimbs.length === 0) {
+        return;
+      }
+      var wrapWidth = getRobotWrapWidth();
+      var wrapHeight = getRobotWrapHeight();
+      var pivotY = height * GROUND_PLAYER_Y_RATIO;
+      var index;
+      for (index = 0; index < detachedLimbs.length; index++) {
+        var limb = detachedLimbs[index];
+        var pivotOffset = getDetachedLimbPivotOffset(limb.limbId);
+        var naturalScreenX = limb.worldX - worldScroll;
+        var naturalScreenY = limb.screenY;
+        var scaledScreenX = playerScreenX + (naturalScreenX - playerScreenX) * cameraScale;
+        var scaledScreenY = pivotY + (naturalScreenY - pivotY) * cameraScale;
+        var scaledWidth = wrapWidth * cameraScale;
+        var scaledHeight = wrapHeight * cameraScale;
+        var pivotOffsetX = pivotOffset.x * cameraScale;
+        var pivotOffsetY = pivotOffset.y * cameraScale;
+        limb.wrapElement.style.width = scaledWidth + "px";
+        limb.wrapElement.style.height = scaledHeight + "px";
+        limb.wrapElement.style.left = (scaledScreenX - pivotOffsetX) + "px";
+        limb.wrapElement.style.top = (scaledScreenY - pivotOffsetY) + "px";
+        limb.spinElement.style.transformOrigin = pivotOffset.x + "px " + pivotOffset.y + "px";
+        limb.spinElement.style.transform = "rotate(" + limb.angle + "rad)";
+      }
     }
 
     function spawnSparks(originX, originY, count, baseHue) {
@@ -1687,12 +2012,113 @@
       });
     }
 
+    function triggerScreenShake(duration, strength) {
+      screenShakeTimer = duration;
+      screenShakeDuration = duration;
+      screenShakeStrength = strength;
+    }
+
     function triggerDamageEffects() {
-      screenShakeTimer = 0.24;
-      screenShakeStrength = 8;
+      triggerScreenShake(0.24, 8);
       damageFlash.classList.remove("is-active");
+      damageFlash.classList.remove("is-head-burst");
       void damageFlash.offsetWidth;
       damageFlash.classList.add("is-active");
+    }
+
+    function triggerHeadBurstFlash() {
+      damageFlash.classList.remove("is-active");
+      damageFlash.classList.add("is-head-burst");
+      void damageFlash.offsetWidth;
+      damageFlash.classList.add("is-active");
+    }
+
+    function clearHeadTrail() {
+      headTrailPoints.length = 0;
+      headTrailSampleTimer = 0;
+    }
+
+    function updateHeadTrail(deltaSeconds) {
+      if (!headDetached) {
+        return;
+      }
+      headTrailSampleTimer -= deltaSeconds;
+      if (headTrailSampleTimer <= 0) {
+        headTrailSampleTimer = HEAD_TRAIL_POINT_INTERVAL;
+        var origin = getHeadScreenCenter();
+        headTrailPoints.push({
+          x: origin.x,
+          y: origin.y,
+          age: 0
+        });
+        if (headTrailPoints.length > HEAD_TRAIL_MAX_POINTS) {
+          headTrailPoints.shift();
+        }
+      }
+      var index = 0;
+      while (index < headTrailPoints.length) {
+        headTrailPoints[index].age += deltaSeconds;
+        if (headTrailPoints[index].age >= HEAD_TRAIL_POINT_LIFE) {
+          headTrailPoints.splice(index, 1);
+        } else {
+          index += 1;
+        }
+      }
+    }
+
+    function spawnExplosionSparks(originX, originY, count) {
+      var index;
+      for (index = 0; index < count; index++) {
+        var angle = Math.random() * TWO_PI;
+        var speed = 140 + Math.random() * 320;
+        sparkParticles.push({
+          x: originX,
+          y: originY,
+          velocityX: Math.cos(angle) * speed,
+          velocityY: Math.sin(angle) * speed - 80,
+          age: 0,
+          life: 0.45 + Math.random() * 0.35,
+          size: 3 + Math.random() * 5,
+          hue: SPARK_HEAD_HUE + Math.random() * 18
+        });
+      }
+    }
+
+    function spawnHeadDetachExplosion(originX, originY) {
+      var index;
+      triggerScreenShake(HEAD_DETACH_SHAKE_DURATION, HEAD_DETACH_SHAKE_STRENGTH);
+      triggerHeadBurstFlash();
+      spawnSparks(originX, originY, 22, SPARK_HEAD_HUE);
+      spawnExplosionSparks(originX, originY, 24);
+      explosionBursts.push({
+        x: originX,
+        y: originY,
+        age: 0,
+        life: 0.58,
+        maxRadius: 96
+      });
+      explosionBursts.push({
+        x: originX,
+        y: originY,
+        age: 0,
+        life: 0.38,
+        maxRadius: 52
+      });
+      for (index = 0; index < 10; index++) {
+        spawnLimbDebrisAtCenter();
+      }
+    }
+
+    function updateExplosionBursts(deltaSeconds) {
+      var index = 0;
+      while (index < explosionBursts.length) {
+        explosionBursts[index].age += deltaSeconds;
+        if (explosionBursts[index].age >= explosionBursts[index].life) {
+          explosionBursts.splice(index, 1);
+        } else {
+          index += 1;
+        }
+      }
     }
 
     function applyGoodLanding(uprightError, impactSpeed) {
@@ -1736,7 +2162,7 @@
     }
 
     function applyBadLanding(impactSpeed) {
-      if (TEST_ROBOT_INVULNERABLE) {
+      if (testModeEnabled) {
         playerVelocityY = -(impactSpeed * 0.32 + 180);
         playerYOffset = 0;
         landingLockTimer = 0.12;
@@ -1766,7 +2192,7 @@
       lostLimbCount += 1;
       limbElements[limbId].classList.add("is-lost");
       syncPartPips();
-      spawnLimbDebris(limbId);
+      spawnDetachedLimb(limbId);
       playerVelocityY = -(impactSpeed * 0.32 + 180);
       playerYOffset = 0;
       landingLockTimer = 0.12;
@@ -1788,12 +2214,10 @@
       spinBonus = 0;
       comboCount = 0;
       setComboHud();
-      triggerDamageEffects();
-      var index;
-      for (index = 0; index < 6; index++) {
-        spawnLimbDebrisAtCenter();
-      }
-      spawnSparks(playerScreenX, getPlayerGroundY() + playerYOffset - footReach, 18);
+      clearHeadTrail();
+      setHeadDetachOffsets();
+      var neckOrigin = getLimbWorldAnchor(HEAD_NECK_X, HEAD_NECK_Y);
+      spawnHeadDetachExplosion(neckOrigin.x, neckOrigin.y);
     }
 
     function spawnLimbDebrisAtCenter() {
@@ -1860,6 +2284,8 @@
       updateCamera(deltaSeconds);
       updateDebris(deltaSeconds);
       updateSparks(deltaSeconds);
+      updateExplosionBursts(deltaSeconds);
+      updateHeadTrail(deltaSeconds);
       positionRobotDom();
     }
 
@@ -1873,7 +2299,7 @@
         return;
       }
       if (lostLimbCount >= TOTAL_LIMBS) {
-        if (!TEST_ROBOT_INVULNERABLE) {
+        if (!testModeEnabled) {
           launchHead();
         }
         return;
@@ -1981,11 +2407,23 @@
       armLeftAngle = 0;
       armRightAngle = 0;
       armSwayPhase = 0;
+      legHeadSwayPhase = 0;
+      legLeftSwayAngle = 0;
+      legRightSwayAngle = 0;
       if (!limbElements.robotArmLeft.classList.contains("is-lost")) {
         setRobotArmRotation(limbElements.robotArmLeft, 0, ARM_SHOULDER_LEFT_X, ARM_SHOULDER_LEFT_Y);
       }
       if (!limbElements.robotArmRight.classList.contains("is-lost")) {
         setRobotArmRotation(limbElements.robotArmRight, 0, ARM_SHOULDER_RIGHT_X, ARM_SHOULDER_RIGHT_Y);
+      }
+      if (!limbElements.robotLegLeft.classList.contains("is-lost")) {
+        setRobotArmRotation(limbElements.robotLegLeft, 0, LEG_HIP_LEFT_X, LEG_HIP_LEFT_Y);
+      }
+      if (!limbElements.robotLegRight.classList.contains("is-lost")) {
+        setRobotArmRotation(limbElements.robotLegRight, 0, LEG_HIP_RIGHT_X, LEG_HIP_RIGHT_Y);
+      }
+      if (robotHeadElement) {
+        setRobotArmRotation(robotHeadElement, 0, HEAD_NECK_X, HEAD_NECK_Y);
       }
     }
 
@@ -2027,6 +2465,32 @@
       }
       if (!limbElements.robotArmRight.classList.contains("is-lost")) {
         setRobotArmRotation(limbElements.robotArmRight, armRightAngle, ARM_SHOULDER_RIGHT_X, ARM_SHOULDER_RIGHT_Y);
+      }
+    }
+
+    function updateRobotLegsAndHead(deltaSeconds) {
+      var fallBlend = 0;
+      var riseBlend = 0;
+      if (playerVelocityY > 30) {
+        fallBlend = Math.min(1, playerVelocityY / ARM_VELOCITY_REFERENCE);
+      } else if (playerVelocityY < -30) {
+        riseBlend = Math.min(1, -playerVelocityY / (ARM_VELOCITY_REFERENCE * 0.78));
+      }
+
+      var motionBlend = 0.3 + fallBlend * 0.5 + riseBlend * 0.4;
+      legHeadSwayPhase += deltaSeconds * LEG_SWAY_SPEED;
+      legLeftSwayAngle = Math.sin(legHeadSwayPhase) * LEG_SWAY_AMOUNT * motionBlend;
+      legRightSwayAngle = Math.sin(legHeadSwayPhase + 1.85) * LEG_SWAY_AMOUNT * motionBlend;
+
+      if (!limbElements.robotLegLeft.classList.contains("is-lost")) {
+        setRobotArmRotation(limbElements.robotLegLeft, legLeftSwayAngle, LEG_HIP_LEFT_X, LEG_HIP_LEFT_Y);
+      }
+      if (!limbElements.robotLegRight.classList.contains("is-lost")) {
+        setRobotArmRotation(limbElements.robotLegRight, legRightSwayAngle, LEG_HIP_RIGHT_X, LEG_HIP_RIGHT_Y);
+      }
+      if (!headDetached && robotHeadElement) {
+        var headAngle = Math.sin(legHeadSwayPhase * 0.82 + 1.05) * HEAD_SWAY_AMOUNT * motionBlend;
+        setRobotArmRotation(robotHeadElement, headAngle, HEAD_NECK_X, HEAD_NECK_Y);
       }
     }
 
@@ -2091,7 +2555,9 @@
       currentLimbDamage = 0;
       if (lostLimbCount > 0) {
         lostLimbCount -= 1;
-        limbElements[LIMB_LOSS_ORDER[lostLimbCount]].classList.remove("is-lost");
+        var restoredLimbId = LIMB_LOSS_ORDER[lostLimbCount];
+        limbElements[restoredLimbId].classList.remove("is-lost");
+        removeDetachedLimbById(restoredLimbId);
         syncPartPips();
         spawnSparks(playerScreenX, getPlayerGroundY() + playerYOffset - footReach, 14, SPARK_BEACON_HUE);
         return;
@@ -2284,6 +2750,7 @@
         }
       }
       updateRobotArms(deltaSeconds);
+      updateRobotLegsAndHead(deltaSeconds);
       updateDustParticles(deltaSeconds);
       positionRobotDom();
       positionLaunchLeg();
@@ -2307,6 +2774,7 @@
 
     function updateStart(deltaSeconds) {
       updateRobotArms(deltaSeconds);
+      updateRobotLegsAndHead(deltaSeconds);
       updateDustParticles(deltaSeconds);
       positionRobotDom();
       positionLaunchLeg();
@@ -2315,11 +2783,15 @@
     function updateGameOver(deltaSeconds) {
       if (headDetached) {
         updateHeadGameOverWorld(deltaSeconds);
+        updateRobotLegsAndHead(deltaSeconds);
       } else {
         updateRobotArms(deltaSeconds);
+        updateRobotLegsAndHead(deltaSeconds);
       }
       updateExhaust(deltaSeconds);
       updateDustParticles(deltaSeconds);
+      updateExplosionBursts(deltaSeconds);
+      updateHeadTrail(deltaSeconds);
       if (!headDetached) {
         updateCamera(deltaSeconds);
       }
@@ -2363,14 +2835,17 @@
       updateRobotSpin(deltaSeconds);
       updatePhysics(deltaSeconds);
       updateRobotArms(deltaSeconds);
+      updateRobotLegsAndHead(deltaSeconds);
       updateCamera(deltaSeconds);
       spawnBeacons();
       updateBeacons(deltaSeconds);
       updateDebris(deltaSeconds);
       updateSparks(deltaSeconds);
+      updateExplosionBursts(deltaSeconds);
       updateExhaust(deltaSeconds);
       updateLandingRings(deltaSeconds);
       updateDustParticles(deltaSeconds);
+      updateHeadTrail(deltaSeconds);
 
       if (screenShakeTimer > 0) {
         screenShakeTimer -= deltaSeconds;
@@ -2391,10 +2866,27 @@
       };
     }
 
-    function getRobotScreenBounds() {
+    function getHeadScreenCenter() {
       var center = getRobotScreenCenter();
-      var halfWidth = getRobotWrapWidth() * cameraScale * 0.5;
-      var halfHeight = getRobotWrapHeight() * cameraScale * 0.5;
+      return {
+        x: center.x + headDetachOffsetNaturalX * cameraScale,
+        y: center.y + headDetachOffsetNaturalY * cameraScale
+      };
+    }
+
+    function getRobotScreenBounds() {
+      var center;
+      var halfWidth;
+      var halfHeight;
+      if (headDetached) {
+        center = getHeadScreenCenter();
+        halfWidth = getRobotWrapWidth() * cameraScale * 0.28;
+        halfHeight = getRobotWrapHeight() * cameraScale * 0.28;
+      } else {
+        center = getRobotScreenCenter();
+        halfWidth = getRobotWrapWidth() * cameraScale * 0.5;
+        halfHeight = getRobotWrapHeight() * cameraScale * 0.5;
+      }
       return {
         left: center.x - halfWidth,
         right: center.x + halfWidth,
@@ -2460,9 +2952,23 @@
     }
 
     function positionRobotDom() {
-      var center = getRobotScreenCenter();
-      var left = center.x - getRobotBodyCenterOffsetX();
-      var top = center.y - getRobotBodyCenterOffsetY();
+      var wrapWidth = getRobotWrapWidth();
+      var wrapHeight = getRobotWrapHeight();
+      var left;
+      var top;
+      if (headDetached) {
+        var headScreen = getHeadScreenCenter();
+        var headOffsetX = getHeadCenterOffsetX();
+        var headOffsetY = getHeadCenterOffsetY();
+        left = headScreen.x - wrapWidth * 0.5 - (headOffsetX - wrapWidth * 0.5) * cameraScale;
+        top = headScreen.y - wrapHeight * 0.5 - (headOffsetY - wrapHeight * 0.5) * cameraScale;
+        robotSpin.style.transformOrigin = headOffsetX + "px " + headOffsetY + "px";
+      } else {
+        var center = getRobotScreenCenter();
+        left = center.x - getRobotBodyCenterOffsetX();
+        top = center.y - getRobotBodyCenterOffsetY();
+        robotSpin.style.transformOrigin = "50% 50%";
+      }
       robotWrap.style.left = left + "px";
       robotWrap.style.top = top + "px";
       if (cameraScale === 1) {
@@ -2475,10 +2981,10 @@
     }
 
     function getScreenShakeOffset() {
-      if (screenShakeTimer <= 0) {
+      if (screenShakeTimer <= 0 || screenShakeDuration <= 0) {
         return { x: 0, y: 0 };
       }
-      var shake = screenShakeStrength * (screenShakeTimer / 0.24);
+      var shake = screenShakeStrength * (screenShakeTimer / screenShakeDuration);
       return {
         x: (Math.random() - 0.5) * shake * 2,
         y: (Math.random() - 0.5) * shake * 1.4
@@ -3198,6 +3704,76 @@
       context.globalAlpha = 1;
     }
 
+    function drawExplosionBursts() {
+      var index;
+      for (index = 0; index < explosionBursts.length; index++) {
+        var burst = explosionBursts[index];
+        var progress = burst.age / burst.life;
+        var radius = burst.maxRadius * progress;
+        var fade = 1 - progress;
+        if (fade <= 0) {
+          continue;
+        }
+        context.save();
+        context.globalAlpha = fade * 0.85;
+        var gradient = context.createRadialGradient(burst.x, burst.y, radius * 0.08, burst.x, burst.y, radius);
+        gradient.addColorStop(0, "rgba(255, 240, 180, " + (fade * 0.95) + ")");
+        gradient.addColorStop(0.28, "rgba(255, 120, 40, " + (fade * 0.72) + ")");
+        gradient.addColorStop(0.62, "rgba(255, 45, 25, " + (fade * 0.38) + ")");
+        gradient.addColorStop(1, "rgba(180, 20, 15, 0)");
+        context.fillStyle = gradient;
+        context.beginPath();
+        context.arc(burst.x, burst.y, radius, 0, TWO_PI);
+        context.fill();
+        context.strokeStyle = "rgba(255, 180, 80, " + (fade * 0.55) + ")";
+        context.lineWidth = 3 * fade;
+        context.beginPath();
+        context.arc(burst.x, burst.y, radius * 0.82, 0, TWO_PI);
+        context.stroke();
+        context.restore();
+      }
+      context.globalAlpha = 1;
+    }
+
+    function drawHeadTrail() {
+      if (headTrailPoints.length < 2) {
+        return;
+      }
+      var index;
+      context.save();
+      context.lineCap = "round";
+      context.lineJoin = "round";
+      for (index = 1; index < headTrailPoints.length; index++) {
+        var previous = headTrailPoints[index - 1];
+        var current = headTrailPoints[index];
+        var trailProgress = index / (headTrailPoints.length - 1);
+        var fade = (1 - current.age / HEAD_TRAIL_POINT_LIFE) * (0.2 + trailProgress * 0.8);
+        if (fade <= 0) {
+          continue;
+        }
+        var lineWidth = 3 + trailProgress * 14;
+        context.strokeStyle = "rgba(255, 30, 20, " + (fade * 0.32) + ")";
+        context.lineWidth = lineWidth * 2.4;
+        context.beginPath();
+        context.moveTo(previous.x, previous.y);
+        context.lineTo(current.x, current.y);
+        context.stroke();
+        context.strokeStyle = "rgba(255, 85, 40, " + fade + ")";
+        context.lineWidth = lineWidth;
+        context.beginPath();
+        context.moveTo(previous.x, previous.y);
+        context.lineTo(current.x, current.y);
+        context.stroke();
+        context.strokeStyle = "rgba(255, 210, 120, " + (fade * 0.65) + ")";
+        context.lineWidth = Math.max(1.5, lineWidth * 0.28);
+        context.beginPath();
+        context.moveTo(previous.x, previous.y);
+        context.lineTo(current.x, current.y);
+        context.stroke();
+      }
+      context.restore();
+    }
+
     function drawDustParticles() {
       var index;
       for (index = 0; index < dustParticles.length; index++) {
@@ -3211,10 +3787,18 @@
       }
     }
 
-    function render() {
+    function applyScreenShake() {
       var shake = getScreenShakeOffset();
+      if (shake.x === 0 && shake.y === 0) {
+        gameRoot.style.transform = "";
+        return;
+      }
+      gameRoot.style.transform = "translate(" + shake.x + "px, " + shake.y + "px)";
+    }
+
+    function render() {
+      applyScreenShake();
       context.save();
-      context.translate(shake.x, shake.y);
       context.clearRect(0, 0, width, height);
       drawSky();
       drawSun();
@@ -3245,9 +3829,12 @@
       drawDebris();
       drawSparks();
       context.restore();
+      drawExplosionBursts();
+      drawHeadTrail();
       drawOffScreenRobotIndicator();
       context.restore();
       positionRobotDom();
+      positionDetachedLimbsDom();
     }
 
     var lastFrameTime = 0;
@@ -3260,11 +3847,13 @@
       cityAnimationTime += deltaSeconds;
       update(deltaSeconds);
       updateSkyCraft(deltaSeconds);
+      updateDetachedLimbs(deltaSeconds);
       render();
       window.requestAnimationFrame(gameLoop);
     }
 
     window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("keydown", onTestModeKeyDown);
     canvas.addEventListener("pointerdown", onPointerDown);
     gameScreen.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointerup", onPointerUp);
