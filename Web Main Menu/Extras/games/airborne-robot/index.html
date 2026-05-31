@@ -690,6 +690,7 @@
     var GOOD_LANDING_TOLERANCE = 0.62;
     var PERFECT_LANDING_TOLERANCE = 0.24;
     var TWO_PI = Math.PI * 2;
+    var TWO_OVER_PI = 2 / Math.PI;
 
     var LIMB_LOSS_ORDER = ["robotArmRight", "robotArmLeft", "robotLegRight", "robotLegLeft"];
     var TOTAL_LIMBS = LIMB_LOSS_ORDER.length;
@@ -970,6 +971,14 @@
     var GROUND_PLAYER_Y_RATIO = 0.66;
     var GROUND_BUMP_RATIO = 0.02;
     var GROUND_TOP_Y_RATIO = 0.6;
+    var GROUND_COLORS_CLEAR = ["#6a6aa4", "#46467e", "#28284e", "#101028"];
+    var GROUND_COLORS_INDUSTRIAL = ["#7a3a16", "#4e2410", "#281208", "#080402"];
+    var GROUND_COLORS_MOUNTAIN = ["#e8eef6", "#8c8690", "#5c5448", "#2e5e30"];
+    var GROUND_COLORS_FAR_INDUSTRY = ["#5a2a78", "#3a1a50", "#1e0e2a", "#050208"];
+    var GROUND_STROKE_CLEAR = "#8484b4";
+    var GROUND_STROKE_INDUSTRIAL = "#a85a2e";
+    var GROUND_STROKE_MOUNTAIN = "#cfd8e2";
+    var GROUND_STROKE_FAR_INDUSTRY = "#7a4a9e";
 
     var SKY_TILE_WIDTH = 1280;
     var skyStars = [];
@@ -978,6 +987,8 @@
     var SKY_CRAFT_MIN_METERS = 450;
     var SKY_CRAFT_MAX_METERS = 2000;
     var SKY_CRAFT_FADE_METERS = 120;
+    var SKY_CRAFT_FAR_MIN_METERS = 12500;
+    var SKY_CRAFT_FAR_FADE_METERS = 700;
     var SKY_CRAFT_TOP_RATIO = 0.1;
     var SKY_CRAFT_BOTTOM_RATIO = 0.46;
     var SKY_CRAFT_MIN_SCALE = 0.35;
@@ -1027,10 +1038,18 @@
       { position: 0.72, color: "#a04a22" },
       { position: 1, color: "#d06028" }
     ];
+    var SKY_VIOLET_STOPS = [
+      { position: 0, color: "#160a28" },
+      { position: 0.4, color: "#2c1444" },
+      { position: 0.72, color: "#421c5e" },
+      { position: 1, color: "#56286e" }
+    ];
     var SKY_SPACE_SEGMENT_COUNT = 2;
     var SKY_ATMOSPHERE_SEGMENT_COUNT = 2;
     var SKY_INDUSTRIAL_BLEND_START_METERS = 1500;
-    var SKY_GRADIENT_FULL_METERS = 10000;
+    var SKY_INDUSTRIAL_FULL_METERS = 6500;
+    var SKY_INDUSTRIAL_CLEAR_START_METERS = 8500;
+    var SKY_INDUSTRIAL_CLEAR_END_METERS = 12500;
     var CITY_BLEND_START_METERS = 2000;
     var CITY_TINT_STOP_INDEX = 3;
     var CITY_LAYER_BRIGHTNESS = [0.18, 0.24, 0.3, 0.38];
@@ -1052,6 +1071,24 @@
     var HILL_AMPLITUDES = [44, 54, 64, 74];
     var HILL_FREQUENCIES = [0.0014, 0.002, 0.0026, 0.0032];
     var HILL_Y_RATIOS = [0.5, 0.56, 0.62, 0.66];
+    var MOUNTAIN_BLEND_START_METERS = 10000;
+    var MOUNTAIN_LAYER_STAGGER_METERS = 600;
+    var MOUNTAIN_LAYER_TRANSITION_METERS = 1200;
+    var MOUNTAIN_SNOW_COLORS = ["rgba(212, 222, 238, 0.96)", "rgba(222, 230, 244, 0.97)", "rgba(232, 238, 248, 0.98)", "rgba(242, 246, 252, 0.99)"];
+    var MOUNTAIN_ROCK_COLORS = ["rgba(92, 100, 116, 0.94)", "rgba(106, 100, 110, 0.95)", "rgba(120, 106, 102, 0.97)", "rgba(132, 114, 98, 0.98)"];
+    var MOUNTAIN_GRASS_COLORS = ["rgba(70, 100, 72, 0.94)", "rgba(74, 112, 70, 0.95)", "rgba(70, 122, 64, 0.97)", "rgba(64, 132, 56, 0.98)"];
+    var MOUNTAIN_BASE_COLORS = ["rgba(20, 32, 22, 0.95)", "rgba(18, 32, 20, 0.95)", "rgba(16, 32, 18, 0.96)", "rgba(14, 30, 16, 0.96)"];
+    var MOUNTAIN_STROKE_COLORS = ["rgba(210, 218, 230, 0.3)", "rgba(216, 222, 234, 0.34)", "rgba(222, 228, 238, 0.38)", "rgba(230, 234, 242, 0.42)"];
+    var MOUNTAIN_AMPLITUDES = [96, 120, 148, 178];
+    var MOUNTAIN_FREQUENCIES = [0.0013, 0.0019, 0.0025, 0.0032];
+    var MOUNTAIN_Y_RATIOS = [0.5, 0.56, 0.62, 0.66];
+    var MOUNTAIN_PEAK_RIDGE_SCALE = 1.7;
+    var MOUNTAIN_PEAK_DETAIL_SCALE = 0.42;
+    var FAR_INDUSTRY_BLEND_START_METERS = 16000;
+    var FAR_INDUSTRY_LAYER_STAGGER_METERS = 600;
+    var FAR_INDUSTRY_LAYER_TRANSITION_METERS = 1200;
+    var FAR_INDUSTRY_HEIGHT_MUL = 2.1;
+    var FAR_INDUSTRY_SPACING_MUL = 1.5;
     var SUN_SCREEN_X_RATIO = 0.74;
     var SUN_SCREEN_Y_RATIO = 0.21;
 
@@ -3152,10 +3189,28 @@
       if (distanceMeters <= SKY_INDUSTRIAL_BLEND_START_METERS) {
         return 0;
       }
-      if (distanceMeters >= SKY_GRADIENT_FULL_METERS) {
+      if (distanceMeters < SKY_INDUSTRIAL_FULL_METERS) {
+        return (distanceMeters - SKY_INDUSTRIAL_BLEND_START_METERS) / (SKY_INDUSTRIAL_FULL_METERS - SKY_INDUSTRIAL_BLEND_START_METERS);
+      }
+      if (distanceMeters <= SKY_INDUSTRIAL_CLEAR_START_METERS) {
         return 1;
       }
-      return (distanceMeters - SKY_INDUSTRIAL_BLEND_START_METERS) / (SKY_GRADIENT_FULL_METERS - SKY_INDUSTRIAL_BLEND_START_METERS);
+      if (distanceMeters >= SKY_INDUSTRIAL_CLEAR_END_METERS) {
+        return 0;
+      }
+      return 1 - (distanceMeters - SKY_INDUSTRIAL_CLEAR_START_METERS) / (SKY_INDUSTRIAL_CLEAR_END_METERS - SKY_INDUSTRIAL_CLEAR_START_METERS);
+    }
+
+    function getFarIndustryBlend() {
+      var start = FAR_INDUSTRY_BLEND_START_METERS;
+      var end = FAR_INDUSTRY_BLEND_START_METERS + 3 * FAR_INDUSTRY_LAYER_STAGGER_METERS + FAR_INDUSTRY_LAYER_TRANSITION_METERS;
+      if (distanceMeters <= start) {
+        return 0;
+      }
+      if (distanceMeters >= end) {
+        return 1;
+      }
+      return getSmoothStep((distanceMeters - start) / (end - start));
     }
 
     function getSkyBlendWeights() {
@@ -3186,7 +3241,8 @@
       return {
         space: spaceWeight,
         sky: skyWeight,
-        industrial: industrialWeight
+        industrial: industrialWeight,
+        violet: getFarIndustryBlend()
       };
     }
 
@@ -3208,7 +3264,7 @@
     }
 
     function getSkyGradientColor(stopIndex, weights) {
-      return blendThreeSkyColors(
+      var baseColor = blendThreeSkyColors(
         SKY_SPACE_STOPS[stopIndex].color,
         SKY_ATMOSPHERE_STOPS[stopIndex].color,
         SKY_INDUSTRIAL_STOPS[stopIndex].color,
@@ -3216,6 +3272,10 @@
         weights.sky,
         weights.industrial
       );
+      if (weights.violet > 0) {
+        return lerpHexColor(baseColor, SKY_VIOLET_STOPS[stopIndex].color, weights.violet);
+      }
+      return baseColor;
     }
 
     function setPageBackgroundColor(color) {
@@ -3237,17 +3297,26 @@
       setPageBackgroundColor(getSkyGradientColor(0, weights));
     }
 
+    function getSunBodyColor(spaceColor, skyColor, industrialColor, weights) {
+      var baseColor = blendThreeSkyColors(spaceColor, skyColor, industrialColor, weights.space, weights.sky, weights.industrial);
+      if (weights.violet > 0) {
+        return lerpHexColor(baseColor, "#4a2c64", weights.violet);
+      }
+      return baseColor;
+    }
+
     function drawSun() {
       var weights = getSkyBlendWeights();
       var sunX = width * SUN_SCREEN_X_RATIO;
       var sunY = height * SUN_SCREEN_Y_RATIO;
       var sunRadius = Math.max(26, Math.min(width, height) * 0.07);
       var glow = context.createRadialGradient(sunX, sunY, sunRadius * 0.5, sunX, sunY, sunRadius * 4.5);
-      var glowInnerAlpha = 0.4 + weights.sky * 0.08 + weights.industrial * 0.22;
-      var glowOuterAlpha = 0.16 + weights.sky * 0.06 + weights.industrial * 0.18;
-      var glowRed = 255;
-      var glowGreen = Math.round(180 + weights.sky * 30 - weights.industrial * 50);
-      var glowBlue = Math.round(90 + weights.sky * 70 - weights.industrial * 60);
+      var violetDim = 1 - weights.violet * 0.82;
+      var glowInnerAlpha = (0.4 + weights.sky * 0.08 + weights.industrial * 0.22) * violetDim;
+      var glowOuterAlpha = (0.16 + weights.sky * 0.06 + weights.industrial * 0.18) * violetDim;
+      var glowRed = Math.round(255 - weights.violet * 110);
+      var glowGreen = Math.round(180 + weights.sky * 30 - weights.industrial * 50 - weights.violet * 90);
+      var glowBlue = Math.round(90 + weights.sky * 70 - weights.industrial * 60 + weights.violet * 60);
       glow.addColorStop(0, "rgba(" + glowRed + ", " + glowGreen + ", " + glowBlue + ", " + glowInnerAlpha + ")");
       glow.addColorStop(0.4, "rgba(255, 130, 60, " + glowOuterAlpha + ")");
       glow.addColorStop(1, "transparent");
@@ -3256,9 +3325,9 @@
       context.arc(sunX, sunY, sunRadius * 4.5, 0, TWO_PI);
       context.fill();
       var body = context.createRadialGradient(sunX, sunY, sunRadius * 0.2, sunX, sunY, sunRadius);
-      body.addColorStop(0, blendThreeSkyColors("#ffe7b0", "#fff8e8", "#fff0c8", weights.space, weights.sky, weights.industrial));
-      body.addColorStop(0.6, blendThreeSkyColors("#ffb060", "#ffd878", "#ff9040", weights.space, weights.sky, weights.industrial));
-      body.addColorStop(1, blendThreeSkyColors("#ff7a30", "#ffc848", "#ff6020", weights.space, weights.sky, weights.industrial));
+      body.addColorStop(0, getSunBodyColor("#ffe7b0", "#fff8e8", "#fff0c8", weights));
+      body.addColorStop(0.6, getSunBodyColor("#ffb060", "#ffd878", "#ff9040", weights));
+      body.addColorStop(1, getSunBodyColor("#ff7a30", "#ffc848", "#ff6020", weights));
       context.fillStyle = body;
       context.beginPath();
       context.arc(sunX, sunY, sunRadius, 0, TWO_PI);
@@ -3334,12 +3403,15 @@
     }
 
     function getSkyCraftVisibility() {
-      if (distanceMeters <= SKY_CRAFT_MIN_METERS || distanceMeters >= SKY_CRAFT_MAX_METERS) {
-        return 0;
+      if (distanceMeters > SKY_CRAFT_MIN_METERS && distanceMeters < SKY_CRAFT_MAX_METERS) {
+        var fadeIn = Math.min(1, (distanceMeters - SKY_CRAFT_MIN_METERS) / SKY_CRAFT_FADE_METERS);
+        var fadeOut = Math.min(1, (SKY_CRAFT_MAX_METERS - distanceMeters) / SKY_CRAFT_FADE_METERS);
+        return Math.min(fadeIn, fadeOut);
       }
-      var fadeIn = Math.min(1, (distanceMeters - SKY_CRAFT_MIN_METERS) / SKY_CRAFT_FADE_METERS);
-      var fadeOut = Math.min(1, (SKY_CRAFT_MAX_METERS - distanceMeters) / SKY_CRAFT_FADE_METERS);
-      return Math.min(fadeIn, fadeOut);
+      if (distanceMeters >= SKY_CRAFT_FAR_MIN_METERS) {
+        return Math.min(1, (distanceMeters - SKY_CRAFT_FAR_MIN_METERS) / SKY_CRAFT_FAR_FADE_METERS);
+      }
+      return 0;
     }
 
     function drawSkyCraft() {
@@ -3431,6 +3503,51 @@
       context.stroke();
     }
 
+    function getTriangleWave(theta) {
+      return Math.asin(Math.sin(theta)) * TWO_OVER_PI;
+    }
+
+    function drawRockMountains(layerIndex) {
+      var shift = parallaxPhase[layerIndex];
+      var amplitude = MOUNTAIN_AMPLITUDES[layerIndex];
+      var frequency = MOUNTAIN_FREQUENCIES[layerIndex];
+      var yBase = height * MOUNTAIN_Y_RATIOS[layerIndex];
+      var gradientTop = yBase - amplitude * (MOUNTAIN_PEAK_RIDGE_SCALE + MOUNTAIN_PEAK_DETAIL_SCALE);
+      var gradientSpan = Math.max(1, height - gradientTop);
+      var snowStop = Math.max(0, Math.min(0.95, (yBase - amplitude * 1.15 - gradientTop) / gradientSpan));
+      var grassStop = Math.max(snowStop + 0.06, Math.min(0.98, (yBase + amplitude * 0.05 - gradientTop) / gradientSpan));
+      var snowColor = MOUNTAIN_SNOW_COLORS[layerIndex];
+      var rockColor = MOUNTAIN_ROCK_COLORS[layerIndex];
+      var grassColor = MOUNTAIN_GRASS_COLORS[layerIndex];
+      var mountainGradient = context.createLinearGradient(0, gradientTop, 0, height);
+      mountainGradient.addColorStop(0, snowColor);
+      mountainGradient.addColorStop(snowStop, snowColor);
+      mountainGradient.addColorStop(Math.min(0.99, snowStop + 0.05), rockColor);
+      mountainGradient.addColorStop(Math.max(snowStop + 0.06, grassStop - 0.05), rockColor);
+      mountainGradient.addColorStop(grassStop, grassColor);
+      mountainGradient.addColorStop(1, MOUNTAIN_BASE_COLORS[layerIndex]);
+      context.fillStyle = mountainGradient;
+      context.strokeStyle = MOUNTAIN_STROKE_COLORS[layerIndex];
+      context.lineWidth = 1;
+      context.beginPath();
+      var mountainStartX = worldViewLeft - 40;
+      var mountainEndX = worldViewRight + 40;
+      var mountainBottomY = worldViewBottom + 40;
+      var x = mountainStartX;
+      context.moveTo(x, mountainBottomY);
+      while (x < mountainEndX) {
+        var ridge = Math.abs(getTriangleWave((x + shift) * frequency + layerIndex));
+        var detail = Math.abs(getTriangleWave((x + shift * 1.4) * frequency * 2.7 + layerIndex * 1.7));
+        var mountainY = yBase - ridge * amplitude * MOUNTAIN_PEAK_RIDGE_SCALE - detail * amplitude * MOUNTAIN_PEAK_DETAIL_SCALE;
+        context.lineTo(x, mountainY);
+        x += 8;
+      }
+      context.lineTo(mountainEndX, mountainBottomY);
+      context.closePath();
+      context.fill();
+      context.stroke();
+    }
+
     function getSmoothStep(value) {
       if (value <= 0) {
         return 0;
@@ -3444,6 +3561,30 @@
     function getCityLayerProgress(layerIndex) {
       var start = CITY_BLEND_START_METERS + layerIndex * CITY_LAYER_STAGGER_METERS;
       var progress = (distanceMeters - start) / CITY_LAYER_TRANSITION_METERS;
+      if (progress <= 0) {
+        return 0;
+      }
+      if (progress >= 1) {
+        return 1;
+      }
+      return progress;
+    }
+
+    function getMountainLayerProgress(layerIndex) {
+      var start = MOUNTAIN_BLEND_START_METERS + layerIndex * MOUNTAIN_LAYER_STAGGER_METERS;
+      var progress = (distanceMeters - start) / MOUNTAIN_LAYER_TRANSITION_METERS;
+      if (progress <= 0) {
+        return 0;
+      }
+      if (progress >= 1) {
+        return 1;
+      }
+      return progress;
+    }
+
+    function getFarIndustryLayerProgress(layerIndex) {
+      var start = FAR_INDUSTRY_BLEND_START_METERS + layerIndex * FAR_INDUSTRY_LAYER_STAGGER_METERS;
+      var progress = (distanceMeters - start) / FAR_INDUSTRY_LAYER_TRANSITION_METERS;
       if (progress <= 0) {
         return 0;
       }
@@ -3467,15 +3608,27 @@
 
     function drawCityTransitionLayer(layerIndex, weights) {
       var progress = getCityLayerProgress(layerIndex);
-      var cityAlpha = getSmoothStep(progress / 0.4);
+      var mountainProgress = getMountainLayerProgress(layerIndex);
+      var farIndustryProgress = getFarIndustryLayerProgress(layerIndex);
+      var farIndustryAlpha = getSmoothStep(farIndustryProgress / 0.4);
+      var mountainAlpha = getSmoothStep(mountainProgress / 0.4) * (1 - getSmoothStep(farIndustryProgress));
+      var cityAlpha = getSmoothStep(progress / 0.4) * (1 - getSmoothStep(mountainProgress));
       var hillAlpha = 1 - getSmoothStep(progress);
-      if (cityAlpha > 0.001) {
-        context.globalAlpha = cityAlpha;
-        drawParallaxCity(layerIndex, getCitySilhouetteColor(layerIndex, weights));
-      }
       if (hillAlpha > 0.001) {
         context.globalAlpha = hillAlpha;
         drawParallaxHillsLayer(layerIndex);
+      }
+      if (cityAlpha > 0.001) {
+        context.globalAlpha = cityAlpha;
+        drawParallaxCity(layerIndex, getCitySilhouetteColor(layerIndex, weights), 1, 1, false);
+      }
+      if (mountainAlpha > 0.001) {
+        context.globalAlpha = mountainAlpha;
+        drawRockMountains(layerIndex);
+      }
+      if (farIndustryAlpha > 0.001) {
+        context.globalAlpha = farIndustryAlpha;
+        drawParallaxCity(layerIndex, getCitySilhouetteColor(layerIndex, weights), FAR_INDUSTRY_HEIGHT_MUL, FAR_INDUSTRY_SPACING_MUL, true);
       }
     }
 
@@ -3658,11 +3811,11 @@
       return roofBaseY - maxBuildingHeight * (0.34 + heightRandom * 0.66);
     }
 
-    function drawParallaxCity(layerIndex, fillColor) {
+    function drawParallaxCity(layerIndex, fillColor, heightMul, spacingMul, forceFactory) {
       var shift = parallaxPhase[layerIndex];
       var roofBaseY = height * CITY_LAYER_Y_RATIO[layerIndex];
-      var spacing = CITY_LAYER_SPACING[layerIndex];
-      var maxBuildingHeight = height * CITY_LAYER_MAX_HEIGHT_RATIO[layerIndex];
+      var spacing = CITY_LAYER_SPACING[layerIndex] * spacingMul;
+      var maxBuildingHeight = height * CITY_LAYER_MAX_HEIGHT_RATIO[layerIndex] * heightMul;
       var gap = spacing * CITY_GAP_RATIO;
       var cityStartX = worldViewLeft - 40;
       var cityEndX = worldViewRight + 40;
@@ -3673,7 +3826,7 @@
       for (index = startIndex; index <= endIndex; index++) {
         var cellLeft = index * spacing - shift;
         var roofTopY = getCityCellRoofTopY(index, layerIndex, roofBaseY, maxBuildingHeight);
-        if (layerIndex === 0) {
+        if (layerIndex === 0 && !forceFactory) {
           drawCityResidentialCell(layerIndex, fillColor, cellLeft, cellLeft + spacing, roofTopY, cityBottomY, index);
         } else {
           var widthRandom = getCityHash(index, layerIndex * 17 + 3);
@@ -3688,18 +3841,42 @@
       }
     }
 
+    function getGroundMountainBlend() {
+      var start = MOUNTAIN_BLEND_START_METERS;
+      var end = MOUNTAIN_BLEND_START_METERS + 3 * MOUNTAIN_LAYER_STAGGER_METERS + MOUNTAIN_LAYER_TRANSITION_METERS;
+      if (distanceMeters <= start) {
+        return 0;
+      }
+      if (distanceMeters >= end) {
+        return 1;
+      }
+      return getSmoothStep((distanceMeters - start) / (end - start));
+    }
+
+    function getGroundStopColor(stopIndex, industrialWeight, mountainWeight, farIndustryWeight) {
+      var clearToIndustrial = lerpHexColor(GROUND_COLORS_CLEAR[stopIndex], GROUND_COLORS_INDUSTRIAL[stopIndex], industrialWeight);
+      var withMountain = lerpHexColor(clearToIndustrial, GROUND_COLORS_MOUNTAIN[stopIndex], mountainWeight);
+      return lerpHexColor(withMountain, GROUND_COLORS_FAR_INDUSTRY[stopIndex], farIndustryWeight);
+    }
+
     function drawGround() {
       var startX = worldScroll + worldViewLeft - 20;
       var endX = worldScroll + worldViewRight + 20;
       var groundBottomY = worldViewBottom + 40;
       var groundTopY = height * GROUND_TOP_Y_RATIO;
+      var weights = getSkyBlendWeights();
+      var industrialWeight = weights.industrial;
+      var mountainWeight = getGroundMountainBlend();
+      var farIndustryWeight = getFarIndustryBlend();
       var groundGradient = context.createLinearGradient(0, groundTopY, 0, height);
-      groundGradient.addColorStop(0, "#5a4a64");
-      groundGradient.addColorStop(0.2, "#3c3148");
-      groundGradient.addColorStop(0.55, "#241d30");
-      groundGradient.addColorStop(1, "#0e0a18");
+      groundGradient.addColorStop(0, getGroundStopColor(0, industrialWeight, mountainWeight, farIndustryWeight));
+      groundGradient.addColorStop(0.2, getGroundStopColor(1, industrialWeight, mountainWeight, farIndustryWeight));
+      groundGradient.addColorStop(0.55, getGroundStopColor(2, industrialWeight, mountainWeight, farIndustryWeight));
+      groundGradient.addColorStop(1, getGroundStopColor(3, industrialWeight, mountainWeight, farIndustryWeight));
       context.fillStyle = groundGradient;
-      context.strokeStyle = "#7a5a86";
+      var strokeClearToIndustrial = lerpHexColor(GROUND_STROKE_CLEAR, GROUND_STROKE_INDUSTRIAL, industrialWeight);
+      var strokeWithMountain = lerpHexColor(strokeClearToIndustrial, GROUND_STROKE_MOUNTAIN, mountainWeight);
+      context.strokeStyle = lerpHexColor(strokeWithMountain, GROUND_STROKE_FAR_INDUSTRY, farIndustryWeight);
       context.lineWidth = 2;
       context.beginPath();
       var x = startX;
@@ -3714,16 +3891,19 @@
       context.fill();
       context.stroke();
 
-      context.strokeStyle = "rgba(255, 160, 90, 0.22)";
-      context.lineWidth = 1;
-      context.beginPath();
-      x = startX;
-      context.moveTo(startX - worldScroll, groundWave(startX) - 2);
-      while (x <= endX) {
-        context.lineTo(x - worldScroll, groundWave(x) - 2);
-        x += 5;
+      var highlightAlpha = 0.22 * industrialWeight * (1 - mountainWeight);
+      if (highlightAlpha > 0.01) {
+        context.strokeStyle = "rgba(255, 160, 90, " + highlightAlpha + ")";
+        context.lineWidth = 1;
+        context.beginPath();
+        x = startX;
+        context.moveTo(startX - worldScroll, groundWave(startX) - 2);
+        while (x <= endX) {
+          context.lineTo(x - worldScroll, groundWave(x) - 2);
+          x += 5;
+        }
+        context.stroke();
       }
-      context.stroke();
     }
 
     function drawBeacons() {
