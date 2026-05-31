@@ -237,7 +237,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "rek.",
-  "web.game.blackhole-golf.out-of-hits": "DOŠLY RÁNY",
+  "web.game.orbital-golf.out-of-hits": "DOŠLY RÁNY",
   "web.game.citrus-slice.combo": "kombo x{0}",
   "web.game.citrus-slice.missed": "minutí {0}",
   "web.game.citrus-slice.perfect": "PERFEKTNÍ! +{0}",

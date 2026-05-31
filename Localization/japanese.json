@@ -237,7 +237,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "ベスト",
-  "web.game.blackhole-golf.out-of-hits": "打数終了",
+  "web.game.orbital-golf.out-of-hits": "打数終了",
   "web.game.citrus-slice.combo": "コンボ x{0}",
   "web.game.citrus-slice.missed": "ミス {0}",
   "web.game.citrus-slice.perfect": "パーフェクト！ +{0}",

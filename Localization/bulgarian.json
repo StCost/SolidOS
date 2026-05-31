@@ -237,7 +237,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "рек.",
-  "web.game.blackhole-golf.out-of-hits": "УДАРИТЕ СВЪРШИХА",
+  "web.game.orbital-golf.out-of-hits": "УДАРИТЕ СВЪРШИХА",
   "web.game.citrus-slice.combo": "комбо x{0}",
   "web.game.citrus-slice.missed": "пропуски {0}",
   "web.game.citrus-slice.perfect": "ПЕРФЕКТНО! +{0}",

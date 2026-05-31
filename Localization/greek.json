@@ -237,7 +237,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "ρεκ.",
-  "web.game.blackhole-golf.out-of-hits": "ΤΕΛΕΙΩΣΑΝ ΤΑ ΧΤΥΠΗΜΑΤΑ",
+  "web.game.orbital-golf.out-of-hits": "ΤΕΛΕΙΩΣΑΝ ΤΑ ΧΤΥΠΗΜΑΤΑ",
   "web.game.citrus-slice.combo": "κόμπο x{0}",
   "web.game.citrus-slice.missed": "αποτυχίες {0}",
   "web.game.citrus-slice.perfect": "ΤΕΛΕΙΟ! +{0}",

@@ -237,7 +237,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "paras",
-  "web.game.blackhole-golf.out-of-hits": "LYÖNNIT LOPPU",
+  "web.game.orbital-golf.out-of-hits": "LYÖNNIT LOPPU",
   "web.game.citrus-slice.combo": "kombo x{0}",
   "web.game.citrus-slice.missed": "ohi {0}",
   "web.game.citrus-slice.perfect": "TÄYDELLINEN! +{0}",

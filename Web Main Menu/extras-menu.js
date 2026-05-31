@@ -576,7 +576,7 @@
     if (game && game.inputMode === "movement") {
       return "movement";
     }
-    if (gameId === "crystal-rush" || gameId === "sector-vector") {
+    if (gameId === "trouble-drivers" || gameId === "sector-vector") {
       return "movement";
     }
     return "cursor";

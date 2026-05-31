@@ -32,11 +32,12 @@
   }
 
   function getGameRecordsJson(gameId) {
+    var stored;
     if (!gameId) return "";
     if (recordsByGameId[gameId]) {
       return recordsByGameId[gameId];
     }
-    var stored = readRecordsJsonFromBrowserStorage(gameId);
+    stored = readRecordsJsonFromBrowserStorage(gameId);
     if (stored) {
       recordsByGameId[gameId] = stored;
       return stored;

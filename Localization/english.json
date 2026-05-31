@@ -239,7 +239,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "best",
-  "web.game.blackhole-golf.out-of-hits": "OUT OF HITS",
+  "web.game.orbital-golf.out-of-hits": "OUT OF HITS",
   "web.game.citrus-slice.combo": "combo x{0}",
   "web.game.citrus-slice.missed": "missed {0}",
   "web.game.citrus-slice.perfect": "PERFECT! +{0}",
