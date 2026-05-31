@@ -8,7 +8,53 @@
   var STORAGE_KEY = "cm-menu-background-history";
   var SELECTED_STORAGE_KEY = "cm-menu-background-selected";
   var EVENT_MENU_BACKGROUND_SAVE = "web-menu-background-save";
+  var MENU_BACKGROUND_SCRIPT_NAME = "menu-background.js";
+  var MENU_BACKGROUND_FOLDER_MARKER = "/Web Main Menu/";
+  var MENU_BACKGROUND_FOLDER_MARKER_ENCODED = "/Web%20Main%20Menu/";
+  var MENU_BACKGROUND_RELATIVE_PREFIX = "../Web Main Menu/";
   var backgroundCount = BACKGROUND_FILES.length;
+  var backgroundBasePath = "";
+
+  function getBackgroundBasePath() {
+    if (backgroundBasePath) return backgroundBasePath;
+    var scripts = document.getElementsByTagName("script");
+    var index;
+    for (index = 0; index < scripts.length; index++) {
+      var source = scripts[index].src;
+      if (!source) continue;
+      if (source.indexOf(MENU_BACKGROUND_SCRIPT_NAME) === -1) continue;
+      backgroundBasePath = source.slice(0, source.lastIndexOf("/") + 1);
+      return backgroundBasePath;
+    }
+    backgroundBasePath = MENU_BACKGROUND_RELATIVE_PREFIX;
+    return backgroundBasePath;
+  }
+
+  function normalizeBackgroundPath(path) {
+    if (!path) return "";
+    var markerIndex = path.indexOf(MENU_BACKGROUND_FOLDER_MARKER);
+    if (markerIndex !== -1) {
+      return path.slice(markerIndex + MENU_BACKGROUND_FOLDER_MARKER.length);
+    }
+    markerIndex = path.indexOf(MENU_BACKGROUND_FOLDER_MARKER_ENCODED);
+    if (markerIndex !== -1) {
+      return decodeURIComponent(path.slice(markerIndex + MENU_BACKGROUND_FOLDER_MARKER_ENCODED.length));
+    }
+    var basePath = getBackgroundBasePath();
+    if (basePath && path.indexOf(basePath) === 0) {
+      return path.slice(basePath.length);
+    }
+    if (path.indexOf(MENU_BACKGROUND_RELATIVE_PREFIX) === 0) {
+      return path.slice(MENU_BACKGROUND_RELATIVE_PREFIX.length);
+    }
+    return path;
+  }
+
+  function getBackgroundLoadUrl(path) {
+    var normalizedPath = normalizeBackgroundPath(path);
+    if (!normalizedPath) return "";
+    return getBackgroundBasePath() + normalizedPath;
+  }
 
   function isUnityHost() {
     return typeof window.vuplex !== "undefined" && window.vuplex.postMessage;
@@ -108,9 +154,10 @@
   }
 
   function getIndexForPath(path) {
+    var normalizedPath = normalizeBackgroundPath(path);
     var index;
     for (index = 0; index < backgroundCount; index++) {
-      if (BACKGROUND_FILES[index] === path) return index;
+      if (BACKGROUND_FILES[index] === normalizedPath) return index;
     }
     return -1;
   }
@@ -145,17 +192,21 @@
 
   function applyBackgroundPath(path, index, selection) {
     if (!path) return false;
-    var backgroundUrl = 'url("' + path + '")';
+    var canonicalPath = normalizeBackgroundPath(path);
+    var loadUrl = getBackgroundLoadUrl(canonicalPath);
+    var backgroundUrl = 'url("' + loadUrl + '")';
     document.documentElement.style.setProperty("--menu-background-image", backgroundUrl);
-    window.WebMenuBackgroundPath = path;
+    window.WebMenuBackgroundPath = canonicalPath;
     if (typeof index === "number" && index >= 0) {
       window.WebMenuBackgroundIndex = index;
     } else {
-      window.WebMenuBackgroundIndex = getIndexForPath(path);
+      window.WebMenuBackgroundIndex = getIndexForPath(canonicalPath);
     }
     if (selection) {
+      selection.path = canonicalPath;
+      selection.index = window.WebMenuBackgroundIndex;
       writeSelectedBackground(selection);
-      postMenuBackgroundSave(selection.random ? "" : selection.path, selection.random);
+      postMenuBackgroundSave(selection.random ? "" : canonicalPath, selection.random);
     }
     return true;
   }
@@ -168,7 +219,7 @@
       return;
     }
     if (selected && selected.path) {
-      applyBackgroundPath(selected.path, selected.index);
+      applyBackgroundPath(normalizeBackgroundPath(selected.path), selected.index);
       return;
     }
     var chosenIndex = chooseBackgroundIndex();
@@ -186,10 +237,10 @@
         return { random: true, path: "" };
       }
       if (selected && selected.path) {
-        return { random: false, path: selected.path };
+        return { random: false, path: normalizeBackgroundPath(selected.path) };
       }
       if (window.WebMenuBackgroundPath) {
-        return { random: false, path: window.WebMenuBackgroundPath };
+        return { random: false, path: normalizeBackgroundPath(window.WebMenuBackgroundPath) };
       }
       return { random: false, path: "" };
     },
@@ -225,9 +276,10 @@
         return;
       }
       if (path) {
-        applyBackgroundPath(path, getIndexForPath(path), {
-          path: path,
-          index: getIndexForPath(path),
+        var canonicalPath = normalizeBackgroundPath(path);
+        applyBackgroundPath(canonicalPath, getIndexForPath(canonicalPath), {
+          path: canonicalPath,
+          index: getIndexForPath(canonicalPath),
           random: false
         });
         return;
