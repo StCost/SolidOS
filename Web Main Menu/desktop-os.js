@@ -1,5 +1,7 @@
 var WebDesktop = (function () {
   var ICON_LAYOUTS_STORAGE_KEY = "cm-menu-icon-layouts";
+  var GAME_DESKTOP_LINKS_STORAGE_KEY = "cm-menu-game-desktop-links";
+  var EVENT_GAME_DESKTOP_LINKS_SAVE = "web-game-desktop-links-save";
   var ICON_LAYOUT_BOOTSTRAP_CLASS = "menu-icon-layout-bootstrap";
   var ICON_LAYOUT_BOOTSTRAP_STYLE_ID = "cm-desktop-icon-layout-bootstrap";
   var ICON_DRAG_SOUND_STEP_PX = 300;
@@ -84,6 +86,7 @@ var WebDesktop = (function () {
   var menuLayoutPhoneVertical = false;
 
   var savedIconLayoutTable = {};
+  var gameDesktopLinkIds = {};
   var iconLayoutSaveTimer = 0;
   var activeIconDrag = null;
   var pendingIconPress = null;
@@ -949,7 +952,12 @@ var WebDesktop = (function () {
     iconId = iconElement.getAttribute("data-desktop-icon");
     savedLayout = savedIconLayoutTable[iconId];
     coords = getLayoutCoords();
-    if (savedLayout && coords && coords.isCenterLayoutEntry(savedLayout)) {
+    if (
+      savedLayout &&
+      coords &&
+      coords.isCenterLayoutEntry(savedLayout) &&
+      !iconElement.classList.contains("os-desktop-icon--game-shortcut")
+    ) {
       placedIcons.push(iconElement);
       return;
     }
@@ -1194,6 +1202,14 @@ var WebDesktop = (function () {
     }, 120);
   }
 
+  function persistIconLayoutsNow() {
+    if (iconLayoutSaveTimer) {
+      window.clearTimeout(iconLayoutSaveTimer);
+      iconLayoutSaveTimer = 0;
+    }
+    postIconLayoutsSave();
+  }
+
   function loadPersistedIconLayouts() {
     populateDefaultIconLayoutTable();
     mergePersistedIconLayoutPayload(getPersistedIconLayoutsPayload());
@@ -1215,15 +1231,23 @@ var WebDesktop = (function () {
   }
 
   function getIconMetrics(iconElement) {
+    var width = ICON_GRID_CELL_WIDTH;
+    var height = ICON_GRID_CELL_HEIGHT;
     if (!iconElement) {
       return {
-        width: ICON_GRID_CELL_WIDTH,
-        height: ICON_GRID_CELL_HEIGHT
+        width: width,
+        height: height
       };
     }
+    if (iconElement.offsetWidth > 0) {
+      width = iconElement.offsetWidth;
+    }
+    if (iconElement.offsetHeight > 0) {
+      height = iconElement.offsetHeight;
+    }
     return {
-      width: iconElement.offsetWidth,
-      height: iconElement.offsetHeight
+      width: width,
+      height: height
     };
   }
 
@@ -1581,15 +1605,22 @@ var WebDesktop = (function () {
   }
 
   function getIconMinimumSeparation(iconElement) {
-    var iconRect = iconElement.getBoundingClientRect();
-    return iconRect.width * 0.5;
+    var metrics = getIconMetrics(iconElement);
+    var minSide = metrics.width;
+    if (metrics.height < minSide) {
+      minSide = metrics.height;
+    }
+    if (minSide < ICON_GRID_SNAP_FOOTPRINT) {
+      return ICON_GRID_SNAP_FOOTPRINT * 0.5;
+    }
+    return minSide * 0.5;
   }
 
   function getIconCenterFromLayoutPosition(left, top, iconElement) {
-    var iconRect = iconElement.getBoundingClientRect();
+    var metrics = getIconMetrics(iconElement);
     return {
-      left: left + iconRect.width * 0.5,
-      top: top + iconRect.height * 0.5
+      left: left + metrics.width * 0.5,
+      top: top + metrics.height * 0.5
     };
   }
 
@@ -1622,7 +1653,7 @@ var WebDesktop = (function () {
       deltaX = dropCenter.left - otherCenter.left;
       deltaY = dropCenter.top - otherCenter.top;
       distanceSquared = deltaX * deltaX + deltaY * deltaY;
-      if (distanceSquared < minSeparationSquared) {
+      if (distanceSquared <= minSeparationSquared) {
         return true;
       }
     }
@@ -2557,11 +2588,13 @@ var WebDesktop = (function () {
 
     initDesktopMarqueeLayer();
 
+    loadGameDesktopLinksFromStorage();
     populateDefaultIconLayoutTable();
     if (!isUnityHost()) {
       mergePersistedIconLayoutPayload(readIconLayoutsFromStorage());
       clearIconLayoutBootstrap();
     }
+    syncGameDesktopLinkIdsFromIconLayoutTable();
 
     var icons = desktopIconsRoot.querySelectorAll(".os-desktop-icon[data-desktop-icon]");
     var index = 0;
@@ -2570,6 +2603,7 @@ var WebDesktop = (function () {
     }
 
     applyAllSavedIconLayoutsAndResolve();
+    restoreEnabledGameDesktopIcons();
     updateActionIconsState();
 
     document.addEventListener("pointermove", onIconPointerMove);
@@ -2750,6 +2784,153 @@ var WebDesktop = (function () {
     return "game-" + gameId;
   }
 
+  function buildGameDesktopLinksPayload() {
+    var gameIds = [];
+    var gameId;
+    for (gameId in gameDesktopLinkIds) {
+      if (!Object.prototype.hasOwnProperty.call(gameDesktopLinkIds, gameId)) continue;
+      if (!gameDesktopLinkIds[gameId]) continue;
+      gameIds.push(gameId);
+    }
+    return { gameIds: gameIds };
+  }
+
+  function writeGameDesktopLinksToStorage(payload) {
+    try {
+      localStorage.setItem(GAME_DESKTOP_LINKS_STORAGE_KEY, JSON.stringify(payload));
+    } catch (error) {
+    }
+  }
+
+  function readGameDesktopLinksFromStorage() {
+    try {
+      var raw = localStorage.getItem(GAME_DESKTOP_LINKS_STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function loadGameDesktopLinksFromStorage() {
+    var payload = readGameDesktopLinksFromStorage();
+    var gameIds = payload && payload.gameIds ? payload.gameIds : [];
+    var index = 0;
+    for (index = 0; index < gameIds.length; index++) {
+      if (gameIds[index]) {
+        gameDesktopLinkIds[gameIds[index]] = true;
+      }
+    }
+  }
+
+  function postGameDesktopLinksSave() {
+    var payload = buildGameDesktopLinksPayload();
+    writeGameDesktopLinksToStorage(payload);
+    if (!isUnityHost()) {
+      return;
+    }
+    if (!window.vuplex || !window.vuplex.postMessage) {
+      return;
+    }
+    window.vuplex.postMessage(
+      JSON.stringify({
+        eventName: EVENT_GAME_DESKTOP_LINKS_SAVE,
+        layoutsJson: JSON.stringify(payload)
+      })
+    );
+  }
+
+  function persistGameDesktopLinksNow() {
+    postGameDesktopLinksSave();
+  }
+
+  function syncGameDesktopLinkIdsFromIconLayoutTable() {
+    var iconId;
+    var gameId;
+    for (iconId in savedIconLayoutTable) {
+      if (!Object.prototype.hasOwnProperty.call(savedIconLayoutTable, iconId)) continue;
+      if (iconId.indexOf("game-") !== 0) continue;
+      gameId = iconId.substring(5);
+      if (gameId) {
+        gameDesktopLinkIds[gameId] = true;
+      }
+    }
+  }
+
+  function setGameDesktopLinkEnabledState(gameId, enabled) {
+    if (!gameId) return;
+    if (enabled) {
+      gameDesktopLinkIds[gameId] = true;
+    } else if (gameDesktopLinkIds[gameId]) {
+      delete gameDesktopLinkIds[gameId];
+    }
+    persistGameDesktopLinksNow();
+  }
+
+  function isGameDesktopLinkEnabled(gameId) {
+    if (!gameId) return false;
+    if (gameDesktopLinkIds[gameId]) return true;
+    return !!savedIconLayoutTable[getGameDesktopIconId(gameId)];
+  }
+
+  function restoreEnabledGameDesktopIcons() {
+    var enabledLookup = {};
+    var gameId;
+    var iconId;
+    var game;
+    var iconElement;
+    var useSavedLayout;
+    var restoredCount = 0;
+    if (!desktopIconsRoot) return;
+    for (iconId in savedIconLayoutTable) {
+      if (!Object.prototype.hasOwnProperty.call(savedIconLayoutTable, iconId)) continue;
+      if (iconId.indexOf("game-") !== 0) continue;
+      gameId = iconId.substring(5);
+      if (gameId) enabledLookup[gameId] = true;
+    }
+    for (gameId in gameDesktopLinkIds) {
+      if (!Object.prototype.hasOwnProperty.call(gameDesktopLinkIds, gameId)) continue;
+      if (gameDesktopLinkIds[gameId]) enabledLookup[gameId] = true;
+    }
+    for (gameId in enabledLookup) {
+      if (!Object.prototype.hasOwnProperty.call(enabledLookup, gameId)) continue;
+      if (!enabledLookup[gameId]) continue;
+      if (findGameDesktopIcon(gameId)) continue;
+      game = getGameRecordById(gameId);
+      if (!game) continue;
+      iconId = getGameDesktopIconId(gameId);
+      useSavedLayout = !!savedIconLayoutTable[iconId];
+      iconElement = createGameDesktopIcon(game, useSavedLayout);
+      if (iconElement) {
+        restoredCount = restoredCount + 1;
+      }
+    }
+    if (restoredCount > 0 && !menuLayoutPhoneVertical) {
+      resolveAllDesktopIconLayouts();
+    }
+    if (restoredCount > 0) {
+      updateDesktopTabOrder();
+    }
+    for (gameId in enabledLookup) {
+      if (!Object.prototype.hasOwnProperty.call(enabledLookup, gameId)) continue;
+      if (enabledLookup[gameId]) {
+        dispatchGameDesktopIconsRestored();
+        break;
+      }
+    }
+  }
+
+  function ensureGameDesktopLinkIcon(gameId) {
+    var game;
+    var iconId;
+    if (!gameId || !isGameDesktopLinkEnabled(gameId)) return;
+    if (findGameDesktopIcon(gameId)) return;
+    game = getGameRecordById(gameId);
+    if (!game) return;
+    iconId = getGameDesktopIconId(gameId);
+    createGameDesktopIcon(game, !!savedIconLayoutTable[iconId]);
+  }
+
   function findGameDesktopIcon(gameId) {
     if (!desktopIconsRoot || !gameId) return null;
     return desktopIconsRoot.querySelector(
@@ -2790,49 +2971,110 @@ var WebDesktop = (function () {
     return layout;
   }
 
-  function isGameShortcutCenterOffsetOccupied(offsetX, offsetY) {
-    var iconId;
-    for (iconId in savedIconLayoutTable) {
-      if (!Object.prototype.hasOwnProperty.call(savedIconLayoutTable, iconId)) continue;
-      if (iconId.indexOf("game-") !== 0) continue;
-      if (
-        Math.abs((savedIconLayoutTable[iconId].centerOffsetX || 0) - offsetX) < 44 &&
-        Math.abs((savedIconLayoutTable[iconId].centerOffsetY || 0) - offsetY) < 52
-      ) {
-        return true;
+  function countGameDesktopIcons(excludeIconElement) {
+    var icons;
+    var index;
+    var count = 0;
+    if (!desktopIconsRoot) return 0;
+    icons = desktopIconsRoot.querySelectorAll(".os-desktop-icon--game-shortcut[data-desktop-icon]");
+    for (index = 0; index < icons.length; index++) {
+      if (icons[index] === excludeIconElement) continue;
+      if (icons[index].hidden) continue;
+      count = count + 1;
+    }
+    return count;
+  }
+
+  function getGameShortcutTargetPosition(excludeIconElement) {
+    var gamesLayout = getGamesReferenceCenterLayout();
+    var existingGameIconCount = countGameDesktopIcons(excludeIconElement);
+    var centerOffsetX = (gamesLayout.centerOffsetX || 0) + 88 + existingGameIconCount * ICON_GRID_CELL_WIDTH;
+    var centerOffsetY = (gamesLayout.centerOffsetY || 0) - 104;
+    var coords = getLayoutCoords();
+    var layoutRoot = getIconLayoutRoot();
+    if (!coords || !layoutRoot) {
+      return { left: 0, top: 0 };
+    }
+    return coords.resolveAbsolutePosition(
+      {
+        anchor: "center",
+        centerOffsetX: centerOffsetX,
+        centerOffsetY: centerOffsetY
+      },
+      layoutRoot
+    );
+  }
+
+  function getGameDesktopIconPreferredPosition(preferredLayout, excludeIconElement) {
+    var coords;
+    var layoutRoot;
+    if (!preferredLayout) {
+      return getGameShortcutTargetPosition(excludeIconElement);
+    }
+    coords = getLayoutCoords();
+    layoutRoot = getIconLayoutRoot();
+    if (!coords || !layoutRoot) {
+      return getGameShortcutTargetPosition(excludeIconElement);
+    }
+    if (coords.isCenterLayoutEntry(preferredLayout)) {
+      return coords.resolveAbsolutePosition(preferredLayout, layoutRoot);
+    }
+    if (preferredLayout.left !== undefined) {
+      return {
+        left: preferredLayout.left,
+        top: preferredLayout.top || 0
+      };
+    }
+    return getGameShortcutTargetPosition(excludeIconElement);
+  }
+
+  function placeGameDesktopIconWithFreeSpace(iconElement, preferredLayout) {
+    var targetPosition = getGameDesktopIconPreferredPosition(preferredLayout, iconElement);
+    var excludeIcons = buildPlacedIconsExcludeElement(iconElement);
+    var resolvedPosition = resolveIconDropPosition(
+      iconElement,
+      targetPosition.left,
+      targetPosition.top,
+      null,
+      null,
+      excludeIcons
+    );
+    applyIconPosition(iconElement, resolvedPosition.left, resolvedPosition.top, false);
+    syncIconLayoutFromElement(iconElement);
+  }
+
+  function getGameRecordById(gameId) {
+    var manifest;
+    var games;
+    var index;
+    if (!gameId) return null;
+    manifest = window.WebExtrasManifest;
+    if (!manifest || !manifest.games) return null;
+    games = manifest.games;
+    for (index = 0; index < games.length; index++) {
+      if (games[index].id === gameId) {
+        return games[index];
       }
     }
-    return false;
+    return null;
   }
 
-  function getGameShortcutCenterLayout() {
-    var gamesLayout = getGamesReferenceCenterLayout();
-    var offsetX = (gamesLayout.centerOffsetX || 0) + 88;
-    var offsetY = (gamesLayout.centerOffsetY || 0) - 104;
-    var attemptIndex = 0;
-    while (isGameShortcutCenterOffsetOccupied(offsetX, offsetY) && attemptIndex < 16) {
-      offsetX = offsetX + 88;
-      attemptIndex = attemptIndex + 1;
-    }
-    return {
-      anchor: "center",
-      centerOffsetX: offsetX,
-      centerOffsetY: offsetY
-    };
+  function dispatchGameDesktopIconsRestored() {
+    window.dispatchEvent(new CustomEvent("web-desktop-game-icons-restored"));
   }
 
-  function createGameDesktopIcon(game) {
+  function createGameDesktopIcon(game, useSavedLayout) {
     var gameId;
     var iconId;
     var iconElement;
     var labelElement;
     var glyphElement;
     var imageElement;
-    var shortcutLayout;
     if (!desktopIconsRoot || !game || !game.id) return null;
     gameId = game.id;
     iconId = getGameDesktopIconId(gameId);
     if (findGameDesktopIcon(gameId)) {
+      setGameDesktopLinkEnabledState(gameId, true);
       return findGameDesktopIcon(gameId);
     }
     iconElement = document.createElement("button");
@@ -2866,13 +3108,14 @@ var WebDesktop = (function () {
     iconElement.appendChild(labelElement);
     desktopIconsRoot.appendChild(iconElement);
     bindDesktopIcon(iconElement);
-    shortcutLayout = getGameShortcutCenterLayout();
-    setSavedIconLayout(iconId, shortcutLayout);
-    applyIconCenterOffsetPosition(iconElement, shortcutLayout);
-    if (!menuLayoutPhoneVertical) {
-      resolveIconLayoutFitAndCollision(iconElement, buildPlacedIconsExcludeElement(iconElement));
+    if (useSavedLayout && savedIconLayoutTable[iconId]) {
+      placeGameDesktopIconWithFreeSpace(iconElement, savedIconLayoutTable[iconId]);
+    } else {
+      placeGameDesktopIconWithFreeSpace(iconElement, null);
     }
-    scheduleIconLayoutsSave();
+    setGameDesktopLinkEnabledState(gameId, true);
+    persistIconLayoutsNow();
+    dispatchGameDesktopIconsRestored();
     return iconElement;
   }
 
@@ -2880,8 +3123,9 @@ var WebDesktop = (function () {
     var iconElement;
     var iconId;
     if (!gameId) return false;
+    setGameDesktopLinkEnabledState(gameId, false);
     iconElement = findGameDesktopIcon(gameId);
-    if (!iconElement) return false;
+    if (!iconElement) return true;
     if (iconElement.parentNode) {
       iconElement.parentNode.removeChild(iconElement);
     }
@@ -2889,7 +3133,8 @@ var WebDesktop = (function () {
     if (savedIconLayoutTable && savedIconLayoutTable[iconId]) {
       delete savedIconLayoutTable[iconId];
     }
-    scheduleIconLayoutsSave();
+    persistIconLayoutsNow();
+    dispatchGameDesktopIconsRestored();
     return true;
   }
 
@@ -2941,9 +3186,29 @@ var WebDesktop = (function () {
     getWindowByPreset: getWindowByPreset,
     applyIconLayouts: function (payload) {
       populateSavedIconLayoutTable(payload);
+      syncGameDesktopLinkIdsFromIconLayoutTable();
       applyAllSavedIconLayoutsAndResolve();
+      restoreEnabledGameDesktopIcons();
+      persistGameDesktopLinksNow();
       clearIconLayoutBootstrap();
+      dispatchGameDesktopIconsRestored();
     },
+    applyGameDesktopLinks: function (payload) {
+      var gameIds = payload && payload.gameIds ? payload.gameIds : [];
+      var index = 0;
+      for (index = 0; index < gameIds.length; index++) {
+        if (gameIds[index]) {
+          gameDesktopLinkIds[gameIds[index]] = true;
+        }
+      }
+      syncGameDesktopLinkIdsFromIconLayoutTable();
+      restoreEnabledGameDesktopIcons();
+      writeGameDesktopLinksToStorage(buildGameDesktopLinksPayload());
+      dispatchGameDesktopIconsRestored();
+    },
+    isGameDesktopLinkEnabled: isGameDesktopLinkEnabled,
+    setGameDesktopLinkEnabled: setGameDesktopLinkEnabledState,
+    ensureGameDesktopLinkIcon: ensureGameDesktopLinkIcon,
     flushIconLayoutsSave: function () {
       if (iconLayoutSaveTimer) {
         window.clearTimeout(iconLayoutSaveTimer);
