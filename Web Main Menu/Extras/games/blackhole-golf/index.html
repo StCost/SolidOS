@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Orbital Golf</title>
   <script src="../iframe-game-locale.js"></script>
+  <script src="../iframe-game-input.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -3987,33 +3988,11 @@
         if (wallLineWidth < 6) {
           wallLineWidth = 6;
         }
-        var wallSoftWidth = 26 * cameraZoom;
-        var shadowPassCount = 3;
-        var shadowPassOffsets = [4, 9, 15];
-        var shadowPassAlphas = [0.24, 0.15, 0.08];
-        var shadowPassWidthScales = [0.88, 1, 1.12];
         ctx.save();
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         ctx.shadowBlur = 0;
         var wallIndex;
-        var passIndex;
-        for (passIndex = 0; passIndex < shadowPassCount; passIndex += 1) {
-          ctx.strokeStyle = "rgba(6, 4, 14, " + shadowPassAlphas[passIndex] + ")";
-          ctx.lineWidth = wallSoftWidth * shadowPassWidthScales[passIndex];
-          for (wallIndex = 0; wallIndex < walls.length; wallIndex += 1) {
-            var shadowWall = walls[wallIndex];
-            var outward = getWallOutwardNormal(shadowWall);
-            var offsetX = outward.x * shadowPassOffsets[passIndex];
-            var offsetY = outward.y * shadowPassOffsets[passIndex];
-            var shadowP1 = worldToScreen(shadowWall.x1 + offsetX, shadowWall.y1 + offsetY);
-            var shadowP2 = worldToScreen(shadowWall.x2 + offsetX, shadowWall.y2 + offsetY);
-            ctx.beginPath();
-            ctx.moveTo(shadowP1.x, shadowP1.y);
-            ctx.lineTo(shadowP2.x, shadowP2.y);
-            ctx.stroke();
-          }
-        }
         ctx.strokeStyle = "rgba(42, 34, 28, 0.92)";
         ctx.lineWidth = wallLineWidth;
         for (wallIndex = 0; wallIndex < walls.length; wallIndex += 1) {
@@ -5430,7 +5409,6 @@
         }
         drawCosmicBackground();
         drawTerrainNearTunnel();
-        drawCorridorEdgeBlend();
         if (terrainCanvas && tunnelPath.length >= 2) {
           var terrainViewBounds = getTerrainViewBounds();
           drawTerrainTopography(

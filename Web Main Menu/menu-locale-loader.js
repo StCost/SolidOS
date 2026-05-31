@@ -55,6 +55,39 @@
     );
   }
 
+  function getUrlLanguageCode() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var value = params.get("lang") || params.get("language") || params.get("locale");
+      if (!value) {
+        return "";
+      }
+      return value.trim().toLowerCase();
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function setUrlLanguageCode(languageCode) {
+    var code;
+    var url;
+    if (isUnityHost()) {
+      return;
+    }
+    if (!languageCode) {
+      return;
+    }
+    code = languageCode.trim().toLowerCase();
+    try {
+      url = new URL(window.location.href);
+      url.searchParams.set("lang", code);
+      url.searchParams.delete("language");
+      url.searchParams.delete("locale");
+      window.history.replaceState({}, "", url.toString());
+    } catch (error) {
+    }
+  }
+
   function getStoredLanguageCode() {
     try {
       var raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
@@ -113,6 +146,7 @@
       })
       .then(function (map) {
         applyLocaleMap(map, notifySettings);
+        setUrlLanguageCode(code);
         window.dispatchEvent(
           new CustomEvent("web-locale-loaded", { detail: { languageCode: code } })
         );
@@ -193,13 +227,15 @@
       return;
     }
 
-    var languageCode = getStoredLanguageCode() || DEFAULT_LANGUAGE_CODE;
+    var languageCode = getUrlLanguageCode() || getStoredLanguageCode() || DEFAULT_LANGUAGE_CODE;
     loadLanguage(languageCode, false);
   }
 
   window.WebLocaleLoader = {
     isUnityHost: isUnityHost,
     canFetchLocales: canFetchLocales,
+    getUrlLanguageCode: getUrlLanguageCode,
+    setUrlLanguageCode: setUrlLanguageCode,
     loadLanguage: loadLanguage,
     loadLanguageOptions: loadLanguageOptions,
     flushPendingLanguageOptions: flushPendingLanguageOptions

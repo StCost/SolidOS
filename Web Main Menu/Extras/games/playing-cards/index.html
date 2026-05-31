@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Playing Cards</title>
+  <script src="../iframe-game-input.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -881,7 +882,9 @@
           } else {
             cardEntry.velocityX = 0;
             cardEntry.velocityY = 0;
-            snapCardPositionToGrid(cardEntry);
+            if (!cardEntry.isThrown) {
+              snapCardPositionToGrid(cardEntry);
+            }
             clampCardToScreen(cardEntry);
           }
           if (cardEntry.isThrown) {

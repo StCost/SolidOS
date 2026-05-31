@@ -30,12 +30,16 @@
   var STORAGE_VALUE_TRUE = "1";
   var IFRAME_EMBED_RESET_STYLE_ID = "cm-iframe-embed-reset";
   var IFRAME_EMBED_RESET_LINK_ID = "cm-iframe-embed-reset-link";
-  var IFRAME_EMBED_RESET_HREF = "../../iframe-embed-reset.css";
+  var IFRAME_EMBED_RESET_HREF = "../../../iframe-embed-reset.css";
+  var IFRAME_GAME_CURSOR_SCRIPT_ID = "cm-iframe-game-cursor";
+  var IFRAME_GAME_CURSOR_SRC = "../iframe-game-cursor.js";
+  var EVENT_GAME_CURSOR = "cm-game-cursor";
   var IFRAME_EMBED_RESET_INLINE =
     "html,body{-webkit-tap-highlight-color:transparent;tap-highlight-color:transparent}" +
     "*,*::before,*::after{-webkit-tap-highlight-color:transparent;tap-highlight-color:transparent}" +
     "*:focus,*:focus-visible,*:active{outline:none}" +
-    "html{touch-action:manipulation}";
+    "html{touch-action:manipulation}" +
+    "html,body,cursor:url('../../../cursor-pointer.svg') 2.1 0,pointer}";
 
   var contentRoot = document.getElementById("extrasContent");
   var viewArt = document.getElementById("extrasViewArt");
@@ -46,6 +50,7 @@
   var artGridRoot = document.getElementById("extrasArtGrid");
   var linksListRoot = document.getElementById("extrasLinksList");
   var gameFrame = document.getElementById("extrasGameFrame");
+  var gameKeyboardFocus = document.getElementById("extrasGameKeyboardFocus");
   var contentPromptPath = document.getElementById("extrasContentPromptPath");
   var contentPromptCommand = document.getElementById("extrasContentPromptCommand");
   var extrasNav = document.getElementById("extrasNav");
@@ -392,6 +397,32 @@
       style.textContent = IFRAME_EMBED_RESET_INLINE;
       doc.head.insertBefore(style, doc.head.firstChild);
     }
+
+    if (!doc.getElementById(IFRAME_GAME_CURSOR_SCRIPT_ID) && !doc.querySelector('script[src*="iframe-game-cursor.js"]')) {
+      var cursorScript = doc.createElement("script");
+      cursorScript.id = IFRAME_GAME_CURSOR_SCRIPT_ID;
+      cursorScript.src = IFRAME_GAME_CURSOR_SRC;
+      doc.head.appendChild(cursorScript);
+    }
+  }
+
+  function onGameFrameCursorMessage(event) {
+    if (!event || !event.data || event.data.eventName !== EVENT_GAME_CURSOR) {
+      return;
+    }
+    if (!gameFrame) {
+      return;
+    }
+    try {
+      if (event.source !== gameFrame.contentWindow) {
+        return;
+      }
+    } catch (error) {
+      return;
+    }
+    if (window.WebMenuCursorBridge && window.WebMenuCursorBridge.setTokenFromGameFrame) {
+      window.WebMenuCursorBridge.setTokenFromGameFrame(event.data.token);
+    }
   }
 
   function bindIframeEmbedReset(frame) {
@@ -403,19 +434,86 @@
     });
   }
 
+  function getGameInputMode(gameId) {
+    var game = findGameById(gameId);
+    if (game && game.inputMode === "movement") {
+      return "movement";
+    }
+    if (gameId === "crystal-rush" || gameId === "sector-vector") {
+      return "movement";
+    }
+    return "cursor";
+  }
+
+  function setGameInputProfile(gameId) {
+    var inputMode = getGameInputMode(gameId);
+    if (window.WebGameFrameInputHost) {
+      window.WebGameFrameInputHost.setInputMode(inputMode);
+    }
+    window.dispatchEvent(
+      new CustomEvent("web-extras-game-profile", {
+        detail: { gameId: gameId, inputMode: inputMode, name: gameId }
+      })
+    );
+  }
+
+  function syncFrameGameInputMode() {
+    if (window.WebGameFrameInputHost && window.WebGameFrameInputHost.syncFrameInputMode) {
+      window.WebGameFrameInputHost.syncFrameInputMode();
+    }
+  }
+
+  function setGameInputForwarding(enabled) {
+    if (window.WebGameFrameInputHost) {
+      window.WebGameFrameInputHost.setForwardingEnabled(enabled);
+    }
+    window.dispatchEvent(
+      new CustomEvent("web-extras-game-input", { detail: { active: enabled } })
+    );
+  }
+
+  function focusGameKeyboardTarget() {
+    if (gameKeyboardFocus && gameKeyboardFocus.focus) {
+      try {
+        gameKeyboardFocus.focus({ preventScroll: true });
+      } catch (error) {
+        gameKeyboardFocus.focus();
+      }
+      return;
+    }
+    if (window.WebGameFrameInputHost && window.WebGameFrameInputHost.focusGameFrame) {
+      window.WebGameFrameInputHost.focusGameFrame();
+    }
+  }
+
   function openGame(gameId) {
     var game = findGameById(gameId);
     if (!game || !gameFrame) return;
     activeGameId = gameId;
     var title = getLocalized(game.titleKey, game.title || game.titleFallback || game.id);
+    setGameInputProfile(gameId);
+    setGameInputForwarding(true);
+    gameFrame.addEventListener(
+      "load",
+      function () {
+        focusGameKeyboardTarget();
+        syncFrameGameInputMode();
+      },
+      { once: true }
+    );
     gameFrame.src = game.path;
     showView(VIEW_GAME);
     setContentPrompt("C:\\CM\\extras\\games&gt;", "run " + title);
+    focusGameKeyboardTarget();
   }
 
   function closeGame() {
     stopExtrasGameStartMusic();
     activeGameId = "";
+    setGameInputForwarding(false);
+    if (window.WebGameFrameInputHost) {
+      window.WebGameFrameInputHost.setInputMode("cursor");
+    }
     if (gameFrame) gameFrame.src = "about:blank";
     showView(VIEW_GAMES);
   }
@@ -707,6 +805,7 @@
 
   function onExtrasBackMenuClick() {
     stopExtrasGameStartMusic();
+    setGameInputForwarding(false);
     if (gameFrame) gameFrame.src = "about:blank";
     if (window.WebMenu && window.WebMenu.goToIndexPage) {
       window.WebMenu.goToIndexPage();
@@ -736,6 +835,7 @@
     cancelPendingBackgroundApply();
     closeArtViewer();
     stopExtrasGameStartMusic();
+    setGameInputForwarding(false);
     if (gameFrame) gameFrame.src = "about:blank";
     renderExtras();
     showTab(VIEW_GAMES);
@@ -751,9 +851,24 @@
   if (btnArtViewerClose) btnArtViewerClose.addEventListener("click", closeArtViewer);
 
   bindIframeEmbedReset(gameFrame);
+  window.addEventListener("message", onGameFrameCursorMessage);
   if (window.WebGameFrameLocaleHost) {
     window.WebGameFrameLocaleHost.setGameFrame(gameFrame);
     window.WebGameFrameLocaleHost.bindGameFrameLocale(gameFrame);
+  }
+  if (window.WebGameFrameInputHost) {
+    window.WebGameFrameInputHost.setGameFrame(gameFrame);
+  }
+  if (gameFrame) {
+    gameFrame.addEventListener("pointerdown", focusGameKeyboardTarget);
+  }
+  if (gameKeyboardFocus) {
+    gameKeyboardFocus.addEventListener("blur", function () {
+      if (currentView !== VIEW_GAME) {
+        return;
+      }
+      focusGameKeyboardTarget();
+    });
   }
 
   if (gamesListRoot) gamesListRoot.addEventListener("click", onGamesListClick);
