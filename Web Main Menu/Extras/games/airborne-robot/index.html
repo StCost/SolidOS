@@ -510,9 +510,9 @@
 
     var METERS_PER_UNIT = 0.06;
 
-    // ========== TEST-ONLY — revert: delete this entire block ==========
-    var TEST_SPAWN_AT_METERS = 2500;
-    var TEST_ROBOT_INVULNERABLE = true;
+    // ========== TEST-ONLY — раскомментировать блок ниже ==========
+    // var TEST_SPAWN_AT_METERS = 2500;
+    // var TEST_ROBOT_INVULNERABLE = true;
     // ========== end TEST-ONLY ==========
 
     var PHASE_START = "start";
@@ -779,6 +779,40 @@
 
     var SKY_TILE_WIDTH = 1280;
     var skyStars = [];
+
+    var SKY_CRAFT_COUNT = 5;
+    var SKY_CRAFT_MIN_METERS = 450;
+    var SKY_CRAFT_MAX_METERS = 2000;
+    var SKY_CRAFT_FADE_METERS = 120;
+    var SKY_CRAFT_TOP_RATIO = 0.1;
+    var SKY_CRAFT_BOTTOM_RATIO = 0.46;
+    var SKY_CRAFT_MIN_SCALE = 0.35;
+    var SKY_CRAFT_MAX_SCALE = 0.6;
+    var SKY_CRAFT_MIN_ALPHA = 0.85;
+    var SKY_CRAFT_MAX_ALPHA = 0.95;
+    var SKY_CRAFT_MIN_DRIFT = 6;
+    var SKY_CRAFT_MAX_DRIFT = 18;
+    var SKY_CRAFT_SPAN_UNITS = 42;
+    var SKY_CRAFT_FILL = "#000000";
+    var SKY_CRAFT_TYPE_SHIP = 0;
+    var SKY_CRAFT_TYPE_SATELLITE = 1;
+    var SKY_CRAFT_SHIP_PATH_DATA =
+      "M-31 0 C -17 -6, 9 -7, 23 -5 C 33 -4, 39 -2, 41 0 C 39 2, 33 4, 23 5 C 9 7, -17 6, -31 0 Z" +
+      "M-31 0 L -41 -9 L -35 0 L -41 9 Z" +
+      "M-5 -5 L 3 -16 L 13 -5 Z" +
+      "M-5 5 L 3 16 L 13 5 Z";
+    var SKY_CRAFT_SATELLITE_PATH_DATA =
+      "M-36 -4 L -12 -4 L -12 4 L -36 4 Z" +
+      "M-12 -1 L -6 -1 L -6 1 L -12 1 Z" +
+      "M-6 -7 L 6 -7 L 6 7 L -6 7 Z" +
+      "M6 -1 L 12 -1 L 12 1 L 6 1 Z" +
+      "M12 -4 L 36 -4 L 36 4 L 12 4 Z" +
+      "M-1 -7 L -1 -14 L 1 -14 L 1 -7 Z" +
+      "M-4 -14 L 4 -14 L 0 -20 Z";
+    var skyCraft = [];
+    var skyCraftShipPath = null;
+    var skyCraftSatellitePath = null;
+    var skyCraftSeeded = false;
 
     var SKY_SEGMENT_METERS = 1000;
     var SKY_SPACE_STOPS = [
@@ -1472,16 +1506,17 @@
       positionLaunchLeg();
     }
 
-    function applyTestSpawnAtMeters() {
-      if (TEST_SPAWN_AT_METERS <= 0) {
-        return;
-      }
-      distanceMeters = TEST_SPAWN_AT_METERS;
-      beaconsSpawnedCount = Math.floor(distanceMeters / BEACON_INTERVAL_METERS);
-      beacons.length = 0;
-      spawnBeacons();
-      hudDistance.textContent = formatMeters(distanceMeters);
-    }
+    // TEST-ONLY
+    // function applyTestSpawnAtMeters() {
+    //   if (TEST_SPAWN_AT_METERS <= 0) {
+    //     return;
+    //   }
+    //   distanceMeters = TEST_SPAWN_AT_METERS;
+    //   beaconsSpawnedCount = Math.floor(distanceMeters / BEACON_INTERVAL_METERS);
+    //   beacons.length = 0;
+    //   spawnBeacons();
+    //   hudDistance.textContent = formatMeters(distanceMeters);
+    // }
 
     function beginPlaying() {
       forwardSpeed = LAUNCH_FORWARD_SPEED;
@@ -1494,7 +1529,7 @@
       legWorldAnchorX = worldScroll + (playerScreenX - robotPx * 0.62);
       launchLegFadeTimer = 0;
       triggerKickImpact();
-      applyTestSpawnAtMeters();
+      // TEST-ONLY: applyTestSpawnAtMeters();
       if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
         window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
       }
@@ -1680,12 +1715,13 @@
     }
 
     function applyBadLanding(impactSpeed) {
-      if (TEST_ROBOT_INVULNERABLE) {
-        playerVelocityY = -(impactSpeed * 0.32 + 180);
-        playerYOffset = 0;
-        landingLockTimer = 0.12;
-        return;
-      }
+      // TEST-ONLY
+      // if (TEST_ROBOT_INVULNERABLE) {
+      //   playerVelocityY = -(impactSpeed * 0.32 + 180);
+      //   playerYOffset = 0;
+      //   landingLockTimer = 0.12;
+      //   return;
+      // }
       if (shieldActive) {
         consumeShield();
         playerVelocityY = -(impactSpeed * 0.32 + 180);
@@ -1817,9 +1853,8 @@
         return;
       }
       if (lostLimbCount >= TOTAL_LIMBS) {
-        if (!TEST_ROBOT_INVULNERABLE) {
-          launchHead();
-        }
+        launchHead();
+        // TEST-ONLY: if (!TEST_ROBOT_INVULNERABLE) { launchHead(); }
         return;
       }
       var groundSlopeAngle = getGroundSlopeAngle(playerWorldX);
@@ -2588,6 +2623,96 @@
       }
     }
 
+    function resetSkyCraft(craft) {
+      craft.type = (Math.random() < 0.5) ? SKY_CRAFT_TYPE_SHIP : SKY_CRAFT_TYPE_SATELLITE;
+      craft.yRatio = SKY_CRAFT_TOP_RATIO + Math.random() * (SKY_CRAFT_BOTTOM_RATIO - SKY_CRAFT_TOP_RATIO);
+      craft.scale = SKY_CRAFT_MIN_SCALE + Math.random() * (SKY_CRAFT_MAX_SCALE - SKY_CRAFT_MIN_SCALE);
+      craft.alpha = SKY_CRAFT_MIN_ALPHA + Math.random() * (SKY_CRAFT_MAX_ALPHA - SKY_CRAFT_MIN_ALPHA);
+      craft.driftSpeed = SKY_CRAFT_MIN_DRIFT + Math.random() * (SKY_CRAFT_MAX_DRIFT - SKY_CRAFT_MIN_DRIFT);
+      craft.spanPx = SKY_CRAFT_SPAN_UNITS * craft.scale;
+      craft.x = width + craft.spanPx;
+    }
+
+    function initSkyCraft() {
+      skyCraftShipPath = new Path2D(SKY_CRAFT_SHIP_PATH_DATA);
+      skyCraftSatellitePath = new Path2D(SKY_CRAFT_SATELLITE_PATH_DATA);
+      skyCraft.length = 0;
+      var index;
+      for (index = 0; index < SKY_CRAFT_COUNT; index++) {
+        var craft = {
+          type: SKY_CRAFT_TYPE_SHIP,
+          x: 0,
+          yRatio: 0,
+          scale: 1,
+          alpha: 1,
+          driftSpeed: 10,
+          spanPx: 40
+        };
+        resetSkyCraft(craft);
+        skyCraft.push(craft);
+      }
+      skyCraftSeeded = false;
+    }
+
+    function updateSkyCraft(deltaSeconds) {
+      if (width <= 0) {
+        return;
+      }
+      var index;
+      var craft;
+      if (!skyCraftSeeded) {
+        for (index = 0; index < skyCraft.length; index++) {
+          craft = skyCraft[index];
+          craft.x = (index + 0.5) / skyCraft.length * width;
+        }
+        skyCraftSeeded = true;
+      }
+      for (index = 0; index < skyCraft.length; index++) {
+        craft = skyCraft[index];
+        craft.x -= craft.driftSpeed * deltaSeconds;
+        if (craft.x < -craft.spanPx) {
+          resetSkyCraft(craft);
+        }
+      }
+    }
+
+    function getSkyCraftVisibility() {
+      if (distanceMeters <= SKY_CRAFT_MIN_METERS || distanceMeters >= SKY_CRAFT_MAX_METERS) {
+        return 0;
+      }
+      var fadeIn = Math.min(1, (distanceMeters - SKY_CRAFT_MIN_METERS) / SKY_CRAFT_FADE_METERS);
+      var fadeOut = Math.min(1, (SKY_CRAFT_MAX_METERS - distanceMeters) / SKY_CRAFT_FADE_METERS);
+      return Math.min(fadeIn, fadeOut);
+    }
+
+    function drawSkyCraft() {
+      var visibility = getSkyCraftVisibility();
+      if (visibility <= 0) {
+        return;
+      }
+      var index;
+      var craft;
+      var craftPath;
+      var screenY;
+      context.save();
+      context.fillStyle = SKY_CRAFT_FILL;
+      for (index = 0; index < skyCraft.length; index++) {
+        craft = skyCraft[index];
+        if (craft.x < -craft.spanPx || craft.x > width + craft.spanPx) {
+          continue;
+        }
+        craftPath = (craft.type === SKY_CRAFT_TYPE_SHIP) ? skyCraftShipPath : skyCraftSatellitePath;
+        screenY = height * craft.yRatio;
+        context.save();
+        context.globalAlpha = craft.alpha * visibility;
+        context.translate(craft.x, screenY);
+        context.scale(craft.scale, craft.scale);
+        context.fill(craftPath);
+        context.restore();
+      }
+      context.restore();
+    }
+
     function drawStars() {
       var weights = getSkyBlendWeights();
       if (weights.space <= 0.02) {
@@ -2816,6 +2941,7 @@
       drawSky();
       drawSun();
       drawStars();
+      drawSkyCraft();
       context.save();
       var cameraPivotX = playerScreenX;
       var cameraPivotY = height * GROUND_PLAYER_Y_RATIO;
@@ -2852,6 +2978,7 @@
       var deltaSeconds = Math.min(0.05, (timestamp - lastFrameTime) / 1000);
       lastFrameTime = timestamp;
       update(deltaSeconds);
+      updateSkyCraft(deltaSeconds);
       render();
       window.requestAnimationFrame(gameLoop);
     }
@@ -2867,6 +2994,7 @@
     buildRobotColorPicker();
     loadRobotColor();
     initSkyStars();
+    initSkyCraft();
     bindLocaleListener();
     loadHighScore();
     resizeCanvas();
