@@ -6,6 +6,7 @@
         title: "Atom Clicker",
         path: "Extras/games/atom-clicker/index.html",
         image: "Extras/games/atom-clicker/atom-clicker-preview.png",
+        desktopIcon: "Extras/games/atom-clicker/atom-clicker-desktop-icon.png",
         difficulty: 1
       },
       {
@@ -13,6 +14,7 @@
         title: "Deep Collapse",
         path: "Extras/games/miner-collapse/index.html",
         image: "Extras/games/miner-collapse/miner-collapse-preview.png",
+        desktopIcon: "Extras/games/miner-collapse/miner-collapse-desktop-icon.png",
         difficulty: 2
       },
       {
@@ -20,6 +22,7 @@
         title: "Citrus Slice",
         path: "Extras/games/citrus-slice/index.html",
         image: "Extras/games/citrus-slice/citrus-slice-preview.png",
+        desktopIcon: "Extras/games/citrus-slice/citrus-slice-desktop-icon.png",
         difficulty: 2
       },
       {
@@ -27,6 +30,7 @@
         title: "Last Run",
         path: "Extras/games/last-run/index.html",
         image: "Extras/games/last-run/last-run-preview.png",
+        desktopIcon: "Extras/games/last-run/last-run-desktop-icon.png",
         difficulty: 3
       },
       {
@@ -34,6 +38,7 @@
         title: "Orbital Golf",
         path: "Extras/games/blackhole-golf/index.html",
         image: "Extras/games/blackhole-golf/blackhole-golf-preview.png",
+        desktopIcon: "Extras/games/blackhole-golf/blackhole-golf-desktop-icon.png",
         difficulty: 4
       },
       {
@@ -41,6 +46,7 @@
         title: "Trouble Drivers",
         path: "Extras/games/crystal-rush/index.html",
         image: "Extras/games/crystal-rush/crystal-rush-preview.png",
+        desktopIcon: "Extras/games/crystal-rush/crystal-rush-desktop-icon.png",
         difficulty: 5,
         inputMode: "movement"
       },
@@ -49,6 +55,7 @@
         title: "Sector Vector",
         path: "Extras/games/sector-vector/index.html",
         image: "Extras/games/sector-vector/sector-vector-preview.png",
+        desktopIcon: "Extras/games/sector-vector/sector-vector-desktop-icon.png",
         difficulty: 5,
         inputMode: "movement"
       },
@@ -57,6 +64,7 @@
         title: "Playing Cards",
         path: "Extras/games/playing-cards/index.html",
         image: "Extras/games/playing-cards/playing-cards-preview.png",
+        desktopIcon: "Extras/games/playing-cards/playing-cards-desktop-icon.png",
         difficulty: 0
       },
       {
@@ -64,6 +72,7 @@
         title: "Calculator",
         path: "Extras/games/calculator/index.html",
         image: "Extras/games/calculator/calculator-preview.png",
+        desktopIcon: "Extras/games/calculator/calculator-desktop-icon.png",
         difficulty: 0
       },
     ],

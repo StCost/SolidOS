@@ -249,6 +249,10 @@
   cursor: var(--cursor-forbidden);
 }
 
+.os-desktop-icon--game-shortcut .os-app-icon--game-shortcut {
+  object-fit: cover;
+}
+
 .os-desktop-icon--disabled .os-app-icon {
   filter: saturate(0.22) brightness(0.92) var(--desktop-icon-img-filter);
   opacity: 0.62;
