@@ -65,6 +65,7 @@
       top: 0;
       width: 80px;
       height: 110px;
+      overflow: visible;
       pointer-events: none;
       z-index: 6;
     }
@@ -79,11 +80,8 @@
       width: 100%;
       height: 100%;
       display: block;
+      overflow: visible;
       filter: drop-shadow(0 3px 8px rgba(255, 140, 50, 0.35));
-    }
-
-    #robotWrap.is-reversing #robotSvg {
-      filter: drop-shadow(0 0 12px rgba(120, 200, 255, 0.85)) drop-shadow(0 3px 8px rgba(255, 140, 50, 0.35));
     }
 
     #robotWrap.is-dead #robotSvg {
@@ -101,6 +99,15 @@
 
     #robotWrap.is-headless #robotSvg {
       filter: drop-shadow(0 0 10px rgba(255, 120, 60, 0.85)) drop-shadow(0 3px 8px rgba(255, 140, 50, 0.4));
+    }
+
+    #robotWrap.is-shielded #robotSvg {
+      animation: shield-pulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes shield-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.88; }
     }
 
     #robotFlame {
@@ -272,6 +279,7 @@
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
+      padding-bottom: 26vh;
       pointer-events: none;
       background: rgba(6, 9, 20, 0.4);
     }
@@ -430,7 +438,7 @@
     </div>
     <div id="robotWrap" aria-hidden="true">
       <div id="robotSpin">
-        <svg id="robotSvg" viewBox="0 0 80 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <svg id="robotSvg" viewBox="-24 -28 128 164" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <g id="robotFlame">
             <path d="M30 96 Q40 132 50 96 Q40 108 30 96 Z" fill="#ffd24a" />
             <path d="M34 96 Q40 120 46 96 Q40 106 34 96 Z" fill="#ff7a1e" />
@@ -538,6 +546,10 @@
     var BEACON_FADE_SECONDS = 0.6;
     var SPARK_DEFAULT_HUE = 20;
     var SPARK_BEACON_HUE = 30;
+    var SPARK_SHIELD_HUE = 52;
+    var SHIELD_OUTLINE_INNER_ALPHA = 0.82;
+    var SHIELD_OUTLINE_MID_ALPHA = 0.52;
+    var SHIELD_OUTLINE_OUTER_ALPHA = 0.28;
 
     var canvas = document.getElementById("gameCanvas");
     var context = canvas.getContext("2d");
@@ -629,6 +641,12 @@
     var currentRobotColorScheme = ROBOT_COLOR_SCHEMES[0];
     var robotColorOptionElements = [];
 
+    var COLOR_PICKER_HOVER_AUDIO_PATH = "../../../../audio/ui-hover.wav";
+    var COLOR_PICKER_CLICK_AUDIO_PATH = "../../../../audio/ui-click.wav";
+    var colorPickerHoverAudio = null;
+    var colorPickerClickAudio = null;
+    var colorPickerSoundsUnlocked = false;
+
     var limbElements = {};
     var partPipElements = [];
 
@@ -637,6 +655,16 @@
     var devicePixelRatioScale = 1;
 
     var robotPx = 92;
+    var ROBOT_VIEW_WIDTH = 80;
+    var ROBOT_VIEW_HEIGHT = 110;
+    var ROBOT_VIEW_PAD_LEFT = 24;
+    var ROBOT_VIEW_PAD_TOP = 28;
+    var ROBOT_VIEW_PAD_RIGHT = 24;
+    var ROBOT_VIEW_PAD_BOTTOM = 26;
+    var ROBOT_CANVAS_WIDTH = ROBOT_VIEW_WIDTH + ROBOT_VIEW_PAD_LEFT + ROBOT_VIEW_PAD_RIGHT;
+    var ROBOT_CANVAS_HEIGHT = ROBOT_VIEW_HEIGHT + ROBOT_VIEW_PAD_TOP + ROBOT_VIEW_PAD_BOTTOM;
+    var ROBOT_BODY_CENTER_X = ROBOT_VIEW_WIDTH * 0.5;
+    var ROBOT_BODY_CENTER_Y = ROBOT_VIEW_HEIGHT * 0.5;
     var footReachRatio = 0.4;
     var footReach = robotPx * footReachRatio;
     var playerScreenX = 0;
@@ -670,6 +698,32 @@
 
     var robotAngle = 0;
     var robotAngularVelocity = 0;
+    var robotPassiveSpinAccumulated = 0;
+    var robotGlowStrength = 0;
+    var GLOW_START_RADIANS = 270 * Math.PI / 180;
+    var GLOW_MAX_ROTATIONS = 2;
+    var GLOW_LERP_RATE = 4.2;
+    var GLOW_ALIGN_MULTIPLIER = 0.22;
+    var ROBOT_SHADOW_FILTER = "drop-shadow(0 3px 8px rgba(255, 140, 50, 0.35))";
+    var OFFSCREEN_INDICATOR_MARGIN = 8;
+    var OFFSCREEN_INDICATOR_EDGE_PADDING = 20;
+    var OFFSCREEN_INDICATOR_TOP_Y = 16;
+    var OFFSCREEN_ARROW_LENGTH = 11;
+    var OFFSCREEN_ARROW_WIDTH = 8;
+    var ARM_SHOULDER_LEFT_X = 15.5;
+    var ARM_SHOULDER_LEFT_Y = 40;
+    var ARM_SHOULDER_RIGHT_X = 64.5;
+    var ARM_SHOULDER_RIGHT_Y = 40;
+    var ARM_LIFT_ANGLE = 74;
+    var ARM_TUCK_ANGLE = 40;
+    var ARM_INWARD_LIMIT = 6;
+    var ARM_VELOCITY_REFERENCE = 520;
+    var ARM_SWAY_SPEED = 5.4;
+    var ARM_SWAY_AMOUNT = 4.5;
+    var ARM_ANGLE_LERP_RATE = 12;
+    var armLeftAngle = 0;
+    var armRightAngle = 0;
+    var armSwayPhase = 0;
     var baseSpinRate = 0.45;
     var SPIN_SPEED_FACTOR = 0.009;
     var spinBonus = 0;
@@ -691,6 +745,7 @@
 
     var lostLimbCount = 0;
     var currentLimbDamage = 0;
+    var shieldActive = false;
     var headDetached = false;
     var headLaunchBeaconBonus = 0;
     var beacons = [];
@@ -875,9 +930,83 @@
       }
     }
 
+    function getColorPickerInterfaceVolume() {
+      var volumeBridge = null;
+      if (window.parent && window.parent.WebMenuAudioVolume) {
+        volumeBridge = window.parent.WebMenuAudioVolume;
+      } else if (window.WebMenuAudioVolume) {
+        volumeBridge = window.WebMenuAudioVolume;
+      }
+      if (volumeBridge && volumeBridge.getInterfaceOutputVolume) {
+        return volumeBridge.getInterfaceOutputVolume();
+      }
+      return 0.5;
+    }
+
+    function ensureColorPickerHoverAudio() {
+      if (colorPickerHoverAudio) {
+        return colorPickerHoverAudio;
+      }
+      colorPickerHoverAudio = new Audio(COLOR_PICKER_HOVER_AUDIO_PATH);
+      colorPickerHoverAudio.preload = "auto";
+      return colorPickerHoverAudio;
+    }
+
+    function ensureColorPickerClickAudio() {
+      if (colorPickerClickAudio) {
+        return colorPickerClickAudio;
+      }
+      colorPickerClickAudio = new Audio(COLOR_PICKER_CLICK_AUDIO_PATH);
+      colorPickerClickAudio.preload = "auto";
+      return colorPickerClickAudio;
+    }
+
+    function unlockColorPickerSounds() {
+      if (colorPickerSoundsUnlocked) {
+        return;
+      }
+      colorPickerSoundsUnlocked = true;
+      var hoverAudio = ensureColorPickerHoverAudio();
+      hoverAudio.volume = 0;
+      var playPromise = hoverAudio.play();
+      if (playPromise && playPromise.then) {
+        playPromise.then(function () {
+          hoverAudio.pause();
+          hoverAudio.currentTime = 0;
+        }).catch(function () {});
+      }
+    }
+
+    function playColorPickerSound(audioElement) {
+      if (!colorPickerSoundsUnlocked || !audioElement) {
+        return;
+      }
+      audioElement.volume = getColorPickerInterfaceVolume();
+      audioElement.currentTime = 0;
+      var playPromise = audioElement.play();
+      if (playPromise && playPromise.catch) {
+        playPromise.catch(function () {});
+      }
+    }
+
+    function playColorPickerHoverSound() {
+      unlockColorPickerSounds();
+      playColorPickerSound(ensureColorPickerHoverAudio());
+    }
+
+    function playColorPickerClickSound() {
+      unlockColorPickerSounds();
+      playColorPickerSound(ensureColorPickerClickAudio());
+    }
+
+    function onRobotColorOptionPointerEnter() {
+      playColorPickerHoverSound();
+    }
+
     function onRobotColorOptionPointerDown(event) {
       event.preventDefault();
       event.stopPropagation();
+      playColorPickerClickSound();
       var schemeId = event.currentTarget.getAttribute("data-color-id");
       if (schemeId && schemeId !== currentRobotColorScheme.id) {
         setRobotColor(schemeId);
@@ -898,6 +1027,7 @@
         button.setAttribute("data-color-id", scheme.id);
         button.setAttribute("aria-pressed", "false");
         button.innerHTML = getMiniRobotSvgMarkup(scheme);
+        button.addEventListener("pointerenter", onRobotColorOptionPointerEnter);
         button.addEventListener("pointerdown", onRobotColorOptionPointerDown);
         robotColorPicker.appendChild(button);
         robotColorOptionElements.push(button);
@@ -1051,6 +1181,26 @@
       syncPartPips();
     }
 
+    function getRobotUnitScale() {
+      return robotPx / ROBOT_VIEW_HEIGHT;
+    }
+
+    function getRobotWrapWidth() {
+      return ROBOT_CANVAS_WIDTH * getRobotUnitScale();
+    }
+
+    function getRobotWrapHeight() {
+      return ROBOT_CANVAS_HEIGHT * getRobotUnitScale();
+    }
+
+    function getRobotBodyCenterOffsetX() {
+      return (ROBOT_BODY_CENTER_X + ROBOT_VIEW_PAD_LEFT) * getRobotUnitScale();
+    }
+
+    function getRobotBodyCenterOffsetY() {
+      return (ROBOT_BODY_CENTER_Y + ROBOT_VIEW_PAD_TOP) * getRobotUnitScale();
+    }
+
     function resizeCanvas() {
       var rect = canvas.getBoundingClientRect();
       width = Math.max(320, Math.floor(rect.width));
@@ -1061,8 +1211,8 @@
       context.setTransform(devicePixelRatioScale, 0, 0, devicePixelRatioScale, 0, 0);
       robotPx = Math.max(64, Math.min(140, Math.min(width, height) * 0.16));
       footReach = robotPx * footReachRatio;
-      robotWrap.style.width = (robotPx * 80 / 110) + "px";
-      robotWrap.style.height = robotPx + "px";
+      robotWrap.style.width = getRobotWrapWidth() + "px";
+      robotWrap.style.height = getRobotWrapHeight() + "px";
       playerScreenX = width * 0.32;
       playerWorldX = worldScroll + playerScreenX;
       if (isStart() || isLaunch()) {
@@ -1160,6 +1310,7 @@
       hudPlaying.classList.add("hidden");
       lostLimbCount = 0;
       currentLimbDamage = 0;
+      shieldActive = false;
       headDetached = false;
       beacons.length = 0;
       beaconsSpawnedCount = 0;
@@ -1168,6 +1319,7 @@
       headLaunchBeaconBonus = 0;
       robotAngle = 0;
       robotAngularVelocity = 0;
+      resetRobotGlow();
       worldScroll = 0;
       forwardSpeed = 0;
       playerYOffset = 0;
@@ -1178,11 +1330,12 @@
       legCurrentAngle = LEG_REST_ANGLE;
       launchLegFadeTimer = -1;
       showAllLimbs();
+      resetRobotArms();
       syncPartPips();
       robotWrap.classList.remove("is-dead");
       robotWrap.classList.remove("is-thrusting");
-      robotWrap.classList.remove("is-reversing");
       robotWrap.classList.remove("is-headless");
+      robotWrap.classList.remove("is-shielded");
       hideCountdown();
       launchLeg.style.opacity = "";
       launchLeg.classList.add("is-visible");
@@ -1251,6 +1404,7 @@
       distanceMeters = 0;
       lostLimbCount = 0;
       currentLimbDamage = 0;
+      shieldActive = false;
       headDetached = false;
       beacons.length = 0;
       beaconsSpawnedCount = 0;
@@ -1265,6 +1419,8 @@
       cameraScale = 1;
       robotAngle = 0;
       robotAngularVelocity = 0;
+      resetRobotGlow();
+      resetRobotArms();
       debrisParticles.length = 0;
       sparkParticles.length = 0;
       exhaustParticles.length = 0;
@@ -1283,8 +1439,8 @@
       setSpeedHud();
       robotWrap.classList.remove("is-dead");
       robotWrap.classList.remove("is-thrusting");
-      robotWrap.classList.remove("is-reversing");
       robotWrap.classList.remove("is-headless");
+      robotWrap.classList.remove("is-shielded");
     }
 
     function startLaunch() {
@@ -1345,7 +1501,6 @@
         robotWrap.classList.add("is-dead");
       }
       robotWrap.classList.remove("is-thrusting");
-      robotWrap.classList.remove("is-reversing");
       launchLeg.classList.remove("is-visible");
       launchLegFadeTimer = -1;
       hideCountdown();
@@ -1369,12 +1524,12 @@
     }
 
     function getLimbWorldAnchor(localX, localY) {
-      var spinW = robotPx * 80 / 110;
+      var spinW = robotPx * ROBOT_VIEW_WIDTH / ROBOT_VIEW_HEIGHT;
       var spinH = robotPx;
       var centerX = playerScreenX;
       var centerY = getPlayerGroundY() + playerYOffset - footReach;
-      var normalizedX = (localX / 80 - 0.5) * spinW;
-      var normalizedY = (localY / 110 - 0.5) * spinH;
+      var normalizedX = (localX / ROBOT_VIEW_WIDTH - 0.5) * spinW;
+      var normalizedY = (localY / ROBOT_VIEW_HEIGHT - 0.5) * spinH;
       var cos = Math.cos(robotAngle);
       var sin = Math.sin(robotAngle);
       return {
@@ -1485,7 +1640,33 @@
       spawnSparks(playerScreenX, getPlayerGroundY() + playerYOffset, isPerfect ? 10 : 5);
     }
 
+    function setShieldActive(active) {
+      shieldActive = active;
+      if (active) {
+        robotWrap.classList.add("is-shielded");
+      } else {
+        robotWrap.classList.remove("is-shielded");
+      }
+      updateRobotGlowFilter();
+    }
+
+    function consumeShield() {
+      if (!shieldActive) {
+        return false;
+      }
+      setShieldActive(false);
+      spawnSparks(playerScreenX, getPlayerGroundY() + playerYOffset - footReach, 10, SPARK_SHIELD_HUE);
+      return true;
+    }
+
     function applyBadLanding(impactSpeed) {
+      if (shieldActive) {
+        consumeShield();
+        playerVelocityY = -(impactSpeed * 0.32 + 180);
+        playerYOffset = 0;
+        landingLockTimer = 0.12;
+        return;
+      }
       comboCount = 0;
       setComboHud();
       forwardSpeed = Math.max(FORWARD_SPEED_MIN, forwardSpeed * 0.58);
@@ -1511,8 +1692,10 @@
 
     function launchHead() {
       headDetached = true;
+      setShieldActive(false);
       robotWrap.classList.add("is-headless");
       robotWrap.classList.remove("is-thrusting");
+      resetRobotGlow();
       var facingX = Math.sin(robotAngle);
       var facingY = -Math.cos(robotAngle);
       var headLaunchSpeed = HEAD_LAUNCH_SPEED + headLaunchBeaconBonus;
@@ -1620,15 +1803,146 @@
       }
     }
 
+    function resetRobotGlow() {
+      robotPassiveSpinAccumulated = 0;
+      robotGlowStrength = 0;
+      robotSvg.style.filter = "";
+    }
+
+    function getRobotGlowTargetStrength() {
+      if (headDetached || !isPlaying()) {
+        return 0;
+      }
+      var spinBeyondStart = robotPassiveSpinAccumulated - GLOW_START_RADIANS;
+      if (spinBeyondStart <= 0) {
+        return 0;
+      }
+      var extraRotations = spinBeyondStart / TWO_PI;
+      var targetStrength = extraRotations / GLOW_MAX_ROTATIONS;
+      if (targetStrength > 1) {
+        targetStrength = 1;
+      }
+      if (pointerHeld) {
+        targetStrength *= GLOW_ALIGN_MULTIPLIER;
+      }
+      return targetStrength;
+    }
+
+    function updateRobotGlowStrength(deltaSeconds) {
+      var targetStrength = getRobotGlowTargetStrength();
+      var lerpFactor = deltaSeconds * GLOW_LERP_RATE;
+      if (lerpFactor > 1) {
+        lerpFactor = 1;
+      }
+      robotGlowStrength += (targetStrength - robotGlowStrength) * lerpFactor;
+    }
+
+    function getShieldOutlineFilter() {
+      if (!shieldActive) {
+        return "";
+      }
+      return "drop-shadow(0 0 2px rgba(255, 255, 255, " + SHIELD_OUTLINE_INNER_ALPHA + ")) drop-shadow(0 0 5px rgba(255, 255, 255, " + SHIELD_OUTLINE_MID_ALPHA + ")) drop-shadow(0 0 10px rgba(255, 255, 255, " + SHIELD_OUTLINE_OUTER_ALPHA + ")) ";
+    }
+
+    function getRobotGlowFilter() {
+      var shieldFilter = getShieldOutlineFilter();
+      if (robotGlowStrength <= 0.001) {
+        return shieldFilter + ROBOT_SHADOW_FILTER;
+      }
+      var innerBlur = 4 + robotGlowStrength * 18;
+      var outerBlur = 10 + robotGlowStrength * 30;
+      var innerAlpha = robotGlowStrength * 0.82;
+      var outerAlpha = robotGlowStrength * 0.44;
+      return shieldFilter + "drop-shadow(0 0 " + innerBlur.toFixed(1) + "px rgba(148, 72, 255, " + innerAlpha.toFixed(3) + ")) drop-shadow(0 0 " + outerBlur.toFixed(1) + "px rgba(120, 50, 220, " + outerAlpha.toFixed(3) + ")) " + ROBOT_SHADOW_FILTER;
+    }
+
+    function updateRobotGlowFilter() {
+      if (robotWrap.classList.contains("is-dead") || robotWrap.classList.contains("is-headless")) {
+        robotSvg.style.filter = "";
+        return;
+      }
+      if (!isPlaying()) {
+        robotSvg.style.filter = "";
+        return;
+      }
+      robotSvg.style.filter = getRobotGlowFilter();
+    }
+
     function updateRobotSpin(deltaSeconds) {
+      var spinDelta;
       if (pointerHeld) {
         robotAngularVelocity = -getReverseSpinRate();
-        robotWrap.classList.add("is-reversing");
+        spinDelta = Math.abs(robotAngularVelocity * deltaSeconds);
+        robotPassiveSpinAccumulated -= spinDelta;
+        if (robotPassiveSpinAccumulated < 0) {
+          robotPassiveSpinAccumulated = 0;
+        }
       } else {
         robotAngularVelocity = getForwardSpinRate();
-        robotWrap.classList.remove("is-reversing");
+        if (!headDetached) {
+          spinDelta = Math.abs(robotAngularVelocity * deltaSeconds);
+          robotPassiveSpinAccumulated += spinDelta;
+        }
       }
       robotAngle += robotAngularVelocity * deltaSeconds;
+      updateRobotGlowStrength(deltaSeconds);
+    }
+
+    function setRobotArmRotation(armElement, angleDegrees, pivotX, pivotY) {
+      armElement.setAttribute("transform", "rotate(" + angleDegrees + " " + pivotX + " " + pivotY + ")");
+    }
+
+    function resetRobotArms() {
+      armLeftAngle = 0;
+      armRightAngle = 0;
+      armSwayPhase = 0;
+      if (!limbElements.robotArmLeft.classList.contains("is-lost")) {
+        setRobotArmRotation(limbElements.robotArmLeft, 0, ARM_SHOULDER_LEFT_X, ARM_SHOULDER_LEFT_Y);
+      }
+      if (!limbElements.robotArmRight.classList.contains("is-lost")) {
+        setRobotArmRotation(limbElements.robotArmRight, 0, ARM_SHOULDER_RIGHT_X, ARM_SHOULDER_RIGHT_Y);
+      }
+    }
+
+    function clampArmAngle(angle, minAngle, maxAngle) {
+      if (angle < minAngle) {
+        return minAngle;
+      }
+      if (angle > maxAngle) {
+        return maxAngle;
+      }
+      return angle;
+    }
+
+    function updateRobotArms(deltaSeconds) {
+      var fallBlend = 0;
+      var riseBlend = 0;
+      if (playerVelocityY > 30) {
+        fallBlend = Math.min(1, playerVelocityY / ARM_VELOCITY_REFERENCE);
+      } else if (playerVelocityY < -30) {
+        riseBlend = Math.min(1, -playerVelocityY / (ARM_VELOCITY_REFERENCE * 0.78));
+      }
+
+      var targetLeft = fallBlend * ARM_LIFT_ANGLE + riseBlend * ARM_TUCK_ANGLE;
+      var targetRight = fallBlend * (-ARM_LIFT_ANGLE) + riseBlend * (-ARM_TUCK_ANGLE);
+
+      armSwayPhase += deltaSeconds * ARM_SWAY_SPEED;
+      var motionBlend = 0.28 + fallBlend * 0.62 + riseBlend * 0.5;
+      var swayLeft = Math.sin(armSwayPhase) * ARM_SWAY_AMOUNT * motionBlend;
+      var swayRight = Math.sin(armSwayPhase + 2.15) * ARM_SWAY_AMOUNT * motionBlend;
+
+      var lerpFactor = Math.min(1, deltaSeconds * ARM_ANGLE_LERP_RATE);
+      armLeftAngle += (targetLeft + swayLeft - armLeftAngle) * lerpFactor;
+      armRightAngle += (targetRight + swayRight - armRightAngle) * lerpFactor;
+      armLeftAngle = clampArmAngle(armLeftAngle, -ARM_INWARD_LIMIT, ARM_LIFT_ANGLE);
+      armRightAngle = clampArmAngle(armRightAngle, -ARM_LIFT_ANGLE, ARM_INWARD_LIMIT);
+
+      if (!limbElements.robotArmLeft.classList.contains("is-lost")) {
+        setRobotArmRotation(limbElements.robotArmLeft, armLeftAngle, ARM_SHOULDER_LEFT_X, ARM_SHOULDER_LEFT_Y);
+      }
+      if (!limbElements.robotArmRight.classList.contains("is-lost")) {
+        setRobotArmRotation(limbElements.robotArmRight, armRightAngle, ARM_SHOULDER_RIGHT_X, ARM_SHOULDER_RIGHT_Y);
+      }
     }
 
     function updateCamera(deltaSeconds) {
@@ -1694,8 +2008,11 @@
         lostLimbCount -= 1;
         limbElements[LIMB_LOSS_ORDER[lostLimbCount]].classList.remove("is-lost");
         syncPartPips();
+        spawnSparks(playerScreenX, getPlayerGroundY() + playerYOffset - footReach, 14, SPARK_BEACON_HUE);
+        return;
       }
-      spawnSparks(playerScreenX, getPlayerGroundY() + playerYOffset - footReach, 14, SPARK_BEACON_HUE);
+      setShieldActive(true);
+      spawnSparks(playerScreenX, getPlayerGroundY() + playerYOffset - footReach, 16, SPARK_SHIELD_HUE);
     }
 
     function updateBeacons(deltaSeconds) {
@@ -1881,6 +2198,7 @@
           beginPlaying();
         }
       }
+      updateRobotArms(deltaSeconds);
       updateDustParticles(deltaSeconds);
       positionRobotDom();
       positionLaunchLeg();
@@ -1903,6 +2221,7 @@
     }
 
     function updateStart(deltaSeconds) {
+      updateRobotArms(deltaSeconds);
       updateDustParticles(deltaSeconds);
       positionRobotDom();
       positionLaunchLeg();
@@ -1911,6 +2230,8 @@
     function updateGameOver(deltaSeconds) {
       if (headDetached) {
         updateHeadGameOverWorld(deltaSeconds);
+      } else {
+        updateRobotArms(deltaSeconds);
       }
       updateExhaust(deltaSeconds);
       updateDustParticles(deltaSeconds);
@@ -1956,6 +2277,7 @@
 
       updateRobotSpin(deltaSeconds);
       updatePhysics(deltaSeconds);
+      updateRobotArms(deltaSeconds);
       updateCamera(deltaSeconds);
       spawnBeacons();
       updateBeacons(deltaSeconds);
@@ -1973,14 +2295,89 @@
       positionRobotDom();
     }
 
-    function positionRobotDom() {
+    function getRobotScreenCenter() {
       var pivotY = height * GROUND_PLAYER_Y_RATIO;
       var groundY = getPlayerGroundY();
       var naturalCenterY = groundY + playerYOffset - footReach;
       var scaledCenterY = pivotY + (naturalCenterY - pivotY) * cameraScale;
-      var spinW = robotPx * 80 / 110;
-      var left = playerScreenX - spinW * 0.5;
-      var top = scaledCenterY - robotPx * 0.5;
+      return {
+        x: playerScreenX,
+        y: scaledCenterY
+      };
+    }
+
+    function getRobotScreenBounds() {
+      var center = getRobotScreenCenter();
+      var halfWidth = getRobotWrapWidth() * cameraScale * 0.5;
+      var halfHeight = getRobotWrapHeight() * cameraScale * 0.5;
+      return {
+        left: center.x - halfWidth,
+        right: center.x + halfWidth,
+        top: center.y - halfHeight,
+        bottom: center.y + halfHeight,
+        centerX: center.x,
+        centerY: center.y
+      };
+    }
+
+    function isRobotOffScreen() {
+      var bounds = getRobotScreenBounds();
+      return bounds.left < -OFFSCREEN_INDICATOR_MARGIN ||
+        bounds.right > width + OFFSCREEN_INDICATOR_MARGIN ||
+        bounds.top < -OFFSCREEN_INDICATOR_MARGIN ||
+        bounds.bottom > height + OFFSCREEN_INDICATOR_MARGIN;
+    }
+
+    function shouldShowOffScreenRobotIndicator() {
+      if (isPlaying()) {
+        return true;
+      }
+      if (isGameOver() && headDetached) {
+        return true;
+      }
+      return false;
+    }
+
+    function drawOffScreenRobotIndicator() {
+      if (!shouldShowOffScreenRobotIndicator() || !isRobotOffScreen()) {
+        return;
+      }
+      var bounds = getRobotScreenBounds();
+      var indicatorX = bounds.centerX;
+      if (indicatorX < OFFSCREEN_INDICATOR_EDGE_PADDING) {
+        indicatorX = OFFSCREEN_INDICATOR_EDGE_PADDING;
+      } else if (indicatorX > width - OFFSCREEN_INDICATOR_EDGE_PADDING) {
+        indicatorX = width - OFFSCREEN_INDICATOR_EDGE_PADDING;
+      }
+      var indicatorY = OFFSCREEN_INDICATOR_TOP_Y;
+      var deltaX = bounds.centerX - indicatorX;
+      var deltaY = bounds.centerY - indicatorY;
+      var angle = Math.atan2(deltaY, deltaX);
+      var arrowLength = OFFSCREEN_ARROW_LENGTH;
+      var arrowWidth = OFFSCREEN_ARROW_WIDTH;
+      context.save();
+      context.translate(indicatorX, indicatorY);
+      context.rotate(angle);
+      context.shadowColor = "rgba(255, 140, 50, 0.75)";
+      context.shadowBlur = 8;
+      context.fillStyle = "rgba(255, 122, 30, 0.95)";
+      context.strokeStyle = "rgba(255, 210, 120, 0.9)";
+      context.lineWidth = 1.5;
+      context.beginPath();
+      context.moveTo(arrowLength, 0);
+      context.lineTo(-arrowLength * 0.55, arrowWidth * 0.5);
+      context.lineTo(-arrowLength * 0.25, 0);
+      context.lineTo(-arrowLength * 0.55, -arrowWidth * 0.5);
+      context.closePath();
+      context.fill();
+      context.stroke();
+      context.restore();
+    }
+
+    function positionRobotDom() {
+      var center = getRobotScreenCenter();
+      var left = center.x - getRobotBodyCenterOffsetX();
+      var top = center.y - getRobotBodyCenterOffsetY();
       robotWrap.style.left = left + "px";
       robotWrap.style.top = top + "px";
       if (cameraScale === 1) {
@@ -1989,6 +2386,7 @@
         robotWrap.style.transform = "scale(" + cameraScale + ")";
       }
       robotSpin.style.transform = "rotate(" + robotAngle + "rad)";
+      updateRobotGlowFilter();
     }
 
     function getScreenShakeOffset() {
@@ -2409,6 +2807,7 @@
       drawDebris();
       drawSparks();
       context.restore();
+      drawOffScreenRobotIndicator();
       context.restore();
       positionRobotDom();
     }
