@@ -1,28 +1,8 @@
 (function () {
-  var EVENT_KEY = "cm-game-key";
-  var boundFlag = "__cmIframeGameInputBound";
-  var INPUT_MODE_MOVEMENT = "movement";
-  var INPUT_MODE_CURSOR = "cursor";
   var POINTER_ID = 4242;
   var CURSOR_STEP = 28;
   var NAVIGATE_MIN_DOT = 0.05;
-
-  var KEY_TO_CODE = {
-    w: "KeyW",
-    W: "KeyW",
-    a: "KeyA",
-    A: "KeyA",
-    s: "KeyS",
-    S: "KeyS",
-    d: "KeyD",
-    D: "KeyD",
-    ArrowUp: "ArrowUp",
-    ArrowDown: "ArrowDown",
-    ArrowLeft: "ArrowLeft",
-    ArrowRight: "ArrowRight"
-  };
-
-  var inputMode = INPUT_MODE_CURSOR;
+  var boundFlag = "__cmMenuFocusInputBound";
   var cursorX = 0;
   var cursorY = 0;
   var cursorReady = false;
@@ -32,74 +12,6 @@
     return;
   }
   window[boundFlag] = true;
-
-  function getCodeFromKey(key) {
-    if (!key) {
-      return "";
-    }
-    if (Object.prototype.hasOwnProperty.call(KEY_TO_CODE, key)) {
-      return KEY_TO_CODE[key];
-    }
-    if (key.length === 1) {
-      var upper = key.toUpperCase();
-      if (upper >= "A" && upper <= "Z") {
-        return "Key" + upper;
-      }
-    }
-    return "";
-  }
-
-  function dispatchForwardedKey(payload) {
-    if (inputMode !== INPUT_MODE_MOVEMENT) {
-      return;
-    }
-    var code;
-    var key;
-    var eventInit;
-    var event;
-    if (!payload || !payload.type) {
-      return;
-    }
-    code = payload.code || "";
-    key = payload.key || "";
-    if (!code) {
-      code = getCodeFromKey(key);
-    }
-    if (!key && code.indexOf("Key") === 0 && code.length === 4) {
-      key = code.charAt(3).toLowerCase();
-    }
-    if (!code && !key) {
-      return;
-    }
-    eventInit = {
-      code: code,
-      key: key,
-      repeat: !!payload.repeat,
-      bubbles: true,
-      cancelable: true
-    };
-    event = new KeyboardEvent(payload.type, eventInit);
-    window.dispatchEvent(event);
-    document.dispatchEvent(event);
-  }
-
-  function onMessage(event) {
-    if (!event || !event.data || event.data.eventName !== EVENT_KEY) {
-      return;
-    }
-    dispatchForwardedKey(event.data);
-  }
-
-  window.addEventListener("message", onMessage);
-
-  function setInputMode(mode) {
-    if (mode === INPUT_MODE_MOVEMENT) {
-      inputMode = INPUT_MODE_MOVEMENT;
-      return;
-    }
-    inputMode = INPUT_MODE_CURSOR;
-    ensureCursorPosition();
-  }
 
   function ensureCursorPosition() {
     var width = window.innerWidth || document.documentElement.clientWidth || 0;
@@ -145,9 +57,21 @@
       return true;
     }
     if (element.classList) {
-      if (element.classList.contains("calc-key") || element.classList.contains("click-tap")) {
+      if (
+        element.classList.contains("term-row") ||
+        element.classList.contains("term-title") ||
+        element.classList.contains("settings-tab") ||
+        element.classList.contains("settings-option-btn") ||
+        element.classList.contains("settings-step") ||
+        element.classList.contains("worlds-entry") ||
+        element.classList.contains("calc-key") ||
+        element.classList.contains("click-tap")
+      ) {
         return true;
       }
+    }
+    if (element.getAttribute && element.getAttribute("role") === "button") {
+      return true;
     }
     tabIndex = element.getAttribute ? element.getAttribute("tabindex") : null;
     if (tabIndex !== null && tabIndex !== "-1") {
@@ -161,7 +85,7 @@
 
   function collectFocusableElements() {
     var nodes = document.querySelectorAll(
-      "button, a[href], input, textarea, select, canvas, .calc-key, .click-tap, .menu-v-scrollbar-thumb, .worlds-list-scrollbar-thumb, [tabindex]"
+      "button, a[href], input, textarea, select, canvas, .term-row, .term-title, .settings-tab, .settings-option-btn, .settings-step, .worlds-entry, .calc-key, .click-tap, .menu-v-scrollbar-thumb, .worlds-list-scrollbar-thumb, [role='button'], [tabindex]"
     );
     var results = [];
     var index;
@@ -223,7 +147,19 @@
     cursorReady = true;
   }
 
-  function navigateFocus(dirX, dirY) {
+  function getTargetAtCursor() {
+    ensureCursorPosition();
+    return document.elementFromPoint(cursorX, cursorY) || document.body;
+  }
+
+  function moveVirtualCursor(deltaX, deltaY) {
+    ensureCursorPosition();
+    cursorX += deltaX;
+    cursorY += deltaY;
+    ensureCursorPosition();
+  }
+
+  function navigate(dirX, dirY) {
     var direction;
     var origin;
     var focusables;
@@ -236,9 +172,6 @@
     var dot;
     var distance;
     var scrollContainer;
-    if (inputMode !== INPUT_MODE_CURSOR) {
-      return false;
-    }
     direction = normalizeDirection(dirX, dirY);
     if (direction.x === 0 && direction.y === 0) {
       return false;
@@ -267,7 +200,6 @@
     if (bestElement) {
       focusElement(bestElement);
       setCursorToCenter(bestElement);
-      syncPointerDragAt(cursorX, cursorY);
       return true;
     }
     if (direction.y !== 0 && window.WebScrollbarCursor) {
@@ -280,15 +212,7 @@
       }
     }
     moveVirtualCursor(direction.x * CURSOR_STEP, direction.y * CURSOR_STEP);
-    syncPointerDragAt(cursorX, cursorY);
     return false;
-  }
-
-  function moveVirtualCursor(deltaX, deltaY) {
-    ensureCursorPosition();
-    cursorX += deltaX;
-    cursorY += deltaY;
-    ensureCursorPosition();
   }
 
   function buildPointerInit(clientX, clientY) {
@@ -317,29 +241,6 @@
     };
   }
 
-  function getTargetAtCursor() {
-    ensureCursorPosition();
-    return document.elementFromPoint(cursorX, cursorY) || document.body;
-  }
-
-  function dispatchPointerMoveAt(clientX, clientY) {
-    var target;
-    var pointerInit;
-    if (inputMode !== INPUT_MODE_CURSOR) {
-      return;
-    }
-    target = document.elementFromPoint(clientX, clientY) || document.body;
-    pointerInit = buildPointerInit(clientX, clientY);
-    target.dispatchEvent(new PointerEvent("pointermove", pointerInit));
-  }
-
-  function syncPointerDragAt(clientX, clientY) {
-    if (!pointerDownActive) {
-      return;
-    }
-    dispatchPointerMoveAt(clientX, clientY);
-  }
-
   function isDragTarget(element) {
     if (!element) {
       return false;
@@ -355,72 +256,10 @@
     return false;
   }
 
-  function actionPress() {
-    var target;
-    ensureCursorPosition();
-    if (inputMode !== INPUT_MODE_CURSOR) {
-      return;
-    }
-    target = getTargetAtCursor();
-    if (isDragTarget(target)) {
-      dispatchPointerDownAt(cursorX, cursorY);
-      return;
-    }
-    dispatchPointerClickAt(cursorX, cursorY);
-  }
-
-  function actionRelease() {
-    ensureCursorPosition();
-    if (inputMode !== INPUT_MODE_CURSOR || !pointerDownActive) {
-      return;
-    }
-    dispatchPointerUpAt(cursorX, cursorY);
-  }
-
-  function actionRepeat() {
-    ensureCursorPosition();
-    if (inputMode !== INPUT_MODE_CURSOR || pointerDownActive) {
-      return;
-    }
-    dispatchPointerClickAt(cursorX, cursorY);
-  }
-
-  function dispatchPointerDownAt(clientX, clientY) {
-    var target;
-    var pointerInit;
-    if (inputMode !== INPUT_MODE_CURSOR || pointerDownActive) {
-      return;
-    }
-    target = document.elementFromPoint(clientX, clientY) || document.body;
-    pointerInit = buildPointerInit(clientX, clientY);
-    pointerInit.buttons = 1;
-    target.dispatchEvent(new PointerEvent("pointerdown", pointerInit));
-    pointerDownActive = true;
-  }
-
-  function dispatchPointerUpAt(clientX, clientY) {
-    var target;
-    var pointerInit;
-    var mouseInit;
-    if (inputMode !== INPUT_MODE_CURSOR || !pointerDownActive) {
-      return;
-    }
-    target = document.elementFromPoint(clientX, clientY) || document.body;
-    pointerInit = buildPointerInit(clientX, clientY);
-    pointerInit.buttons = 0;
-    target.dispatchEvent(new PointerEvent("pointerup", pointerInit));
-    mouseInit = buildMouseInit(clientX, clientY);
-    target.dispatchEvent(new MouseEvent("click", mouseInit));
-    pointerDownActive = false;
-  }
-
   function dispatchPointerClickAt(clientX, clientY) {
     var target;
     var pointerInit;
     var mouseInit;
-    if (inputMode !== INPUT_MODE_CURSOR) {
-      return;
-    }
     ensureCursorPosition();
     target = document.elementFromPoint(clientX, clientY) || document.body;
     pointerInit = buildPointerInit(clientX, clientY);
@@ -435,37 +274,64 @@
     }
   }
 
-  function pointerClick() {
+  function dispatchPointerDownAt(clientX, clientY) {
+    var target;
+    var pointerInit;
+    if (pointerDownActive) {
+      return;
+    }
+    target = document.elementFromPoint(clientX, clientY) || document.body;
+    pointerInit = buildPointerInit(clientX, clientY);
+    pointerInit.buttons = 1;
+    target.dispatchEvent(new PointerEvent("pointerdown", pointerInit));
+    pointerDownActive = true;
+  }
+
+  function dispatchPointerUpAt(clientX, clientY) {
+    var target;
+    var pointerInit;
+    var mouseInit;
+    if (!pointerDownActive) {
+      return;
+    }
+    target = document.elementFromPoint(clientX, clientY) || document.body;
+    pointerInit = buildPointerInit(clientX, clientY);
+    pointerInit.buttons = 0;
+    target.dispatchEvent(new PointerEvent("pointerup", pointerInit));
+    mouseInit = buildMouseInit(clientX, clientY);
+    target.dispatchEvent(new MouseEvent("click", mouseInit));
+    pointerDownActive = false;
+  }
+
+  function actionPress() {
+    var target;
     ensureCursorPosition();
+    target = getTargetAtCursor();
+    if (isDragTarget(target)) {
+      dispatchPointerDownAt(cursorX, cursorY);
+      return;
+    }
     dispatchPointerClickAt(cursorX, cursorY);
   }
 
-  function pointerDown() {
+  function actionRelease() {
     ensureCursorPosition();
-    dispatchPointerDownAt(cursorX, cursorY);
-  }
-
-  function pointerUp() {
-    ensureCursorPosition();
+    if (!pointerDownActive) {
+      return;
+    }
     dispatchPointerUpAt(cursorX, cursorY);
   }
 
-  function injectKey(type, code, key) {
-    dispatchForwardedKey({
-      type: type,
-      code: code,
-      key: key,
-      repeat: false
-    });
+  function actionRepeat() {
+    ensureCursorPosition();
+    if (pointerDownActive) {
+      return;
+    }
+    dispatchPointerClickAt(cursorX, cursorY);
   }
 
-  window.WebGameInput = {
-    setInputMode: setInputMode,
-    injectKey: injectKey,
-    navigate: navigateFocus,
-    pointerClick: pointerClick,
-    pointerDown: pointerDown,
-    pointerUp: pointerUp,
+  window.WebMenuFocusInput = {
+    navigate: navigate,
     actionPress: actionPress,
     actionRelease: actionRelease,
     actionRepeat: actionRepeat

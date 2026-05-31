@@ -202,6 +202,13 @@
     postCursorToken(getTokenAtPoint(clientX, clientY));
   }
 
+  function setTokenFromGameFrame(token) {
+    if (!unityCursorEnabled) {
+      return;
+    }
+    postCursorToken(token || "default");
+  }
+
   function onPointerMove(event) {
     if (!unityCursorEnabled) {
       return;
@@ -221,7 +228,8 @@
     setUnityCursorEnabled: setUnityCursorEnabled,
     syncFromDom: syncUnityCursorEnabledFromDom,
     getTokenAtPoint: getTokenAtPoint,
-    updateFromPoint: updateFromPoint
+    updateFromPoint: updateFromPoint,
+    setTokenFromGameFrame: setTokenFromGameFrame
   };
 
   if (isUnityHost) {
