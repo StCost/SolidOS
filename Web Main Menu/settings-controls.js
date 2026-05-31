@@ -116,15 +116,10 @@
       button.setAttribute("data-controls-section", sectionId);
       button.setAttribute("aria-selected", sectionId === activeSection ? "true" : "false");
 
-      var prefix = document.createElement("span");
-      prefix.className = "term-row-prefix terminal-text--dim";
-      prefix.textContent = sectionId === activeSection ? ">>" : "[ ]";
-
       var label = document.createElement("span");
       label.className = "term-row-label terminal-text";
       label.textContent = getLocalized(getSectionLabelKey(sectionId), sectionId);
 
-      button.appendChild(prefix);
       button.appendChild(label);
       button.addEventListener("click", function (event) {
         var targetSection = event.currentTarget.getAttribute("data-controls-section");

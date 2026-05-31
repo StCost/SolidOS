@@ -34,7 +34,6 @@
   for (index = 0; index < layouts.length; index++) {
     var entry = layouts[index];
     if (!entry || !entry.preset) continue;
-
     var presetSelector = escapePresetSelector(entry.preset);
     cssRules.push(
       "html." +

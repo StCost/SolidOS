@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-hidden="true">
+  <defs>
+    <linearGradient id="worlds-ocean" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3ec8ff"/>
+      <stop offset="100%" stop-color="#1565c0"/>
+    </linearGradient>
+    <clipPath id="worlds-globe-clip">
+      <circle cx="24" cy="24" r="16"/>
+    </clipPath>
+  </defs>
+  <g transform="rotate(90 24 24)">
+    <circle cx="24" cy="24" r="16" fill="url(#worlds-ocean)" stroke="#0d3d6b" stroke-width="1.5"/>
+    <g clip-path="url(#worlds-globe-clip)" fill="none" stroke="#e3f6ff" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="24" y1="8" x2="24" y2="40"/>
+      <line x1="8" y1="24" x2="40" y2="24"/>
+      <path d="M 9 15.5 C 9 10.5, 24 9.5, 39 15.5"/>
+      <path d="M 10 22 C 10 17, 24 16, 38 22"/>
+      <path d="M 9 32.5 C 9 37.5, 24 38.5, 39 32.5"/>
+      <path d="M 10 26 C 10 31, 24 32, 38 26"/>
+      <path d="M 10.5 17 C 14.5 21, 14.5 27, 10.5 31"/>
+      <path d="M 12.5 18.5 C 14.5 21.5, 14.5 26.5, 12.5 29.5"/>
+      <path d="M 37.5 17 C 33.5 21, 33.5 27, 37.5 31"/>
+      <path d="M 35.5 18.5 C 33.5 21.5, 33.5 26.5, 35.5 29.5"/>
+    </g>
+    <circle cx="24" cy="24" r="16" fill="none" stroke="#ff8000" stroke-width="1.5" opacity="0.85"/>
+  </g>
+</svg>

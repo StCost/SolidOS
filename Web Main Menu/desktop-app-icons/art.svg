@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-hidden="true">
+  <defs>
+    <linearGradient id="palette-wood" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d7ccc8"/>
+      <stop offset="100%" stop-color="#8d6e63"/>
+    </linearGradient>
+  </defs>
+  <path d="M10 28 Q10 14 24 12 Q38 14 38 28 Q38 38 24 40 Q10 38 10 28Z" fill="url(#palette-wood)" stroke="#5d4037" stroke-width="1.5"/>
+  <circle cx="18" cy="22" r="3.5" fill="#ef5350"/>
+  <circle cx="26" cy="18" r="3.5" fill="#ffee58"/>
+  <circle cx="32" cy="24" r="3.5" fill="#42a5f5"/>
+  <circle cx="22" cy="30" r="3.5" fill="#66bb6a"/>
+  <rect x="34" y="8" width="3" height="16" rx="1" fill="#ff8000" transform="rotate(25 35 16)"/>
+  <ellipse cx="36" cy="8" rx="4" ry="2.5" fill="#ff8000" transform="rotate(25 36 8)"/>
+</svg>

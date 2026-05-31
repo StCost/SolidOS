@@ -22,8 +22,16 @@ var WebWindowManager = (function () {
     "credits-nav": { minWidth: MIN_WIDTH, minHeight: 0 },
     "extras-content": { minWidth: MIN_WIDTH, minHeight: 0 },
     "extras-nav": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "extras-games": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "extras-art": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "extras-links": { minWidth: MIN_WIDTH, minHeight: 0 },
     "modal-center": { minWidth: MIN_WIDTH, minHeight: 0 }
   };
+
+  var MINIMIZE_BOTTOM_INSET_PX = 8;
+  var MINIMIZE_GAP_PX = 8;
+  var MIN_BODY_RENDER_HEIGHT_PX = 12;
+  var WINDOW_CONTROLS_BIND_VERSION = 2;
 
   var activeDrag = null;
   var activeResize = null;
@@ -36,6 +44,8 @@ var WebWindowManager = (function () {
   var LAYOUT_BOOTSTRAP_CLASS = "menu-wm-layout-bootstrap";
   var LAYOUT_BOOTSTRAP_STYLE_ID = "cm-wm-layout-bootstrap";
   var DRAG_MOVE_SOUND_STEP_PX = 300;
+  var WINDOW_KEYBOARD_FOCUS_SELECTOR =
+    "button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), .term-row:not([disabled]), .settings-tab, .settings-option-btn, .settings-step, .worlds-entry, .calc-key, [role='button']:not([aria-disabled='true']), [tabindex]:not([tabindex='-1'])";
 
   function getPreset(name) {
     return presetTable[name];
@@ -75,14 +85,59 @@ var WebWindowManager = (function () {
     return minSize;
   }
 
-  function setSavedLayout(presetName, layout) {
-    if (!presetName || !layout) return;
-    savedLayoutTable[presetName] = {
+  function getLayoutKey(windowElement) {
+    if (!windowElement) return "";
+    return windowElement.getAttribute("data-wm-preset") || "";
+  }
+
+  function isSavedLayoutOpen(entry) {
+    if (!entry) return false;
+    if (entry.open === false || entry.open === 0) return false;
+    if (entry.open === true || entry.open === 1) return true;
+    return true;
+  }
+
+  function setSavedLayout(layoutKey, layout) {
+    if (!layoutKey || !layout) return;
+    var previous = savedLayoutTable[layoutKey];
+    var open = layout.open;
+    if (open === undefined && previous) {
+      open = previous.open;
+    }
+    if (open === undefined) {
+      open = true;
+    }
+    var minimized = layout.minimized === true;
+    var maximized = layout.maximized === true;
+    if (layout.minimized === undefined && previous) {
+      minimized = previous.minimized === true;
+    }
+    if (layout.maximized === undefined && previous) {
+      maximized = previous.maximized === true;
+    }
+    if (minimized) {
+      maximized = false;
+    }
+    savedLayoutTable[layoutKey] = {
       left: layout.left,
       top: layout.top,
       width: layout.width,
-      height: layout.height
+      height: layout.height,
+      open: open,
+      minimized: minimized,
+      maximized: maximized
     };
+    if (layout.zIndex !== undefined) {
+      savedLayoutTable[layoutKey].zIndex = layout.zIndex;
+    } else if (previous && previous.zIndex !== undefined) {
+      savedLayoutTable[layoutKey].zIndex = previous.zIndex;
+    }
+  }
+
+  function removeSavedLayout(layoutKey) {
+    if (!layoutKey) return;
+    if (!Object.prototype.hasOwnProperty.call(savedLayoutTable, layoutKey)) return;
+    delete savedLayoutTable[layoutKey];
   }
 
   function populateSavedLayoutTable(payload) {
@@ -91,14 +146,66 @@ var WebWindowManager = (function () {
     savedLayoutTable = {};
     for (index = 0; index < layouts.length; index++) {
       var entry = layouts[index];
-      if (!entry || !entry.preset) continue;
-      setSavedLayout(entry.preset, entry);
+      if (!entry) continue;
+      var layoutKey = entry.preset;
+      if (!layoutKey) continue;
+      if (layoutKey === "about-content") {
+        layoutKey = "credits-content";
+      }
+      setSavedLayout(layoutKey, entry);
     }
   }
 
   function applySavedLayouts(payload) {
     populateSavedLayoutTable(payload);
     applyAllSavedLayoutsInDocument();
+    applyDesktopWindowVisibilityFromSaved();
+    applySavedWindowStackOrder();
+    applySavedChromeStatesFromSaved();
+    clearLayoutBootstrap();
+    window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
+  }
+
+  function applySavedChromeStatesFromSaved() {
+    var windows = document.querySelectorAll("#desktopSurface .os-window[data-wm-preset]");
+    var index = 0;
+    for (index = 0; index < windows.length; index++) {
+      applySavedChromeStateToWindow(windows[index]);
+    }
+    layoutMinimizedWindowsInContainer(document.getElementById("desktopWorkspace"), null);
+  }
+
+  function applySavedChromeStateToWindow(windowElement) {
+    var layoutKey = getLayoutKey(windowElement);
+    var savedLayout = savedLayoutTable[layoutKey];
+    if (!savedLayout) return;
+    if (windowElement.classList.contains("os-window--closed")) return;
+
+    ensureWindowStructure(windowElement);
+    if (!windowElement.wmState) return;
+
+    var shouldMinimize = savedLayout.minimized === true;
+    var shouldMaximize = savedLayout.maximized === true;
+
+    clearWindowChromeStates(windowElement);
+
+    if (shouldMinimize) {
+      prepareWindowDragStart(windowElement);
+      windowElement.wmBeforeMinimizeState = captureWindowRestoreState(windowElement);
+      windowElement.wmMinimizedUserAdjusted = false;
+      windowElement.classList.add("os-window--minimized");
+      setMinimizedWindowRect(windowElement);
+      updateWindowControlChrome(windowElement);
+      return;
+    }
+
+    if (shouldMaximize) {
+      prepareWindowDragStart(windowElement);
+      windowElement.wmBeforeMaximizeState = captureWindowRestoreState(windowElement);
+      windowElement.classList.add("os-window--maximized");
+      setMaximizedWindowRect(windowElement);
+      updateWindowControlChrome(windowElement);
+    }
   }
 
   function applyAllSavedLayoutsInDocument() {
@@ -122,7 +229,8 @@ var WebWindowManager = (function () {
 
   function applySavedLayoutToWindow(windowElement) {
     var presetName = windowElement.getAttribute("data-wm-preset");
-    var savedLayout = savedLayoutTable[presetName];
+    var layoutKey = getLayoutKey(windowElement);
+    var savedLayout = savedLayoutTable[layoutKey];
     if (!savedLayout) return;
 
     var containerElement = getLayoutContainer(windowElement);
@@ -141,24 +249,205 @@ var WebWindowManager = (function () {
     windowElement.wmHasInlineLayout = true;
   }
 
-  function syncSavedLayoutFromWindow(windowElement) {
+  function setSavedWindowOpen(windowElement, isOpen) {
+    var layoutKey = getLayoutKey(windowElement);
+    if (!layoutKey) return;
+    var previous = savedLayoutTable[layoutKey];
+    if (!previous) {
+      if (!isOpen) return;
+      savedLayoutTable[layoutKey] = { open: true };
+      return;
+    }
+    previous.open = isOpen;
+  }
+
+  function applySavedOpenStateToWindow(windowElement) {
     var presetName = windowElement.getAttribute("data-wm-preset");
-    if (!presetName || !windowElement.wmState) return;
-    setSavedLayout(presetName, {
-      left: windowElement.wmState.left,
-      top: windowElement.wmState.top,
-      width: windowElement.wmState.width,
-      height: windowElement.wmState.height
+    var layoutKey = getLayoutKey(windowElement);
+    var savedLayout = savedLayoutTable[layoutKey];
+    var shouldOpen = isSavedLayoutOpen(savedLayout);
+    if (!savedLayout && presetName !== "menu-splash") {
+      shouldOpen = false;
+    }
+    if (!savedLayout && presetName === "menu-splash") {
+      shouldOpen = true;
+    }
+    if (shouldOpen) {
+      windowElement.classList.remove("os-window--closed");
+    } else {
+      windowElement.classList.add("os-window--closed");
+    }
+  }
+
+  function applyDesktopWindowVisibilityFromSaved() {
+    var desktopSurface = document.getElementById("desktopSurface");
+    if (!desktopSurface) return;
+    var windows = desktopSurface.querySelectorAll(".os-window[data-wm-preset]");
+    var index = 0;
+    for (index = 0; index < windows.length; index++) {
+      applySavedOpenStateToWindow(windows[index]);
+    }
+    syncDesktopTabOrder();
+  }
+
+  function getWindowDefaultStackOrder(windowElement) {
+    var order = parseInt(windowElement.getAttribute("data-wm-order"), 10);
+    if (isNaN(order)) return 0;
+    return order;
+  }
+
+  function getWindowSavedZIndex(windowElement) {
+    var layoutKey = getLayoutKey(windowElement);
+    var savedLayout = savedLayoutTable[layoutKey];
+    if (savedLayout && savedLayout.zIndex !== undefined && savedLayout.zIndex > 0) {
+      return savedLayout.zIndex;
+    }
+    return getWindowDefaultStackOrder(windowElement);
+  }
+
+  function getWindowInlineZIndex(windowElement) {
+    var inlineZIndex = parseInt(windowElement.style.zIndex, 10);
+    if (isNaN(inlineZIndex) || inlineZIndex <= 0) return 0;
+    return inlineZIndex;
+  }
+
+  function syncSavedLayoutZIndex(windowElement) {
+    var layoutKey = getLayoutKey(windowElement);
+    if (!layoutKey) return;
+    var inlineZIndex = getWindowInlineZIndex(windowElement);
+    if (inlineZIndex <= 0) return;
+    var previous = savedLayoutTable[layoutKey];
+    if (!previous) {
+      savedLayoutTable[layoutKey] = {
+        open: !windowElement.classList.contains("os-window--closed"),
+        zIndex: inlineZIndex
+      };
+      return;
+    }
+    previous.zIndex = inlineZIndex;
+  }
+
+  function applySavedWindowStackOrder() {
+    var desktopSurface = document.getElementById("desktopSurface");
+    if (!desktopSurface) return null;
+
+    var windows = desktopSurface.querySelectorAll(".os-window[data-wm-preset]");
+    var visibleWindows = [];
+    var index = 0;
+    var maxZIndex = zIndexCounter;
+    var topWindowElement = null;
+
+    for (index = 0; index < windows.length; index++) {
+      var windowElement = windows[index];
+      var savedZIndex = getWindowSavedZIndex(windowElement);
+      windowElement.style.zIndex = String(savedZIndex);
+      if (savedZIndex > maxZIndex) {
+        maxZIndex = savedZIndex;
+      }
+      if (windowElement.classList.contains("os-window--closed")) {
+        continue;
+      }
+      visibleWindows.push({
+        element: windowElement,
+        zIndex: savedZIndex
+      });
+    }
+
+    if (maxZIndex > zIndexCounter) {
+      zIndexCounter = maxZIndex;
+    }
+
+    if (!visibleWindows.length) {
+      return null;
+    }
+
+    visibleWindows.sort(function (first, second) {
+      return first.zIndex - second.zIndex;
     });
+
+    topWindowElement = visibleWindows[visibleWindows.length - 1].element;
+    var managed = document.querySelectorAll(".os-window--managed.os-window--focused");
+    for (index = 0; index < managed.length; index++) {
+      managed[index].classList.remove("os-window--focused");
+    }
+    topWindowElement.classList.add("os-window--focused");
+    return topWindowElement;
+  }
+
+  function syncSavedLayoutFromWindow(windowElement) {
+    var layoutKey = getLayoutKey(windowElement);
+    if (!layoutKey) return;
+    var previous = savedLayoutTable[layoutKey];
+    var isMinimized = windowElement.classList.contains("os-window--minimized");
+    var isMaximized = windowElement.classList.contains("os-window--maximized");
+    var entry = {
+      open: !windowElement.classList.contains("os-window--closed"),
+      minimized: isMinimized,
+      maximized: isMaximized && !isMinimized
+    };
+    if (previous) {
+      entry.left = previous.left;
+      entry.top = previous.top;
+      entry.width = previous.width;
+      entry.height = previous.height;
+      if (previous.zIndex !== undefined) {
+        entry.zIndex = previous.zIndex;
+      }
+    }
+    var inlineZIndex = getWindowInlineZIndex(windowElement);
+    if (inlineZIndex > 0) {
+      entry.zIndex = inlineZIndex;
+    }
+    var restoreState = null;
+    if (isMinimized && windowElement.wmBeforeMinimizeState) {
+      restoreState = windowElement.wmBeforeMinimizeState;
+    } else if (isMaximized && windowElement.wmBeforeMaximizeState) {
+      restoreState = windowElement.wmBeforeMaximizeState;
+    } else if (windowElement.wmState && !isMinimized) {
+      restoreState = {
+        left: windowElement.wmState.left,
+        top: windowElement.wmState.top,
+        width: windowElement.wmState.width,
+        height: windowElement.wmState.height
+      };
+    }
+    if (restoreState) {
+      entry.left = restoreState.left;
+      entry.top = restoreState.top;
+      entry.width = restoreState.width;
+      entry.height = restoreState.height;
+    }
+    if (
+      entry.left === undefined ||
+      entry.top === undefined ||
+      entry.width === undefined ||
+      entry.height === undefined
+    ) {
+      return;
+    }
+    setSavedLayout(layoutKey, entry);
   }
 
   function mergeInlineLayoutsIntoSavedTable() {
-    var windows = document.querySelectorAll(".os-window[data-wm-preset]");
+    var windows = document.querySelectorAll("#desktopSurface .os-window[data-wm-preset]");
     var index = 0;
     for (index = 0; index < windows.length; index++) {
-      var windowElement = windows[index];
-      if (!windowElement.wmHasInlineLayout || !windowElement.wmState) continue;
-      syncSavedLayoutFromWindow(windowElement);
+      syncSavedLayoutFromWindow(windows[index]);
+    }
+  }
+
+  function pruneSavedLayoutsToOpenWindows() {
+    var liveKeys = {};
+    var windows = document.querySelectorAll("#desktopSurface .os-window[data-wm-preset]");
+    var index = 0;
+    for (index = 0; index < windows.length; index++) {
+      var layoutKey = getLayoutKey(windows[index]);
+      if (layoutKey) liveKeys[layoutKey] = true;
+    }
+    var layoutKey;
+    for (layoutKey in savedLayoutTable) {
+      if (!Object.prototype.hasOwnProperty.call(savedLayoutTable, layoutKey)) continue;
+      if (!liveKeys[layoutKey]) removeSavedLayout(layoutKey);
     }
   }
 
@@ -168,19 +457,31 @@ var WebWindowManager = (function () {
     for (presetName in savedLayoutTable) {
       if (!Object.prototype.hasOwnProperty.call(savedLayoutTable, presetName)) continue;
       var layout = savedLayoutTable[presetName];
-      layouts.push({
+      var payloadEntry = {
         preset: presetName,
         left: layout.left,
         top: layout.top,
         width: layout.width,
-        height: layout.height
-      });
+        height: layout.height,
+        open: isSavedLayoutOpen(layout)
+      };
+      if (layout.zIndex !== undefined && layout.zIndex > 0) {
+        payloadEntry.zIndex = layout.zIndex;
+      }
+      if (layout.minimized === true) {
+        payloadEntry.minimized = true;
+      }
+      if (layout.maximized === true) {
+        payloadEntry.maximized = true;
+      }
+      layouts.push(payloadEntry);
     }
     return { layouts: layouts };
   }
 
   function collectWindowLayoutsPayload() {
     mergeInlineLayoutsIntoSavedTable();
+    pruneSavedLayoutsToOpenWindows();
     return buildLayoutsPayloadFromSavedTable();
   }
 
@@ -315,6 +616,12 @@ var WebWindowManager = (function () {
     window.dispatchEvent(new CustomEvent("web-wm-drag-end"));
   }
 
+  function syncDesktopTabOrder() {
+    if (window.WebDesktop && window.WebDesktop.updateDesktopTabOrder) {
+      window.WebDesktop.updateDesktopTabOrder();
+    }
+  }
+
   function dispatchWindowDragMoveStep() {
     window.dispatchEvent(new CustomEvent("web-wm-drag-step"));
   }
@@ -340,7 +647,36 @@ var WebWindowManager = (function () {
     return value;
   }
 
+  function isWindowKeyboardFocusTarget(node) {
+    if (!node) return false;
+    if (node.disabled) return false;
+    if (node.getAttribute && node.getAttribute("aria-hidden") === "true") return false;
+    if (node.hidden) return false;
+    if (node.offsetWidth === 0 && node.offsetHeight === 0) return false;
+    return true;
+  }
+
+  function setWindowKeyboardFocus(windowElement) {
+    var nodes;
+    var index;
+    var node;
+    if (!windowElement) return;
+    nodes = windowElement.querySelectorAll(WINDOW_KEYBOARD_FOCUS_SELECTOR);
+    for (index = 0; index < nodes.length; index++) {
+      node = nodes[index];
+      if (!isWindowKeyboardFocusTarget(node)) continue;
+      if (!node.focus) continue;
+      try {
+        node.focus({ preventScroll: true });
+      } catch (error) {
+        node.focus();
+      }
+      return;
+    }
+  }
+
   function focusWindow(windowElement) {
+    if (!windowElement) return;
     zIndexCounter = zIndexCounter + 1;
     windowElement.style.zIndex = String(zIndexCounter);
     var managed = document.querySelectorAll(".os-window--managed.os-window--focused");
@@ -349,6 +685,29 @@ var WebWindowManager = (function () {
       managed[index].classList.remove("os-window--focused");
     }
     windowElement.classList.add("os-window--focused");
+    syncSavedLayoutZIndex(windowElement);
+    scheduleWindowLayoutsSave();
+  }
+
+  function shouldSkipWindowFocusEvent(event) {
+    if (!event) return true;
+    if (event.button != null && event.button !== 0) return true;
+    if (event.isPrimary === false) return true;
+    return false;
+  }
+
+  function bindWindowFocus(windowElement) {
+    if (windowElement.wmFocusBound) return;
+
+    function onWindowActivate(event) {
+      if (shouldSkipWindowFocusEvent(event)) return;
+      if (windowElement.classList.contains("os-window--closed")) return;
+      focusWindow(windowElement);
+    }
+
+    windowElement.addEventListener("pointerdown", onWindowActivate, true);
+    windowElement.addEventListener("mousedown", onWindowActivate, true);
+    windowElement.wmFocusBound = true;
   }
 
   function getBounds(containerElement) {
@@ -360,15 +719,162 @@ var WebWindowManager = (function () {
     };
   }
 
+  function setChromeHeightVar(windowElement) {
+    var chromeHeight = getWindowChromeHeight(windowElement);
+    windowElement.style.setProperty("--wm-chrome-height", String(chromeHeight) + "px");
+  }
+
   function setBodyMaxVar(windowElement) {
     var bodyShell = windowElement.querySelector(".os-window-body-shell");
     if (!bodyShell) return;
-    var chrome = windowElement.querySelector(".os-window-chrome");
-    var chromeHeight = chrome ? chrome.offsetHeight : 0;
+    var chromeHeight = getWindowChromeHeight(windowElement);
+    setChromeHeightVar(windowElement);
     var windowHeight = windowElement.clientHeight;
     var bodyMax = windowHeight - chromeHeight;
     if (bodyMax < 0) bodyMax = 0;
     windowElement.style.setProperty("--wm-body-max", String(bodyMax) + "px");
+    updateWindowBodyRenderState(windowElement);
+  }
+
+  function updateWindowBodyRenderState(windowElement) {
+    if (!windowElement) return;
+    var chromeHeight = getWindowChromeHeight(windowElement);
+    var bodySpace = windowElement.clientHeight - chromeHeight;
+    if (bodySpace < MIN_BODY_RENDER_HEIGHT_PX) {
+      windowElement.classList.add("os-window--body-suppressed");
+    } else {
+      windowElement.classList.remove("os-window--body-suppressed");
+    }
+  }
+
+  function getMinimizedWindowSize(windowElement, presetName) {
+    var minSize = getWindowMinSize(windowElement, presetName);
+    var chromeHeight = getWindowChromeHeight(windowElement);
+    return {
+      width: minSize.minWidth,
+      height: chromeHeight
+    };
+  }
+
+  function isMinimizedWindowLayoutCandidate(windowElement, containerElement) {
+    if (!windowElement || !containerElement) return false;
+    if (!containerElement.contains(windowElement)) return false;
+    if (windowElement.classList.contains("os-window--closed")) return false;
+    if (!windowElement.classList.contains("os-window--minimized")) return false;
+    if (!windowElement.wmState) return false;
+    return true;
+  }
+
+  function getMinimizedWindowsInContainer(containerElement) {
+    var windows = containerElement.querySelectorAll(".os-window[data-wm-preset]");
+    var result = [];
+    var index;
+    for (index = 0; index < windows.length; index++) {
+      if (isMinimizedWindowLayoutCandidate(windows[index], containerElement)) {
+        result.push(windows[index]);
+      }
+    }
+    return result;
+  }
+
+  function compareMinimizedWindowLayoutOrder(firstWindowElement, secondWindowElement) {
+    var firstTop = firstWindowElement.wmState.top;
+    var secondTop = secondWindowElement.wmState.top;
+    var firstLeft = firstWindowElement.wmState.left;
+    var secondLeft = secondWindowElement.wmState.left;
+    if (firstTop !== secondTop) {
+      return secondTop - firstTop;
+    }
+    return firstLeft - secondLeft;
+  }
+
+  function buildMinimizedWindowLayoutOrder(minimizedWindows, appendedWindowElement) {
+    var orderedWindows = [];
+    var others = [];
+    var index;
+    for (index = 0; index < minimizedWindows.length; index++) {
+      if (minimizedWindows[index] === appendedWindowElement) continue;
+      others.push(minimizedWindows[index]);
+    }
+    others.sort(compareMinimizedWindowLayoutOrder);
+    for (index = 0; index < others.length; index++) {
+      orderedWindows.push(others[index]);
+    }
+    if (appendedWindowElement) {
+      orderedWindows.push(appendedWindowElement);
+    }
+    return orderedWindows;
+  }
+
+  function applyMinimizedWindowRectState(windowElement, left, top, width, height) {
+    windowElement.wmState.left = left;
+    windowElement.wmState.top = top;
+    windowElement.wmState.width = width;
+    windowElement.wmState.height = height;
+    windowElement.wmState.minWidth = width;
+    windowElement.wmState.minHeight = height;
+    applyWindowRect(windowElement);
+    windowElement.wmMinimizedLayoutWidth = width;
+    windowElement.wmMinimizedLayoutHeight = height;
+    setBodyMaxVar(windowElement);
+  }
+
+  function layoutMinimizedWindowsInContainer(containerElement, appendedWindowElement) {
+    var bounds;
+    var inset;
+    var gap;
+    var minimizedWindows;
+    var orderedWindows;
+    var cursorX;
+    var rowBottom;
+    var rowMaxHeight;
+    var index;
+    var windowElement;
+    var presetName;
+    var minimizedSize;
+    var width;
+    var height;
+    var left;
+    var top;
+    if (!containerElement) return;
+    bounds = getBounds(containerElement);
+    if (bounds.width < 1 || bounds.height < 1) return;
+    inset = MINIMIZE_BOTTOM_INSET_PX;
+    gap = MINIMIZE_GAP_PX;
+    minimizedWindows = getMinimizedWindowsInContainer(containerElement);
+    if (!minimizedWindows.length) return;
+    orderedWindows = buildMinimizedWindowLayoutOrder(minimizedWindows, appendedWindowElement);
+    cursorX = inset;
+    rowBottom = bounds.height - inset;
+    rowMaxHeight = 0;
+    for (index = 0; index < orderedWindows.length; index++) {
+      windowElement = orderedWindows[index];
+      presetName = windowElement.getAttribute("data-wm-preset");
+      minimizedSize = getMinimizedWindowSize(windowElement, presetName);
+      width = minimizedSize.width;
+      height = minimizedSize.height;
+      if (cursorX > inset && cursorX + width > bounds.width - inset) {
+        rowBottom = rowBottom - rowMaxHeight - gap;
+        cursorX = inset;
+        rowMaxHeight = 0;
+      }
+      left = cursorX;
+      top = rowBottom - height;
+      if (top < inset) {
+        top = inset;
+      }
+      if (left + width > bounds.width - inset) {
+        left = bounds.width - inset - width;
+      }
+      if (left < inset) {
+        left = inset;
+      }
+      applyMinimizedWindowRectState(windowElement, left, top, width, height);
+      cursorX = cursorX + width + gap;
+      if (height > rowMaxHeight) {
+        rowMaxHeight = height;
+      }
+    }
   }
 
   function markOpenAnimationDone(windowElement) {
@@ -409,6 +915,20 @@ var WebWindowManager = (function () {
     shell.appendChild(body);
 
     chrome.classList.add("os-window-chrome--drag");
+    var titleElement = chrome.querySelector(".os-window-title");
+    if (titleElement) {
+      titleElement.classList.remove("os-window-title--drag");
+    }
+    setChromeHeightVar(windowElement);
+  }
+
+  function isWindowChromeControlTarget(target) {
+    if (!target || !target.closest) return false;
+    return !!target.closest(".os-window-controls, .os-window-control");
+  }
+
+  function getWindowDragHandle(windowElement) {
+    return windowElement.querySelector(".os-window-chrome--drag");
   }
 
   function addResizeHandles(windowElement) {
@@ -464,6 +984,41 @@ var WebWindowManager = (function () {
     };
   }
 
+  function centerManagedWindow(windowElement, containerElement, presetName) {
+    var minSize = getWindowMinSize(windowElement, presetName);
+    var bounds = getBounds(containerElement);
+    var inset = getWorkspaceInset(containerElement);
+    var rect = windowElement.getBoundingClientRect();
+    var windowWidth = rect.width;
+    var windowHeight = rect.height;
+
+    if (windowWidth < minSize.minWidth) {
+      windowWidth = minSize.minWidth;
+    }
+    if (windowHeight < minSize.minHeight) {
+      windowHeight = minSize.minHeight;
+    }
+
+    var maxWidth = Math.max(minSize.minWidth, bounds.width - inset * 2);
+    var maxHeight = Math.max(minSize.minHeight, bounds.height - inset * 2);
+    if (windowWidth > maxWidth) {
+      windowWidth = maxWidth;
+    }
+    if (windowHeight > maxHeight) {
+      windowHeight = maxHeight;
+    }
+
+    windowElement.wmState = {
+      left: Math.max(inset, Math.round((bounds.width - windowWidth) * 0.5)),
+      top: Math.max(inset, Math.round((bounds.height - windowHeight) * 0.5)),
+      width: windowWidth,
+      height: windowHeight,
+      minWidth: minSize.minWidth,
+      minHeight: minSize.minHeight
+    };
+    applyWindowRect(windowElement);
+  }
+
   function applyWindowRect(windowElement) {
     windowElement.style.left = String(Math.round(windowElement.wmState.left)) + "px";
     windowElement.style.top = String(Math.round(windowElement.wmState.top)) + "px";
@@ -511,8 +1066,10 @@ var WebWindowManager = (function () {
 
     if (containerElement.clientWidth < 1 || containerElement.clientHeight < 1) return;
 
-    if (savedLayoutTable[presetName]) {
+    var layoutKey = getLayoutKey(windowElement);
+    if (savedLayoutTable[layoutKey]) {
       applySavedLayoutToWindow(windowElement);
+      applySavedChromeStateToWindow(windowElement);
       return;
     }
 
@@ -523,15 +1080,23 @@ var WebWindowManager = (function () {
         setBodyMaxVar(windowElement);
         return;
       }
+      centerManagedWindow(windowElement, containerElement, presetName);
+      setBodyMaxVar(windowElement);
+      return;
     }
 
     syncWindowStateFromLayout(windowElement, containerElement, presetName);
     setBodyMaxVar(windowElement);
   }
 
+  function isWindowDragHandleTarget(target) {
+    if (!target || !target.closest) return false;
+    if (isWindowChromeControlTarget(target)) return false;
+    return !!target.closest(".os-window-title--drag, .os-window-chrome--drag");
+  }
+
   function bindDrag(windowElement) {
-    var chrome = windowElement.querySelector(".os-window-chrome--drag");
-    if (!chrome) return;
+    if (windowElement.wmDragBound) return;
 
     function beginDrag(clientX, clientY, pointerId) {
       var container = getLayoutContainer(windowElement);
@@ -554,21 +1119,30 @@ var WebWindowManager = (function () {
       dispatchWindowDragStart();
     }
 
-    chrome.addEventListener("mousedown", function (event) {
+    function onDragMouseDown(event) {
       if (event.button !== 0) return;
+      if (!isWindowDragHandleTarget(event.target)) return;
       beginDrag(event.clientX, event.clientY, null);
       event.preventDefault();
-    });
+    }
 
-    chrome.addEventListener("pointerdown", function (event) {
+    function onDragPointerDown(event) {
       if (event.button != null && event.button !== 0) return;
       if (event.isPrimary === false) return;
+      if (!isWindowDragHandleTarget(event.target)) return;
       beginDrag(event.clientX, event.clientY, event.pointerId);
-      try {
-        chrome.setPointerCapture(event.pointerId);
-      } catch (error) {}
+      var dragHandle = getWindowDragHandle(windowElement);
+      if (dragHandle) {
+        try {
+          dragHandle.setPointerCapture(event.pointerId);
+        } catch (error) {}
+      }
       event.preventDefault();
-    });
+    }
+
+    windowElement.addEventListener("mousedown", onDragMouseDown);
+    windowElement.addEventListener("pointerdown", onDragPointerDown);
+    windowElement.wmDragBound = true;
   }
 
   function bindResize(windowElement) {
@@ -720,7 +1294,12 @@ var WebWindowManager = (function () {
     if (activeResize || activeDrag) {
       clearBodyInteractionCursor();
       if (finishedWindow) {
-        syncSavedLayoutFromWindow(finishedWindow);
+        if (finishedWindow.classList.contains("os-window--minimized")) {
+          applyMinimizedUserAdjustToRestoreState(finishedWindow);
+          layoutMinimizedWindowsInContainer(getLayoutContainer(finishedWindow), null);
+        } else {
+          syncSavedLayoutFromWindow(finishedWindow);
+        }
       }
       flushWindowLayoutsSave();
     }
@@ -731,14 +1310,448 @@ var WebWindowManager = (function () {
     activeResize = null;
   }
 
-  function ensureWindowStructure(windowElement) {
-    if (windowElement.wmStructureReady) return;
+  function getWorkspaceInset(containerElement) {
+    var styles = window.getComputedStyle(containerElement);
+    var insetValue = styles.getPropertyValue("--wm-inset");
+    var inset = parseFloat(insetValue);
+    if (!inset || inset < 0) inset = 16;
+    return inset;
+  }
 
-    wrapWindowBody(windowElement);
-    addResizeHandles(windowElement);
-    windowElement.classList.add("os-window--managed");
-    bindDrag(windowElement);
-    bindResize(windowElement);
+  function captureWindowRestoreState(windowElement) {
+    if (!windowElement.wmState) return null;
+    return {
+      left: windowElement.wmState.left,
+      top: windowElement.wmState.top,
+      width: windowElement.wmState.width,
+      height: windowElement.wmState.height
+    };
+  }
+
+  function applyRestoreState(windowElement, restoreState) {
+    if (!restoreState || !windowElement.wmState) return;
+    windowElement.wmState.left = restoreState.left;
+    windowElement.wmState.top = restoreState.top;
+    windowElement.wmState.width = restoreState.width;
+    windowElement.wmState.height = restoreState.height;
+    applyWindowRect(windowElement);
+  }
+
+  function clearWindowChromeStates(windowElement) {
+    windowElement.classList.remove("os-window--maximized");
+    windowElement.classList.remove("os-window--minimized");
+    windowElement.wmBeforeMaximizeState = null;
+    windowElement.wmBeforeMinimizeState = null;
+    windowElement.wmMinimizedUserAdjusted = false;
+    windowElement.wmMinimizedLayoutWidth = 0;
+    windowElement.wmMinimizedLayoutHeight = 0;
+    updateWindowControlChrome(windowElement);
+  }
+
+  function applyMinimizedUserAdjustToRestoreState(windowElement) {
+    var beforeState = windowElement.wmBeforeMinimizeState;
+    if (!beforeState || !windowElement.wmState) return;
+    beforeState.left = windowElement.wmState.left;
+    beforeState.top = windowElement.wmState.top;
+    if (
+      windowElement.wmMinimizedLayoutWidth &&
+      windowElement.wmState.width !== windowElement.wmMinimizedLayoutWidth
+    ) {
+      beforeState.width = windowElement.wmState.width;
+    }
+    if (
+      windowElement.wmMinimizedLayoutHeight &&
+      windowElement.wmState.height !== windowElement.wmMinimizedLayoutHeight
+    ) {
+      beforeState.height = windowElement.wmState.height;
+    }
+    windowElement.wmMinimizedLayoutWidth = windowElement.wmState.width;
+    windowElement.wmMinimizedLayoutHeight = windowElement.wmState.height;
+    windowElement.wmMinimizedUserAdjusted = true;
+  }
+
+  function setWindowMinSizeFromPreset(windowElement) {
+    var presetName = windowElement.getAttribute("data-wm-preset");
+    var minSize = getWindowMinSize(windowElement, presetName);
+    if (!windowElement.wmState) return;
+    windowElement.wmState.minWidth = minSize.minWidth;
+    windowElement.wmState.minHeight = minSize.minHeight;
+  }
+
+  function updateWindowControlChrome(windowElement) {
+    var maximizeButton = windowElement.querySelector('[data-wm-action="maximize"]');
+    if (maximizeButton) {
+      if (windowElement.classList.contains("os-window--maximized")) {
+        maximizeButton.setAttribute("data-wm-state", "restored");
+        maximizeButton.setAttribute("aria-label", "Restore window size");
+      } else {
+        maximizeButton.removeAttribute("data-wm-state");
+        maximizeButton.setAttribute("aria-label", "Maximize window");
+      }
+    }
+
+    var minimizeButton = windowElement.querySelector('[data-wm-action="minimize"]');
+    if (minimizeButton) {
+      if (windowElement.classList.contains("os-window--minimized")) {
+        minimizeButton.setAttribute("data-wm-state", "restored");
+        minimizeButton.setAttribute("aria-label", "Restore window");
+      } else {
+        minimizeButton.removeAttribute("data-wm-state");
+        minimizeButton.setAttribute("aria-label", "Minimize window");
+      }
+    }
+  }
+
+  function ensureWindowControlGlyph(buttonElement) {
+    if (!buttonElement || buttonElement.querySelector(".os-window-control-glyph")) return;
+    var glyphElement = document.createElement("span");
+    glyphElement.className = "os-window-control-glyph";
+    glyphElement.setAttribute("aria-hidden", "true");
+    buttonElement.appendChild(glyphElement);
+  }
+
+  function closeManagedWindow(windowElement) {
+    var containerElement = getLayoutContainer(windowElement);
+    clearWindowChromeStates(windowElement);
+    windowElement.classList.add("os-window--closed");
+    syncSavedLayoutFromWindow(windowElement);
+    scheduleWindowLayoutsSave();
+    syncActivePageWindows();
+    if (containerElement) {
+      layoutMinimizedWindowsInContainer(containerElement, null);
+    }
+    syncDesktopTabOrder();
+  }
+
+  function restoreFromMinimized(windowElement) {
+    if (!windowElement.wmBeforeMinimizeState) return false;
+    var restoreState = windowElement.wmBeforeMinimizeState;
+    windowElement.classList.remove("os-window--minimized");
+    if (!windowElement.wmState) {
+      prepareWindowDragStart(windowElement);
+    }
+    windowElement.wmState.left = restoreState.left;
+    windowElement.wmState.top = restoreState.top;
+    windowElement.wmState.width = restoreState.width;
+    windowElement.wmState.height = restoreState.height;
+    setWindowMinSizeFromPreset(windowElement);
+    windowElement.wmHasInlineLayout = true;
+    applyWindowRect(windowElement);
+    windowElement.wmBeforeMinimizeState = null;
+    windowElement.wmMinimizedUserAdjusted = false;
+    windowElement.wmMinimizedLayoutWidth = 0;
+    windowElement.wmMinimizedLayoutHeight = 0;
+    setBodyMaxVar(windowElement);
+    updateWindowControlChrome(windowElement);
+    focusWindow(windowElement);
+    syncSavedLayoutFromWindow(windowElement);
+    scheduleWindowLayoutsSave();
+    layoutMinimizedWindowsInContainer(getLayoutContainer(windowElement), null);
+    syncDesktopTabOrder();
+    return true;
+  }
+
+  function restoreFromMaximized(windowElement) {
+    if (!windowElement.wmBeforeMaximizeState) return false;
+    prepareWindowDragStart(windowElement);
+    applyRestoreState(windowElement, windowElement.wmBeforeMaximizeState);
+    windowElement.wmBeforeMaximizeState = null;
+    windowElement.classList.remove("os-window--maximized");
+    updateWindowControlChrome(windowElement);
+    focusWindow(windowElement);
+    syncSavedLayoutFromWindow(windowElement);
+    scheduleWindowLayoutsSave();
+    syncDesktopTabOrder();
+    return true;
+  }
+
+  function setMinimizedWindowRect(windowElement) {
+    var containerElement = getLayoutContainer(windowElement);
+    if (!containerElement || !windowElement.wmState) return;
+    layoutMinimizedWindowsInContainer(containerElement, windowElement);
+  }
+
+  function setMaximizedWindowRect(windowElement) {
+    var containerElement = getLayoutContainer(windowElement);
+    if (!containerElement || !windowElement.wmState) return;
+
+    var bounds = getBounds(containerElement);
+    var inset = getWorkspaceInset(containerElement);
+    var left = inset;
+    var top = inset;
+    var width = Math.max(windowElement.wmState.minWidth, bounds.width - inset * 2);
+    var height = Math.max(windowElement.wmState.minHeight, bounds.height - inset * 2);
+
+    windowElement.wmState.left = left;
+    windowElement.wmState.top = top;
+    windowElement.wmState.width = width;
+    windowElement.wmState.height = height;
+    applyWindowRect(windowElement);
+    setBodyMaxVar(windowElement);
+  }
+
+  function maximizeManagedWindow(windowElement) {
+    var containerElement = getLayoutContainer(windowElement);
+    if (!containerElement) return;
+
+    if (windowElement.classList.contains("os-window--closed")) {
+      windowElement.classList.remove("os-window--closed");
+    }
+
+    prepareWindowDragStart(windowElement);
+
+    if (windowElement.classList.contains("os-window--minimized")) {
+      restoreFromMinimized(windowElement);
+      prepareWindowDragStart(windowElement);
+    }
+
+    if (windowElement.classList.contains("os-window--maximized")) {
+      restoreFromMaximized(windowElement);
+      return;
+    }
+
+    windowElement.wmBeforeMaximizeState = captureWindowRestoreState(windowElement);
+
+    setMaximizedWindowRect(windowElement);
+    windowElement.classList.add("os-window--maximized");
+    updateWindowControlChrome(windowElement);
+    focusWindow(windowElement);
+    syncSavedLayoutFromWindow(windowElement);
+    scheduleWindowLayoutsSave();
+    syncDesktopTabOrder();
+  }
+
+  function minimizeManagedWindow(windowElement) {
+    if (windowElement.classList.contains("os-window--minimized")) {
+      restoreFromMinimized(windowElement);
+      return;
+    }
+
+    var containerElement = getLayoutContainer(windowElement);
+    if (!containerElement) return;
+
+    if (windowElement.classList.contains("os-window--closed")) {
+      windowElement.classList.remove("os-window--closed");
+    }
+
+    prepareWindowDragStart(windowElement);
+
+    if (windowElement.classList.contains("os-window--maximized")) {
+      restoreFromMaximized(windowElement);
+      prepareWindowDragStart(windowElement);
+    }
+
+    windowElement.wmBeforeMinimizeState = captureWindowRestoreState(windowElement);
+    windowElement.wmMinimizedUserAdjusted = false;
+    windowElement.classList.add("os-window--minimized");
+    setMinimizedWindowRect(windowElement);
+    updateWindowControlChrome(windowElement);
+    focusWindow(windowElement);
+    syncSavedLayoutFromWindow(windowElement);
+    scheduleWindowLayoutsSave();
+    syncDesktopTabOrder();
+  }
+
+  function restoreManagedWindow(windowElement) {
+    if (windowElement.classList.contains("os-window--minimized")) {
+      restoreFromMinimized(windowElement);
+      return;
+    }
+    if (windowElement.classList.contains("os-window--maximized")) {
+      restoreFromMaximized(windowElement);
+    }
+  }
+
+  function isDesktopWindowElement(windowElement) {
+    if (!windowElement) return false;
+    var desktopSurface = document.getElementById("desktopSurface");
+    if (!desktopSurface) return false;
+    return desktopSurface.contains(windowElement);
+  }
+
+  function isDesktopWindowCandidate(windowElement) {
+    if (!windowElement || !isDesktopWindowElement(windowElement)) return false;
+    if (windowElement.classList.contains("os-window--closed")) return false;
+    var presetName = windowElement.getAttribute("data-wm-preset");
+    if (!presetName) return false;
+    return true;
+  }
+
+  function areAllVisibleDesktopWindowsMinimized() {
+    var desktopSurface = document.getElementById("desktopSurface");
+    if (!desktopSurface) return false;
+    var windows = desktopSurface.querySelectorAll(".os-window[data-wm-preset]");
+    var index = 0;
+    var hasVisible = false;
+    for (index = 0; index < windows.length; index++) {
+      var windowElement = windows[index];
+      if (!isDesktopWindowCandidate(windowElement)) continue;
+      hasVisible = true;
+      if (!windowElement.classList.contains("os-window--minimized")) {
+        return false;
+      }
+    }
+    return hasVisible;
+  }
+
+  function toggleMinimizeAllDesktopWindows() {
+    var desktopSurface = document.getElementById("desktopSurface");
+    if (!desktopSurface) return false;
+
+    var windows = desktopSurface.querySelectorAll(".os-window[data-wm-preset]");
+    var index = 0;
+    var restoreAll = areAllVisibleDesktopWindowsMinimized();
+
+    for (index = 0; index < windows.length; index++) {
+      var windowElement = windows[index];
+      if (!isDesktopWindowCandidate(windowElement)) continue;
+      ensureWindowStructure(windowElement);
+      if (restoreAll) {
+        if (windowElement.classList.contains("os-window--minimized")) {
+          restoreManagedWindow(windowElement);
+        }
+        continue;
+      }
+      if (!windowElement.classList.contains("os-window--minimized")) {
+        minimizeManagedWindow(windowElement);
+      }
+    }
+
+    scheduleWindowLayoutsSave();
+    if (windows.length > 0) {
+      dispatchWorkspaceLayoutSettled(windows[0]);
+    }
+    layoutMinimizedWindowsInContainer(desktopSurface, null);
+    return !restoreAll;
+  }
+
+  function bindWindowControlButton(buttonElement, windowElement, actionName) {
+    if (!buttonElement) return;
+
+    var pointerDownOnButton = false;
+
+    function runControlAction(event) {
+      if (buttonElement.wmControlActionLock) return;
+      buttonElement.wmControlActionLock = true;
+      window.setTimeout(function () {
+        buttonElement.wmControlActionLock = false;
+      }, 120);
+
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      if (actionName === "close") {
+        closeManagedWindow(windowElement);
+        return;
+      }
+      if (actionName === "maximize") {
+        maximizeManagedWindow(windowElement);
+        return;
+      }
+      if (actionName === "minimize") {
+        minimizeManagedWindow(windowElement);
+      }
+    }
+
+    buttonElement.addEventListener("pointerdown", function (event) {
+      event.stopPropagation();
+      pointerDownOnButton = true;
+    });
+    buttonElement.addEventListener("mousedown", function (event) {
+      event.stopPropagation();
+      pointerDownOnButton = true;
+    });
+    buttonElement.addEventListener("pointerup", function (event) {
+      if (!pointerDownOnButton) return;
+      pointerDownOnButton = false;
+      if (event.button != null && event.button !== 0) return;
+      runControlAction(event);
+    });
+    buttonElement.addEventListener("pointercancel", function () {
+      pointerDownOnButton = false;
+    });
+    buttonElement.addEventListener("click", function (event) {
+      if (pointerDownOnButton) {
+        pointerDownOnButton = false;
+        runControlAction(event);
+        return;
+      }
+      runControlAction(event);
+    });
+  }
+
+  function bindWindowControls(windowElement) {
+    if (windowElement.wmControlsReady) return;
+    var controls = windowElement.querySelector(".os-window-controls");
+    if (!controls) return;
+
+    var closeButton = controls.querySelector('[data-wm-action="close"]');
+    var maximizeButton = controls.querySelector('[data-wm-action="maximize"]');
+    var minimizeButton = controls.querySelector('[data-wm-action="minimize"]');
+
+    ensureWindowControlGlyph(closeButton);
+    ensureWindowControlGlyph(maximizeButton);
+    ensureWindowControlGlyph(minimizeButton);
+
+    controls.addEventListener("pointerdown", function (event) {
+      event.stopPropagation();
+    });
+    controls.addEventListener("mousedown", function (event) {
+      event.stopPropagation();
+    });
+
+    bindWindowControlButton(closeButton, windowElement, "close");
+    bindWindowControlButton(maximizeButton, windowElement, "maximize");
+    bindWindowControlButton(minimizeButton, windowElement, "minimize");
+
+    updateWindowControlChrome(windowElement);
+    windowElement.wmControlsReady = true;
+  }
+
+  function ensureWindowChromeDrag(windowElement) {
+    var chrome = windowElement.querySelector(".os-window-chrome");
+    if (!chrome) return;
+    var titleElement = chrome.querySelector(".os-window-title");
+    if (!chrome.classList.contains("os-window-chrome--drag")) {
+      chrome.classList.add("os-window-chrome--drag");
+      windowElement.wmDragBound = false;
+    }
+    if (titleElement && titleElement.classList.contains("os-window-title--drag")) {
+      titleElement.classList.remove("os-window-title--drag");
+      windowElement.wmDragBound = false;
+    }
+    setChromeHeightVar(windowElement);
+  }
+
+  function ensureWindowStructure(windowElement) {
+    if (!windowElement.querySelector(".os-window-body-shell")) {
+      wrapWindowBody(windowElement);
+      addResizeHandles(windowElement);
+      windowElement.classList.add("os-window--managed");
+    }
+
+    ensureWindowChromeDrag(windowElement);
+
+    if (!windowElement.wmDragBound) {
+      bindDrag(windowElement);
+      bindResize(windowElement);
+      windowElement.wmDragBound = true;
+    }
+
+    bindWindowFocus(windowElement);
+
+    if (windowElement.wmControlsBindVersion !== WINDOW_CONTROLS_BIND_VERSION) {
+      windowElement.wmControlsReady = false;
+      windowElement.wmDragBound = false;
+      windowElement.wmFocusBound = false;
+      windowElement.wmControlsBindVersion = WINDOW_CONTROLS_BIND_VERSION;
+    }
+
+    if (!windowElement.wmControlsReady) {
+      bindWindowControls(windowElement);
+    }
+
     windowElement.wmStructureReady = true;
   }
 
@@ -761,6 +1774,7 @@ var WebWindowManager = (function () {
       ensureWindowStructure(windows[index]);
       syncWindowLayout(windows[index]);
     }
+    layoutMinimizedWindowsInContainer(workspaceElement, null);
   }
 
   function dispatchWorkspaceLayoutSettled(windowElement) {
@@ -921,50 +1935,12 @@ var WebWindowManager = (function () {
   }
 
   function syncActivePageWindows() {
-    var pageStart = document.getElementById("pageStart");
-    var pageSettings = document.getElementById("pageSettings");
-    var pageCredits = document.getElementById("pageCredits");
-    var pageExtras = document.getElementById("pageExtras");
     var pageMenu = document.getElementById("pageMenu");
-    if (pageStart && !pageStart.hidden) {
-      var startWorkspace = pageStart.querySelector(".os-workspace--wm");
-      if (startWorkspace) {
-        syncWorkspaceWindows(startWorkspace);
-        refreshWorkspaceScrollbars(startWorkspace);
-      }
-      return;
-    }
-    if (pageCredits && !pageCredits.hidden) {
-      var creditsWorkspace = pageCredits.querySelector(".os-workspace--wm");
-      if (creditsWorkspace) {
-        syncWorkspaceWindows(creditsWorkspace);
-        refreshWorkspaceScrollbars(creditsWorkspace);
-      }
-      return;
-    }
-    if (pageExtras && !pageExtras.hidden) {
-      var extrasWorkspace = pageExtras.querySelector(".os-workspace--wm");
-      if (extrasWorkspace) {
-        syncWorkspaceWindows(extrasWorkspace);
-        refreshWorkspaceScrollbars(extrasWorkspace);
-      }
-      return;
-    }
-    if (pageSettings && !pageSettings.hidden) {
-      var settingsWorkspace = pageSettings.querySelector(".os-workspace--wm");
-      if (settingsWorkspace) {
-        syncWorkspaceWindows(settingsWorkspace);
-        refreshWorkspaceScrollbars(settingsWorkspace);
-      }
-      return;
-    }
-    if (pageMenu && !pageMenu.hidden) {
-      var menuWorkspace = pageMenu.querySelector(".os-workspace--wm");
-      if (menuWorkspace) {
-        syncWorkspaceWindows(menuWorkspace);
-        refreshWorkspaceScrollbars(menuWorkspace);
-      }
-    }
+    if (!pageMenu || pageMenu.hidden) return;
+    var menuWorkspace = pageMenu.querySelector(".os-workspace--wm");
+    if (!menuWorkspace) return;
+    syncWorkspaceWindows(menuWorkspace);
+    refreshWorkspaceScrollbars(menuWorkspace);
   }
 
   function initOverlayWindow() {
@@ -1025,9 +2001,26 @@ var WebWindowManager = (function () {
     centerOverlayWindow(overlayWindow, overlay);
   }
 
+  function initAllWindowControls() {
+    var windows = document.querySelectorAll(".os-window[data-wm-preset]");
+    var index = 0;
+    for (index = 0; index < windows.length; index++) {
+      ensureWindowStructure(windows[index]);
+    }
+    initOverlayWindow();
+  }
+
   function initAll() {
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       reducedMotion = true;
+    }
+
+    initAllWindowControls();
+
+    var managedWindows = document.querySelectorAll(".os-window[data-wm-preset]");
+    var windowIndex = 0;
+    for (windowIndex = 0; windowIndex < managedWindows.length; windowIndex++) {
+      updateWindowBodyRenderState(managedWindows[windowIndex]);
     }
 
     var workspaces = document.querySelectorAll(".os-workspace--wm");
@@ -1035,7 +2028,6 @@ var WebWindowManager = (function () {
     for (index = 0; index < workspaces.length; index++) {
       initWorkspace(workspaces[index]);
     }
-    initOverlayWindow();
 
     document.addEventListener("mousemove", onPointerMove);
     document.addEventListener("mouseup", onPointerUp);
@@ -1084,7 +2076,11 @@ var WebWindowManager = (function () {
     initAll();
     if (!isUnityHost() && hasSavedLayouts()) {
       applyAllSavedLayoutsInDocument();
+      applyDesktopWindowVisibilityFromSaved();
+      applySavedWindowStackOrder();
+      applySavedChromeStatesFromSaved();
       clearLayoutBootstrap();
+      window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
     }
     if (shouldDeferMainMenuOpenAnimations()) {
       if (mainMenuCanvasShown) {
@@ -1118,12 +2114,25 @@ var WebWindowManager = (function () {
     flushLayoutsSave: flushWindowLayoutsSave,
     relayoutOverlayWindow: syncOverlayWindow,
     focusWindow: focusWindow,
+    setWindowKeyboardFocus: setWindowKeyboardFocus,
+    closeWindow: closeManagedWindow,
+    maximizeWindow: maximizeManagedWindow,
+    minimizeWindow: minimizeManagedWindow,
+    restoreWindow: restoreManagedWindow,
     playWindowOpen: playOpenAnimation,
     playWindowBodyOpen: playBodyOpenAnimation,
-    applySavedLayouts: function (payload) {
-      applySavedLayouts(payload);
-      clearLayoutBootstrap();
-    },
+    syncWindowLayout: syncWindowLayout,
+    setSavedWindowOpen: setSavedWindowOpen,
+    ensureWindowStructure: ensureWindowStructure,
+    applyWindowRect: applyWindowRect,
+    removeSavedLayout: removeSavedLayout,
+    applySavedLayouts: applySavedLayouts,
+    applyDesktopWindowVisibility: applyDesktopWindowVisibilityFromSaved,
+    applySavedWindowStackOrder: applySavedWindowStackOrder,
+    toggleMinimizeAllDesktopWindows: toggleMinimizeAllDesktopWindows,
+    areAllVisibleDesktopWindowsMinimized: areAllVisibleDesktopWindowsMinimized,
+    scheduleWindowLayoutsSave: scheduleWindowLayoutsSave,
+    hasSavedLayouts: hasSavedLayouts,
     resetAllLayouts: resetAllWindowLayouts
   };
 })();

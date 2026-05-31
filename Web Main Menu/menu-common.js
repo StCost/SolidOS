@@ -33,22 +33,7 @@ var WebMenu = (function () {
   var pauseInputHandling = false;
 
   var pageMenu = document.getElementById("pageMenu");
-  var pageStart = document.getElementById("pageStart");
-  var pageSettings = document.getElementById("pageSettings");
-  var pageCredits = document.getElementById("pageCredits");
-  var pageExtras = document.getElementById("pageExtras");
-  var statusModule = document.getElementById("osStatusModule");
-
-  var STATUS_KEY_MENU = "web.status.shell";
-  var STATUS_KEY_START = "web.status.conn-mgr";
-  var STATUS_KEY_SETTINGS = "web.status.config";
-  var STATUS_KEY_CREDITS = "web.status.credits";
-  var STATUS_KEY_EXTRAS = "web.status.extras";
-  var STATUS_FALLBACK_MENU = "SHELL 2.4";
-  var STATUS_FALLBACK_START = "conn_mgr.exe";
-  var STATUS_FALLBACK_SETTINGS = "config.sys";
-  var STATUS_FALLBACK_CREDITS = "credits.exe";
-  var STATUS_FALLBACK_EXTRAS = "extras.exe";
+  var currentLogicalPageId = PAGE_MENU;
 
   function getLocaleText(key, fallback) {
     if (window.WebLocale) {
@@ -68,52 +53,29 @@ var WebMenu = (function () {
     return value.replace(/^\s+|\s+$/g, "");
   }
 
-  function setStatusModule(localeKey, fallback) {
-    if (!statusModule) return;
-    statusModule.textContent = getLocaleText(localeKey, fallback);
-  }
-
-  function getPageElement(pageId) {
-    if (pageId === PAGE_START) return pageStart;
-    if (pageId === PAGE_SETTINGS) return pageSettings;
-    if (pageId === PAGE_EXTRAS) return pageExtras;
-    if (pageId === PAGE_CREDITS) return pageCredits;
-    return pageMenu;
-  }
-
   function getCurrentPageId() {
-    if (pageCredits && !pageCredits.hidden) return PAGE_CREDITS;
-    if (pageExtras && !pageExtras.hidden) return PAGE_EXTRAS;
-    if (pageSettings && !pageSettings.hidden) return PAGE_SETTINGS;
-    if (pageStart && !pageStart.hidden) return PAGE_START;
-    return PAGE_MENU;
+    return currentLogicalPageId;
   }
 
   function showPage(pageId) {
-    if (!pageMenu || !pageStart || !pageSettings || !pageCredits || !pageExtras) return;
+    if (!pageMenu) return;
 
     if (window.WebWindowManager && window.WebWindowManager.flushLayoutsSave) {
       window.WebWindowManager.flushLayoutsSave();
     }
+    if (window.WebDesktop && window.WebDesktop.flushIconLayoutsSave) {
+      window.WebDesktop.flushIconLayoutsSave();
+    }
 
-    pageMenu.hidden = pageId !== PAGE_MENU;
-    pageStart.hidden = pageId !== PAGE_START;
-    pageSettings.hidden = pageId !== PAGE_SETTINGS;
-    pageCredits.hidden = pageId !== PAGE_CREDITS;
-    pageExtras.hidden = pageId !== PAGE_EXTRAS;
-
-    if (pageId === PAGE_MENU) setStatusModule(STATUS_KEY_MENU, STATUS_FALLBACK_MENU);
-    else if (pageId === PAGE_START) setStatusModule(STATUS_KEY_START, STATUS_FALLBACK_START);
-    else if (pageId === PAGE_SETTINGS) setStatusModule(STATUS_KEY_SETTINGS, STATUS_FALLBACK_SETTINGS);
-    else if (pageId === PAGE_EXTRAS) setStatusModule(STATUS_KEY_EXTRAS, STATUS_FALLBACK_EXTRAS);
-    else if (pageId === PAGE_CREDITS) setStatusModule(STATUS_KEY_CREDITS, STATUS_FALLBACK_CREDITS);
+    pageMenu.hidden = false;
+    currentLogicalPageId = pageId;
 
     if (window.WebLocale) {
       window.WebLocale.applyDom();
     }
 
-    if (window.WebWindowManager) {
-      WebWindowManager.activatePage(getPageElement(pageId));
+    if (window.WebWindowManager && pageId === PAGE_MENU) {
+      WebWindowManager.activatePage(pageMenu);
     }
 
     dispatchMenuEvent("web-page-changed", { pageId: pageId });
@@ -121,34 +83,44 @@ var WebMenu = (function () {
 
   function goToIndexPage() {
     showPage(PAGE_MENU);
+    if (window.WebDesktop && window.WebDesktop.showDesktopHome) {
+      window.WebDesktop.showDesktopHome();
+    }
   }
 
   function goToStartPage() {
     showPage(PAGE_START);
+    if (window.WebDesktop && window.WebDesktop.openStartDesktop) {
+      window.WebDesktop.openStartDesktop();
+    }
   }
 
   function goToSettingsPage() {
     showPage(PAGE_SETTINGS);
+    if (window.WebDesktop && window.WebDesktop.openSettingsDesktop) {
+      window.WebDesktop.openSettingsDesktop();
+    }
   }
 
   function goToCreditsPage() {
     showPage(PAGE_CREDITS);
-    if (window.WebCredits && window.WebCredits.renderCredits) {
-      window.WebCredits.renderCredits();
+    if (window.WebDesktop && window.WebDesktop.openCreditsDesktop) {
+      window.WebDesktop.openCreditsDesktop();
     }
   }
 
   function goToExtrasPage() {
     showPage(PAGE_EXTRAS);
+    if (window.WebDesktop && window.WebDesktop.openExtrasDesktop) {
+      window.WebDesktop.openExtrasDesktop();
+    }
     if (window.WebExtras && window.WebExtras.renderExtras) {
       window.WebExtras.renderExtras();
     }
   }
 
   function isPageVisible(pageId) {
-    var pageElement = getPageElement(pageId);
-    if (!pageElement) return false;
-    return !pageElement.hidden;
+    return currentLogicalPageId === pageId;
   }
 
   function isIndexPageVisible() {
@@ -186,20 +158,6 @@ var WebMenu = (function () {
 
     pauseInputHandling = false;
   }
-
-  window.addEventListener("web-locale-applied", function () {
-    if (pageMenu && !pageMenu.hidden) {
-      setStatusModule(STATUS_KEY_MENU, STATUS_FALLBACK_MENU);
-    } else if (pageStart && !pageStart.hidden) {
-      setStatusModule(STATUS_KEY_START, STATUS_FALLBACK_START);
-    } else if (pageSettings && !pageSettings.hidden) {
-      setStatusModule(STATUS_KEY_SETTINGS, STATUS_FALLBACK_SETTINGS);
-    } else if (pageExtras && !pageExtras.hidden) {
-      setStatusModule(STATUS_KEY_EXTRAS, STATUS_FALLBACK_EXTRAS);
-    } else if (pageCredits && !pageCredits.hidden) {
-      setStatusModule(STATUS_KEY_CREDITS, STATUS_FALLBACK_CREDITS);
-    }
-  });
 
   showPage(PAGE_MENU);
 

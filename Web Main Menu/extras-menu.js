@@ -15,22 +15,21 @@
   var NAV_LINKS_FALLBACK = "Links";
 
   var currentView = VIEW_GAMES;
+  var activeExtrasWindow = null;
   var pendingExternalUrl = "";
   var pendingExternalLabel = "";
   var artViewerOpen = false;
   var activeArtCard = null;
-  var activeArtIsBackground = false;
   var activeArtId = "";
+  var activeArtSrc = "";
   var activeGameId = "";
-  var backgroundApplyTimer = 0;
-  var ART_MODAL_OPEN_MS_DEFAULT = 340;
   var STORAGE_KEY_SKIP_EXTERNAL_LINK_CONFIRM = "cm-skip-external-link-confirm";
   var STORAGE_VALUE_TRUE = "1";
   var IFRAME_EMBED_RESET_STYLE_ID = "cm-iframe-embed-reset";
-  var IFRAME_EMBED_RESET_LINK_ID = "cm-iframe-embed-reset-link";
-  var IFRAME_EMBED_RESET_HREF = "../../../iframe-embed-reset.css";
   var IFRAME_GAME_CURSOR_SCRIPT_ID = "cm-iframe-game-cursor";
-  var IFRAME_GAME_CURSOR_SRC = "../iframe-game-cursor.js";
+  var IFRAME_GAME_CURSOR_PATH = "Extras/games/iframe-game-cursor.js";
+  var IFRAME_CONTEXT_BLOCK_SCRIPT_ID = "cm-iframe-context-block";
+  var IFRAME_CONTEXT_BLOCK_PATH = "menu-block-context-menu.js";
   var EVENT_GAME_CURSOR = "cm-game-cursor";
   var IFRAME_EMBED_RESET_INLINE =
     "html,body{-webkit-tap-highlight-color:transparent;tap-highlight-color:transparent}" +
@@ -60,6 +59,7 @@
   var linkOverlayText = document.getElementById("extrasLinkOverlayText");
   var artViewer = document.getElementById("extrasArtViewer");
   var artViewerImage = document.getElementById("extrasArtViewerImage");
+  var artViewerImageBox = document.getElementById("extrasArtViewerImageBox");
   var artViewerTitle = document.getElementById("extrasArtViewerTitle");
 
   function getLocalized(key, fallback) {
@@ -78,9 +78,48 @@
       .replace(/"/g, "&quot;");
   }
 
+  function hasOpenExtrasWindows(presetName) {
+    var windows = document.querySelectorAll(
+      '.os-window[data-wm-preset="' + presetName + '"]'
+    );
+    return windows.length > 0;
+  }
+
   function isExtrasPageVisible() {
-    var pageExtras = document.getElementById("pageExtras");
-    return !!pageExtras && !pageExtras.hidden;
+    if (window.WebMenu && window.WebMenu.isPageVisible) {
+      if (window.WebMenu.isPageVisible(PAGE_EXTRAS)) return true;
+    }
+    if (hasOpenExtrasWindows("extras-games")) return true;
+    if (hasOpenExtrasWindows("extras-art")) return true;
+    if (hasOpenExtrasWindows("extras-links")) return true;
+    return false;
+  }
+
+  function setActiveExtrasWindow(windowElement) {
+    activeExtrasWindow = windowElement || null;
+    if (windowElement) {
+      viewGames = windowElement.querySelector("#extrasViewGames");
+      viewGame = windowElement.querySelector("#extrasViewGame");
+      gamesListRoot = windowElement.querySelector(".extras-list");
+      gameFrame = windowElement.querySelector(".extras-game-frame");
+      gameKeyboardFocus = windowElement.querySelector(".extras-game-keyboard-focus");
+      bindIframeEmbedReset(gameFrame);
+      if (window.WebGameFrameLocaleHost && window.WebGameFrameLocaleHost.setGameFrame) {
+        window.WebGameFrameLocaleHost.setGameFrame(gameFrame);
+      }
+      if (window.WebGameFrameInputHost && window.WebGameFrameInputHost.setGameFrame) {
+        window.WebGameFrameInputHost.setGameFrame(gameFrame);
+      }
+    }
+  }
+
+  function getActiveExtrasWindowForPreset(presetName) {
+    if (activeExtrasWindow) {
+      if (activeExtrasWindow.getAttribute("data-wm-preset") === presetName) {
+        return activeExtrasWindow;
+      }
+    }
+    return document.querySelector('.os-window[data-wm-preset="' + presetName + '"]');
   }
 
   function getManifest() {
@@ -138,58 +177,132 @@
     return null;
   }
 
-  function isBackgroundArtItem(artId, title) {
-    if (artId && artId.indexOf("background") === 0) return true;
-    if (!title) return false;
-    return title.toLowerCase().indexOf("background") !== -1;
-  }
-
-  function getMenuBackgroundPathForArt(artId, artSrc) {
-    if (artId && artId.indexOf("background") === 0) {
-      return "backgrounds/" + artId + ".png";
+  function getFileNameWithoutExtensionFromPath(path) {
+    if (!path) return "";
+    var fileName = path;
+    var slashIndex = fileName.lastIndexOf("/");
+    if (slashIndex >= 0) {
+      fileName = fileName.substring(slashIndex + 1);
     }
-    return artSrc;
+    var dotIndex = fileName.lastIndexOf(".");
+    if (dotIndex > 0) {
+      fileName = fileName.substring(0, dotIndex);
+    }
+    return fileName;
   }
 
-  function getArtModalOpenMs() {
-    if (!artViewer) return ART_MODAL_OPEN_MS_DEFAULT;
-    var styles = window.getComputedStyle(artViewer);
-    var openMs = parseFloat(styles.getPropertyValue("--extras-art-modal-open-ms"));
-    if (!openMs || openMs < 1) return ART_MODAL_OPEN_MS_DEFAULT;
-    return openMs;
+  function getArtDisplayLabel(item) {
+    if (!item) return "";
+    if (item.id) return item.id;
+    return getFileNameWithoutExtensionFromPath(item.path);
   }
 
-  function cancelPendingBackgroundApply() {
-    if (!backgroundApplyTimer) return;
-    window.clearTimeout(backgroundApplyTimer);
-    backgroundApplyTimer = 0;
+  function pathsReferToSameArtMenuBackground(artPath, savedPath) {
+    if (!artPath || !savedPath) return false;
+    if (artPath === savedPath) return true;
+    return getFileNameWithoutExtensionFromPath(artPath) === getFileNameWithoutExtensionFromPath(savedPath);
   }
 
-  function applyArtAsMenuBackgroundNow(artId, artSrc, title) {
-    if (!isBackgroundArtItem(artId, title)) return false;
-    if (!window.WebMenuBackground || !window.WebMenuBackground.setBackground) return false;
-    var path = getMenuBackgroundPathForArt(artId, artSrc);
-    return window.WebMenuBackground.setBackground(path);
+  function getBackgroundSelectionState() {
+    if (window.WebMenuBackground && window.WebMenuBackground.getSelectionState) {
+      return window.WebMenuBackground.getSelectionState();
+    }
+    return { random: false, path: "" };
   }
 
-  function scheduleArtAsMenuBackground(artId, artSrc, title) {
-    cancelPendingBackgroundApply();
-    if (!isBackgroundArtItem(artId, title)) return false;
-    backgroundApplyTimer = window.setTimeout(function () {
-      backgroundApplyTimer = 0;
-      applyArtAsMenuBackgroundNow(artId, artSrc, title);
-    }, getArtModalOpenMs());
-    return true;
+  function setArtBackgroundSwitchVisual(buttonElement, switchVisual, isOn, isDisabled) {
+    if (!buttonElement || !switchVisual) return;
+    if (isOn) {
+      buttonElement.setAttribute("aria-pressed", "true");
+      switchVisual.classList.add("is-on");
+    } else {
+      buttonElement.setAttribute("aria-pressed", "false");
+      switchVisual.classList.remove("is-on");
+    }
+    if (isDisabled) {
+      buttonElement.disabled = true;
+      buttonElement.setAttribute("aria-disabled", "true");
+      return;
+    }
+    buttonElement.disabled = false;
+    buttonElement.removeAttribute("aria-disabled");
+  }
+
+  function updateArtBackgroundSwitchState() {
+    var useBackgroundButton = document.getElementById("extrasArtUseBackgroundSwitch");
+    var randomBackgroundButton = document.getElementById("extrasArtRandomBackgroundSwitch");
+    if (!useBackgroundButton || !randomBackgroundButton) return;
+
+    var useBackgroundVisual = useBackgroundButton.querySelector(".settings-switch");
+    var randomBackgroundVisual = randomBackgroundButton.querySelector(".settings-switch");
+    var selectionState = getBackgroundSelectionState();
+    var useBackgroundActive = false;
+    var randomBackgroundActive = false;
+
+    if (selectionState.random) {
+      randomBackgroundActive = true;
+    } else if (activeArtSrc && pathsReferToSameArtMenuBackground(activeArtSrc, selectionState.path)) {
+      useBackgroundActive = true;
+    }
+
+    setArtBackgroundSwitchVisual(useBackgroundButton, useBackgroundVisual, useBackgroundActive, false);
+    setArtBackgroundSwitchVisual(
+      randomBackgroundButton,
+      randomBackgroundVisual,
+      randomBackgroundActive,
+      randomBackgroundActive
+    );
+    updateArtRandomDisableHelp(randomBackgroundButton.disabled);
+  }
+
+  var LOCALE_KEY_HELP_TITLE = "settings.web.help.title";
+  var LOCALE_KEY_ART_RANDOM_DISABLE_HINT = "web.extras.art.random-disable-hint";
+  var ART_RANDOM_DISABLE_HINT_FALLBACK =
+    "To disable random background — set any art as background";
+  var HELP_TITLE_FALLBACK = "Help";
+  var artRandomDisableHelpBound = false;
+
+  function getArtRandomDisableHelpText() {
+    return getLocalized(LOCALE_KEY_ART_RANDOM_DISABLE_HINT, ART_RANDOM_DISABLE_HINT_FALLBACK);
+  }
+
+  function bindArtRandomDisableHelp() {
+    if (artRandomDisableHelpBound) return;
+    var helpButton = document.getElementById("extrasArtRandomDisableHelp");
+    if (!helpButton || !window.WebMenuHelpTooltip) return;
+    window.WebMenuHelpTooltip.bindHelpButton(
+      helpButton,
+      getArtRandomDisableHelpText(),
+      getLocalized(LOCALE_KEY_HELP_TITLE, HELP_TITLE_FALLBACK)
+    );
+    artRandomDisableHelpBound = true;
+    updateArtRandomDisableHelp(false);
+  }
+
+  function updateArtRandomDisableHelp(showHelp) {
+    var helpButton = document.getElementById("extrasArtRandomDisableHelp");
+    if (!helpButton) return;
+    if (showHelp) {
+      if (window.WebMenuHelpTooltip) {
+        window.WebMenuHelpTooltip.setHelpButtonText(helpButton, getArtRandomDisableHelpText());
+      } else {
+        helpButton.setAttribute("data-help-text", getArtRandomDisableHelpText());
+      }
+      helpButton.hidden = false;
+      helpButton.classList.add("is-visible");
+      return;
+    }
+    helpButton.hidden = true;
+    helpButton.classList.remove("is-visible");
+    helpButton.setAttribute("data-help-text", "");
+    if (window.WebMenuHelpTooltip) {
+      window.WebMenuHelpTooltip.hide();
+    }
   }
 
   function getLinks() {
     if (window.WebExtrasLinks) return window.WebExtrasLinks;
     return [];
-  }
-
-  function setContentPrompt(pathSegment, commandText) {
-    if (contentPromptPath) contentPromptPath.textContent = pathSegment;
-    if (contentPromptCommand) contentPromptCommand.textContent = commandText;
   }
 
   function refreshScrollbars() {
@@ -229,44 +342,37 @@
     return !device.classList.contains("terminal-animations-off");
   }
 
-  function playExtrasContentBodyOpen() {
+  function getExtrasWindowPresetForView(viewId) {
+    if (viewId === VIEW_ART) return "extras-art";
+    if (viewId === VIEW_LINKS) return "extras-links";
+    return "extras-games";
+  }
+
+  function playExtrasContentBodyOpen(windowElement) {
     if (!areTerminalAnimationsEnabled()) return;
-    var contentWindow = document.querySelector(
-      '.extras-content-window[data-wm-preset="extras-content"]'
-    );
-    if (!contentWindow || !window.WebWindowManager) return;
+    if (!windowElement || !window.WebWindowManager) return;
     if (!window.WebWindowManager.playWindowBodyOpen) return;
-    window.WebWindowManager.playWindowBodyOpen(contentWindow);
+    window.WebWindowManager.playWindowBodyOpen(windowElement);
   }
 
   function showView(viewId, playContentOpen) {
     var viewChanged = currentView !== viewId;
     if (viewId !== VIEW_ART && artViewerOpen) {
-      cancelPendingBackgroundApply();
       closeArtViewer();
     }
     if (viewId !== VIEW_GAME) activeGameId = "";
     currentView = viewId;
-    if (viewArt) viewArt.hidden = viewId !== VIEW_ART;
-    if (viewGames) viewGames.hidden = viewId !== VIEW_GAMES;
-    if (viewGame) viewGame.hidden = viewId !== VIEW_GAME;
-    if (viewLinks) viewLinks.hidden = viewId !== VIEW_LINKS;
+
+    if (viewId === VIEW_GAMES || viewId === VIEW_GAME) {
+      if (viewGames) viewGames.hidden = viewId === VIEW_GAME;
+      if (viewGame) viewGame.hidden = viewId !== VIEW_GAME;
+    }
 
     setNavTabActive(getTabForView(viewId));
 
-    if (viewId === VIEW_ART) {
-      setContentPrompt("C:\\CM\\extras\\art&gt;", "dir");
-    } else if (viewId === VIEW_GAMES) {
-      setContentPrompt("C:\\CM\\extras\\games&gt;", "dir");
-    } else if (viewId === VIEW_GAME) {
-      setContentPrompt("C:\\CM\\extras\\games&gt;", "run");
-    } else if (viewId === VIEW_LINKS) {
-      setContentPrompt("C:\\CM\\extras\\links&gt;", "type links.lst");
-    }
-
     refreshScrollbars();
-    if (playContentOpen !== false && viewChanged) {
-      playExtrasContentBodyOpen();
+    if (playContentOpen !== false && viewChanged && activeExtrasWindow) {
+      playExtrasContentBodyOpen(activeExtrasWindow);
     }
     notifyRouteChanged();
   }
@@ -341,6 +447,45 @@
     return null;
   }
 
+  function isBlankGameFrameSrc(frameSrc) {
+    if (!frameSrc) return true;
+    if (frameSrc === "about:blank") return true;
+    return false;
+  }
+
+  function getIframeGameCursorScriptUrl(frame) {
+    var doc;
+    try {
+      doc = frame.contentDocument;
+    } catch (error) {
+      doc = null;
+    }
+    if (doc && doc.location && doc.location.href && !isBlankGameFrameSrc(doc.location.href)) {
+      try {
+        return new URL("../iframe-game-cursor.js", doc.location.href).href;
+      } catch (error) {}
+    }
+    try {
+      return new URL(IFRAME_GAME_CURSOR_PATH, window.location.href).href;
+    } catch (error) {
+      return IFRAME_GAME_CURSOR_PATH;
+    }
+  }
+
+  function getIframeContextBlockScriptUrl() {
+    try {
+      return new URL(IFRAME_CONTEXT_BLOCK_PATH, window.location.href).href;
+    } catch (error) {
+      return IFRAME_CONTEXT_BLOCK_PATH;
+    }
+  }
+
+  function shouldInjectGameCursorScript(frame) {
+    var frameSrc = frame.getAttribute("src") || "";
+    if (isBlankGameFrameSrc(frameSrc)) return false;
+    return frameSrc.indexOf("Extras/games/") !== -1 || frameSrc.indexOf("extras/games/") !== -1;
+  }
+
   function injectIframeEmbedResetIntoFrame(frame) {
     var doc;
     try {
@@ -350,14 +495,6 @@
     }
     if (!doc || !doc.head) return;
 
-    if (!doc.getElementById(IFRAME_EMBED_RESET_LINK_ID)) {
-      var link = doc.createElement("link");
-      link.id = IFRAME_EMBED_RESET_LINK_ID;
-      link.rel = "stylesheet";
-      link.href = IFRAME_EMBED_RESET_HREF;
-      doc.head.appendChild(link);
-    }
-
     if (!doc.getElementById(IFRAME_EMBED_RESET_STYLE_ID)) {
       var style = doc.createElement("style");
       style.id = IFRAME_EMBED_RESET_STYLE_ID;
@@ -365,12 +502,24 @@
       doc.head.insertBefore(style, doc.head.firstChild);
     }
 
-    if (!doc.getElementById(IFRAME_GAME_CURSOR_SCRIPT_ID) && !doc.querySelector('script[src*="iframe-game-cursor.js"]')) {
-      var cursorScript = doc.createElement("script");
-      cursorScript.id = IFRAME_GAME_CURSOR_SCRIPT_ID;
-      cursorScript.src = IFRAME_GAME_CURSOR_SRC;
-      doc.head.appendChild(cursorScript);
+    if (!shouldInjectGameCursorScript(frame)) return;
+
+    if (!doc.getElementById(IFRAME_CONTEXT_BLOCK_SCRIPT_ID)) {
+      if (!doc.querySelector('script[src*="menu-block-context-menu.js"]')) {
+        var contextBlockScript = doc.createElement("script");
+        contextBlockScript.id = IFRAME_CONTEXT_BLOCK_SCRIPT_ID;
+        contextBlockScript.src = getIframeContextBlockScriptUrl();
+        doc.head.appendChild(contextBlockScript);
+      }
     }
+
+    if (doc.getElementById(IFRAME_GAME_CURSOR_SCRIPT_ID)) return;
+    if (doc.querySelector('script[src*="iframe-game-cursor.js"]')) return;
+
+    var cursorScript = doc.createElement("script");
+    cursorScript.id = IFRAME_GAME_CURSOR_SCRIPT_ID;
+    cursorScript.src = getIframeGameCursorScriptUrl(frame);
+    doc.head.appendChild(cursorScript);
   }
 
   function onGameFrameCursorMessage(event) {
@@ -470,7 +619,6 @@
     );
     gameFrame.src = game.path;
     showView(VIEW_GAME);
-    setContentPrompt("C:\\CM\\extras\\games&gt;", "run " + title);
     focusGameKeyboardTarget();
   }
 
@@ -489,7 +637,7 @@
     if (!item) return false;
     renderArt();
     showView(VIEW_ART, false);
-    var title = getLocalized(item.titleKey, item.titleFallback || item.id);
+    var title = getArtDisplayLabel(item);
     var card = null;
     if (artGridRoot) {
       card = artGridRoot.querySelector('.extras-art-card[data-art-id="' + artId + '"]');
@@ -498,19 +646,43 @@
     return true;
   }
 
-  function renderGames() {
-    if (gamesListRoot) gamesListRoot.innerHTML = buildGameListHtml();
+  function renderGamesInWindow(windowElement) {
+    var listRoot = null;
+    if (windowElement) {
+      listRoot = windowElement.querySelector(".extras-list");
+    } else if (gamesListRoot) {
+      listRoot = gamesListRoot;
+    }
+    if (listRoot) listRoot.innerHTML = buildGameListHtml();
   }
 
-  function renderArt() {
-    if (!artGridRoot) return;
+  function renderGames() {
+    var windows = document.querySelectorAll('.os-window[data-wm-preset="extras-games"]');
+    var index = 0;
+    if (windows.length) {
+      for (index = 0; index < windows.length; index++) {
+        renderGamesInWindow(windows[index]);
+      }
+      return;
+    }
+    renderGamesInWindow(null);
+  }
+
+  function renderArtInWindow(windowElement) {
+    var gridRoot = null;
+    if (windowElement) {
+      gridRoot = windowElement.querySelector(".extras-art-grid");
+    } else if (artGridRoot) {
+      gridRoot = artGridRoot;
+    }
+    if (!gridRoot) return;
     var manifest = getManifest();
     var artItems = manifest.art || [];
     var html = "";
     var index;
     for (index = 0; index < artItems.length; index++) {
       var item = artItems[index];
-      var title = getLocalized(item.titleKey, item.titleFallback || item.id);
+      var title = getArtDisplayLabel(item);
       html +=
         '<button type="button" class="extras-art-card" data-art-id="' +
         escapeHtml(item.id) +
@@ -532,11 +704,29 @@
         escapeHtml(getLocalized("web.extras.art.empty", "No art found.")) +
         "</p>";
     }
-    artGridRoot.innerHTML = html;
+    gridRoot.innerHTML = html;
   }
 
-  function renderLinks() {
-    if (!linksListRoot) return;
+  function renderArt() {
+    var windows = document.querySelectorAll('.os-window[data-wm-preset="extras-art"]');
+    var index = 0;
+    if (windows.length) {
+      for (index = 0; index < windows.length; index++) {
+        renderArtInWindow(windows[index]);
+      }
+      return;
+    }
+    renderArtInWindow(null);
+  }
+
+  function renderLinksInWindow(windowElement) {
+    var listRoot = null;
+    if (windowElement) {
+      listRoot = windowElement.querySelector(".extras-links-list");
+    } else if (linksListRoot) {
+      listRoot = linksListRoot;
+    }
+    if (!listRoot) return;
     var links = getLinks();
     var html = "";
     var index;
@@ -554,17 +744,26 @@
         escapeHtml(label) +
         "</span></button>";
     }
-    linksListRoot.innerHTML = html;
+    listRoot.innerHTML = html;
+  }
+
+  function renderLinks() {
+    var windows = document.querySelectorAll('.os-window[data-wm-preset="extras-links"]');
+    var index = 0;
+    if (windows.length) {
+      for (index = 0; index < windows.length; index++) {
+        renderLinksInWindow(windows[index]);
+      }
+      return;
+    }
+    renderLinksInWindow(null);
   }
 
   function showTab(tabId) {
     if (tabId === VIEW_ART) {
-      if (currentView === VIEW_ART) {
-        playExtrasContentBodyOpen();
-        return;
-      }
       renderArt();
       showView(VIEW_ART);
+      playExtrasContentBodyOpen();
       return;
     }
     if (tabId === VIEW_GAMES) {
@@ -572,22 +771,47 @@
         closeGame();
         return;
       }
-      if (currentView === VIEW_GAMES) {
-        playExtrasContentBodyOpen();
-        return;
-      }
       renderGames();
       showView(VIEW_GAMES);
+      playExtrasContentBodyOpen();
       return;
     }
     if (tabId === VIEW_LINKS) {
-      if (currentView === VIEW_LINKS) {
-        playExtrasContentBodyOpen();
-        return;
-      }
       renderLinks();
       showView(VIEW_LINKS);
+      playExtrasContentBodyOpen();
     }
+  }
+
+  function openGamesPanel(windowElement) {
+    if (!windowElement) {
+      windowElement = getActiveExtrasWindowForPreset("extras-games");
+    }
+    if (!windowElement) return;
+    setActiveExtrasWindow(windowElement);
+    renderGamesInWindow(windowElement);
+    showView(VIEW_GAMES);
+    refreshScrollbars();
+  }
+
+  function openArtPanel(windowElement) {
+    if (!windowElement) {
+      windowElement = getActiveExtrasWindowForPreset("extras-art");
+    }
+    if (!windowElement) return;
+    artGridRoot = windowElement.querySelector(".extras-art-grid");
+    renderArtInWindow(windowElement);
+    refreshScrollbars();
+  }
+
+  function openLinksPanel(windowElement) {
+    if (!windowElement) {
+      windowElement = getActiveExtrasWindowForPreset("extras-links");
+    }
+    if (!windowElement) return;
+    linksListRoot = windowElement.querySelector(".extras-links-list");
+    renderLinksInWindow(windowElement);
+    refreshScrollbars();
   }
 
   function renderExtras() {
@@ -596,6 +820,9 @@
     renderGames();
     renderLinks();
     updateExtrasNavTabLabels();
+    if (artViewerOpen) {
+      updateArtBackgroundSwitchState();
+    }
     if (currentView === VIEW_GAME) {
       showView(VIEW_GAME, false);
     } else if (currentView) {
@@ -636,24 +863,28 @@
 
   function closeArtViewer() {
     if (!artViewer || !artViewerOpen) return;
+    if (window.WebMenuHelpTooltip) {
+      window.WebMenuHelpTooltip.hide();
+    }
+    updateArtRandomDisableHelp(false);
     artViewerOpen = false;
     artViewer.classList.remove("is-open");
     artViewer.setAttribute("aria-hidden", "true");
     setActiveArtCard(null);
-    activeArtIsBackground = false;
     activeArtId = "";
+    activeArtSrc = "";
     notifyRouteChanged();
   }
 
   function openArtViewer(src, title, card, artId) {
     if (!artViewer || !artViewerImage || !src) return;
     activeArtId = artId || "";
-    activeArtIsBackground = isBackgroundArtItem(activeArtId, title);
+    activeArtSrc = src;
     artViewerImage.src = src;
     artViewerImage.alt = title || "";
     if (artViewerTitle) {
       artViewerTitle.textContent =
-        title || getLocalized("web.extras.art.viewer-title", "art_viewer.exe");
+        title || getLocalized("web.extras.nav.art", "Art");
     }
     artViewer.setAttribute("aria-hidden", "false");
     artViewer.classList.remove("is-open");
@@ -661,6 +892,7 @@
     artViewer.classList.add("is-open");
     artViewerOpen = true;
     setActiveArtCard(card);
+    updateArtBackgroundSwitchState();
     notifyRouteChanged();
   }
 
@@ -676,20 +908,50 @@
     var artId = card.getAttribute("data-art-id");
     if (src) {
       openArtViewer(src, title, card, artId);
-      scheduleArtAsMenuBackground(artId, src, title);
     }
   }
 
   function onArtViewerClick(event) {
     if (!artViewerOpen) return;
     var target = event.target;
-    if (target !== artViewer && target !== artViewerImage) return;
+    if (target !== artViewer) return;
     event.stopPropagation();
-    if (target === artViewerImage && activeArtIsBackground) {
-      var artSrc = activeArtCard ? activeArtCard.getAttribute("data-art-src") : "";
-      scheduleArtAsMenuBackground(activeArtId, artSrc, artViewerImage.alt);
-    }
     closeArtViewer();
+  }
+
+  function onArtViewerImageBoxClick(event) {
+    if (!artViewerOpen) return;
+    event.stopPropagation();
+    closeArtViewer();
+  }
+
+  function onArtUseBackgroundSwitchClick(event) {
+    if (event) event.stopPropagation();
+    if (!activeArtSrc || !window.WebMenuBackground) return;
+    var selectionState = getBackgroundSelectionState();
+    var isActive =
+      !selectionState.random &&
+      pathsReferToSameArtMenuBackground(activeArtSrc, selectionState.path);
+    if (isActive) {
+      if (!window.WebMenuBackground.setRandomBackground) return;
+      window.WebMenuBackground.setRandomBackground();
+      updateArtBackgroundSwitchState();
+      return;
+    }
+    if (!window.WebMenuBackground.setBackground) return;
+    window.WebMenuBackground.setBackground(activeArtSrc);
+    updateArtBackgroundSwitchState();
+  }
+
+  function onArtRandomBackgroundSwitchClick(event) {
+    if (event) event.stopPropagation();
+    var randomBackgroundButton = document.getElementById("extrasArtRandomBackgroundSwitch");
+    if (randomBackgroundButton && randomBackgroundButton.disabled) return;
+    if (!window.WebMenuBackground || !window.WebMenuBackground.setRandomBackground) return;
+    var selectionState = getBackgroundSelectionState();
+    if (selectionState.random) return;
+    window.WebMenuBackground.setRandomBackground();
+    updateArtBackgroundSwitchState();
   }
 
   function closeLinkOverlay() {
@@ -797,7 +1059,6 @@
       return;
     }
     currentView = "";
-    cancelPendingBackgroundApply();
     closeArtViewer();
     setGameInputForwarding(false);
     if (gameFrame) gameFrame.src = "about:blank";
@@ -810,11 +1071,27 @@
   if (artViewer) {
     artViewer.addEventListener("click", onArtViewerClick);
   }
+  if (artViewerImageBox) {
+    artViewerImageBox.addEventListener("click", onArtViewerImageBoxClick);
+  }
 
   var btnArtViewerClose = document.getElementById("extrasArtViewerClose");
   if (btnArtViewerClose) btnArtViewerClose.addEventListener("click", closeArtViewer);
 
-  bindIframeEmbedReset(gameFrame);
+  var btnArtViewerChromeClose = document.getElementById("extrasArtViewerChromeClose");
+  if (btnArtViewerChromeClose) btnArtViewerChromeClose.addEventListener("click", closeArtViewer);
+
+  var btnArtUseBackgroundSwitch = document.getElementById("extrasArtUseBackgroundSwitch");
+  if (btnArtUseBackgroundSwitch) {
+    btnArtUseBackgroundSwitch.addEventListener("click", onArtUseBackgroundSwitchClick);
+  }
+
+  var btnArtRandomBackgroundSwitch = document.getElementById("extrasArtRandomBackgroundSwitch");
+  if (btnArtRandomBackgroundSwitch) {
+    btnArtRandomBackgroundSwitch.addEventListener("click", onArtRandomBackgroundSwitchClick);
+  }
+
+  bindArtRandomDisableHelp();
   window.addEventListener("message", onGameFrameCursorMessage);
   if (window.WebGameFrameLocaleHost) {
     window.WebGameFrameLocaleHost.setGameFrame(gameFrame);
@@ -835,8 +1112,33 @@
     });
   }
 
-  if (gamesListRoot) gamesListRoot.addEventListener("click", onGamesListClick);
-  if (linksListRoot) linksListRoot.addEventListener("click", onLinksListClick);
+  var desktopWorkspace = document.getElementById("desktopWorkspace");
+  if (desktopWorkspace) {
+    desktopWorkspace.addEventListener("click", function (event) {
+      var gamesWindow = event.target.closest('.os-window[data-wm-preset="extras-games"]');
+      if (gamesWindow) {
+        setActiveExtrasWindow(gamesWindow);
+        if (event.target.closest(".extras-game-picker")) {
+          onGamesListClick(event);
+          return;
+        }
+        if (event.target.closest(".extras-game-back")) {
+          closeGame();
+          return;
+        }
+      }
+      var linksWindow = event.target.closest('.os-window[data-wm-preset="extras-links"]');
+      if (linksWindow) {
+        linksListRoot = linksWindow.querySelector(".extras-links-list");
+        onLinksListClick(event);
+      }
+      var artWindow = event.target.closest('.os-window[data-wm-preset="extras-art"]');
+      if (artWindow) {
+        artGridRoot = artWindow.querySelector(".extras-art-grid");
+        onArtGridClick(event);
+      }
+    });
+  }
 
   var btnExtrasGameBack = document.getElementById("btnExtrasGameBack");
   if (btnExtrasGameBack) btnExtrasGameBack.addEventListener("click", closeGame);
@@ -870,6 +1172,8 @@
 
   window.addEventListener("web-locale-applied", renderExtras);
   window.addEventListener("web-page-changed", onPageChanged);
+
+  updateExtrasNavTabLabels();
 
   function getRouteSegments() {
     if (!isExtrasPageVisible()) return null;
@@ -925,6 +1229,12 @@
 
   window.WebExtras = {
     renderExtras: renderExtras,
+    openGamesPanel: openGamesPanel,
+    openArtPanel: openArtPanel,
+    openLinksPanel: openLinksPanel,
+    showGamesView: openGamesPanel,
+    showArtView: openArtPanel,
+    showLinksView: openLinksPanel,
     getRouteSegments: getRouteSegments,
     applyRoute: applyExtrasRoute,
     handleEscape: function () {

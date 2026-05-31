@@ -10,6 +10,7 @@
   ];
 
   var PAGE_CREDITS = "credits";
+  var CREDITS_CONTENT_ID = "creditsContent";
   var CREDITS_PLACEHOLDER_WEB = "Credits preview is unavailable in web mode.";
   var CREDITS_LOADING_FALLBACK = "Loading credits...";
 
@@ -20,8 +21,12 @@
   }
 
   function isCreditsPageVisible() {
-    var pageCredits = document.getElementById("pageCredits");
-    return !!pageCredits && !pageCredits.hidden;
+    if (window.WebMenu && window.WebMenu.isPageVisible) {
+      if (window.WebMenu.isPageVisible(PAGE_CREDITS)) return true;
+    }
+    var creditsWindows = document.querySelectorAll('.os-window[data-wm-preset="credits-content"]');
+    if (creditsWindows.length > 0) return true;
+    return false;
   }
 
   function getLocalized(key, fallback) {
@@ -83,10 +88,21 @@
     return '<div class="credits-block">' + formatCreditsBlock(blockText) + "</div>";
   }
 
-  function renderCredits() {
-    var contentRoot = document.getElementById("creditsContent");
+  function renderIntoWindow(windowElement) {
+    if (!windowElement) {
+      renderCredits();
+      return;
+    }
+    var contentRoot = windowElement.querySelector("#" + CREDITS_CONTENT_ID);
+    if (!contentRoot) {
+      contentRoot = windowElement.querySelector('[id^="creditsContent"]');
+    }
     if (!contentRoot) return;
-    if (!isCreditsPageVisible()) return;
+    renderCreditsIntoRoot(contentRoot);
+  }
+
+  function renderCreditsIntoRoot(contentRoot) {
+    if (!contentRoot) return;
 
     if (!hasCreditStrings()) {
       if (isGameMode()) {
@@ -127,6 +143,23 @@
     }
   }
 
+  function renderCredits() {
+    var openWindows = document.querySelectorAll(
+      '.os-window[data-wm-preset="credits-content"]'
+    );
+    var index = 0;
+    if (openWindows.length) {
+      for (index = 0; index < openWindows.length; index++) {
+        renderIntoWindow(openWindows[index]);
+      }
+      return;
+    }
+    var contentRoot = document.getElementById(CREDITS_CONTENT_ID);
+    if (!contentRoot) return;
+    if (!isCreditsPageVisible()) return;
+    renderCreditsIntoRoot(contentRoot);
+  }
+
   function onPageChanged(event) {
     var detail = event.detail;
     if (!detail || detail.pageId !== PAGE_CREDITS) return;
@@ -137,6 +170,7 @@
   window.addEventListener("web-page-changed", onPageChanged);
 
   window.WebCredits = {
-    renderCredits: renderCredits
+    renderCredits: renderCredits,
+    renderIntoWindow: renderIntoWindow
   };
 })();

@@ -660,6 +660,7 @@
     var ENEMY_CAR_RADIUS_MAX = 38;
     var ENEMY_CAR_DRAW_REFERENCE_RADIUS = 21;
     var ENEMY_CAR_MAX_COUNT = 4;
+    var ENEMY_SPAWN_MIN_SCORE = 1000;
     var ENEMY_SPAWN_COOLDOWN_MIN = 7;
     var ENEMY_SPAWN_COOLDOWN_MAX = 13;
     var ENEMY_SIGHT_RANGE = 460;
@@ -3619,6 +3620,10 @@
       var spawnX;
       var spawnY;
       var enemy;
+
+      if (score < ENEMY_SPAWN_MIN_SCORE) {
+        return;
+      }
 
       if (enemyCars.length >= ENEMY_CAR_MAX_COUNT) {
         return;

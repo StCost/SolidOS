@@ -66,6 +66,7 @@
   function applyAll(map, notifySettings) {
     strings = map || {};
     applyDom();
+    document.documentElement.classList.add("locale-ready");
     if (notifySettings !== false && window.WebSettings && window.WebSettings.onLocaleUpdated) {
       window.WebSettings.onLocaleUpdated();
     }

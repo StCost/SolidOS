@@ -60,6 +60,7 @@
       if (
         element.classList.contains("term-row") ||
         element.classList.contains("term-title") ||
+        element.classList.contains("os-window-control") ||
         element.classList.contains("settings-tab") ||
         element.classList.contains("settings-option-btn") ||
         element.classList.contains("settings-step") ||
@@ -85,7 +86,7 @@
 
   function collectFocusableElements() {
     var nodes = document.querySelectorAll(
-      "button, a[href], input, textarea, select, canvas, .term-row, .term-title, .settings-tab, .settings-option-btn, .settings-step, .worlds-entry, .calc-key, .click-tap, .menu-v-scrollbar-thumb, .worlds-list-scrollbar-thumb, [role='button'], [tabindex]"
+      "button, a[href], input, textarea, select, canvas, .term-row, .term-title, .os-window-control, .settings-tab, .settings-option-btn, .settings-step, .worlds-entry, .calc-key, .click-tap, .menu-v-scrollbar-thumb, .worlds-list-scrollbar-thumb, [role='button'], [tabindex]"
     );
     var results = [];
     var index;

@@ -12,6 +12,8 @@
   fxLayer.setAttribute("aria-hidden", "true");
   titleBlock.appendChild(fxLayer);
 
+  var viewportFxLayer = null;
+
   function randomBetween(min, max) {
     return min + Math.random() * (max - min);
   }
@@ -29,7 +31,17 @@
     }
   }
 
-  function spawnParticle(originX, originY, kind) {
+  function getViewportFxLayer() {
+    if (!viewportFxLayer) {
+      viewportFxLayer = document.createElement("div");
+      viewportFxLayer.className = "title-fx-layer title-fx-layer--viewport";
+      viewportFxLayer.setAttribute("aria-hidden", "true");
+      document.body.appendChild(viewportFxLayer);
+    }
+    return viewportFxLayer;
+  }
+
+  function spawnParticleOnLayer(layerElement, originX, originY, kind) {
     trimParticles();
 
     var particle = document.createElement("span");
@@ -70,7 +82,7 @@
     particle.style.setProperty("--fx-duration", duration.toFixed(0) + "ms");
     particle.style.setProperty("--fx-scale-end", scaleEnd.toFixed(2));
 
-    fxLayer.appendChild(particle);
+    layerElement.appendChild(particle);
     particles.push(particle);
 
     particle.addEventListener("animationend", function onAnimationEnd() {
@@ -79,7 +91,7 @@
     });
   }
 
-  function spawnGlowBurst(originX, originY) {
+  function spawnGlowBurstOnLayer(layerElement, originX, originY) {
     trimParticles();
 
     var glow = document.createElement("span");
@@ -89,7 +101,7 @@
     glow.style.setProperty("--fx-glow-duration", randomBetween(380, 560).toFixed(0) + "ms");
     glow.style.setProperty("--fx-glow-scale", randomBetween(3.5, 5.5).toFixed(2));
 
-    fxLayer.appendChild(glow);
+    layerElement.appendChild(glow);
     particles.push(glow);
 
     glow.addEventListener("animationend", function onGlowEnd() {
@@ -98,21 +110,35 @@
     });
   }
 
-  function spawnBurst(clientX, clientY) {
-    var layerRect = fxLayer.getBoundingClientRect();
+  function spawnBurstOnLayer(layerElement, clientX, clientY) {
+    var layerRect = layerElement.getBoundingClientRect();
     var originX = clientX - layerRect.left;
     var originY = clientY - layerRect.top;
 
-    spawnGlowBurst(originX, originY);
+    spawnGlowBurstOnLayer(layerElement, originX, originY);
 
     var sparkCount = 5 + Math.floor(Math.random() * 4);
     var fireCount = 2 + Math.floor(Math.random() * 3);
     var smokeCount = 2 + Math.floor(Math.random() * 2);
     var index = 0;
 
-    for (index = 0; index < sparkCount; index++) spawnParticle(originX, originY, "spark");
-    for (index = 0; index < fireCount; index++) spawnParticle(originX, originY, "fire");
-    for (index = 0; index < smokeCount; index++) spawnParticle(originX, originY, "smoke");
+    for (index = 0; index < sparkCount; index++) {
+      spawnParticleOnLayer(layerElement, originX, originY, "spark");
+    }
+    for (index = 0; index < fireCount; index++) {
+      spawnParticleOnLayer(layerElement, originX, originY, "fire");
+    }
+    for (index = 0; index < smokeCount; index++) {
+      spawnParticleOnLayer(layerElement, originX, originY, "smoke");
+    }
+  }
+
+  function spawnBurst(clientX, clientY) {
+    spawnBurstOnLayer(fxLayer, clientX, clientY);
+  }
+
+  function spawnViewportBurst(clientX, clientY) {
+    spawnBurstOnLayer(getViewportFxLayer(), clientX, clientY);
   }
 
   function pulseTitle() {
@@ -126,9 +152,22 @@
     }, 160);
   }
 
+  function playTitleClick(clientX, clientY, useViewportBurst) {
+    if (useViewportBurst) {
+      spawnViewportBurst(clientX, clientY);
+    } else {
+      spawnBurst(clientX, clientY);
+    }
+    pulseTitle();
+  }
+
   titleElement.addEventListener("pointerdown", function (event) {
     if (event.button !== 0) return;
-    spawnBurst(event.clientX, event.clientY);
-    pulseTitle();
+    playTitleClick(event.clientX, event.clientY, false);
   });
+
+  window.WebMenuTitleFx = {
+    playTitleClick: playTitleClick,
+    pulseTitle: pulseTitle
+  };
 })();

@@ -75,6 +75,32 @@
     return "scroll-h";
   }
 
+  function getTextInputCursorToken(element) {
+    if (!element || element.tagName !== "INPUT") {
+      return null;
+    }
+    if (element.classList && element.classList.contains("settings-slider")) {
+      return null;
+    }
+    if (element.classList && element.classList.contains("settings-slider-value-input")) {
+      if (element.disabled) {
+        return "forbidden";
+      }
+      return "text";
+    }
+    var inputType = element.getAttribute("type");
+    if (!inputType) {
+      inputType = "text";
+    }
+    if (inputType !== "text" && inputType !== "number" && inputType !== "search") {
+      return null;
+    }
+    if (element.disabled) {
+      return "forbidden";
+    }
+    return "text";
+  }
+
   function getInteractiveTokenFromElement(element) {
     while (element && element !== document.documentElement) {
       var tagName = element.tagName;
@@ -85,12 +111,25 @@
           }
           return "scroll-h";
         }
+        var textInputToken = getTextInputCursorToken(element);
+        if (textInputToken) {
+          return textInputToken;
+        }
         if (element.disabled) {
           return "forbidden";
         }
         return "pointer";
       }
-      if (tagName === "BUTTON" || tagName === "A" || tagName === "TEXTAREA") {
+      if (tagName === "TEXTAREA") {
+        if (element.disabled) {
+          return "forbidden";
+        }
+        return "text";
+      }
+      if (tagName === "BUTTON" || tagName === "A") {
+        if (element.classList && element.classList.contains("os-desktop-icon--disabled")) {
+          return "forbidden";
+        }
         if (element.disabled) {
           return "forbidden";
         }
@@ -116,6 +155,12 @@
           return "pointer";
         }
         if (element.classList.contains("worlds-entry")) {
+          return "pointer";
+        }
+        if (element.classList.contains("extras-art-viewer-image-box")) {
+          return "pointer";
+        }
+        if (element.classList.contains("os-statusbar-node-button")) {
           return "pointer";
         }
       }
@@ -150,7 +195,10 @@
     }
 
     var body = document.body;
-    if (body && body.hasAttribute("data-wm-drag")) {
+    if (
+      body &&
+      (body.hasAttribute("data-wm-drag") || body.hasAttribute("data-icon-drag"))
+    ) {
       return "drag";
     }
 

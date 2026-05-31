@@ -17,6 +17,13 @@
     return !!device && device.classList.contains("menu-mode--game");
   }
 
+  function isMenuMusicEnabled() {
+    if (window.WebSettings && window.WebSettings.isMenuMusicEnabled) {
+      return window.WebSettings.isMenuMusicEnabled();
+    }
+    return true;
+  }
+
   function getMusicVolumeFromSettings() {
     if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.getMusicOutputVolume) {
       return window.WebMenuAudioVolume.getMusicOutputVolume();
@@ -121,6 +128,10 @@
       stopMenuMusic();
       return;
     }
+    if (!isMenuMusicEnabled()) {
+      stopMenuMusic();
+      return;
+    }
     startMenuMusic();
   }
 
@@ -166,4 +177,8 @@
       onAudioVolumeChanged
     );
   }
+
+  window.WebMenuMusic = {
+    sync: syncMenuMusic
+  };
 })();

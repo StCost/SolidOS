@@ -7,7 +7,12 @@
 
   var STORAGE_KEY = "cm-menu-background-history";
   var SELECTED_STORAGE_KEY = "cm-menu-background-selected";
+  var EVENT_MENU_BACKGROUND_SAVE = "web-menu-background-save";
   var backgroundCount = BACKGROUND_FILES.length;
+
+  function isUnityHost() {
+    return typeof window.vuplex !== "undefined" && window.vuplex.postMessage;
+  }
 
   function readStorage() {
     try {
@@ -114,28 +119,31 @@
     try {
       var raw = localStorage.getItem(SELECTED_STORAGE_KEY);
       if (!raw) return null;
-      var parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed.path !== "string" || !parsed.path) return null;
-      return parsed;
+      return JSON.parse(raw);
     } catch (error) {
       return null;
     }
   }
 
-  function writeSelectedBackground(path, index) {
+  function writeSelectedBackground(selection) {
     try {
-      localStorage.setItem(
-        SELECTED_STORAGE_KEY,
-        JSON.stringify({
-          path: path,
-          index: typeof index === "number" ? index : -1
-        })
-      );
+      localStorage.setItem(SELECTED_STORAGE_KEY, JSON.stringify(selection));
     } catch (error) {
     }
   }
 
-  function applyBackgroundPath(path, index) {
+  function postMenuBackgroundSave(path, useRandom) {
+    if (!isUnityHost()) return;
+    window.vuplex.postMessage(
+      JSON.stringify({
+        eventName: EVENT_MENU_BACKGROUND_SAVE,
+        backgroundPath: path || "",
+        backgroundRandom: !!useRandom
+      })
+    );
+  }
+
+  function applyBackgroundPath(path, index, selection) {
     if (!path) return false;
     var backgroundUrl = 'url("' + path + '")';
     document.documentElement.style.setProperty("--menu-background-image", backgroundUrl);
@@ -145,12 +153,20 @@
     } else {
       window.WebMenuBackgroundIndex = getIndexForPath(path);
     }
-    writeSelectedBackground(path, window.WebMenuBackgroundIndex);
+    if (selection) {
+      writeSelectedBackground(selection);
+      postMenuBackgroundSave(selection.random ? "" : selection.path, selection.random);
+    }
     return true;
   }
 
   function initBackground() {
     var selected = readSelectedBackground();
+    if (selected && selected.random) {
+      var randomIndex = chooseBackgroundIndex();
+      applyBackgroundPath(BACKGROUND_FILES[randomIndex], randomIndex);
+      return;
+    }
     if (selected && selected.path) {
       applyBackgroundPath(selected.path, selected.index);
       return;
@@ -164,8 +180,63 @@
       return BACKGROUND_FILES.slice();
     },
     getIndexForPath: getIndexForPath,
+    getSelectionState: function () {
+      var selected = readSelectedBackground();
+      if (selected && selected.random) {
+        return { random: true, path: "" };
+      }
+      if (selected && selected.path) {
+        return { random: false, path: selected.path };
+      }
+      if (window.WebMenuBackgroundPath) {
+        return { random: false, path: window.WebMenuBackgroundPath };
+      }
+      return { random: false, path: "" };
+    },
     setBackground: function (path) {
-      return applyBackgroundPath(path, getIndexForPath(path));
+      var selection = {
+        path: path,
+        index: getIndexForPath(path),
+        random: false
+      };
+      return applyBackgroundPath(path, selection.index, selection);
+    },
+    setRandomBackground: function () {
+      var randomIndex = chooseBackgroundIndex();
+      var path = BACKGROUND_FILES[randomIndex];
+      var selection = {
+        path: path,
+        index: randomIndex,
+        random: true
+      };
+      return applyBackgroundPath(path, randomIndex, selection);
+    },
+    applySavedPreference: function (path, useRandom) {
+      if (useRandom) {
+        var selection = {
+          path: "",
+          index: -1,
+          random: true
+        };
+        writeSelectedBackground(selection);
+        postMenuBackgroundSave("", true);
+        var randomIndex = chooseBackgroundIndex();
+        applyBackgroundPath(BACKGROUND_FILES[randomIndex], randomIndex);
+        return;
+      }
+      if (path) {
+        applyBackgroundPath(path, getIndexForPath(path), {
+          path: path,
+          index: getIndexForPath(path),
+          random: false
+        });
+        return;
+      }
+      try {
+        localStorage.removeItem(SELECTED_STORAGE_KEY);
+      } catch (error) {
+      }
+      initBackground();
     }
   };
 
