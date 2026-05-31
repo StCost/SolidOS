@@ -212,9 +212,13 @@ var WebWindowManager = (function () {
     }
     if (layout.minimized === true) {
       merged.minimized = true;
+    } else if (layout.minimized === false) {
+      merged.minimized = false;
     }
     if (layout.maximized === true) {
       merged.maximized = true;
+    } else if (layout.maximized === false) {
+      merged.maximized = false;
     }
     if (layout.zIndex !== undefined) {
       merged.zIndex = layout.zIndex;
@@ -235,12 +239,20 @@ var WebWindowManager = (function () {
     if (open === undefined) {
       open = true;
     }
-    var minimized = mergedLayout.minimized === true;
-    var maximized = mergedLayout.maximized === true;
-    if (mergedLayout.minimized === undefined && previous) {
+    var minimized = false;
+    var maximized = false;
+    if (mergedLayout.minimized === true) {
+      minimized = true;
+    } else if (mergedLayout.minimized === false) {
+      minimized = false;
+    } else if (previous) {
       minimized = previous.minimized === true;
     }
-    if (mergedLayout.maximized === undefined && previous) {
+    if (mergedLayout.maximized === true) {
+      maximized = true;
+    } else if (mergedLayout.maximized === false) {
+      maximized = false;
+    } else if (previous) {
       maximized = previous.maximized === true;
     }
     if (minimized) {
