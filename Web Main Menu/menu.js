@@ -40,6 +40,8 @@
   });
 
   window.addEventListener("web-settings-open", function () {
-    openSettingsFromUnity();
+    if (window.WebSettingsBridge) {
+      window.WebSettingsBridge.open();
+    }
   });
 })();

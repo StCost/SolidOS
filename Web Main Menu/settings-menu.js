@@ -836,11 +836,42 @@
     contentRoot.appendChild(footer);
   }
 
+  function updateSettingsTabButtonsInPlace(existingTabs) {
+    var index;
+    for (index = 0; index < TABS.length; index++) {
+      var tab = TABS[index];
+      var button = existingTabs[index];
+      var label = button.querySelector(".term-row-label");
+      if (label) {
+        label.textContent = getLocalized(tab.labelKey, tab.label || tab.id);
+      }
+      if (tab.id === activeTabId) {
+        button.classList.add("is-active");
+      } else {
+        button.classList.remove("is-active");
+      }
+    }
+  }
+
   function renderTabs() {
     if (!tabsRoot) return;
+    var index;
+    var existingTabs = tabsRoot.querySelectorAll(".settings-tab");
+    if (existingTabs.length === TABS.length) {
+      var canUpdateInPlace = true;
+      for (index = 0; index < TABS.length; index++) {
+        if (existingTabs[index].getAttribute("data-tab-id") !== TABS[index].id) {
+          canUpdateInPlace = false;
+          break;
+        }
+      }
+      if (canUpdateInPlace) {
+        updateSettingsTabButtonsInPlace(existingTabs);
+        return;
+      }
+    }
     tabsRoot.textContent = "";
     tabsRoot.className = "settings-tabs settings-tabs--toolbar";
-    var index;
     for (index = 0; index < TABS.length; index++) {
       var tab = TABS[index];
       var button = document.createElement("button");
@@ -1758,7 +1789,6 @@
     if (isUnityMenuHost() && !settingsHostStateReady && window.WebSettingsBridge) {
       window.WebSettingsBridge.open();
     }
-    onSettingsMenuOpen();
   }
 
   function bindToWindow(windowElement) {
@@ -1773,7 +1803,6 @@
     } else {
       setSettingsLoadingVisible(false);
     }
-    renderTabs();
     renderAll();
   }
 
@@ -1808,7 +1837,9 @@
     window.addEventListener("web-desktop-windows-restored", onDesktopWindowsRestored);
     window.addEventListener("web-wm-layout-settled", onWorkspaceLayoutSettled);
     if (isSettingsWindowVisible()) {
-      onDesktopWindowsRestored();
+      if (isUnityMenuHost() && !settingsHostStateReady && window.WebSettingsBridge) {
+        window.WebSettingsBridge.open();
+      }
     }
   }
 

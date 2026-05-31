@@ -23,6 +23,7 @@
   var activeArtId = "";
   var activeArtSrc = "";
   var activeGameId = "";
+  var pendingExtrasRouteTab = "";
   var STORAGE_KEY_SKIP_EXTERNAL_LINK_CONFIRM = "cm-skip-external-link-confirm";
   var STORAGE_VALUE_TRUE = "1";
   var IFRAME_EMBED_RESET_STYLE_ID = "cm-iframe-embed-reset";
@@ -790,6 +791,16 @@
     if (!windowElement) return;
     setActiveExtrasWindow(windowElement);
     renderGamesInWindow(windowElement);
+    if (pendingExtrasRouteTab) {
+      applyTabForRoute("extras-games", pendingExtrasRouteTab);
+      pendingExtrasRouteTab = "";
+      refreshScrollbars();
+      return;
+    }
+    if (currentView === VIEW_GAME && activeGameId) {
+      refreshScrollbars();
+      return;
+    }
     showView(VIEW_GAMES);
     refreshScrollbars();
   }
@@ -1227,6 +1238,84 @@
     showTab(VIEW_GAMES);
   }
 
+  function getTabForRoute(windowPreset) {
+    if (windowPreset === "extras-games") {
+      if (currentView === VIEW_GAME && activeGameId) {
+        return activeGameId;
+      }
+      if (currentView === VIEW_LINKS) {
+        return VIEW_LINKS;
+      }
+      return VIEW_GAMES;
+    }
+    if (windowPreset === "extras-art") {
+      if (artViewerOpen && activeArtId) {
+        return activeArtId;
+      }
+      return VIEW_ART;
+    }
+    return "";
+  }
+
+  function ensureExtrasGamesWindowReady() {
+    var windowElement = getActiveExtrasWindowForPreset("extras-games");
+    if (!windowElement) {
+      windowElement = document.querySelector(
+        '#desktopSurface .os-window[data-wm-preset="extras-games"]:not(.os-window--closed)'
+      );
+    }
+    if (!windowElement) return null;
+    setActiveExtrasWindow(windowElement);
+    renderGamesInWindow(windowElement);
+    return windowElement;
+  }
+
+  function prepareRouteTab(windowPreset, tabValue) {
+    if (!tabValue) return;
+    if (windowPreset === "extras-games") {
+      pendingExtrasRouteTab = tabValue;
+    }
+  }
+
+  function applyPendingRouteTab(windowPreset) {
+    if (!pendingExtrasRouteTab || windowPreset !== "extras-games") return false;
+    var tabValue = pendingExtrasRouteTab;
+    pendingExtrasRouteTab = "";
+    applyTabForRoute(windowPreset, tabValue);
+    return true;
+  }
+
+  function applyTabForRoute(windowPreset, tabValue) {
+    if (!tabValue) return;
+    if (windowPreset === "extras-games") {
+      if (!ensureExtrasGamesWindowReady()) {
+        pendingExtrasRouteTab = tabValue;
+        return;
+      }
+      var gamesSection = normalizeExtrasRouteSection(tabValue);
+      if (gamesSection) {
+        applyExtrasRoute([gamesSection]);
+        return;
+      }
+      if (findGameById(tabValue)) {
+        renderGames();
+        openGame(tabValue);
+      }
+      return;
+    }
+    if (windowPreset === "extras-art") {
+      var artSection = normalizeExtrasRouteSection(tabValue);
+      if (artSection === VIEW_ART) {
+        showTab(VIEW_ART);
+        return;
+      }
+      if (openArtById(tabValue)) {
+        return;
+      }
+      showTab(VIEW_ART);
+    }
+  }
+
   window.WebExtras = {
     renderExtras: renderExtras,
     openGamesPanel: openGamesPanel,
@@ -1237,6 +1326,10 @@
     showLinksView: openLinksPanel,
     getRouteSegments: getRouteSegments,
     applyRoute: applyExtrasRoute,
+    getTabForRoute: getTabForRoute,
+    applyTabForRoute: applyTabForRoute,
+    prepareRouteTab: prepareRouteTab,
+    applyPendingRouteTab: applyPendingRouteTab,
     handleEscape: function () {
       if (!isExtrasPageVisible()) return false;
       if (artViewerOpen) {

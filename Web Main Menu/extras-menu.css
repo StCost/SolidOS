@@ -26,6 +26,10 @@
   box-sizing: border-box;
 }
 
+.os-window[data-wm-preset="extras-games"] .extras-scroll {
+  padding-right: 0.35em;
+}
+
 .extras-scroll>.extras-view {
   width: 100%;
   min-width: 0;
