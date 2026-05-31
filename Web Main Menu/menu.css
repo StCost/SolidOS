@@ -2,13 +2,8 @@
   align-items: flex-start;
 }
 
-#device.menu-mode--menu #btnExit,
-#btnExit[hidden] {
+#desktopIconDisconnect[hidden] {
   display: none !important;
-}
-
-#device.menu-mode--game #btnExit:not([hidden]) {
-  display: flex;
 }
 
 #device.menu-mode--game .os-workspace--menu.os-workspace--wm {
@@ -53,6 +48,7 @@
   font-size: min(4.8rem, 14cqw, 20cqh, 8.5vmin);
   letter-spacing: clamp(0.04em, 0.18cqw, 0.08em);
   line-height: 1;
+  text-transform: uppercase;
 }
 
 .os-window--splash .term-divider {
