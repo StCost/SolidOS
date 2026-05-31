@@ -223,6 +223,11 @@
   margin: 0;
 }
 
+.os-desktop-icon--center-anchor {
+  right: auto;
+  bottom: auto;
+}
+
 .os-desktop-icon--selected::after {
   content: "";
   position: absolute;
@@ -439,11 +444,13 @@ body[data-icon-drag] * {
 }
 
 .os-workspace--desktop .os-window[data-wm-preset="menu-splash"] {
-  left: 50%;
-  top: 12%;
-  width: min(900px, 92%);
-  height: 300px;
-  transform: translateX(-50%);
+  left: calc(50% - 475px);
+  top: calc(50% - 210px);
+  width: 950px;
+  height: 420px;
+  right: auto;
+  bottom: auto;
+  transform: none;
 }
 
 .os-workspace--desktop .os-window[data-wm-preset="connect-col-0"] {

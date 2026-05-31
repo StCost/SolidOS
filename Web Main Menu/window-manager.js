@@ -41,8 +41,19 @@ var WebWindowManager = (function () {
   var savedLayoutTable = {};
   var layoutSaveTimer = 0;
   var LAYOUTS_STORAGE_KEY = "cm-menu-window-layouts";
+  var DEFAULT_DESKTOP_WINDOW_LAYOUTS = {
+    "menu-splash": {
+      anchor: "center",
+      centerOffsetX: -475,
+      centerOffsetY: -210,
+      width: 950,
+      height: 420,
+      open: true
+    }
+  };
   var LAYOUT_BOOTSTRAP_CLASS = "menu-wm-layout-bootstrap";
   var LAYOUT_BOOTSTRAP_STYLE_ID = "cm-wm-layout-bootstrap";
+  var LAYOUT_COMPARE_TOLERANCE_PX = 1;
   var DRAG_MOVE_SOUND_STEP_PX = 300;
   var WINDOW_KEYBOARD_FOCUS_SELECTOR =
     "button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), .term-row:not([disabled]), .settings-tab, .settings-option-btn, .settings-step, .worlds-entry, .calc-key, [role='button']:not([aria-disabled='true']), [tabindex]:not([tabindex='-1'])";
@@ -97,9 +108,15 @@ var WebWindowManager = (function () {
     return true;
   }
 
-  function setSavedLayout(layoutKey, layout) {
+  function getLayoutCoords() {
+    return window.WebMenuLayoutCoords;
+  }
+
+  function setSavedLayout(layoutKey, layout, containerElement) {
     if (!layoutKey || !layout) return;
+    var coords = getLayoutCoords();
     var previous = savedLayoutTable[layoutKey];
+    var storedLayout;
     var open = layout.open;
     if (open === undefined && previous) {
       open = previous.open;
@@ -118,15 +135,13 @@ var WebWindowManager = (function () {
     if (minimized) {
       maximized = false;
     }
-    savedLayoutTable[layoutKey] = {
-      left: layout.left,
-      top: layout.top,
-      width: layout.width,
-      height: layout.height,
-      open: open,
-      minimized: minimized,
-      maximized: maximized
-    };
+    if (!coords || !containerElement) return;
+    storedLayout = coords.normalizeWindowStoredLayout(layout, containerElement);
+    if (!storedLayout) return;
+    savedLayoutTable[layoutKey] = storedLayout;
+    savedLayoutTable[layoutKey].open = open;
+    savedLayoutTable[layoutKey].minimized = minimized;
+    savedLayoutTable[layoutKey].maximized = maximized;
     if (layout.zIndex !== undefined) {
       savedLayoutTable[layoutKey].zIndex = layout.zIndex;
     } else if (previous && previous.zIndex !== undefined) {
@@ -140,20 +155,65 @@ var WebWindowManager = (function () {
     delete savedLayoutTable[layoutKey];
   }
 
-  function populateSavedLayoutTable(payload) {
-    var layouts = payload && payload.layouts ? payload.layouts : [];
-    var index = 0;
+  function getDefaultWindowLayoutContainer(presetName) {
+    var desktopSurface = document.getElementById("desktopSurface");
+    var windowElement;
+    if (!desktopSurface || !presetName) return null;
+    windowElement = desktopSurface.querySelector(
+      '.os-window[data-wm-preset="' + presetName + '"]'
+    );
+    if (!windowElement) return desktopSurface;
+    return getLayoutContainer(windowElement) || desktopSurface;
+  }
+
+  function populateDefaultWindowLayoutTable() {
+    var presetName;
+    var layout;
+    var containerElement;
     savedLayoutTable = {};
+    for (presetName in DEFAULT_DESKTOP_WINDOW_LAYOUTS) {
+      if (!Object.prototype.hasOwnProperty.call(DEFAULT_DESKTOP_WINDOW_LAYOUTS, presetName)) {
+        continue;
+      }
+      layout = DEFAULT_DESKTOP_WINDOW_LAYOUTS[presetName];
+      containerElement = getDefaultWindowLayoutContainer(presetName);
+      if (!layout || !containerElement) continue;
+      setSavedLayout(presetName, layout, containerElement);
+    }
+  }
+
+  function mergePersistedWindowLayoutPayload(payload) {
+    var layouts = payload && payload.layouts ? payload.layouts : [];
+    var desktopSurface = document.getElementById("desktopSurface");
+    var index = 0;
     for (index = 0; index < layouts.length; index++) {
       var entry = layouts[index];
+      var layoutKey;
+      var windowElement;
+      var containerElement;
       if (!entry) continue;
-      var layoutKey = entry.preset;
+      layoutKey = entry.preset;
       if (!layoutKey) continue;
       if (layoutKey === "about-content") {
         layoutKey = "credits-content";
       }
-      setSavedLayout(layoutKey, entry);
+      if (!getLayoutCoords() || !getLayoutCoords().isCenterLayoutEntry(entry)) continue;
+      containerElement = desktopSurface;
+      if (desktopSurface) {
+        windowElement = desktopSurface.querySelector(
+          '.os-window[data-wm-preset="' + layoutKey + '"]'
+        );
+        if (windowElement) {
+          containerElement = getLayoutContainer(windowElement) || desktopSurface;
+        }
+      }
+      setSavedLayout(layoutKey, entry, containerElement);
     }
+  }
+
+  function populateSavedLayoutTable(payload) {
+    populateDefaultWindowLayoutTable();
+    mergePersistedWindowLayoutPayload(payload);
   }
 
   function applySavedLayouts(payload) {
@@ -237,11 +297,21 @@ var WebWindowManager = (function () {
     if (!containerElement) return;
 
     var minSize = getWindowMinSize(windowElement, presetName);
+    var coords = getLayoutCoords();
+    var resolvedRect;
+    if (!coords) return;
+    resolvedRect = coords.resolveWindowRect(savedLayout, containerElement);
     windowElement.wmState = {
-      left: savedLayout.left,
-      top: savedLayout.top,
-      width: Math.max(savedLayout.width, minSize.minWidth),
-      height: Math.max(savedLayout.height, minSize.minHeight),
+      left: resolvedRect.left,
+      top: resolvedRect.top,
+      width: Math.max(
+        resolvedRect.width || savedLayout.width || minSize.minWidth,
+        minSize.minWidth
+      ),
+      height: Math.max(
+        resolvedRect.height || savedLayout.height || minSize.minHeight,
+        minSize.minHeight
+      ),
       minWidth: minSize.minWidth,
       minHeight: minSize.minHeight
     };
@@ -386,13 +456,14 @@ var WebWindowManager = (function () {
       maximized: isMaximized && !isMinimized
     };
     if (previous) {
-      entry.left = previous.left;
-      entry.top = previous.top;
       entry.width = previous.width;
       entry.height = previous.height;
       if (previous.zIndex !== undefined) {
         entry.zIndex = previous.zIndex;
       }
+      entry.anchor = previous.anchor;
+      entry.centerOffsetX = previous.centerOffsetX;
+      entry.centerOffsetY = previous.centerOffsetY;
     }
     var inlineZIndex = getWindowInlineZIndex(windowElement);
     if (inlineZIndex > 0) {
@@ -417,15 +488,12 @@ var WebWindowManager = (function () {
       entry.width = restoreState.width;
       entry.height = restoreState.height;
     }
-    if (
-      entry.left === undefined ||
-      entry.top === undefined ||
-      entry.width === undefined ||
-      entry.height === undefined
-    ) {
+    if (entry.width === undefined || entry.height === undefined) {
       return;
     }
-    setSavedLayout(layoutKey, entry);
+    var containerElement = getLayoutContainer(windowElement);
+    if (!containerElement) return;
+    setSavedLayout(layoutKey, entry, containerElement);
   }
 
   function mergeInlineLayoutsIntoSavedTable() {
@@ -454,26 +522,15 @@ var WebWindowManager = (function () {
   function buildLayoutsPayloadFromSavedTable() {
     var layouts = [];
     var presetName;
+    var coords = getLayoutCoords();
+    var payloadEntry;
+    if (!coords) return { layouts: layouts };
     for (presetName in savedLayoutTable) {
       if (!Object.prototype.hasOwnProperty.call(savedLayoutTable, presetName)) continue;
       var layout = savedLayoutTable[presetName];
-      var payloadEntry = {
-        preset: presetName,
-        left: layout.left,
-        top: layout.top,
-        width: layout.width,
-        height: layout.height,
-        open: isSavedLayoutOpen(layout)
-      };
-      if (layout.zIndex !== undefined && layout.zIndex > 0) {
-        payloadEntry.zIndex = layout.zIndex;
-      }
-      if (layout.minimized === true) {
-        payloadEntry.minimized = true;
-      }
-      if (layout.maximized === true) {
-        payloadEntry.maximized = true;
-      }
+      payloadEntry = coords.exportWindowPayloadEntry(layout, presetName);
+      if (!payloadEntry) continue;
+      payloadEntry.open = isSavedLayoutOpen(layout);
       layouts.push(payloadEntry);
     }
     return { layouts: layouts };
@@ -483,6 +540,268 @@ var WebWindowManager = (function () {
     mergeInlineLayoutsIntoSavedTable();
     pruneSavedLayoutsToOpenWindows();
     return buildLayoutsPayloadFromSavedTable();
+  }
+
+  function getInitialDesktopOpenDefault(presetName) {
+    if (presetName === "menu-splash") return true;
+    return false;
+  }
+
+  function isLayoutNumberDifferent(valueA, valueB) {
+    if (valueA === undefined && valueB === undefined) return false;
+    if (valueA === undefined || valueB === undefined) return true;
+    return Math.abs(valueA - valueB) > LAYOUT_COMPARE_TOLERANCE_PX;
+  }
+
+  function captureDefaultDesktopWindowLayout(windowElement) {
+    var presetName = windowElement.getAttribute("data-wm-preset");
+    var layoutKey = getLayoutKey(windowElement);
+    var containerElement = getLayoutContainer(windowElement);
+    var savedBackup;
+    var probeBackup;
+    var geometry;
+    if (!presetName || !layoutKey || !containerElement) return null;
+    if (!windowElement.closest("#desktopSurface")) return null;
+
+    savedBackup = savedLayoutTable[layoutKey];
+    probeBackup = {
+      savedLayout: savedBackup,
+      wmState: windowElement.wmState,
+      wmHasInlineLayout: windowElement.wmHasInlineLayout,
+      wasClosed: windowElement.classList.contains("os-window--closed"),
+      wasMinimized: windowElement.classList.contains("os-window--minimized"),
+      wasMaximized: windowElement.classList.contains("os-window--maximized")
+    };
+
+    delete savedLayoutTable[layoutKey];
+    ensureWindowStructure(windowElement);
+    clearWindowChromeStates(windowElement);
+    clearWindowInlineGeometry(windowElement);
+    windowElement.wmHasInlineLayout = false;
+    windowElement.wmState = null;
+    windowElement.classList.remove("os-window--closed");
+
+    syncWindowLayout(windowElement);
+    if (!windowElement.wmState) {
+      syncWindowStateFromLayout(windowElement, containerElement, presetName);
+    }
+
+    geometry = null;
+    if (windowElement.wmState) {
+      geometry = {
+        left: Math.round(windowElement.wmState.left),
+        top: Math.round(windowElement.wmState.top),
+        width: Math.round(windowElement.wmState.width),
+        height: Math.round(windowElement.wmState.height)
+      };
+      if (getLayoutCoords()) {
+        geometry = getLayoutCoords().absoluteToCenterOffset(
+          geometry.left,
+          geometry.top,
+          containerElement
+        );
+        geometry.width = Math.round(windowElement.wmState.width);
+        geometry.height = Math.round(windowElement.wmState.height);
+      }
+    }
+
+    if (probeBackup.savedLayout) {
+      savedLayoutTable[layoutKey] = probeBackup.savedLayout;
+      applySavedLayoutToWindow(windowElement);
+      applySavedChromeStateToWindow(windowElement);
+    } else {
+      delete savedLayoutTable[layoutKey];
+      clearWindowInlineGeometry(windowElement);
+      windowElement.wmHasInlineLayout = false;
+      windowElement.wmState = probeBackup.wmState;
+      if (probeBackup.wmHasInlineLayout && probeBackup.wmState) {
+        applyWindowRect(windowElement);
+        windowElement.wmHasInlineLayout = true;
+      }
+    }
+
+    if (probeBackup.wasClosed) {
+      windowElement.classList.add("os-window--closed");
+    }
+    if (probeBackup.wasMinimized) {
+      windowElement.classList.add("os-window--minimized");
+      setMinimizedWindowRect(windowElement);
+    }
+    if (probeBackup.wasMaximized) {
+      windowElement.classList.add("os-window--maximized");
+      setMaximizedWindowRect(windowElement);
+    }
+    updateWindowControlChrome(windowElement);
+
+    if (!geometry || !getLayoutCoords()) return null;
+    return {
+      open: getInitialDesktopOpenDefault(presetName),
+      minimized: false,
+      maximized: false,
+      anchor: geometry.anchor,
+      centerOffsetX: geometry.centerOffsetX,
+      centerOffsetY: geometry.centerOffsetY,
+      width: geometry.width,
+      height: geometry.height
+    };
+  }
+
+  function getCurrentDesktopWindowLayout(windowElement) {
+    var presetName = windowElement.getAttribute("data-wm-preset");
+    var layoutKey = getLayoutKey(windowElement);
+    var savedLayout;
+    var entry;
+    var restoreState;
+    if (!presetName || !layoutKey) return null;
+
+    syncSavedLayoutFromWindow(windowElement);
+    savedLayout = savedLayoutTable[layoutKey];
+    entry = {
+      preset: presetName,
+      open: !windowElement.classList.contains("os-window--closed")
+    };
+
+    if (savedLayout && savedLayout.open !== undefined) {
+      entry.open = isSavedLayoutOpen(savedLayout);
+    }
+
+    if (windowElement.classList.contains("os-window--minimized")) {
+      entry.minimized = true;
+    }
+    if (windowElement.classList.contains("os-window--maximized")) {
+      entry.maximized = true;
+    }
+    if (savedLayout && savedLayout.zIndex !== undefined && savedLayout.zIndex > 0) {
+      entry.zIndex = savedLayout.zIndex;
+    }
+
+    restoreState = captureWindowRestoreState(windowElement);
+    if (restoreState) {
+      var containerElement = getLayoutContainer(windowElement);
+      var coords = getLayoutCoords();
+      entry.width = Math.round(restoreState.width);
+      entry.height = Math.round(restoreState.height);
+      if (!coords || !containerElement) return null;
+      var centerOffsets = coords.absoluteToCenterOffset(
+        restoreState.left,
+        restoreState.top,
+        containerElement
+      );
+      entry.anchor = centerOffsets.anchor;
+      entry.centerOffsetX = centerOffsets.centerOffsetX;
+      entry.centerOffsetY = centerOffsets.centerOffsetY;
+    } else if (savedLayout) {
+      entry.anchor = savedLayout.anchor;
+      entry.centerOffsetX = savedLayout.centerOffsetX;
+      entry.centerOffsetY = savedLayout.centerOffsetY;
+      if (savedLayout.width !== undefined) entry.width = Math.round(savedLayout.width);
+      if (savedLayout.height !== undefined) entry.height = Math.round(savedLayout.height);
+    }
+
+    return entry;
+  }
+
+  function buildLayoutDiffEntry(currentEntry, defaultEntry) {
+    var diffEntry = { preset: currentEntry.preset };
+    var hasChange = false;
+    var coords = getLayoutCoords();
+    if (!coords) return null;
+
+    if (currentEntry.open !== defaultEntry.open) {
+      diffEntry.open = currentEntry.open;
+      hasChange = true;
+    }
+    if (currentEntry.minimized === true && defaultEntry.minimized !== true) {
+      diffEntry.minimized = true;
+      hasChange = true;
+    }
+    if (currentEntry.maximized === true && defaultEntry.maximized !== true) {
+      diffEntry.maximized = true;
+      hasChange = true;
+    }
+    diffEntry.anchor = coords.ANCHOR_CENTER;
+    if (
+      coords.isCenterOffsetDifferent(
+        coords.roundNiceOffset(currentEntry.centerOffsetX),
+        coords.roundNiceOffset(defaultEntry.centerOffsetX)
+      )
+    ) {
+      diffEntry.centerOffsetX = coords.roundNiceOffset(currentEntry.centerOffsetX);
+      hasChange = true;
+    }
+    if (
+      coords.isCenterOffsetDifferent(
+        coords.roundNiceOffset(currentEntry.centerOffsetY),
+        coords.roundNiceOffset(defaultEntry.centerOffsetY)
+      )
+    ) {
+      diffEntry.centerOffsetY = coords.roundNiceOffset(currentEntry.centerOffsetY);
+      hasChange = true;
+    }
+    if (
+      isLayoutNumberDifferent(
+        coords.roundNiceSize(currentEntry.width),
+        coords.roundNiceSize(defaultEntry.width)
+      )
+    ) {
+      diffEntry.width = coords.roundNiceSize(currentEntry.width);
+      hasChange = true;
+    }
+    if (
+      isLayoutNumberDifferent(
+        coords.roundNiceSize(currentEntry.height),
+        coords.roundNiceSize(defaultEntry.height)
+      )
+    ) {
+      diffEntry.height = coords.roundNiceSize(currentEntry.height);
+      hasChange = true;
+    }
+
+    if (!hasChange) return null;
+    return diffEntry;
+  }
+
+  function buildWindowLayoutsDiffFromDefaultsPayload() {
+    var windows = document.querySelectorAll("#desktopSurface .os-window[data-wm-preset]");
+    var layouts = [];
+    var defaultsTable = {};
+    var index;
+    var windowElement;
+    var presetName;
+    var defaultEntry;
+    var currentEntry;
+    var diffEntry;
+
+    for (index = 0; index < windows.length; index++) {
+      windowElement = windows[index];
+      presetName = windowElement.getAttribute("data-wm-preset");
+      if (!presetName || defaultsTable[presetName]) continue;
+      defaultEntry = captureDefaultDesktopWindowLayout(windowElement);
+      if (defaultEntry) defaultsTable[presetName] = defaultEntry;
+    }
+
+    for (index = 0; index < windows.length; index++) {
+      windowElement = windows[index];
+      presetName = windowElement.getAttribute("data-wm-preset");
+      if (!presetName) continue;
+      defaultEntry = defaultsTable[presetName];
+      if (!defaultEntry) continue;
+      currentEntry = getCurrentDesktopWindowLayout(windowElement);
+      if (!currentEntry) continue;
+      diffEntry = buildLayoutDiffEntry(currentEntry, defaultEntry);
+      if (diffEntry) layouts.push(diffEntry);
+    }
+
+    return { layouts: layouts };
+  }
+
+  function logWindowLayoutsDiffFromDefaults() {
+    var payload = buildWindowLayoutsDiffFromDefaultsPayload();
+    console.log(
+      "[cm-menu-window-layouts] Paste this JSON (rounded center offsets; geometry only, no zIndex):"
+    );
+    console.log(JSON.stringify(payload, null, 2));
+    return payload;
   }
 
   function flushWindowLayoutsSave() {
@@ -522,9 +841,12 @@ var WebWindowManager = (function () {
   }
 
   function loadPersistedLayouts() {
-    var payload = getPersistedLayoutsPayload();
-    if (!payload) return;
-    applySavedLayouts(payload);
+    populateDefaultWindowLayoutTable();
+    mergePersistedWindowLayoutPayload(getPersistedLayoutsPayload());
+    applyAllSavedLayoutsInDocument();
+    applyDesktopWindowVisibilityFromSaved();
+    applySavedWindowStackOrder();
+    applySavedChromeStatesFromSaved();
   }
 
   function postWindowLayoutsReset() {
@@ -2035,6 +2357,26 @@ var WebWindowManager = (function () {
     document.addEventListener("pointerup", onPointerUp, { passive: false });
     document.addEventListener("pointercancel", onPointerUp, { passive: false });
     window.addEventListener("resize", syncActivePageWindows);
+    window.addEventListener("resize", syncDesktopSavedLayoutsOnResize);
+  }
+
+  function syncDesktopSavedLayoutsOnResize() {
+    var desktopSurface = document.getElementById("desktopSurface");
+    var windows;
+    var index;
+    var windowElement;
+    var layoutKey;
+    if (!desktopSurface) return;
+    windows = desktopSurface.querySelectorAll(".os-window[data-wm-preset]");
+    for (index = 0; index < windows.length; index++) {
+      windowElement = windows[index];
+      layoutKey = getLayoutKey(windowElement);
+      if (!layoutKey || !savedLayoutTable[layoutKey]) continue;
+      if (windowElement.classList.contains("os-window--closed")) continue;
+      applySavedLayoutToWindow(windowElement);
+      applySavedChromeStateToWindow(windowElement);
+    }
+    layoutMinimizedWindowsInContainer(desktopSurface, null);
   }
 
   function activatePage(pageElement) {
@@ -2133,6 +2475,8 @@ var WebWindowManager = (function () {
     areAllVisibleDesktopWindowsMinimized: areAllVisibleDesktopWindowsMinimized,
     scheduleWindowLayoutsSave: scheduleWindowLayoutsSave,
     hasSavedLayouts: hasSavedLayouts,
-    resetAllLayouts: resetAllWindowLayouts
+    resetAllLayouts: resetAllWindowLayouts,
+    logLayoutDiffFromDefaults: logWindowLayoutsDiffFromDefaults,
+    buildLayoutDiffFromDefaultsPayload: buildWindowLayoutsDiffFromDefaultsPayload
   };
 })();
