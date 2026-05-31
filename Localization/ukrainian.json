@@ -237,7 +237,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "рек.",
-  "web.game.blackhole-golf.out-of-hits": "УДАРИ ЗАКІНЧИЛИСЬ",
+  "web.game.orbital-golf.out-of-hits": "УДАРИ ЗАКІНЧИЛИСЬ",
   "web.game.citrus-slice.combo": "комбо x{0}",
   "web.game.citrus-slice.missed": "промахи {0}",
   "web.game.citrus-slice.perfect": "ІДЕАЛЬНО! +{0}",

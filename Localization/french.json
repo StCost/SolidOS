@@ -237,7 +237,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "rec.",
-  "web.game.blackhole-golf.out-of-hits": "COUPS ÉPUISÉS",
+  "web.game.orbital-golf.out-of-hits": "COUPS ÉPUISÉS",
   "web.game.citrus-slice.combo": "combo x{0}",
   "web.game.citrus-slice.missed": "ratés {0}",
   "web.game.citrus-slice.perfect": "PARFAIT ! +{0}",

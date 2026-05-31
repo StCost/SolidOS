@@ -10,11 +10,11 @@
         difficulty: 1
       },
       {
-        id: "miner-collapse",
+        id: "deep-collapse",
         title: "Deep Collapse",
-        path: "Extras/games/miner-collapse/index.html",
-        image: "Extras/games/miner-collapse/miner-collapse-preview.png",
-        desktopIcon: "Extras/games/miner-collapse/miner-collapse-desktop-icon.png",
+        path: "Extras/games/deep-collapse/index.html",
+        image: "Extras/games/deep-collapse/deep-collapse-preview.png",
+        desktopIcon: "Extras/games/deep-collapse/deep-collapse-desktop-icon.png",
         difficulty: 2
       },
       {
@@ -34,19 +34,19 @@
         difficulty: 3
       },
       {
-        id: "blackhole-golf",
+        id: "orbital-golf",
         title: "Orbital Golf",
-        path: "Extras/games/blackhole-golf/index.html",
-        image: "Extras/games/blackhole-golf/blackhole-golf-preview.png",
-        desktopIcon: "Extras/games/blackhole-golf/blackhole-golf-desktop-icon.png",
+        path: "Extras/games/orbital-golf/index.html",
+        image: "Extras/games/orbital-golf/orbital-golf-preview.png",
+        desktopIcon: "Extras/games/orbital-golf/orbital-golf-desktop-icon.png",
         difficulty: 4
       },
       {
-        id: "crystal-rush",
+        id: "trouble-drivers",
         title: "Trouble Drivers",
-        path: "Extras/games/crystal-rush/index.html",
-        image: "Extras/games/crystal-rush/crystal-rush-preview.png",
-        desktopIcon: "Extras/games/crystal-rush/crystal-rush-desktop-icon.png",
+        path: "Extras/games/trouble-drivers/index.html",
+        image: "Extras/games/trouble-drivers/trouble-drivers-preview.png",
+        desktopIcon: "Extras/games/trouble-drivers/trouble-drivers-desktop-icon.png",
         difficulty: 5,
         inputMode: "movement"
       },
