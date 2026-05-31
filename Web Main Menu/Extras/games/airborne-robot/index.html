@@ -510,9 +510,9 @@
 
     var METERS_PER_UNIT = 0.06;
 
-    // ========== TEST-ONLY — раскомментировать блок ниже ==========
-    // var TEST_SPAWN_AT_METERS = 2500;
-    // var TEST_ROBOT_INVULNERABLE = true;
+    // ========== TEST-ONLY — revert: delete this entire block ==========
+    var TEST_SPAWN_AT_METERS = 2500;
+    var TEST_ROBOT_INVULNERABLE = true;
     // ========== end TEST-ONLY ==========
 
     var PHASE_START = "start";
@@ -770,6 +770,7 @@
 
     var parallaxPhase = [0, 0, 0, 0];
     var parallaxSpeeds = [0.02, 0.03, 0.042, 0.058];
+    var cityAnimationTime = 0;
 
     var SLOPE_DEGREES = 42;
     var GROUND_SLOPE_TANGENT = Math.tan(SLOPE_DEGREES * Math.PI / 180);
@@ -837,6 +838,27 @@
     var SKY_ATMOSPHERE_SEGMENT_COUNT = 2;
     var SKY_INDUSTRIAL_BLEND_START_METERS = 1500;
     var SKY_GRADIENT_FULL_METERS = 10000;
+    var CITY_BLEND_START_METERS = 2000;
+    var CITY_TINT_STOP_INDEX = 3;
+    var CITY_LAYER_BRIGHTNESS = [0.18, 0.24, 0.3, 0.38];
+    var CITY_LAYER_Y_RATIO = [0.5, 0.56, 0.62, 0.66];
+    var CITY_LAYER_SPACING = [64, 84, 108, 138];
+    var CITY_LAYER_MAX_HEIGHT_RATIO = [0.16, 0.2, 0.26, 0.32];
+    var CITY_GAP_RATIO = 0.16;
+    var CITY_RESIDENTIAL_LIT_THRESHOLD = 0.34;
+    var CITY_INDUSTRIAL_LIT_THRESHOLD = 0.7;
+    var CITY_WINDOW_COLOR_PREFIX = "rgba(255, 198, 112, ";
+    var CITY_SMOKE_COLOR_PREFIX = "rgba(58, 54, 62, ";
+    var CITY_STEAM_COLOR_PREFIX = "rgba(206, 210, 220, ";
+    var CITY_SMOKE_PUFF_COUNT = 6;
+    var CITY_LAYER_STAGGER_METERS = 600;
+    var CITY_LAYER_TRANSITION_METERS = 1200;
+    var HILL_TOP_COLORS = ["rgba(60, 50, 78, 0.92)", "rgba(78, 56, 86, 0.94)", "rgba(96, 64, 88, 0.96)", "rgba(116, 74, 90, 0.98)"];
+    var HILL_BOTTOM_COLORS = ["rgba(30, 24, 44, 0.88)", "rgba(38, 28, 50, 0.9)", "rgba(46, 32, 54, 0.92)", "rgba(54, 38, 58, 0.94)"];
+    var HILL_STROKE_COLORS = ["rgba(96, 70, 110, 0.4)", "rgba(120, 80, 110, 0.44)", "rgba(140, 90, 110, 0.48)", "rgba(160, 100, 110, 0.52)"];
+    var HILL_AMPLITUDES = [44, 54, 64, 74];
+    var HILL_FREQUENCIES = [0.0014, 0.002, 0.0026, 0.0032];
+    var HILL_Y_RATIOS = [0.5, 0.56, 0.62, 0.66];
     var SUN_SCREEN_X_RATIO = 0.74;
     var SUN_SCREEN_Y_RATIO = 0.21;
 
@@ -1506,17 +1528,16 @@
       positionLaunchLeg();
     }
 
-    // TEST-ONLY
-    // function applyTestSpawnAtMeters() {
-    //   if (TEST_SPAWN_AT_METERS <= 0) {
-    //     return;
-    //   }
-    //   distanceMeters = TEST_SPAWN_AT_METERS;
-    //   beaconsSpawnedCount = Math.floor(distanceMeters / BEACON_INTERVAL_METERS);
-    //   beacons.length = 0;
-    //   spawnBeacons();
-    //   hudDistance.textContent = formatMeters(distanceMeters);
-    // }
+    function applyTestSpawnAtMeters() {
+      if (TEST_SPAWN_AT_METERS <= 0) {
+        return;
+      }
+      distanceMeters = TEST_SPAWN_AT_METERS;
+      beaconsSpawnedCount = Math.floor(distanceMeters / BEACON_INTERVAL_METERS);
+      beacons.length = 0;
+      spawnBeacons();
+      hudDistance.textContent = formatMeters(distanceMeters);
+    }
 
     function beginPlaying() {
       forwardSpeed = LAUNCH_FORWARD_SPEED;
@@ -1529,7 +1550,7 @@
       legWorldAnchorX = worldScroll + (playerScreenX - robotPx * 0.62);
       launchLegFadeTimer = 0;
       triggerKickImpact();
-      // TEST-ONLY: applyTestSpawnAtMeters();
+      applyTestSpawnAtMeters();
       if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
         window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
       }
@@ -1715,13 +1736,12 @@
     }
 
     function applyBadLanding(impactSpeed) {
-      // TEST-ONLY
-      // if (TEST_ROBOT_INVULNERABLE) {
-      //   playerVelocityY = -(impactSpeed * 0.32 + 180);
-      //   playerYOffset = 0;
-      //   landingLockTimer = 0.12;
-      //   return;
-      // }
+      if (TEST_ROBOT_INVULNERABLE) {
+        playerVelocityY = -(impactSpeed * 0.32 + 180);
+        playerYOffset = 0;
+        landingLockTimer = 0.12;
+        return;
+      }
       if (shieldActive) {
         consumeShield();
         playerVelocityY = -(impactSpeed * 0.32 + 180);
@@ -1853,8 +1873,9 @@
         return;
       }
       if (lostLimbCount >= TOTAL_LIMBS) {
-        launchHead();
-        // TEST-ONLY: if (!TEST_ROBOT_INVULNERABLE) { launchHead(); }
+        if (!TEST_ROBOT_INVULNERABLE) {
+          launchHead();
+        }
         return;
       }
       var groundSlopeAngle = getGroundSlopeAngle(playerWorldX);
@@ -2774,6 +2795,263 @@
       context.stroke();
     }
 
+    function getSmoothStep(value) {
+      if (value <= 0) {
+        return 0;
+      }
+      if (value >= 1) {
+        return 1;
+      }
+      return value * value * (3 - 2 * value);
+    }
+
+    function getCityLayerProgress(layerIndex) {
+      var start = CITY_BLEND_START_METERS + layerIndex * CITY_LAYER_STAGGER_METERS;
+      var progress = (distanceMeters - start) / CITY_LAYER_TRANSITION_METERS;
+      if (progress <= 0) {
+        return 0;
+      }
+      if (progress >= 1) {
+        return 1;
+      }
+      return progress;
+    }
+
+    function drawParallaxHillsLayer(layerIndex) {
+      drawParallaxHills(
+        layerIndex,
+        HILL_TOP_COLORS[layerIndex],
+        HILL_BOTTOM_COLORS[layerIndex],
+        HILL_STROKE_COLORS[layerIndex],
+        HILL_AMPLITUDES[layerIndex],
+        HILL_FREQUENCIES[layerIndex],
+        height * HILL_Y_RATIOS[layerIndex]
+      );
+    }
+
+    function drawCityTransitionLayer(layerIndex, weights) {
+      var progress = getCityLayerProgress(layerIndex);
+      var cityAlpha = getSmoothStep(progress / 0.4);
+      var hillAlpha = 1 - getSmoothStep(progress);
+      if (cityAlpha > 0.001) {
+        context.globalAlpha = cityAlpha;
+        drawParallaxCity(layerIndex, getCitySilhouetteColor(layerIndex, weights));
+      }
+      if (hillAlpha > 0.001) {
+        context.globalAlpha = hillAlpha;
+        drawParallaxHillsLayer(layerIndex);
+      }
+    }
+
+    function getCityHash(index, salt) {
+      var n = (index * 374761393 + salt * 668265263) >>> 0;
+      n = (n ^ (n >>> 13)) >>> 0;
+      n = (n * 1274126177) >>> 0;
+      return (n >>> 8) / 16777216;
+    }
+
+    function getCitySilhouetteColor(layerIndex, weights) {
+      var brightness = CITY_LAYER_BRIGHTNESS[layerIndex];
+      if (brightness <= 0) {
+        return "#000000";
+      }
+      var tint = parseHexColor(getSkyGradientColor(CITY_TINT_STOP_INDEX, weights));
+      return "#" +
+        channelToHex(tint.r * brightness) +
+        channelToHex(tint.g * brightness) +
+        channelToHex(tint.b * brightness);
+    }
+
+    function drawCitySmoke(centerX, topY, sourceWidth, layerIndex, seed, colorPrefix, baseAlpha) {
+      var riseHeight = sourceWidth * (9 + layerIndex * 2);
+      var riseSpeed = 0.09 + layerIndex * 0.022;
+      var maxRadius = sourceWidth * 1.6;
+      var drift = sourceWidth * 2.4;
+      var puffIndex;
+      for (puffIndex = 0; puffIndex < CITY_SMOKE_PUFF_COUNT; puffIndex++) {
+        var phase = (cityAnimationTime * riseSpeed + seed + puffIndex / CITY_SMOKE_PUFF_COUNT) % 1;
+        var puffY = topY - phase * riseHeight;
+        var puffX = centerX + Math.sin(phase * 4 + seed * TWO_PI) * drift * phase;
+        var radius = maxRadius * (0.4 + phase * 1.05);
+        var alpha = (1 - phase) * baseAlpha;
+        if (alpha <= 0.012) {
+          continue;
+        }
+        context.fillStyle = colorPrefix + alpha + ")";
+        context.beginPath();
+        context.arc(puffX, puffY, radius, 0, TWO_PI);
+        context.fill();
+      }
+    }
+
+    function drawCityWindows(left, right, topY, bottomY, layerIndex, index, litThreshold, sizeRatio) {
+      var buildingWidth = right - left;
+      var drawBottom = Math.min(bottomY, height + 4);
+      if (buildingWidth < 6 || drawBottom - topY < 12) {
+        return;
+      }
+      var windowSize = Math.max(1.3, Math.min(7, buildingWidth * sizeRatio));
+      var stepX = windowSize * 2.2;
+      var stepY = windowSize * 2.6;
+      var marginX = windowSize;
+      var glowAlpha = 0.32 + layerIndex * 0.14;
+      var windowX = left + marginX;
+      var column = 0;
+      while (windowX + windowSize <= right - marginX) {
+        var windowY = topY + windowSize * 1.6;
+        var row = 0;
+        while (windowY + windowSize <= drawBottom - windowSize) {
+          var litHash = getCityHash(index * 131 + column * 17 + row * 7, layerIndex * 53 + 5);
+          if (litHash > litThreshold) {
+            var brightness = 0.55 + litHash * 0.45;
+            if (litHash > 0.95) {
+              brightness *= 0.5 + 0.5 * Math.abs(Math.sin(cityAnimationTime * 2.2 + index + row));
+            }
+            context.fillStyle = CITY_WINDOW_COLOR_PREFIX + (glowAlpha * brightness) + ")";
+            context.fillRect(windowX, windowY, windowSize, windowSize);
+          }
+          row++;
+          windowY += stepY;
+        }
+        column++;
+        windowX += stepX;
+      }
+    }
+
+    function drawCityResidentialCell(layerIndex, fillColor, left, right, roofTopY, bottomY, index) {
+      var buildingWidth = right - left;
+      context.fillStyle = fillColor;
+      context.beginPath();
+      context.rect(left, roofTopY, buildingWidth, bottomY - roofTopY);
+      var roofHash = getCityHash(index, layerIndex * 7 + 1);
+      if (roofHash > 0.45) {
+        var ledgeHeight = Math.max(2, buildingWidth * 0.05);
+        context.rect(left, roofTopY - ledgeHeight, buildingWidth, ledgeHeight);
+      }
+      context.fill();
+      drawCityWindows(left, right, roofTopY, bottomY, layerIndex, index, CITY_RESIDENTIAL_LIT_THRESHOLD, 0.09);
+    }
+
+    function drawCityFactoryCell(layerIndex, fillColor, left, right, roofTopY, bottomY, index, typeHash) {
+      var buildingWidth = right - left;
+      var centerX = (left + right) * 0.5;
+      var totalHeight = bottomY - roofTopY;
+      context.fillStyle = fillColor;
+
+      if (typeHash < 0.34) {
+        var hallTopY = roofTopY + totalHeight * 0.22;
+        var toothCount = Math.max(2, Math.round(buildingWidth / 14));
+        var toothWidth = buildingWidth / toothCount;
+        var toothHeight = Math.min(toothWidth * 0.9, totalHeight * 0.16);
+        var stackWidth = Math.max(2, buildingWidth * 0.12);
+        var stackHeight = totalHeight * (0.5 + typeHash * 0.6);
+        var stackX = left + buildingWidth * 0.2;
+        var stackTopY = hallTopY - stackHeight;
+        context.beginPath();
+        context.rect(left, hallTopY, buildingWidth, bottomY - hallTopY);
+        var toothIndex;
+        for (toothIndex = 0; toothIndex < toothCount; toothIndex++) {
+          var toothX = left + toothIndex * toothWidth;
+          context.moveTo(toothX, hallTopY);
+          context.lineTo(toothX, hallTopY - toothHeight);
+          context.lineTo(toothX + toothWidth, hallTopY);
+        }
+        context.rect(stackX - stackWidth * 0.5, stackTopY, stackWidth, stackHeight);
+        context.rect(stackX - stackWidth * 0.72, stackTopY, stackWidth * 1.44, stackHeight * 0.08);
+        context.fill();
+        drawCitySmoke(stackX, stackTopY, stackWidth, layerIndex, typeHash, CITY_SMOKE_COLOR_PREFIX, 0.32);
+        if (buildingWidth > 26) {
+          var secondStackX = left + buildingWidth * 0.62;
+          var secondStackHeight = stackHeight * 0.82;
+          var secondStackTopY = hallTopY - secondStackHeight;
+          context.beginPath();
+          context.rect(secondStackX - stackWidth * 0.42, secondStackTopY, stackWidth * 0.84, secondStackHeight);
+          context.rect(secondStackX - stackWidth * 0.6, secondStackTopY, stackWidth * 1.2, secondStackHeight * 0.08);
+          context.fill();
+          drawCitySmoke(secondStackX, secondStackTopY, stackWidth * 0.84, layerIndex, typeHash * 0.7 + 0.2, CITY_SMOKE_COLOR_PREFIX, 0.3);
+        }
+        drawCityWindows(left, right, hallTopY, bottomY, layerIndex, index, CITY_INDUSTRIAL_LIT_THRESHOLD, 0.055);
+      } else if (typeHash < 0.56) {
+        var tankCount = (buildingWidth > 22 && typeHash > 0.44) ? 2 : 1;
+        var slotWidth = buildingWidth / tankCount;
+        var tankIndex;
+        context.beginPath();
+        for (tankIndex = 0; tankIndex < tankCount; tankIndex++) {
+          var tankCenterX = left + slotWidth * (tankIndex + 0.5);
+          var tankRadius = slotWidth * 0.4;
+          var domeCenterY = roofTopY + totalHeight * 0.32 + tankRadius;
+          context.moveTo(tankCenterX - tankRadius, bottomY);
+          context.lineTo(tankCenterX - tankRadius, domeCenterY);
+          context.arc(tankCenterX, domeCenterY, tankRadius, Math.PI, 0, false);
+          context.lineTo(tankCenterX + tankRadius, bottomY);
+        }
+        context.fill();
+      } else if (typeHash < 0.78) {
+        var towerTopY = roofTopY - totalHeight * 0.04;
+        var baseHalf = buildingWidth * 0.46;
+        var waistHalf = buildingWidth * 0.28;
+        var topHalf = buildingWidth * 0.36;
+        var waistY = towerTopY + (bottomY - towerTopY) * 0.55;
+        context.beginPath();
+        context.moveTo(centerX - baseHalf, bottomY);
+        context.quadraticCurveTo(centerX - waistHalf, waistY, centerX - topHalf, towerTopY);
+        context.lineTo(centerX + topHalf, towerTopY);
+        context.quadraticCurveTo(centerX + waistHalf, waistY, centerX + baseHalf, bottomY);
+        context.closePath();
+        context.fill();
+        drawCitySmoke(centerX, towerTopY, buildingWidth * 0.34, layerIndex, typeHash, CITY_STEAM_COLOR_PREFIX, 0.26);
+      } else {
+        var stepInset = buildingWidth * 0.22;
+        var stepHeight = totalHeight * 0.12;
+        var boilerStackWidth = Math.max(2, buildingWidth * 0.16);
+        var boilerStackHeight = totalHeight * (0.4 + typeHash * 0.3);
+        var boilerStackX = right - buildingWidth * 0.16;
+        var boilerStackTopY = roofTopY - boilerStackHeight;
+        context.beginPath();
+        context.rect(left, roofTopY, buildingWidth, bottomY - roofTopY);
+        context.rect(left + stepInset, roofTopY - stepHeight, buildingWidth - stepInset * 2, stepHeight);
+        context.rect(boilerStackX - boilerStackWidth * 0.5, boilerStackTopY, boilerStackWidth, boilerStackHeight);
+        context.fill();
+        drawCitySmoke(boilerStackX, boilerStackTopY, boilerStackWidth, layerIndex, typeHash, CITY_SMOKE_COLOR_PREFIX, 0.3);
+        drawCityWindows(left, right - buildingWidth * 0.34, roofTopY, bottomY, layerIndex, index, CITY_INDUSTRIAL_LIT_THRESHOLD, 0.06);
+      }
+    }
+
+    function getCityCellRoofTopY(index, layerIndex, roofBaseY, maxBuildingHeight) {
+      var heightRandom = getCityHash(index, layerIndex * 29 + 11);
+      return roofBaseY - maxBuildingHeight * (0.34 + heightRandom * 0.66);
+    }
+
+    function drawParallaxCity(layerIndex, fillColor) {
+      var shift = parallaxPhase[layerIndex];
+      var roofBaseY = height * CITY_LAYER_Y_RATIO[layerIndex];
+      var spacing = CITY_LAYER_SPACING[layerIndex];
+      var maxBuildingHeight = height * CITY_LAYER_MAX_HEIGHT_RATIO[layerIndex];
+      var gap = spacing * CITY_GAP_RATIO;
+      var cityStartX = worldViewLeft - 40;
+      var cityEndX = worldViewRight + 40;
+      var cityBottomY = worldViewBottom + 40;
+      var startIndex = Math.floor((cityStartX + shift) / spacing) - 1;
+      var endIndex = Math.ceil((cityEndX + shift) / spacing) + 1;
+      var index;
+      for (index = startIndex; index <= endIndex; index++) {
+        var cellLeft = index * spacing - shift;
+        var roofTopY = getCityCellRoofTopY(index, layerIndex, roofBaseY, maxBuildingHeight);
+        if (layerIndex === 0) {
+          drawCityResidentialCell(layerIndex, fillColor, cellLeft, cellLeft + spacing, roofTopY, cityBottomY, index);
+        } else {
+          var widthRandom = getCityHash(index, layerIndex * 17 + 3);
+          var buildingLeft = cellLeft + gap * 0.5;
+          var buildingRight = cellLeft + spacing - gap * 0.5 - spacing * 0.26 * widthRandom;
+          if (buildingRight - buildingLeft < spacing * 0.3) {
+            buildingRight = buildingLeft + spacing * 0.3;
+          }
+          var typeHash = getCityHash(index, layerIndex * 61 + 13);
+          drawCityFactoryCell(layerIndex, fillColor, buildingLeft, buildingRight, roofTopY, cityBottomY, index, typeHash);
+        }
+      }
+    }
+
     function drawGround() {
       var startX = worldScroll + worldViewLeft - 20;
       var endX = worldScroll + worldViewRight + 20;
@@ -2953,10 +3231,12 @@
       context.translate(cameraPivotX, cameraPivotY);
       context.scale(cameraScale, cameraScale);
       context.translate(-cameraPivotX, -cameraPivotY);
-      drawParallaxHills(0, "rgba(60, 50, 78, 0.92)", "rgba(30, 24, 44, 0.88)", "rgba(96, 70, 110, 0.4)", 44, 0.0014, height * 0.5);
-      drawParallaxHills(1, "rgba(78, 56, 86, 0.94)", "rgba(38, 28, 50, 0.9)", "rgba(120, 80, 110, 0.44)", 54, 0.002, height * 0.56);
-      drawParallaxHills(2, "rgba(96, 64, 88, 0.96)", "rgba(46, 32, 54, 0.92)", "rgba(140, 90, 110, 0.48)", 64, 0.0026, height * 0.62);
-      drawParallaxHills(3, "rgba(116, 74, 90, 0.98)", "rgba(54, 38, 58, 0.94)", "rgba(160, 100, 110, 0.52)", 74, 0.0032, height * 0.66);
+      var cityWeights = getSkyBlendWeights();
+      drawCityTransitionLayer(0, cityWeights);
+      drawCityTransitionLayer(1, cityWeights);
+      drawCityTransitionLayer(2, cityWeights);
+      drawCityTransitionLayer(3, cityWeights);
+      context.globalAlpha = 1;
       drawDustParticles();
       drawExhaust();
       drawGround();
@@ -2977,6 +3257,7 @@
       }
       var deltaSeconds = Math.min(0.05, (timestamp - lastFrameTime) / 1000);
       lastFrameTime = timestamp;
+      cityAnimationTime += deltaSeconds;
       update(deltaSeconds);
       updateSkyCraft(deltaSeconds);
       render();

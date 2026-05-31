@@ -399,6 +399,13 @@
       var KEYPAD_SECTION_ADVANCED = "advanced";
       var KEYPAD_SECTION_BASIC = "basic";
 
+      var CALC_BUTTON_HOVER_AUDIO_PATH = "../../../../audio/ui-hover.wav";
+      var CALC_BUTTON_CLICK_AUDIO_PATH = "../../../../audio/ui-click.wav";
+      var calcButtonHoverAudio = null;
+      var calcButtonClickAudio = null;
+      var calcButtonSoundsUnlocked = false;
+      var lastKeypadHoverButton = null;
+
       var advancedKeypadRows = [
         [
           { label: "MC", action: "memoryClear", className: "calc-key--control calc-key--memory" },
@@ -1090,6 +1097,111 @@
         }
       }
 
+      function getCalcButtonInterfaceVolume() {
+        var volumeBridge = null;
+        if (window.parent && window.parent.WebMenuAudioVolume) {
+          volumeBridge = window.parent.WebMenuAudioVolume;
+        } else if (window.WebMenuAudioVolume) {
+          volumeBridge = window.WebMenuAudioVolume;
+        }
+        if (volumeBridge && volumeBridge.getInterfaceOutputVolume) {
+          return volumeBridge.getInterfaceOutputVolume();
+        }
+        return 0.5;
+      }
+
+      function ensureCalcButtonHoverAudio() {
+        if (calcButtonHoverAudio) {
+          return calcButtonHoverAudio;
+        }
+        calcButtonHoverAudio = new Audio(CALC_BUTTON_HOVER_AUDIO_PATH);
+        calcButtonHoverAudio.preload = "auto";
+        return calcButtonHoverAudio;
+      }
+
+      function ensureCalcButtonClickAudio() {
+        if (calcButtonClickAudio) {
+          return calcButtonClickAudio;
+        }
+        calcButtonClickAudio = new Audio(CALC_BUTTON_CLICK_AUDIO_PATH);
+        calcButtonClickAudio.preload = "auto";
+        return calcButtonClickAudio;
+      }
+
+      function unlockCalcButtonSounds() {
+        if (calcButtonSoundsUnlocked) {
+          return;
+        }
+        calcButtonSoundsUnlocked = true;
+        var hoverAudio = ensureCalcButtonHoverAudio();
+        hoverAudio.volume = 0;
+        var playPromise = hoverAudio.play();
+        if (playPromise && playPromise.then) {
+          playPromise.then(function () {
+            hoverAudio.pause();
+            hoverAudio.currentTime = 0;
+          }).catch(function () {});
+        }
+      }
+
+      function playCalcButtonSound(audioElement) {
+        if (!calcButtonSoundsUnlocked || !audioElement) {
+          return;
+        }
+        audioElement.volume = getCalcButtonInterfaceVolume();
+        audioElement.currentTime = 0;
+        var playPromise = audioElement.play();
+        if (playPromise && playPromise.catch) {
+          playPromise.catch(function () {});
+        }
+      }
+
+      function playCalcButtonHoverSound() {
+        unlockCalcButtonSounds();
+        playCalcButtonSound(ensureCalcButtonHoverAudio());
+      }
+
+      function playCalcButtonClickSound() {
+        unlockCalcButtonSounds();
+        playCalcButtonSound(ensureCalcButtonClickAudio());
+      }
+
+      function onKeypadMouseOver(event) {
+        var button = event.target.closest(".calc-key");
+        if (!button) {
+          return;
+        }
+        if (event.relatedTarget && button.contains(event.relatedTarget)) {
+          return;
+        }
+        if (button === lastKeypadHoverButton) {
+          return;
+        }
+        lastKeypadHoverButton = button;
+        playCalcButtonHoverSound();
+      }
+
+      function onKeypadMouseOut(event) {
+        var button = event.target.closest(".calc-key");
+        if (!button) {
+          return;
+        }
+        if (event.relatedTarget && button.contains(event.relatedTarget)) {
+          return;
+        }
+        if (lastKeypadHoverButton === button) {
+          lastKeypadHoverButton = null;
+        }
+      }
+
+      function onAngleModeButtonPointerEnter() {
+        playCalcButtonHoverSound();
+      }
+
+      function onAngleModeButtonPointerDown() {
+        playCalcButtonClickSound();
+      }
+
       function buildKeypadSection(rootElement, sectionName, keypadRows) {
         if (!rootElement) return;
         var html = "";
@@ -1130,6 +1242,7 @@
         if (!target || !target.closest) return;
         var button = target.closest(".calc-key");
         if (!button) return;
+        playCalcButtonClickSound();
         var sectionName = button.getAttribute("data-key-section");
         var rowIndex = parseInt(button.getAttribute("data-key-row"), 10);
         var columnIndex = parseInt(button.getAttribute("data-key-col"), 10);
@@ -1190,6 +1303,8 @@
       }
 
       if (angleModeButton) {
+        angleModeButton.addEventListener("pointerenter", onAngleModeButtonPointerEnter);
+        angleModeButton.addEventListener("pointerdown", onAngleModeButtonPointerDown);
         angleModeButton.addEventListener("click", toggleAngleMode);
       }
       buildKeypads();
@@ -1197,6 +1312,8 @@
         window.WebScrollbarCursor.refreshAllScrollbars();
       }
       if (keypadWrap) {
+        keypadWrap.addEventListener("mouseover", onKeypadMouseOver);
+        keypadWrap.addEventListener("mouseout", onKeypadMouseOut);
         keypadWrap.addEventListener("click", onKeypadClick);
       }
       document.addEventListener("keydown", onDocumentKeyDown);
