@@ -37,6 +37,7 @@
   <script src="menu-music.js" defer></script>
   <script src="menu-common.js" defer></script>
   <script src="iframe-game-locale-host.js" defer></script>
+  <script src="iframe-game-input-host.js" defer></script>
   <script src="extras-menu.js" defer></script>
   <script src="menu-route.js" defer></script>
   <script src="menu-title-fx.js" defer></script>
@@ -428,6 +429,8 @@
                       <span class="term-row-label terminal-text" data-locale-key="web.extras.game.back">Back to
                         games</span>
                     </button>
+                    <div id="extrasGameKeyboardFocus" tabindex="0" aria-hidden="true"
+                      class="extras-game-keyboard-focus"></div>
                     <iframe class="extras-game-frame" id="extrasGameFrame" title="Extras game"
                       sandbox="allow-scripts allow-same-origin"></iframe>
                   </div>

@@ -162,6 +162,16 @@
   -webkit-tap-highlight-color: transparent;
   tap-highlight-color: transparent;
   outline: none;
+  cursor: url("cursor-pointer.svg") 2.1 0, pointer;
+}
+
+.extras-game-keyboard-focus {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .extras-game-frame:focus,
@@ -299,6 +309,7 @@
 }
 
 .extras-view#extrasViewGame {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;

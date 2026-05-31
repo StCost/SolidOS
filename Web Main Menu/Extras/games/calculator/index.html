@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Calculator</title>
+  <link rel="stylesheet" href="../../../screen-shared.css" />
+  <link rel="stylesheet" href="../iframe-game-scrollbar.css" />
+  <script src="../iframe-game-input.js"></script>
+  <script src="../iframe-game-scrollbar.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -200,6 +204,9 @@
       flex-direction: column;
       gap: 0.35rem;
       padding: 0 0.55rem 0.55rem;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
     }
 
     .calc-keypad {
@@ -311,7 +318,7 @@
     }
   </style>
 </head>
-<body>
+<body class="iframe-game-scroll-root">
   <div class="calc-shell">
     <div class="calc-header">
       <span class="calc-header-prompt">C:\CM\tools&gt;</span>
@@ -329,7 +336,7 @@
       </div>
     </div>
 
-    <div class="calc-keypad-wrap">
+    <div class="calc-keypad-wrap iframe-game-scroll-view">
       <div class="calc-keypad calc-keypad--advanced" id="keypadAdvanced"></div>
       <div class="calc-keypad-divider" aria-hidden="true"></div>
       <div class="calc-keypad calc-keypad--basic" id="keypadBasic"></div>
@@ -1179,6 +1186,9 @@
         angleModeButton.addEventListener("click", toggleAngleMode);
       }
       buildKeypads();
+      if (window.WebIframeGameScrollbar && window.WebIframeGameScrollbar.refreshAllScrollbars) {
+        window.WebIframeGameScrollbar.refreshAllScrollbars();
+      }
       if (keypadWrap) {
         keypadWrap.addEventListener("click", onKeypadClick);
       }

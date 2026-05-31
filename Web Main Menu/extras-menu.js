@@ -28,12 +28,13 @@
   var STORAGE_VALUE_TRUE = "1";
   var IFRAME_EMBED_RESET_STYLE_ID = "cm-iframe-embed-reset";
   var IFRAME_EMBED_RESET_LINK_ID = "cm-iframe-embed-reset-link";
-  var IFRAME_EMBED_RESET_HREF = "../../iframe-embed-reset.css";
+  var IFRAME_EMBED_RESET_HREF = "../../../iframe-embed-reset.css";
   var IFRAME_EMBED_RESET_INLINE =
     "html,body{-webkit-tap-highlight-color:transparent;tap-highlight-color:transparent}" +
     "*,*::before,*::after{-webkit-tap-highlight-color:transparent;tap-highlight-color:transparent}" +
     "*:focus,*:focus-visible,*:active{outline:none}" +
-    "html{touch-action:manipulation}";
+    "html{touch-action:manipulation}" +
+    "html,body,cursor:url('../../../cursor-pointer.svg') 2.1 0,pointer}";
 
   var contentRoot = document.getElementById("extrasContent");
   var viewArt = document.getElementById("extrasViewArt");
@@ -44,6 +45,7 @@
   var artGridRoot = document.getElementById("extrasArtGrid");
   var linksListRoot = document.getElementById("extrasLinksList");
   var gameFrame = document.getElementById("extrasGameFrame");
+  var gameKeyboardFocus = document.getElementById("extrasGameKeyboardFocus");
   var contentPromptPath = document.getElementById("extrasContentPromptPath");
   var contentPromptCommand = document.getElementById("extrasContentPromptCommand");
   var extrasNav = document.getElementById("extrasNav");
@@ -370,18 +372,51 @@
     });
   }
 
+  function setGameInputForwarding(enabled) {
+    if (window.WebGameFrameInputHost) {
+      window.WebGameFrameInputHost.setForwardingEnabled(enabled);
+    }
+    window.dispatchEvent(
+      new CustomEvent("web-extras-game-input", { detail: { active: enabled } })
+    );
+  }
+
+  function focusGameKeyboardTarget() {
+    if (gameKeyboardFocus && gameKeyboardFocus.focus) {
+      try {
+        gameKeyboardFocus.focus({ preventScroll: true });
+      } catch (error) {
+        gameKeyboardFocus.focus();
+      }
+      return;
+    }
+    if (window.WebGameFrameInputHost && window.WebGameFrameInputHost.focusGameFrame) {
+      window.WebGameFrameInputHost.focusGameFrame();
+    }
+  }
+
   function openGame(gameId) {
     var game = findGameById(gameId);
     if (!game || !gameFrame) return;
     activeGameId = gameId;
     var title = getLocalized(game.titleKey, game.title || game.titleFallback || game.id);
+    setGameInputForwarding(true);
+    gameFrame.addEventListener(
+      "load",
+      function () {
+        focusGameKeyboardTarget();
+      },
+      { once: true }
+    );
     gameFrame.src = game.path;
     showView(VIEW_GAME);
     setContentPrompt("C:\\CM\\extras\\games&gt;", "run " + title);
+    focusGameKeyboardTarget();
   }
 
   function closeGame() {
     activeGameId = "";
+    setGameInputForwarding(false);
     if (gameFrame) gameFrame.src = "about:blank";
     showView(VIEW_GAMES);
   }
@@ -672,6 +707,7 @@
   }
 
   function onExtrasBackMenuClick() {
+    setGameInputForwarding(false);
     if (gameFrame) gameFrame.src = "about:blank";
     if (window.WebMenu && window.WebMenu.goToIndexPage) {
       window.WebMenu.goToIndexPage();
@@ -700,6 +736,7 @@
     currentView = "";
     cancelPendingBackgroundApply();
     closeArtViewer();
+    setGameInputForwarding(false);
     if (gameFrame) gameFrame.src = "about:blank";
     renderExtras();
     showTab(VIEW_GAMES);
@@ -718,6 +755,20 @@
   if (window.WebGameFrameLocaleHost) {
     window.WebGameFrameLocaleHost.setGameFrame(gameFrame);
     window.WebGameFrameLocaleHost.bindGameFrameLocale(gameFrame);
+  }
+  if (window.WebGameFrameInputHost) {
+    window.WebGameFrameInputHost.setGameFrame(gameFrame);
+  }
+  if (gameFrame) {
+    gameFrame.addEventListener("pointerdown", focusGameKeyboardTarget);
+  }
+  if (gameKeyboardFocus) {
+    gameKeyboardFocus.addEventListener("blur", function () {
+      if (currentView !== VIEW_GAME) {
+        return;
+      }
+      focusGameKeyboardTarget();
+    });
   }
 
   if (gamesListRoot) gamesListRoot.addEventListener("click", onGamesListClick);
