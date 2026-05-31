@@ -510,6 +510,11 @@
 
     var METERS_PER_UNIT = 0.06;
 
+    // ========== TEST-ONLY — revert: delete this entire block ==========
+    var TEST_SPAWN_AT_METERS = 2500;
+    var TEST_ROBOT_INVULNERABLE = true;
+    // ========== end TEST-ONLY ==========
+
     var PHASE_START = "start";
     var PHASE_LAUNCH = "launch";
     var PHASE_PLAYING = "playing";
@@ -796,7 +801,10 @@
     ];
     var SKY_SPACE_SEGMENT_COUNT = 2;
     var SKY_ATMOSPHERE_SEGMENT_COUNT = 2;
-    var SKY_INDUSTRIAL_SEGMENT_COUNT = 2;
+    var SKY_INDUSTRIAL_BLEND_START_METERS = 1500;
+    var SKY_GRADIENT_FULL_METERS = 10000;
+    var SUN_SCREEN_X_RATIO = 0.74;
+    var SUN_SCREEN_Y_RATIO = 0.21;
 
     function isPlaying() {
       return gamePhase === PHASE_PLAYING;
@@ -1464,6 +1472,17 @@
       positionLaunchLeg();
     }
 
+    function applyTestSpawnAtMeters() {
+      if (TEST_SPAWN_AT_METERS <= 0) {
+        return;
+      }
+      distanceMeters = TEST_SPAWN_AT_METERS;
+      beaconsSpawnedCount = Math.floor(distanceMeters / BEACON_INTERVAL_METERS);
+      beacons.length = 0;
+      spawnBeacons();
+      hudDistance.textContent = formatMeters(distanceMeters);
+    }
+
     function beginPlaying() {
       forwardSpeed = LAUNCH_FORWARD_SPEED;
       playerYOffset = 0;
@@ -1475,6 +1494,7 @@
       legWorldAnchorX = worldScroll + (playerScreenX - robotPx * 0.62);
       launchLegFadeTimer = 0;
       triggerKickImpact();
+      applyTestSpawnAtMeters();
       if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
         window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
       }
@@ -1660,6 +1680,12 @@
     }
 
     function applyBadLanding(impactSpeed) {
+      if (TEST_ROBOT_INVULNERABLE) {
+        playerVelocityY = -(impactSpeed * 0.32 + 180);
+        playerYOffset = 0;
+        landingLockTimer = 0.12;
+        return;
+      }
       if (shieldActive) {
         consumeShield();
         playerVelocityY = -(impactSpeed * 0.32 + 180);
@@ -1791,11 +1817,14 @@
         return;
       }
       if (lostLimbCount >= TOTAL_LIMBS) {
-        launchHead();
+        if (!TEST_ROBOT_INVULNERABLE) {
+          launchHead();
+        }
         return;
       }
       var groundSlopeAngle = getGroundSlopeAngle(playerWorldX);
       var uprightError = getUprightError(robotAngle - groundSlopeAngle);
+      resetRobotGlow();
       if (uprightError <= GOOD_LANDING_TOLERANCE) {
         applyGoodLanding(uprightError, impactSpeed);
       } else {
@@ -2427,18 +2456,24 @@
       return "#" + channelToHex(red) + channelToHex(green) + channelToHex(blue);
     }
 
+    function getSkyIndustrialBlend() {
+      if (distanceMeters <= SKY_INDUSTRIAL_BLEND_START_METERS) {
+        return 0;
+      }
+      if (distanceMeters >= SKY_GRADIENT_FULL_METERS) {
+        return 1;
+      }
+      return (distanceMeters - SKY_INDUSTRIAL_BLEND_START_METERS) / (SKY_GRADIENT_FULL_METERS - SKY_INDUSTRIAL_BLEND_START_METERS);
+    }
+
     function getSkyBlendWeights() {
       var spaceWeight = 0;
       var skyWeight = 0;
-      var industrialWeight = 0;
       var segment = distanceMeters / SKY_SEGMENT_METERS;
       var spaceEnd = SKY_SPACE_SEGMENT_COUNT;
       var skyEnd = spaceEnd + SKY_ATMOSPHERE_SEGMENT_COUNT;
-      var transitionEnd = skyEnd + SKY_INDUSTRIAL_SEGMENT_COUNT;
 
-      if (segment >= transitionEnd) {
-        industrialWeight = 1;
-      } else if (segment <= 0) {
+      if (segment <= 0) {
         spaceWeight = 1;
       } else if (segment < spaceEnd) {
         var enterSkyBlend = segment / spaceEnd;
@@ -2447,12 +2482,13 @@
       } else if (segment < skyEnd) {
         skyWeight = 1;
       } else {
-        var enterIndustrialBlend = (segment - skyEnd) / SKY_INDUSTRIAL_SEGMENT_COUNT;
-        if (enterIndustrialBlend > 1) {
-          enterIndustrialBlend = 1;
-        }
-        skyWeight = 1 - enterIndustrialBlend;
-        industrialWeight = enterIndustrialBlend;
+        skyWeight = 1;
+      }
+
+      var industrialWeight = getSkyIndustrialBlend();
+      if (industrialWeight > 0) {
+        spaceWeight = spaceWeight * (1 - industrialWeight);
+        skyWeight = skyWeight * (1 - industrialWeight);
       }
 
       return {
@@ -2460,10 +2496,6 @@
         sky: skyWeight,
         industrial: industrialWeight
       };
-    }
-
-    function getAtmosphereBlend() {
-      return getSkyBlendWeights().industrial;
     }
 
     function blendThreeSkyColors(colorA, colorB, colorC, weightA, weightB, weightC) {
@@ -2515,8 +2547,8 @@
 
     function drawSun() {
       var weights = getSkyBlendWeights();
-      var sunX = width * 0.74;
-      var sunY = height * 0.5;
+      var sunX = width * SUN_SCREEN_X_RATIO;
+      var sunY = height * SUN_SCREEN_Y_RATIO;
       var sunRadius = Math.max(26, Math.min(width, height) * 0.07);
       var glow = context.createRadialGradient(sunX, sunY, sunRadius * 0.5, sunX, sunY, sunRadius * 4.5);
       var glowInnerAlpha = 0.4 + weights.sky * 0.08 + weights.industrial * 0.22;
