@@ -717,6 +717,29 @@
     var SKY_TILE_WIDTH = 1280;
     var skyStars = [];
 
+    var SKY_SEGMENT_METERS = 1000;
+    var SKY_SPACE_STOPS = [
+      { position: 0, color: "#0a1024" },
+      { position: 0.4, color: "#1c2142" },
+      { position: 0.72, color: "#46324e" },
+      { position: 1, color: "#9a4a2e" }
+    ];
+    var SKY_ATMOSPHERE_STOPS = [
+      { position: 0, color: "#143858" },
+      { position: 0.4, color: "#2a6ea8" },
+      { position: 0.72, color: "#58a0d0" },
+      { position: 1, color: "#88c0e8" }
+    ];
+    var SKY_INDUSTRIAL_STOPS = [
+      { position: 0, color: "#1a1008" },
+      { position: 0.4, color: "#4a2c14" },
+      { position: 0.72, color: "#a04a22" },
+      { position: 1, color: "#d06028" }
+    ];
+    var SKY_SPACE_SEGMENT_COUNT = 2;
+    var SKY_ATMOSPHERE_SEGMENT_COUNT = 2;
+    var SKY_INDUSTRIAL_SEGMENT_COUNT = 2;
+
     function isPlaying() {
       return gamePhase === PHASE_PLAYING;
     }
@@ -1973,32 +1996,141 @@
       };
     }
 
+    function parseHexColor(hexColor) {
+      var hex = hexColor.charAt(0) === "#" ? hexColor.substring(1) : hexColor;
+      return {
+        r: parseInt(hex.substring(0, 2), 16),
+        g: parseInt(hex.substring(2, 4), 16),
+        b: parseInt(hex.substring(4, 6), 16)
+      };
+    }
+
+    function channelToHex(value) {
+      var clamped = Math.max(0, Math.min(255, Math.round(value)));
+      var hex = clamped.toString(16);
+      if (hex.length < 2) {
+        return "0" + hex;
+      }
+      return hex;
+    }
+
+    function lerpHexColor(colorA, colorB, blend) {
+      var from = parseHexColor(colorA);
+      var to = parseHexColor(colorB);
+      var red = from.r + (to.r - from.r) * blend;
+      var green = from.g + (to.g - from.g) * blend;
+      var blue = from.b + (to.b - from.b) * blend;
+      return "#" + channelToHex(red) + channelToHex(green) + channelToHex(blue);
+    }
+
+    function getSkyBlendWeights() {
+      var spaceWeight = 0;
+      var skyWeight = 0;
+      var industrialWeight = 0;
+      var segment = distanceMeters / SKY_SEGMENT_METERS;
+      var spaceEnd = SKY_SPACE_SEGMENT_COUNT;
+      var skyEnd = spaceEnd + SKY_ATMOSPHERE_SEGMENT_COUNT;
+      var transitionEnd = skyEnd + SKY_INDUSTRIAL_SEGMENT_COUNT;
+
+      if (segment >= transitionEnd) {
+        industrialWeight = 1;
+      } else if (segment <= 0) {
+        spaceWeight = 1;
+      } else if (segment < spaceEnd) {
+        var enterSkyBlend = segment / spaceEnd;
+        spaceWeight = 1 - enterSkyBlend;
+        skyWeight = enterSkyBlend;
+      } else if (segment < skyEnd) {
+        skyWeight = 1;
+      } else {
+        var enterIndustrialBlend = (segment - skyEnd) / SKY_INDUSTRIAL_SEGMENT_COUNT;
+        if (enterIndustrialBlend > 1) {
+          enterIndustrialBlend = 1;
+        }
+        skyWeight = 1 - enterIndustrialBlend;
+        industrialWeight = enterIndustrialBlend;
+      }
+
+      return {
+        space: spaceWeight,
+        sky: skyWeight,
+        industrial: industrialWeight
+      };
+    }
+
+    function getAtmosphereBlend() {
+      return getSkyBlendWeights().industrial;
+    }
+
+    function blendThreeSkyColors(colorA, colorB, colorC, weightA, weightB, weightC) {
+      var totalWeight = weightA + weightB + weightC;
+      if (totalWeight <= 0) {
+        return colorA;
+      }
+      var colorFromA = parseHexColor(colorA);
+      var colorFromB = parseHexColor(colorB);
+      var colorFromC = parseHexColor(colorC);
+      var normalizedA = weightA / totalWeight;
+      var normalizedB = weightB / totalWeight;
+      var normalizedC = weightC / totalWeight;
+      var red = colorFromA.r * normalizedA + colorFromB.r * normalizedB + colorFromC.r * normalizedC;
+      var green = colorFromA.g * normalizedA + colorFromB.g * normalizedB + colorFromC.g * normalizedC;
+      var blue = colorFromA.b * normalizedA + colorFromB.b * normalizedB + colorFromC.b * normalizedC;
+      return "#" + channelToHex(red) + channelToHex(green) + channelToHex(blue);
+    }
+
+    function getSkyGradientColor(stopIndex, weights) {
+      return blendThreeSkyColors(
+        SKY_SPACE_STOPS[stopIndex].color,
+        SKY_ATMOSPHERE_STOPS[stopIndex].color,
+        SKY_INDUSTRIAL_STOPS[stopIndex].color,
+        weights.space,
+        weights.sky,
+        weights.industrial
+      );
+    }
+
+    function setPageBackgroundColor(color) {
+      document.body.style.background = color;
+    }
+
     function drawSky() {
+      var weights = getSkyBlendWeights();
       var gradient = context.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, "#0a1024");
-      gradient.addColorStop(0.4, "#1c2142");
-      gradient.addColorStop(0.72, "#46324e");
-      gradient.addColorStop(1, "#9a4a2e");
+      var stopIndex;
+      for (stopIndex = 0; stopIndex < SKY_SPACE_STOPS.length; stopIndex++) {
+        gradient.addColorStop(
+          SKY_SPACE_STOPS[stopIndex].position,
+          getSkyGradientColor(stopIndex, weights)
+        );
+      }
       context.fillStyle = gradient;
       context.fillRect(0, 0, width, height);
+      setPageBackgroundColor(getSkyGradientColor(0, weights));
     }
 
     function drawSun() {
+      var weights = getSkyBlendWeights();
       var sunX = width * 0.74;
       var sunY = height * 0.5;
       var sunRadius = Math.max(26, Math.min(width, height) * 0.07);
       var glow = context.createRadialGradient(sunX, sunY, sunRadius * 0.5, sunX, sunY, sunRadius * 4.5);
-      glow.addColorStop(0, "rgba(255, 180, 90, 0.4)");
-      glow.addColorStop(0.4, "rgba(255, 130, 60, 0.16)");
+      var glowInnerAlpha = 0.4 + weights.sky * 0.08 + weights.industrial * 0.22;
+      var glowOuterAlpha = 0.16 + weights.sky * 0.06 + weights.industrial * 0.18;
+      var glowRed = 255;
+      var glowGreen = Math.round(180 + weights.sky * 30 - weights.industrial * 50);
+      var glowBlue = Math.round(90 + weights.sky * 70 - weights.industrial * 60);
+      glow.addColorStop(0, "rgba(" + glowRed + ", " + glowGreen + ", " + glowBlue + ", " + glowInnerAlpha + ")");
+      glow.addColorStop(0.4, "rgba(255, 130, 60, " + glowOuterAlpha + ")");
       glow.addColorStop(1, "transparent");
       context.fillStyle = glow;
       context.beginPath();
       context.arc(sunX, sunY, sunRadius * 4.5, 0, TWO_PI);
       context.fill();
       var body = context.createRadialGradient(sunX, sunY, sunRadius * 0.2, sunX, sunY, sunRadius);
-      body.addColorStop(0, "#ffe7b0");
-      body.addColorStop(0.6, "#ffb060");
-      body.addColorStop(1, "#ff7a30");
+      body.addColorStop(0, blendThreeSkyColors("#ffe7b0", "#fff8e8", "#fff0c8", weights.space, weights.sky, weights.industrial));
+      body.addColorStop(0.6, blendThreeSkyColors("#ffb060", "#ffd878", "#ff9040", weights.space, weights.sky, weights.industrial));
+      body.addColorStop(1, blendThreeSkyColors("#ff7a30", "#ffc848", "#ff6020", weights.space, weights.sky, weights.industrial));
       context.fillStyle = body;
       context.beginPath();
       context.arc(sunX, sunY, sunRadius, 0, TWO_PI);
@@ -2021,6 +2153,10 @@
     }
 
     function drawStars() {
+      var weights = getSkyBlendWeights();
+      if (weights.space <= 0.02) {
+        return;
+      }
       var tileX;
       var index;
       var star;
@@ -2032,7 +2168,8 @@
         starScrollWrapped += SKY_TILE_WIDTH;
       }
       var tilesX = Math.ceil(width / SKY_TILE_WIDTH) + 2;
-      context.fillStyle = "rgba(220, 226, 255, 0.7)";
+      var starAlpha = 0.7 * weights.space;
+      context.fillStyle = "rgba(220, 226, 255, " + starAlpha + ")";
       for (tileX = -1; tileX < tilesX; tileX++) {
         for (index = 0; index < skyStars.length; index++) {
           star = skyStars[index];
