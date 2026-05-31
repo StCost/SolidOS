@@ -2784,6 +2784,15 @@ var WebDesktop = (function () {
     return "game-" + gameId;
   }
 
+  function getGameDesktopIconImagePath(game) {
+    if (!game) return "";
+    if (game.desktopIcon) return game.desktopIcon;
+    if (game.id) {
+      return "Extras/games/" + game.id + "/" + game.id + "-desktop-icon.png";
+    }
+    return "";
+  }
+
   function buildGameDesktopLinksPayload() {
     var gameIds = [];
     var gameId;
@@ -3087,10 +3096,10 @@ var WebDesktop = (function () {
     }
     glyphElement = document.createElement("span");
     glyphElement.className = "os-desktop-icon-glyph";
-    if (game.image) {
+    if (getGameDesktopIconImagePath(game)) {
       imageElement = document.createElement("img");
       imageElement.className = "os-app-icon os-app-icon--game-shortcut";
-      imageElement.src = game.image;
+      imageElement.src = getGameDesktopIconImagePath(game);
       imageElement.alt = "";
       imageElement.draggable = false;
       imageElement.width = 52;
