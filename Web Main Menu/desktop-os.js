@@ -64,10 +64,8 @@ var WebDesktop = (function () {
   var iconActivatedGestureId = -1;
   var selectedIconIds = {};
   var activeMarqueeSelect = null;
-  var desktopMarqueeLayer = null;
   var desktopMarqueeBox = null;
 
-  var DESKTOP_MARQUEE_LAYER_ID = "desktopMarqueeLayer";
   var DESKTOP_MARQUEE_MIN_SIZE_PX = 4;
   var ICON_SELECTED_CLASS = "os-desktop-icon--selected";
   var ICON_DISABLED_CLASS = "os-desktop-icon--disabled";
@@ -1684,11 +1682,25 @@ var WebDesktop = (function () {
     activeMarqueeSelect = null;
   }
 
-  function bindDesktopMarqueeLayer(marqueeLayer, marqueeBox) {
+  function shouldBeginDesktopMarqueeFromTarget(target) {
+    if (!target || !desktopSurface) return false;
+    if (!desktopSurface.contains(target)) return false;
+    if (target.closest(".os-window")) return false;
+    if (target.closest(".os-desktop-icon")) return false;
+    if (target.closest(".os-statusbar")) return false;
+    return true;
+  }
+
+  function bindDesktopMarqueeSelect() {
+    if (!desktopSurface || desktopSurface.wmDesktopMarqueeBound) return;
+    desktopSurface.wmDesktopMarqueeBound = true;
+
     function onMarqueePointerDown(event) {
       if (event.button != null && event.button !== 0) return;
       if (event.isPrimary === false) return;
       if (activeIconDrag || pendingIconPress) return;
+      if (!shouldBeginDesktopMarqueeFromTarget(event.target)) return;
+      if (!desktopMarqueeBox) return;
       var point = clientPointToLayoutPoint(event.clientX, event.clientY);
       activeMarqueeSelect = {
         pointerId: event.pointerId,
@@ -1696,31 +1708,32 @@ var WebDesktop = (function () {
         startY: point.top,
         currentX: point.left,
         currentY: point.top,
-        boxElement: marqueeBox,
-        layerElement: marqueeLayer,
+        boxElement: desktopMarqueeBox,
+        layerElement: desktopSurface,
         moved: false
       };
       try {
-        marqueeLayer.setPointerCapture(event.pointerId);
+        desktopSurface.setPointerCapture(event.pointerId);
       } catch (error) { }
       event.preventDefault();
     }
 
-    marqueeLayer.addEventListener("pointerdown", onMarqueePointerDown);
+    desktopSurface.addEventListener("pointerdown", onMarqueePointerDown);
   }
 
   function initDesktopMarqueeLayer() {
-    if (!desktopIconsRoot) return;
-    if (document.getElementById(DESKTOP_MARQUEE_LAYER_ID)) return;
-    desktopMarqueeLayer = document.createElement("div");
-    desktopMarqueeLayer.id = DESKTOP_MARQUEE_LAYER_ID;
-    desktopMarqueeLayer.className = "os-desktop-marquee-hit";
+    var legacyMarqueeLayer;
+    if (!desktopIconsRoot || !desktopSurface) return;
+    legacyMarqueeLayer = document.getElementById("desktopMarqueeLayer");
+    if (legacyMarqueeLayer && legacyMarqueeLayer.parentNode) {
+      legacyMarqueeLayer.parentNode.removeChild(legacyMarqueeLayer);
+    }
+    if (desktopMarqueeBox) return;
     desktopMarqueeBox = document.createElement("div");
     desktopMarqueeBox.className = "os-desktop-marquee-box";
     desktopMarqueeBox.hidden = true;
-    desktopMarqueeLayer.appendChild(desktopMarqueeBox);
-    desktopIconsRoot.insertBefore(desktopMarqueeLayer, desktopIconsRoot.firstChild);
-    bindDesktopMarqueeLayer(desktopMarqueeLayer, desktopMarqueeBox);
+    desktopIconsRoot.appendChild(desktopMarqueeBox);
+    bindDesktopMarqueeSelect();
   }
 
   function getIconElementsFromDragIconIds(iconIds) {

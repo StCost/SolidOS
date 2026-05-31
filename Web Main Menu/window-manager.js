@@ -49,6 +49,70 @@ var WebWindowManager = (function () {
       width: 950,
       height: 420,
       open: true
+    },
+    "connect-col-0": {
+      anchor: "center",
+      centerOffsetX: -210,
+      centerOffsetY: -260,
+      width: 420,
+      height: 520,
+      open: false
+    },
+    "connect-col-1": {
+      anchor: "center",
+      centerOffsetX: -210,
+      centerOffsetY: -260,
+      width: 420,
+      height: 520,
+      open: false
+    },
+    "connect-col-2": {
+      anchor: "center",
+      centerOffsetX: -210,
+      centerOffsetY: -240,
+      width: 420,
+      height: 480,
+      open: false
+    },
+    "settings-content": {
+      anchor: "center",
+      centerOffsetX: -460,
+      centerOffsetY: -320,
+      width: 920,
+      height: 640,
+      open: false
+    },
+    "extras-games": {
+      anchor: "center",
+      centerOffsetX: -360,
+      centerOffsetY: -310,
+      width: 720,
+      height: 620,
+      open: false
+    },
+    "extras-art": {
+      anchor: "center",
+      centerOffsetX: -280,
+      centerOffsetY: -280,
+      width: 560,
+      height: 560,
+      open: false
+    },
+    "extras-links": {
+      anchor: "center",
+      centerOffsetX: -260,
+      centerOffsetY: -210,
+      width: 520,
+      height: 420,
+      open: false
+    },
+    "credits-content": {
+      anchor: "center",
+      centerOffsetX: -320,
+      centerOffsetY: -260,
+      width: 640,
+      height: 520,
+      open: false
     }
   };
   var LAYOUT_BOOTSTRAP_CLASS = "menu-wm-layout-bootstrap";
@@ -112,38 +176,85 @@ var WebWindowManager = (function () {
     return window.WebMenuLayoutCoords;
   }
 
+  function mergeLayoutWithDesktopDefault(presetName, layout) {
+    var defaultLayout = DEFAULT_DESKTOP_WINDOW_LAYOUTS[presetName];
+    var merged = {};
+    if (defaultLayout) {
+      merged.anchor = defaultLayout.anchor;
+      merged.centerOffsetX = defaultLayout.centerOffsetX;
+      merged.centerOffsetY = defaultLayout.centerOffsetY;
+      merged.width = defaultLayout.width;
+      merged.height = defaultLayout.height;
+      if (defaultLayout.open !== undefined) {
+        merged.open = defaultLayout.open;
+      }
+    }
+    if (!layout) {
+      return merged;
+    }
+    if (layout.open !== undefined) {
+      merged.open = layout.open;
+    }
+    if (layout.anchor !== undefined) {
+      merged.anchor = layout.anchor;
+    }
+    if (layout.centerOffsetX !== undefined) {
+      merged.centerOffsetX = layout.centerOffsetX;
+    }
+    if (layout.centerOffsetY !== undefined) {
+      merged.centerOffsetY = layout.centerOffsetY;
+    }
+    if (layout.width !== undefined) {
+      merged.width = layout.width;
+    }
+    if (layout.height !== undefined) {
+      merged.height = layout.height;
+    }
+    if (layout.minimized === true) {
+      merged.minimized = true;
+    }
+    if (layout.maximized === true) {
+      merged.maximized = true;
+    }
+    if (layout.zIndex !== undefined) {
+      merged.zIndex = layout.zIndex;
+    }
+    return merged;
+  }
+
   function setSavedLayout(layoutKey, layout, containerElement) {
     if (!layoutKey || !layout) return;
     var coords = getLayoutCoords();
     var previous = savedLayoutTable[layoutKey];
     var storedLayout;
-    var open = layout.open;
+    var mergedLayout = mergeLayoutWithDesktopDefault(layoutKey, layout);
+    var open = mergedLayout.open;
     if (open === undefined && previous) {
       open = previous.open;
     }
     if (open === undefined) {
       open = true;
     }
-    var minimized = layout.minimized === true;
-    var maximized = layout.maximized === true;
-    if (layout.minimized === undefined && previous) {
+    var minimized = mergedLayout.minimized === true;
+    var maximized = mergedLayout.maximized === true;
+    if (mergedLayout.minimized === undefined && previous) {
       minimized = previous.minimized === true;
     }
-    if (layout.maximized === undefined && previous) {
+    if (mergedLayout.maximized === undefined && previous) {
       maximized = previous.maximized === true;
     }
     if (minimized) {
       maximized = false;
     }
     if (!coords || !containerElement) return;
-    storedLayout = coords.normalizeWindowStoredLayout(layout, containerElement);
+    storedLayout = coords.normalizeWindowStoredLayout(mergedLayout, containerElement);
     if (!storedLayout) return;
     savedLayoutTable[layoutKey] = storedLayout;
     savedLayoutTable[layoutKey].open = open;
     savedLayoutTable[layoutKey].minimized = minimized;
     savedLayoutTable[layoutKey].maximized = maximized;
-    if (layout.zIndex !== undefined) {
-      savedLayoutTable[layoutKey].zIndex = layout.zIndex;
+    if (mergedLayout.zIndex !== undefined) {
+      savedLayoutTable[layoutKey].zIndex = mergedLayout.zIndex;
     } else if (previous && previous.zIndex !== undefined) {
       savedLayoutTable[layoutKey].zIndex = previous.zIndex;
     }
@@ -291,6 +402,7 @@ var WebWindowManager = (function () {
     var presetName = windowElement.getAttribute("data-wm-preset");
     var layoutKey = getLayoutKey(windowElement);
     var savedLayout = savedLayoutTable[layoutKey];
+    var mergedLayout;
     if (!savedLayout) return;
 
     var containerElement = getLayoutContainer(windowElement);
@@ -300,16 +412,17 @@ var WebWindowManager = (function () {
     var coords = getLayoutCoords();
     var resolvedRect;
     if (!coords) return;
-    resolvedRect = coords.resolveWindowRect(savedLayout, containerElement);
+    mergedLayout = mergeLayoutWithDesktopDefault(presetName, savedLayout);
+    resolvedRect = coords.resolveWindowRect(mergedLayout, containerElement);
     windowElement.wmState = {
       left: resolvedRect.left,
       top: resolvedRect.top,
       width: Math.max(
-        resolvedRect.width || savedLayout.width || minSize.minWidth,
+        resolvedRect.width || mergedLayout.width || minSize.minWidth,
         minSize.minWidth
       ),
       height: Math.max(
-        resolvedRect.height || savedLayout.height || minSize.minHeight,
+        resolvedRect.height || mergedLayout.height || minSize.minHeight,
         minSize.minHeight
       ),
       minWidth: minSize.minWidth,
@@ -321,12 +434,34 @@ var WebWindowManager = (function () {
 
   function setSavedWindowOpen(windowElement, isOpen) {
     var layoutKey = getLayoutKey(windowElement);
+    var previous;
+    var containerElement;
+    var mergedLayout;
     if (!layoutKey) return;
-    var previous = savedLayoutTable[layoutKey];
+    previous = savedLayoutTable[layoutKey];
     if (!previous) {
       if (!isOpen) return;
+      containerElement = getDefaultWindowLayoutContainer(layoutKey);
+      if (containerElement && DEFAULT_DESKTOP_WINDOW_LAYOUTS[layoutKey]) {
+        mergedLayout = mergeLayoutWithDesktopDefault(layoutKey, { open: true });
+        setSavedLayout(layoutKey, mergedLayout, containerElement);
+        return;
+      }
       savedLayoutTable[layoutKey] = { open: true };
       return;
+    }
+    if (
+      isOpen &&
+      (previous.width === undefined || previous.height === undefined) &&
+      DEFAULT_DESKTOP_WINDOW_LAYOUTS[layoutKey]
+    ) {
+      containerElement = getLayoutContainer(windowElement) || getDefaultWindowLayoutContainer(layoutKey);
+      if (containerElement) {
+        mergedLayout = mergeLayoutWithDesktopDefault(layoutKey, previous);
+        mergedLayout.open = true;
+        setSavedLayout(layoutKey, mergedLayout, containerElement);
+        return;
+      }
     }
     previous.open = isOpen;
   }
