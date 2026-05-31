@@ -880,7 +880,9 @@
           } else {
             cardEntry.velocityX = 0;
             cardEntry.velocityY = 0;
-            snapCardPositionToGrid(cardEntry);
+            if (!cardEntry.isThrown) {
+              snapCardPositionToGrid(cardEntry);
+            }
             clampCardToScreen(cardEntry);
           }
           if (cardEntry.isThrown) {

@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sector Vector</title>
   <script src="../iframe-game-locale.js"></script>
+  <script src="../iframe-game-input.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -366,7 +367,11 @@
 
     function focusGameRoot() {
       if (gameRoot && gameRoot.focus) {
-        gameRoot.focus();
+        try {
+          gameRoot.focus({ preventScroll: true });
+        } catch (error) {
+          gameRoot.focus();
+        }
       }
     }
 
@@ -476,7 +481,15 @@
       setTargetFromTunnelNorm(norm.x, norm.y);
     }
 
-    function isSteerKey(key) {
+    function isSteerKeyCode(code) {
+      if (code === "KeyA" || code === "ArrowLeft") return true;
+      if (code === "KeyD" || code === "ArrowRight") return true;
+      if (code === "KeyW" || code === "ArrowUp") return true;
+      if (code === "KeyS" || code === "ArrowDown") return true;
+      return false;
+    }
+
+    function isSteerKeyFromKey(key) {
       if (key === "a" || key === "A" || key === "ArrowLeft") return true;
       if (key === "d" || key === "D" || key === "ArrowRight") return true;
       if (key === "w" || key === "W" || key === "ArrowUp") return true;
@@ -484,12 +497,17 @@
       return false;
     }
 
+    function isSteerKeyEvent(event) {
+      return isSteerKeyCode(event.code) || isSteerKeyFromKey(event.key);
+    }
+
     function setSteerKeyFromEvent(event, isDown) {
+      var code = event.code;
       var key = event.key;
-      if (key === "a" || key === "A" || key === "ArrowLeft") keySteerLeft = isDown;
-      if (key === "d" || key === "D" || key === "ArrowRight") keySteerRight = isDown;
-      if (key === "w" || key === "W" || key === "ArrowUp") keySteerUp = isDown;
-      if (key === "s" || key === "S" || key === "ArrowDown") keySteerDown = isDown;
+      if (code === "KeyA" || code === "ArrowLeft" || key === "a" || key === "A") keySteerLeft = isDown;
+      if (code === "KeyD" || code === "ArrowRight" || key === "d" || key === "D") keySteerRight = isDown;
+      if (code === "KeyW" || code === "ArrowUp" || key === "w" || key === "W") keySteerUp = isDown;
+      if (code === "KeyS" || code === "ArrowDown" || key === "s" || key === "S") keySteerDown = isDown;
     }
 
     function clearSteerKeys() {
@@ -512,7 +530,7 @@
     }
 
     function onKeyDown(event) {
-      if (!isSteerKey(event.key)) return;
+      if (!isSteerKeyEvent(event)) return;
       event.preventDefault();
       if (isStart() || isGameOver()) {
         startPlaying();
@@ -526,7 +544,7 @@
     }
 
     function onKeyUp(event) {
-      if (!isSteerKey(event.key)) return;
+      if (!isSteerKeyEvent(event)) return;
       event.preventDefault();
       setSteerKeyFromEvent(event, false);
     }
@@ -1425,6 +1443,8 @@
     }
 
     window.addEventListener("resize", resizeCanvas);
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("keyup", onKeyUp, true);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", onWindowBlur);

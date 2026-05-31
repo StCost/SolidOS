@@ -2,6 +2,7 @@ html,
 body {
   -webkit-tap-highlight-color: transparent;
   tap-highlight-color: transparent;
+  cursor: url("cursor-pointer.svg") 2.1 0, pointer;
 }
 
 *,
