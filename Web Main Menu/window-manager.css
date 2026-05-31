@@ -292,7 +292,7 @@
 .os-window--opening .os-window-chrome--drag {
   overflow: hidden;
   transform: scaleX(0);
-  transform-origin: right center;
+  transform-origin: left center;
   animation: wm-chrome-open 0.3s ease-out forwards;
 }
 

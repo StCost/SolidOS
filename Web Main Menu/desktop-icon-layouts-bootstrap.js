@@ -25,7 +25,7 @@
 
   var payload = readLayoutsPayload();
   var layouts = payload && payload.layouts ? payload.layouts : [];
-  if (!layouts.length) return;
+  if (!layouts.length || !window.WebMenuLayoutCoords) return;
 
   window.__cmIconLayoutsPayload = payload;
 
@@ -33,18 +33,18 @@
   var index = 0;
   for (index = 0; index < layouts.length; index++) {
     var entry = layouts[index];
+    var iconSelector;
     if (!entry || !entry.iconId) continue;
-    var iconSelector = escapeIconId(entry.iconId);
+    if (!window.WebMenuLayoutCoords.isCenterLayoutEntry(entry)) continue;
+    iconSelector = escapeIconId(entry.iconId);
     cssRules.push(
       "html." +
         HTML_BOOTSTRAP_CLASS +
         ' .os-desktop-icon[data-desktop-icon="' +
         iconSelector +
-        '"]{left:' +
-        Math.round(entry.left) +
-        "px!important;top:" +
-        Math.round(entry.top) +
-        "px!important;}"
+        '"]{' +
+        window.WebMenuLayoutCoords.buildCenterCssPosition(entry) +
+        "}"
     );
   }
 

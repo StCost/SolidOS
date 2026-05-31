@@ -39,6 +39,20 @@ var WebDesktop = (function () {
   var ICON_ACTION_DISCONNECT = "disconnect";
   var ICON_ACTION_QUIT = "quit";
 
+  var DEFAULT_ICON_LAYOUTS = {
+    servers: { centerOffsetX: -135, centerOffsetY: 245 },
+    worlds: { centerOffsetX: -45, centerOffsetY: 245 },
+    steam: { centerOffsetX: 46, centerOffsetY: 245 },
+    title: { centerOffsetX: -500, centerOffsetY: 365 },
+    credits: { centerOffsetX: -410, centerOffsetY: 365 },
+    links: { centerOffsetX: -315, centerOffsetY: 365 },
+    settings: { centerOffsetX: -135, centerOffsetY: 365 },
+    quit: { centerOffsetX: -45, centerOffsetY: 365 },
+    disconnect: { centerOffsetX: 46, centerOffsetY: 365 },
+    games: { centerOffsetX: 230, centerOffsetY: 365 },
+    art: { centerOffsetX: 320, centerOffsetY: 365 }
+  };
+
   var savedIconLayoutTable = {};
   var iconLayoutSaveTimer = 0;
   var activeIconDrag = null;
@@ -374,27 +388,53 @@ var WebDesktop = (function () {
     }
   }
 
-  function setSavedIconLayout(iconId, layout) {
-    if (!iconId || !layout) return;
-    savedIconLayoutTable[iconId] = {
-      left: layout.left,
-      top: layout.top
-    };
+  function getLayoutCoords() {
+    return window.WebMenuLayoutCoords;
   }
 
-  function populateSavedIconLayoutTable(payload) {
-    var layouts = payload && payload.layouts ? payload.layouts : [];
-    var index = 0;
+  function setSavedIconLayout(iconId, layout) {
+    var layoutRoot;
+    var coords;
+    var storedLayout;
+    if (!iconId || !layout) return;
+    layoutRoot = getIconLayoutRoot();
+    coords = getLayoutCoords();
+    if (!coords || !layoutRoot) return;
+    storedLayout = coords.normalizeIconStoredLayout(layout, layoutRoot);
+    if (!storedLayout) return;
+    savedIconLayoutTable[iconId] = storedLayout;
+  }
+
+  function populateDefaultIconLayoutTable() {
+    var iconId;
     savedIconLayoutTable = {};
+    for (iconId in DEFAULT_ICON_LAYOUTS) {
+      if (!Object.prototype.hasOwnProperty.call(DEFAULT_ICON_LAYOUTS, iconId)) continue;
+      setSavedIconLayout(iconId, getDefaultIconLayoutEntry(iconId));
+    }
+  }
+
+  function mergePersistedIconLayoutPayload(payload) {
+    var layouts = payload && payload.layouts ? payload.layouts : [];
+    var coords = getLayoutCoords();
+    var index = 0;
+    if (!coords) return;
     for (index = 0; index < layouts.length; index++) {
       var entry = layouts[index];
+      var iconId;
       if (!entry || !entry.iconId) continue;
-      var iconId = entry.iconId;
+      if (!coords.isCenterLayoutEntry(entry)) continue;
+      iconId = entry.iconId;
       if (iconId === "about") {
         iconId = "credits";
       }
       setSavedIconLayout(iconId, entry);
     }
+  }
+
+  function populateSavedIconLayoutTable(payload) {
+    populateDefaultIconLayoutTable();
+    mergePersistedIconLayoutPayload(payload);
   }
 
   function readIconLayoutsFromStorage() {
@@ -432,32 +472,41 @@ var WebDesktop = (function () {
     }
   }
 
+  function applyIconCenterOffsetPosition(iconElement, layoutEntry) {
+    var offsetX;
+    var offsetY;
+    if (!iconElement || !layoutEntry) return false;
+    offsetX = Math.round(layoutEntry.centerOffsetX || 0);
+    offsetY = Math.round(layoutEntry.centerOffsetY || 0);
+    iconElement.style.left = "calc(50% + " + offsetX + "px)";
+    iconElement.style.top = "calc(50% + " + offsetY + "px)";
+    iconElement.style.right = "auto";
+    iconElement.style.bottom = "auto";
+    iconElement.style.transform = "";
+    iconElement.classList.add("os-desktop-icon--placed");
+    iconElement.classList.add("os-desktop-icon--center-anchor");
+    return true;
+  }
+
   function applySavedIconLayout(iconElement) {
     var iconId = iconElement.getAttribute("data-desktop-icon");
     var savedLayout = savedIconLayoutTable[iconId];
+    var layoutRoot;
+    var coords;
+    var absolutePosition;
     if (!savedLayout || !desktopSurface) return;
 
-    var left = savedLayout.left;
-    var top = savedLayout.top;
-    if (isIconSnapToGridEnabled()) {
-      var snappedLayout = snapIconPosition(left, top, iconElement);
-      left = snappedLayout.left;
-      top = snappedLayout.top;
-    } else {
-      var layoutRoot = getIconLayoutRoot();
-      var surfaceRect = layoutRoot.getBoundingClientRect();
-      var iconRect = iconElement.getBoundingClientRect();
-      var maxLeft = Math.max(0, surfaceRect.width - iconRect.width);
-      var maxTop = Math.max(0, surfaceRect.height - iconRect.height);
-      if (left > maxLeft) left = maxLeft;
-      if (top > maxTop) top = maxTop;
-      if (left < 0) left = 0;
-      if (top < 0) top = 0;
+    coords = getLayoutCoords();
+    if (!coords) return;
+    if (coords.isCenterLayoutEntry(savedLayout)) {
+      applyIconCenterOffsetPosition(iconElement, savedLayout);
+      return;
     }
 
-    iconElement.style.left = String(Math.round(left)) + "px";
-    iconElement.style.top = String(Math.round(top)) + "px";
-    iconElement.classList.add("os-desktop-icon--placed");
+    layoutRoot = getIconLayoutRoot();
+    if (!layoutRoot) return;
+    absolutePosition = coords.resolveAbsolutePosition(savedLayout, layoutRoot);
+    applyIconPosition(iconElement, absolutePosition.left, absolutePosition.top, false);
   }
 
   function getDesktopTabSortRoot() {
@@ -619,16 +668,159 @@ var WebDesktop = (function () {
   function buildIconLayoutsPayload() {
     var layouts = [];
     var iconId;
+    var layout;
+    var coords;
+    var payloadEntry;
+    coords = getLayoutCoords();
+    if (!coords) return { layouts: layouts };
     for (iconId in savedIconLayoutTable) {
       if (!Object.prototype.hasOwnProperty.call(savedIconLayoutTable, iconId)) continue;
-      var layout = savedIconLayoutTable[iconId];
-      layouts.push({
-        iconId: iconId,
-        left: layout.left,
-        top: layout.top
-      });
+      layout = savedIconLayoutTable[iconId];
+      payloadEntry = coords.exportIconPayloadEntry(layout);
+      if (!payloadEntry) continue;
+      payloadEntry.iconId = iconId;
+      layouts.push(payloadEntry);
     }
     return { layouts: layouts };
+  }
+
+  function clearIconElementLayoutStyle(iconElement) {
+    if (!iconElement) return;
+    iconElement.style.left = "";
+    iconElement.style.top = "";
+    iconElement.style.right = "";
+    iconElement.style.bottom = "";
+    iconElement.style.transform = "";
+    iconElement.classList.remove("os-desktop-icon--placed");
+    iconElement.classList.remove("os-desktop-icon--center-anchor");
+  }
+
+  function getDefaultIconLayoutEntry(iconId) {
+    var layout;
+    if (!iconId) return null;
+    if (!Object.prototype.hasOwnProperty.call(DEFAULT_ICON_LAYOUTS, iconId)) return null;
+    layout = DEFAULT_ICON_LAYOUTS[iconId];
+    return {
+      anchor: "center",
+      centerOffsetX: layout.centerOffsetX,
+      centerOffsetY: layout.centerOffsetY
+    };
+  }
+
+  function applyDefaultIconLayout(iconElement, iconId) {
+    var coords;
+    var defaultLayout;
+    if (!iconElement || !iconId) return false;
+    defaultLayout = getDefaultIconLayoutEntry(iconId);
+    if (!defaultLayout) return false;
+    coords = getLayoutCoords();
+    if (!coords) return false;
+    if (coords.isCenterLayoutEntry(defaultLayout)) {
+      return applyIconCenterOffsetPosition(iconElement, defaultLayout);
+    }
+    return false;
+  }
+
+  function captureAllDefaultIconLayouts() {
+    var defaultsTable = {};
+    var iconId;
+    for (iconId in DEFAULT_ICON_LAYOUTS) {
+      if (!Object.prototype.hasOwnProperty.call(DEFAULT_ICON_LAYOUTS, iconId)) continue;
+      defaultsTable[iconId] = getDefaultIconLayoutEntry(iconId);
+    }
+    return defaultsTable;
+  }
+
+  function getCurrentDesktopIconLayout(iconElement) {
+    var iconId;
+    var layoutPosition;
+    var layoutRoot;
+    var coords;
+    if (!iconElement || iconElement.hidden) return null;
+    iconId = getIconIdFromElement(iconElement);
+    if (!iconId) return null;
+    layoutPosition = getIconLayoutPosition(iconElement);
+    layoutRoot = getIconLayoutRoot();
+    coords = getLayoutCoords();
+    if (!coords || !layoutRoot) return null;
+    var centerOffsets = coords.absoluteToCenterOffset(
+      layoutPosition.left,
+      layoutPosition.top,
+      layoutRoot
+    );
+    return {
+      iconId: iconId,
+      anchor: coords.ANCHOR_CENTER,
+      centerOffsetX: centerOffsets.centerOffsetX,
+      centerOffsetY: centerOffsets.centerOffsetY
+    };
+  }
+
+  function buildIconLayoutDiffEntry(currentEntry, defaultEntry) {
+    var diffEntry = { iconId: currentEntry.iconId };
+    var hasChange = false;
+    var coords = getLayoutCoords();
+    if (!coords) return null;
+
+    diffEntry.anchor = coords.ANCHOR_CENTER;
+    if (
+      coords.isCenterOffsetDifferent(
+        coords.roundNiceOffset(currentEntry.centerOffsetX),
+        coords.roundNiceOffset(defaultEntry.centerOffsetX)
+      )
+    ) {
+      diffEntry.centerOffsetX = coords.roundNiceOffset(currentEntry.centerOffsetX);
+      hasChange = true;
+    }
+    if (
+      coords.isCenterOffsetDifferent(
+        coords.roundNiceOffset(currentEntry.centerOffsetY),
+        coords.roundNiceOffset(defaultEntry.centerOffsetY)
+      )
+    ) {
+      diffEntry.centerOffsetY = coords.roundNiceOffset(currentEntry.centerOffsetY);
+      hasChange = true;
+    }
+    if (!hasChange) return null;
+    return diffEntry;
+  }
+
+  function buildIconLayoutsDiffFromDefaultsPayload() {
+    var defaultsTable = captureAllDefaultIconLayouts();
+    var layouts = [];
+    var icons;
+    var index;
+    var iconElement;
+    var iconId;
+    var defaultEntry;
+    var currentEntry;
+    var diffEntry;
+
+    if (!desktopIconsRoot) return { layouts: layouts };
+
+    icons = desktopIconsRoot.querySelectorAll(".os-desktop-icon[data-desktop-icon]");
+    for (index = 0; index < icons.length; index++) {
+      iconElement = icons[index];
+      iconId = getIconIdFromElement(iconElement);
+      if (!iconId) continue;
+      defaultEntry = defaultsTable[iconId];
+      if (!defaultEntry) continue;
+      currentEntry = getCurrentDesktopIconLayout(iconElement);
+      if (!currentEntry) continue;
+      diffEntry = buildIconLayoutDiffEntry(currentEntry, defaultEntry);
+      if (diffEntry) layouts.push(diffEntry);
+    }
+
+    return { layouts: layouts };
+  }
+
+  function logIconLayoutsDiffFromDefaults() {
+    var payload = buildIconLayoutsDiffFromDefaultsPayload();
+    console.log(
+      "[cm-menu-icon-layouts] Paste this JSON (rounded center offsets; only changed from default grid):"
+    );
+    console.log(JSON.stringify(payload, null, 2));
+    return payload;
   }
 
   function postIconLayoutsSave() {
@@ -654,9 +846,8 @@ var WebDesktop = (function () {
   }
 
   function loadPersistedIconLayouts() {
-    var payload = getPersistedIconLayoutsPayload();
-    if (!payload) return;
-    populateSavedIconLayoutTable(payload);
+    populateDefaultIconLayoutTable();
+    mergePersistedIconLayoutPayload(getPersistedIconLayoutsPayload());
     applyAllSavedIconLayouts();
   }
 
@@ -771,14 +962,6 @@ var WebDesktop = (function () {
       maxRow: maxRow
     };
     return cachedIconGridLayout;
-  }
-
-  function getIconGridStartLeft() {
-    return getIconGridLayout().startLeft;
-  }
-
-  function getIconGridStartTop() {
-    return getIconGridLayout().startTop;
   }
 
   function getIconGridBounds() {
@@ -1207,6 +1390,10 @@ var WebDesktop = (function () {
       left = clamped.left;
       top = clamped.top;
     }
+    iconElement.classList.remove("os-desktop-icon--center-anchor");
+    iconElement.style.right = "auto";
+    iconElement.style.bottom = "auto";
+    iconElement.style.transform = "";
     iconElement.style.left = String(Math.round(left)) + "px";
     iconElement.style.top = String(Math.round(top)) + "px";
     iconElement.classList.add("os-desktop-icon--placed");
@@ -1816,6 +2003,7 @@ var WebDesktop = (function () {
       placedGroupIcons.push(iconElement);
     }
     scheduleIconLayoutsSave();
+    applyAllSavedIconLayouts();
     updateDesktopTabOrder();
     setSuppressIconClickAfterDrag(drag.iconElements);
   }
@@ -1935,26 +2123,19 @@ var WebDesktop = (function () {
   }
 
   function layoutDefaultIcons() {
+    var icons;
+    var index;
+    var iconElement;
+    var iconId;
     if (!desktopIconsRoot || !desktopSurface) return;
 
-    var icons = desktopIconsRoot.querySelectorAll(".os-desktop-icon[data-desktop-icon]");
-    var gridBounds = getIconGridBounds();
-    var iconsPerColumn = gridBounds.maxRow + 1;
-    if (iconsPerColumn < 1) iconsPerColumn = 1;
-
-    var slotIndex = 0;
-    var index = 0;
+    icons = desktopIconsRoot.querySelectorAll(".os-desktop-icon[data-desktop-icon]");
     for (index = 0; index < icons.length; index++) {
-      if (icons[index].hidden) continue;
-      var iconId = icons[index].getAttribute("data-desktop-icon");
+      iconElement = icons[index];
+      if (iconElement.hidden) continue;
+      iconId = iconElement.getAttribute("data-desktop-icon");
       if (iconId && savedIconLayoutTable[iconId]) continue;
-
-      var column = Math.floor(slotIndex / iconsPerColumn);
-      var row = slotIndex % iconsPerColumn;
-      if (column > gridBounds.maxColumn) break;
-      var gridPosition = getIconGridPosition(column, row);
-      applyIconPosition(icons[index], gridPosition.left, gridPosition.top, true);
-      slotIndex = slotIndex + 1;
+      applyDefaultIconLayout(iconElement, iconId);
     }
   }
 
@@ -2006,8 +2187,9 @@ var WebDesktop = (function () {
 
     initDesktopMarqueeLayer();
 
+    populateDefaultIconLayoutTable();
     if (!isUnityHost()) {
-      loadPersistedIconLayouts();
+      mergePersistedIconLayoutPayload(readIconLayoutsFromStorage());
       clearIconLayoutBootstrap();
     }
 
@@ -2017,7 +2199,6 @@ var WebDesktop = (function () {
       bindDesktopIcon(icons[index]);
     }
 
-    layoutDefaultIcons();
     applyAllSavedIconLayouts();
     updateActionIconsState();
 
@@ -2038,7 +2219,6 @@ var WebDesktop = (function () {
 
   function onDesktopIconsResize() {
     clearIconGridLayoutCache();
-    layoutDefaultIcons();
     applyAllSavedIconLayouts();
     updateDesktopTabOrder();
   }
@@ -2187,7 +2367,6 @@ var WebDesktop = (function () {
     getWindowByPreset: getWindowByPreset,
     applyIconLayouts: function (payload) {
       populateSavedIconLayoutTable(payload);
-      layoutDefaultIcons();
       applyAllSavedIconLayouts();
       clearIconLayoutBootstrap();
     },
@@ -2198,6 +2377,8 @@ var WebDesktop = (function () {
       }
       postIconLayoutsSave();
     },
+    logIconLayoutDiffFromDefaults: logIconLayoutsDiffFromDefaults,
+    buildIconLayoutDiffFromDefaultsPayload: buildIconLayoutsDiffFromDefaultsPayload,
     hasOpenAppWindows: hasOpenAppWindows,
     updateDesktopTabOrder: updateDesktopTabOrder
   };
