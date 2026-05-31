@@ -311,9 +311,84 @@
   transform: translateY(0.12em);
 }
 
-.extras-game-back {
+.extras-game-toolbar {
+  --settings-choice-btn-height: clamp(1.05rem, 2.25vmin, 1.4rem);
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.5em;
   flex-shrink: 0;
   margin-bottom: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.extras-game-toolbar .extras-game-back {
+  flex: 0 1 auto;
+  width: fit-content;
+  max-width: 50%;
+  margin-bottom: 0;
+  align-self: center;
+}
+
+.extras-game-toolbar .extras-game-desktop-link-option {
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: calc(100% - 8rem);
+  margin-left: auto;
+  margin-bottom: 0;
+  align-self: stretch;
+  min-height: 100%;
+  height: auto;
+}
+
+.extras-game-desktop-link-option {
+  appearance: none;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  align-self: stretch;
+  gap: 14px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 100%;
+  height: auto;
+  box-sizing: border-box;
+  padding: 0.55em 0.75em;
+  margin: 0;
+  border: 1px solid rgba(255, 128, 0, 0.24);
+  background: rgba(4, 6, 9, 0.85);
+  cursor: var(--cursor-pointer);
+  text-align: left;
+}
+
+.extras-game-desktop-link-option:hover,
+.extras-game-desktop-link-option:focus-visible {
+  border-color: rgba(255, 128, 0, 0.45);
+  background: rgba(255, 128, 0, 0.08);
+  outline: none;
+}
+
+.extras-game-desktop-link-option .settings-switch {
+  pointer-events: none;
+  flex-shrink: 0;
+  width: calc(var(--settings-choice-btn-height, 1.2rem) * 1.85);
+  min-width: calc(var(--settings-choice-btn-height, 1.2rem) * 1.85);
+  height: var(--settings-choice-btn-height, 1.2rem);
+  min-height: var(--settings-choice-btn-height, 1.2rem);
+}
+
+.extras-game-desktop-link-label {
+  font-size: clamp(0.92rem, 2vmin, 1.2rem);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.extras-game-back {
+  flex-shrink: 0;
 }
 
 .extras-view#extrasViewGame {

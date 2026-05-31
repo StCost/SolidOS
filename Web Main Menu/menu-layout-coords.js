@@ -186,8 +186,22 @@ var WebMenuLayoutCoords = (function () {
     return rounded;
   }
 
+  function isMenuLayoutPhoneVertical() {
+    return window.innerHeight > window.innerWidth;
+  }
+
+  function updateMenuLayoutPhoneMode() {
+    if (!document.documentElement) return;
+    document.documentElement.classList.toggle(
+      "menu-layout-phone-vertical",
+      isMenuLayoutPhoneVertical()
+    );
+  }
+
   return {
     ANCHOR_CENTER: ANCHOR_CENTER,
+    isMenuLayoutPhoneVertical: isMenuLayoutPhoneVertical,
+    updateMenuLayoutPhoneMode: updateMenuLayoutPhoneMode,
     isCenterLayoutEntry: isCenterLayoutEntry,
     absoluteToCenterOffset: absoluteToCenterOffset,
     resolveAbsolutePosition: resolveAbsolutePosition,
@@ -202,3 +216,7 @@ var WebMenuLayoutCoords = (function () {
     roundNiceSize: roundNiceSize
   };
 })();
+
+if (window.WebMenuLayoutCoords && window.WebMenuLayoutCoords.updateMenuLayoutPhoneMode) {
+  window.WebMenuLayoutCoords.updateMenuLayoutPhoneMode();
+}

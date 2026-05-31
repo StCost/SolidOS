@@ -25,13 +25,17 @@
   <link rel="stylesheet" href="credits-menu.css" />
   <link rel="stylesheet" href="extras-menu.css" />
   <link rel="stylesheet" href="desktop-os.css" />
+  <link rel="stylesheet" href="../Web Loading/loading.css" />
+  <link rel="stylesheet" href="menu-welcome-boot.css" />
   <script src="menu-background.js"></script>
   <script src="menu-layout-coords.js"></script>
   <script src="menu-window-layouts-bootstrap.js"></script>
   <script src="desktop-icon-layouts-bootstrap.js"></script>
   <script src="menu-locale.js"></script>
   <script src="menu-locale-loader.js"></script>
+  <script src="menu-welcome-boot.js"></script>
   <script src="menu-block-context-menu.js"></script>
+  <script src="menu-game-records-bridge.js" defer></script>
   <script src="unity-menu-bridge.js" defer></script>
   <script src="settings-menu-bridge.js" defer></script>
   <script src="settings-controls-preview-data.js" defer></script>
@@ -61,7 +65,50 @@
 </head>
 
 <body>
-  <main class="menu-screen menu-mode--menu" id="device">
+  <main class="loading-screen menu-screen menu-welcome-boot" id="menuWelcomeBoot" aria-live="polite">
+    <div class="screen-backdrop" aria-hidden="true"></div>
+    <div class="screen-hazard" aria-hidden="true">
+      <div class="screen-hazard-track"></div>
+    </div>
+    <div class="screen-scanlines" aria-hidden="true"></div>
+    <div class="screen-phosphor" aria-hidden="true"></div>
+    <div class="screen-vignette" aria-hidden="true"></div>
+    <div class="os-shell">
+      <header class="os-statusbar" aria-hidden="true">
+        <span class="os-statusbar-segment terminal-text--dim">NODE CM-LOCAL</span>
+        <span class="os-statusbar-segment terminal-text--dim">boot_ldr.sys</span>
+        <span class="os-statusbar-segment os-statusbar-segment--right terminal-text--dim os-clock">00:00:00</span>
+      </header>
+      <div class="os-workspace os-workspace--boot">
+        <section class="loading-panel os-window menu-welcome-loading-panel" id="menuWelcomeLoadingPanel"
+          aria-labelledby="menuWelcomeLoadingTitle" hidden>
+          <header class="os-window-chrome">
+            <div class="os-window-controls" aria-hidden="true">
+              <span class="os-window-dot os-window-dot--active"></span>
+              <span class="os-window-dot"></span>
+              <span class="os-window-dot"></span>
+            </div>
+            <p class="os-window-title terminal-text--dim" id="menuWelcomeLoadingTitle">load_status.lst</p>
+          </header>
+          <div class="loading-panel-body os-window-body--terminal">
+            <p class="loading-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\boot&gt;</span> type
+              load_status.lst</p>
+            <p class="loading-text terminal-text" id="menuWelcomeLoadingText">Starting...</p>
+            <div class="loading-bar" id="menuWelcomeBar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+              aria-valuenow="0">
+              <div class="loading-bar-track">
+                <div class="loading-bar-fill" id="menuWelcomeBarFill"></div>
+                <div class="loading-bar-shimmer" aria-hidden="true"></div>
+              </div>
+              <span class="loading-bar-label terminal-text--dim" id="menuWelcomePercent">0%</span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <main class="menu-screen menu-mode--menu menu-boot-pending" id="device">
     <div class="screen-backdrop" aria-hidden="true"></div>
     <div class="screen-hazard" aria-hidden="true">
       <div class="screen-hazard-track"></div>
@@ -313,11 +360,20 @@
                     <ul class="extras-list" id="extrasGamesList"></ul>
                   </div>
                   <div class="extras-view" id="extrasViewGame" hidden>
-                    <button type="button" class="term-row extras-game-back" id="btnExtrasGameBack">
-                      <span class="term-row-prefix terminal-text--dim">[ ]</span>
-                      <span class="term-row-label terminal-text" data-locale-key="web.extras.game.back">Back to
-                        games</span>
-                    </button>
+                    <div class="extras-game-toolbar">
+                      <button type="button" class="term-row extras-game-back" id="btnExtrasGameBack">
+                        <span class="term-row-label terminal-text" data-locale-key="web.extras.game.back">Back to
+                          games</span>
+                      </button>
+                      <button type="button" class="extras-game-desktop-link-option" id="btnExtrasGameDesktopLinkSwitch"
+                        aria-pressed="false">
+                        <span class="settings-switch extras-game-desktop-link-switch-visual" aria-hidden="true">
+                          <span class="settings-switch-track"><span class="settings-switch-thumb"></span></span>
+                        </span>
+                        <span class="extras-game-desktop-link-label terminal-text"
+                          data-locale-key="web.extras.game.link-on-desktop">Link on Desktop</span>
+                      </button>
+                    </div>
                     <div id="extrasGameKeyboardFocus" tabindex="0" aria-hidden="true"
                       class="extras-game-keyboard-focus"></div>
                     <iframe class="extras-game-frame" id="extrasGameFrame" title="Extras game"></iframe>
