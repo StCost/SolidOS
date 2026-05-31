@@ -25,7 +25,7 @@
 
   var payload = readLayoutsPayload();
   var layouts = payload && payload.layouts ? payload.layouts : [];
-  if (!layouts.length) return;
+  if (!layouts.length || !window.WebMenuLayoutCoords) return;
 
   window.__cmWmLayoutsPayload = payload;
 
@@ -33,22 +33,26 @@
   var index = 0;
   for (index = 0; index < layouts.length; index++) {
     var entry = layouts[index];
+    var presetSelector;
+    var width;
+    var height;
     if (!entry || !entry.preset) continue;
-
-    var presetSelector = escapePresetSelector(entry.preset);
+    if (!window.WebMenuLayoutCoords.isCenterLayoutEntry(entry)) continue;
+    if (entry.width === undefined || entry.height === undefined) continue;
+    presetSelector = escapePresetSelector(entry.preset);
+    width = Math.round(entry.width);
+    height = Math.round(entry.height);
     cssRules.push(
       "html." +
         HTML_BOOTSTRAP_CLASS +
         ' .os-window[data-wm-preset="' +
         presetSelector +
-        '"]{left:' +
-        Math.round(entry.left) +
-        "px!important;top:" +
-        Math.round(entry.top) +
-        "px!important;width:" +
-        Math.round(entry.width) +
+        '"]{' +
+        window.WebMenuLayoutCoords.buildCenterCssPosition(entry) +
+        "width:" +
+        width +
         "px!important;height:" +
-        Math.round(entry.height) +
+        height +
         "px!important;bottom:auto!important;right:auto!important;transform:none!important;margin:0!important;}"
     );
   }

@@ -41,15 +41,6 @@
     { value: "settings.graphics.aa-taa", labelKey: "settings.graphics.aa-taa" }
   ];
 
-  var LOD_BIAS_OPTIONS = [
-    { value: "50%", label: "50%" },
-    { value: "75%", label: "75%" },
-    { value: "100%", label: "100%" },
-    { value: "125%", label: "125%" },
-    { value: "150%", label: "150%" },
-    { value: "200%", label: "200%" }
-  ];
-
   var TABS = [
     { id: "interface", labelKey: "settings.title.interface" },
     { id: "gameplay", labelKey: "settings.title.gameplay" },
@@ -72,6 +63,9 @@
     language: "english",
     useCustomCursor: true,
     terminalAnimationsEnabled: true,
+    menuIconSnapToGrid: true,
+    menuBackgroundAnimationEnabled: true,
+    menuMusicEnabled: true,
     masterVolume: 0.5,
     musicVolume: 1,
     vehicleVolume: 1,
@@ -91,7 +85,7 @@
     graphicsTerrainDetails: true,
     graphicsTerrainGrass: true,
     graphicsAntialiasingKey: "settings.graphics.aa-taa",
-    graphicsLodBiasPercent: "100%",
+    graphicsLodBiasPercent: 100,
     graphicsFieldOfView: 60,
     graphicsFpsCapFps: 60,
     languageOptions: []
@@ -100,9 +94,9 @@
   var state = copyState(DEFAULT_STATE);
   var localeStrings = {};
   var activeTabId = "interface";
+  var settingsHostStateReady = false;
   var contentRoot;
   var tabsRoot;
-  var helpTooltip;
   var successToastEl;
   var successToastTimer = 0;
 
@@ -131,6 +125,43 @@
     return key || "";
   }
 
+  function getSettingsContentWindowElement() {
+    return document.querySelector(".settings-content-window[data-wm-preset=\"settings-content\"]");
+  }
+
+  function isSettingsWindowVisible() {
+    var windowElement = getSettingsContentWindowElement();
+    return !!windowElement && !windowElement.classList.contains("os-window--closed");
+  }
+
+  function ensureSettingsScrollBound() {
+    if (!contentRoot) return;
+    if (contentRoot.getAttribute("data-settings-scroll-bound")) return;
+    contentRoot.setAttribute("data-settings-scroll-bound", "1");
+    contentRoot.addEventListener("scroll", onSettingsContentScroll, true);
+  }
+
+  function ensureSettingsUiRoots() {
+    if (contentRoot && tabsRoot) return true;
+    var windowElement = getSettingsContentWindowElement();
+    if (!windowElement) return false;
+    contentRoot = windowElement.querySelector(".settings-scroll");
+    tabsRoot = windowElement.querySelector(".settings-tabs");
+    if (!contentRoot || !tabsRoot) return false;
+    ensureSettingsScrollBound();
+    return true;
+  }
+
+  function setSettingsLoadingVisible(visible) {
+    if (!contentRoot) return;
+    if (visible) {
+      contentRoot.classList.add("is-empty");
+      updateEmptyLoadingLabel();
+      return;
+    }
+    contentRoot.classList.remove("is-empty");
+  }
+
   function updateEmptyLoadingLabel() {
     if (!contentRoot) return;
     contentRoot.setAttribute(
@@ -143,7 +174,9 @@
     updateEmptyLoadingLabel();
     renderAll();
     updateNavLabels();
-    hideHelpTooltip();
+    if (window.WebMenuHelpTooltip) {
+      window.WebMenuHelpTooltip.hide();
+    }
   }
 
   function getFieldLabel(field) {
@@ -242,6 +275,7 @@
     if (tabId === "audio") {
       return [
         { type: "slider", key: "masterVolume", labelKey: "settings.master-volume", min: 0, max: 100, step: 1, format: volumeFormat, parse: volumeParse },
+        { type: "toggle", key: "menuMusicEnabled", labelKey: "settings.menu-music-enabled" },
         { type: "slider", key: "musicVolume", labelKey: "settings.music-volume", min: 0, max: 100, step: 1, format: volumeFormat, parse: volumeParse },
         { type: "slider", key: "vehicleVolume", labelKey: "settings.vehicle-volume", min: 0, max: 100, step: 1, format: volumeFormat, parse: volumeParse },
         { type: "slider", key: "weatherVolume", labelKey: "settings.weather-volume", min: 0, max: 100, step: 1, format: volumeFormat, parse: volumeParse },
@@ -258,6 +292,8 @@
         { type: "choice", key: "language", labelKey: "settings.language", options: getLanguageOptions, format: stringChoiceFormat },
         { type: "toggle", key: "useCustomCursor", labelKey: "settings.custom-cursor" },
         { type: "toggle", key: "terminalAnimationsEnabled", labelKey: "settings.terminal-animations" },
+        { type: "toggle", key: "menuBackgroundAnimationEnabled", labelKey: "settings.menu-background-animation" },
+        { type: "toggle", key: "menuIconSnapToGrid", labelKey: "settings.menu-icon-snap-to-grid" },
         {
           type: "action",
           actionId: "reset-window-layouts",
@@ -273,10 +309,13 @@
           type: "slider",
           key: "graphicsLodBiasPercent",
           labelKey: "settings.graphics.lod-bias",
-          min: 0,
-          max: LOD_BIAS_OPTIONS.length - 1,
+          min: 20,
+          max: 200,
           step: 1,
-          steppedOptions: LOD_BIAS_OPTIONS
+          format: percentFormat,
+          wirePost: function (value) {
+            return String(value) + "%";
+          }
         },
         { type: "slider", key: "graphicsFieldOfView", labelKey: "settings.graphics.field-of-view", min: 20, max: 140, step: 1, format: intFormat },
         { type: "slider", key: "graphicsFpsCapFps", labelKey: "settings.graphics.fps-cap", min: 0, max: 480, step: 1, format: fpsCapFormat },
@@ -310,6 +349,24 @@
 
   function percentFormat(value) {
     return String(value) + "%";
+  }
+
+  function parseLodBiasPercent(value) {
+    var number = typeof value === "number" ? value : parseSliderTypedNumber(value);
+    if (number == null) {
+      number = 100;
+    }
+    return clampSliderTypedNumber({ min: 20, max: 200, step: 1 }, number);
+  }
+
+  function getSliderPostValue(field, wireValue) {
+    if (field.wirePost) {
+      return field.wirePost(Number(wireValue));
+    }
+    if (field.parse) {
+      return field.parse(wireValue);
+    }
+    return wireValue;
   }
 
   function intFormat(value) {
@@ -386,9 +443,15 @@
     if (field.type === "toggle") {
       state[field.key] = wireValue === true || wireValue === "true";
       postChange(field.key, state[field.key] ? "true" : "false");
-      if (refreshChoiceRow) refreshToggleRowUi(field);
       if (field.key === "terminalAnimationsEnabled") {
-        applyTerminalAnimations(state.terminalAnimationsEnabled !== false);
+        applyTerminalAnimations(getTerminalAnimationsEnabled(state.terminalAnimationsEnabled));
+      }
+      if (refreshChoiceRow) refreshToggleRowUi(field);
+      if (field.key === "menuBackgroundAnimationEnabled") {
+        applyMenuBackgroundAnimation(state.menuBackgroundAnimationEnabled !== false);
+      }
+      if (field.key === "menuMusicEnabled") {
+        applyMenuMusicEnabled(state.menuMusicEnabled !== false);
       }
       if (field.key === "useCustomCursor") {
         applyCustomCursorMode(state.useCustomCursor);
@@ -411,7 +474,7 @@
 
     if (field.format === intChoiceFormat || field.format === intFormat || field.format === percentFormat || field.format === fpsCapFormat) {
       state[field.key] = parseInt(wireValue, 10);
-      postChange(field.key, wireValue);
+      postChange(field.key, getSliderPostValue(field, wireValue));
       if (refreshChoiceRow) refreshChoiceRowUi(field);
       return;
     }
@@ -575,6 +638,8 @@
     if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.clearRuntimeVolumes) {
       window.WebMenuAudioVolume.clearRuntimeVolumes();
     }
+    settingsHostStateReady = true;
+    applyTerminalAnimations(getTerminalAnimationsEnabled(state.terminalAnimationsEnabled));
     renderAll();
     pushAudioVolumeStateToMenu();
   }
@@ -593,6 +658,9 @@
       window.WebMenuAudioVolume.clearRuntimeVolumes();
     }
     applyMenuLanguage(DEFAULT_LANGUAGE_CODE);
+    applyTerminalAnimations(getTerminalAnimationsEnabled(state.terminalAnimationsEnabled));
+    applyMenuBackgroundAnimation(state.menuBackgroundAnimationEnabled !== false);
+    applyMenuMusicEnabled(state.menuMusicEnabled !== false);
     renderAll();
     pushAudioVolumeStateToMenu();
   }
@@ -641,7 +709,13 @@
     }
     saveLocalPreview();
     if (key === "terminalAnimationsEnabled") {
-      applyTerminalAnimations(state.terminalAnimationsEnabled !== false);
+      applyTerminalAnimations(getTerminalAnimationsEnabled(state.terminalAnimationsEnabled));
+    }
+    if (key === "menuBackgroundAnimationEnabled") {
+      applyMenuBackgroundAnimation(state.menuBackgroundAnimationEnabled !== false);
+    }
+    if (key === "menuMusicEnabled") {
+      applyMenuMusicEnabled(state.menuMusicEnabled !== false);
     }
     if (key === "useCustomCursor") {
       applyCustomCursorMode(state.useCustomCursor);
@@ -718,10 +792,86 @@
 
   }
 
+  function onSettingsResetClicked(event) {
+    if (window.WebSettingsBridge) {
+      window.WebSettingsBridge.reset();
+      showSettingsSuccessToast(
+        LOCALE_KEY_RESET_DEFAULTS_DONE,
+        "Defaults restored.",
+        event.clientX,
+        event.clientY
+      );
+      return;
+    }
+    resetLocalPreview();
+    showSettingsSuccessToast(
+      LOCALE_KEY_RESET_DEFAULTS_DONE,
+      "Defaults restored.",
+      event.clientX,
+      event.clientY
+    );
+  }
+
+  function appendSettingsResetFooter() {
+    if (!contentRoot) return;
+    var footer = document.createElement("div");
+    footer.className = "settings-tab-reset-footer";
+    var resetButton = document.createElement("button");
+    resetButton.type = "button";
+    resetButton.className = "term-row settings-tab-reset-btn";
+    resetButton.id = "btnSettingsReset";
+
+    var prefix = document.createElement("span");
+    prefix.className = "term-row-prefix terminal-text--dim";
+    prefix.textContent = "[!]";
+
+    var label = document.createElement("span");
+    label.className = "term-row-label terminal-text";
+    label.textContent = getLocalized("settings.web.reset-defaults", "Reset defaults");
+
+    resetButton.appendChild(prefix);
+    resetButton.appendChild(label);
+    resetButton.addEventListener("click", onSettingsResetClicked);
+    footer.appendChild(resetButton);
+    contentRoot.appendChild(footer);
+  }
+
+  function updateSettingsTabButtonsInPlace(existingTabs) {
+    var index;
+    for (index = 0; index < TABS.length; index++) {
+      var tab = TABS[index];
+      var button = existingTabs[index];
+      var label = button.querySelector(".term-row-label");
+      if (label) {
+        label.textContent = getLocalized(tab.labelKey, tab.label || tab.id);
+      }
+      if (tab.id === activeTabId) {
+        button.classList.add("is-active");
+      } else {
+        button.classList.remove("is-active");
+      }
+    }
+  }
+
   function renderTabs() {
     if (!tabsRoot) return;
-    tabsRoot.textContent = "";
     var index;
+    var existingTabs = tabsRoot.querySelectorAll(".settings-tab");
+    if (existingTabs.length === TABS.length) {
+      var canUpdateInPlace = true;
+      for (index = 0; index < TABS.length; index++) {
+        if (existingTabs[index].getAttribute("data-tab-id") !== TABS[index].id) {
+          canUpdateInPlace = false;
+          break;
+        }
+      }
+      if (canUpdateInPlace) {
+        updateSettingsTabButtonsInPlace(existingTabs);
+        return;
+      }
+    }
+    tabsRoot.textContent = "";
+    tabsRoot.className = "settings-tabs settings-tabs--toolbar";
     for (index = 0; index < TABS.length; index++) {
       var tab = TABS[index];
       var button = document.createElement("button");
@@ -729,15 +879,10 @@
       button.className = "term-row settings-tab";
       if (tab.id === activeTabId) button.className += " is-active";
 
-      var prefix = document.createElement("span");
-      prefix.className = "term-row-prefix terminal-text--dim";
-      prefix.textContent = tab.id === activeTabId ? ">>" : "[ ]";
-
       var label = document.createElement("span");
       label.className = "term-row-label terminal-text";
       label.textContent = getLocalized(tab.labelKey, tab.label || tab.id);
 
-      button.appendChild(prefix);
       button.appendChild(label);
       button.setAttribute("data-tab-id", tab.id);
       button.addEventListener("click", onTabClicked);
@@ -746,7 +891,7 @@
   }
 
   function playSettingsContentBodyOpen() {
-    if (state.terminalAnimationsEnabled === false) return;
+    if (!getTerminalAnimationsEnabled(state.terminalAnimationsEnabled)) return;
     var contentWindow = document.querySelector(".settings-content-window[data-wm-preset=\"settings-content\"]");
     if (!contentWindow || !window.WebWindowManager) return;
     if (!window.WebWindowManager.playWindowBodyOpen) return;
@@ -796,15 +941,20 @@
 
   function renderControlsOnly() {
     if (!contentRoot || activeTabId !== "controls") return;
-    hideHelpTooltip();
+    if (window.WebMenuHelpTooltip) {
+      window.WebMenuHelpTooltip.hide();
+    }
     if (window.WebSettingsControls) {
       window.WebSettingsControls.renderControlsInto(contentRoot);
     }
+    appendSettingsResetFooter();
   }
 
   function renderFields() {
     if (!contentRoot) return;
-    hideHelpTooltip();
+    if (window.WebMenuHelpTooltip) {
+      window.WebMenuHelpTooltip.hide();
+    }
     contentRoot.textContent = "";
     contentRoot.classList.remove("is-empty");
 
@@ -824,6 +974,7 @@
     }
 
     if (!fields.length) contentRoot.classList.add("is-empty");
+    appendSettingsResetFooter();
     refreshAllSliderValuePositions();
     scheduleSliderValueLayoutRefresh();
     if (window.WebScrollbarCursor) {
@@ -850,11 +1001,13 @@
       helpButton.className = "settings-help-btn";
       helpButton.textContent = "?";
       helpButton.setAttribute("aria-label", getLocalized("settings.web.help.title", "Help"));
-      helpButton.setAttribute("data-help-text", helpText);
-      helpButton.addEventListener("pointerenter", onHelpButtonPointerEnter);
-      helpButton.addEventListener("pointerleave", onHelpButtonPointerLeave);
-      helpButton.addEventListener("focus", onHelpButtonPointerEnter);
-      helpButton.addEventListener("blur", onHelpButtonPointerLeave);
+      if (window.WebMenuHelpTooltip) {
+        window.WebMenuHelpTooltip.bindHelpButton(
+          helpButton,
+          helpText,
+          getLocalized("settings.web.help.title", "Help")
+        );
+      }
       labelSpan.appendChild(helpButton);
     }
 
@@ -905,8 +1058,15 @@
     actionButton.type = "button";
     actionButton.className = "term-row settings-action-btn";
     var buttonLabelKey = field.buttonLabelKey || field.labelKey;
+    if (field.actionId === "reset-window-layouts") {
+      var actionPrefix = document.createElement("span");
+      actionPrefix.className = "term-row-prefix terminal-text--dim";
+      actionPrefix.textContent = "[!]";
+      actionButton.appendChild(actionPrefix);
+    }
     var buttonLabel = document.createElement("span");
     buttonLabel.className = "term-row-label terminal-text";
+    buttonLabel.setAttribute("data-locale-key", buttonLabelKey);
     buttonLabel.textContent = getLocalized(buttonLabelKey, buttonLabelKey);
     actionButton.appendChild(buttonLabel);
     actionButton.addEventListener("click", function (event) {
@@ -962,63 +1122,10 @@
     return row;
   }
 
-  function onHelpButtonPointerEnter(event) {
-    var anchor = event.currentTarget;
-    var text = anchor.getAttribute("data-help-text");
-    if (!text) return;
-    showHelpTooltip(anchor, text);
-  }
-
-  function onHelpButtonPointerLeave(event) {
-    var related = event.relatedTarget;
-    if (related && helpTooltip && helpTooltip.contains(related)) return;
-    hideHelpTooltip();
-  }
-
-  function showHelpTooltip(anchor, text) {
-    if (!helpTooltip || !anchor) return;
-    helpTooltip.textContent = text;
-    helpTooltip.hidden = false;
-    helpTooltip.classList.add("is-visible");
-    positionHelpTooltip(anchor);
-  }
-
-  function hideHelpTooltip() {
-    if (!helpTooltip) return;
-    helpTooltip.hidden = true;
-    helpTooltip.classList.remove("is-visible");
-    helpTooltip.classList.remove("settings-help-tooltip--left");
-    helpTooltip.classList.remove("settings-help-tooltip--right");
-  }
-
   function onSettingsContentScroll() {
-    hideHelpTooltip();
-  }
-
-  function positionHelpTooltip(anchor) {
-    if (!helpTooltip || !anchor) return;
-    var gap = 10;
-    var viewportPadding = 12;
-    var anchorRect = anchor.getBoundingClientRect();
-    var tooltipRect = helpTooltip.getBoundingClientRect();
-    var placeOnLeft = false;
-    var left = anchorRect.right + gap;
-    if (left + tooltipRect.width > window.innerWidth - viewportPadding) {
-      left = anchorRect.left - gap - tooltipRect.width;
-      placeOnLeft = true;
+    if (window.WebMenuHelpTooltip) {
+      window.WebMenuHelpTooltip.hide();
     }
-    if (left < viewportPadding) left = viewportPadding;
-
-    var top = anchorRect.top + anchorRect.height * 0.5 - tooltipRect.height * 0.5;
-    if (top < viewportPadding) top = viewportPadding;
-    if (top + tooltipRect.height > window.innerHeight - viewportPadding) {
-      top = window.innerHeight - viewportPadding - tooltipRect.height;
-    }
-
-    helpTooltip.style.left = left + "px";
-    helpTooltip.style.top = top + "px";
-    helpTooltip.classList.toggle("settings-help-tooltip--left", placeOnLeft);
-    helpTooltip.classList.toggle("settings-help-tooltip--right", !placeOnLeft);
   }
 
   function buildStepButton(glyph, ariaLabel, className, onClick) {
@@ -1206,12 +1313,11 @@
   }
 
   function onSettingsMenuOpen() {
+    ensureSettingsUiRoots();
     if (!isUnityMenuHost() && window.WebLocaleLoader && window.WebLocaleLoader.flushPendingLanguageOptions) {
       window.WebLocaleLoader.flushPendingLanguageOptions();
     }
-    if (!contentRoot) {
-      contentRoot = document.getElementById("settingsContent");
-    }
+    if (!contentRoot) return;
     renderAll();
     if (activeTabId === "controls" && window.WebSettingsControls) {
       window.WebSettingsControls.openControlsTab();
@@ -1234,11 +1340,38 @@
     }
   }
 
+  function getTerminalAnimationsEnabled(value) {
+    if (value === false) return false;
+    if (value === "false") return false;
+    return true;
+  }
+
   function applyTerminalAnimations(enabled) {
-    var screen = document.querySelector(".menu-screen");
-    if (!screen) return;
-    if (enabled) screen.classList.remove("terminal-animations-off");
-    else screen.classList.add("terminal-animations-off");
+    var device = document.getElementById("device");
+    if (!device) return;
+    if (enabled) device.classList.remove("terminal-animations-off");
+    else device.classList.add("terminal-animations-off");
+  }
+
+  function applyMenuBackgroundAnimation(enabled) {
+    var device = document.getElementById("device");
+    if (!device) return;
+    if (enabled) device.classList.remove("menu-background-animation-off");
+    else device.classList.add("menu-background-animation-off");
+  }
+
+  function applyMenuMusicEnabled(enabled) {
+    if (window.WebMenuMusic && window.WebMenuMusic.sync) {
+      window.WebMenuMusic.sync();
+    }
+  }
+
+  function isMenuIconSnapToGridEnabled() {
+    return state.menuIconSnapToGrid !== false;
+  }
+
+  function isMenuMusicEnabled() {
+    return state.menuMusicEnabled !== false;
   }
 
   function applyCustomCursorMode(enabled) {
@@ -1318,7 +1451,7 @@
     var wireValue = String(Math.round(clampedNumber));
     slider.value = wireValue;
     updateSliderDisplay(field, slider, valueInput);
-    postChange(field.key, field.parse ? field.parse(wireValue) : wireValue);
+    postChange(field.key, getSliderPostValue(field, wireValue));
     onAudioVolumeSliderInput(field);
     if (!isUnityHost()) {
       saveLocalPreview();
@@ -1347,7 +1480,7 @@
     }
     slider.value = String(next);
     var wireValue = updateSliderDisplay(field, slider, valueDisplay);
-    postChange(field.key, field.parse ? field.parse(wireValue) : wireValue);
+    postChange(field.key, getSliderPostValue(field, wireValue));
     onAudioVolumeSliderInput(field);
     if (!isUnityHost()) {
       saveLocalPreview();
@@ -1358,7 +1491,7 @@
     if (event.deltaY === 0) {
       return;
     }
-    if (valueDisplay.tagName === "INPUT" && document.activeElement === valueDisplay) {
+    if (document.activeElement !== slider) {
       return;
     }
     var direction = event.deltaY < 0 ? 1 : -1;
@@ -1449,8 +1582,13 @@
       slider.value = String(volumeSliderValue(state[field.key]));
       valueDisplay.value = volumeFormat(state[field.key]);
     } else {
-      slider.value = String(state[field.key]);
-      valueDisplay.value = field.format(state[field.key]);
+      var sliderStateValue = state[field.key];
+      if (field.key === "graphicsLodBiasPercent") {
+        sliderStateValue = parseLodBiasPercent(sliderStateValue);
+        state[field.key] = sliderStateValue;
+      }
+      slider.value = String(sliderStateValue);
+      valueDisplay.value = field.format(sliderStateValue);
     }
 
     slider.addEventListener("input", function () {
@@ -1460,7 +1598,7 @@
 
     slider.addEventListener("change", function () {
       var wireValue = updateSliderDisplay(field, slider, valueDisplay);
-      postChange(field.key, field.parse ? field.parse(wireValue) : wireValue);
+      postChange(field.key, getSliderPostValue(field, wireValue));
     });
 
     sliderTrack.addEventListener("wheel", function (event) {
@@ -1509,22 +1647,8 @@
     return row;
   }
 
-  function updateHeading() {
-    var heading = document.getElementById("settingsHeading");
-    if (!heading) return;
-    var index;
-    for (index = 0; index < TABS.length; index++) {
-      if (TABS[index].id === activeTabId) {
-        heading.textContent = getLocalized(TABS[index].labelKey, TABS[index].label || TABS[index].id);
-        return;
-      }
-    }
-    heading.textContent = getLocalized("menu.settings", "Settings");
-  }
-
   function renderAll() {
     renderTabs();
-    updateHeading();
     renderFields();
   }
 
@@ -1540,6 +1664,8 @@
 
   function applyState(payload) {
     if (!payload) return;
+    settingsHostStateReady = true;
+    ensureSettingsUiRoots();
     var previousLanguage = state.language;
     if (payload.localeStrings) {
       applyLocaleStringEntries(payload.localeStrings);
@@ -1553,6 +1679,14 @@
       }
       if (key === "localeStrings") continue;
       if (key === "controlsSection" || key === "controlsRows" || key === "controlsListeningRowId") continue;
+      if (key === "graphicsLodBiasPercent") {
+        state[key] = parseLodBiasPercent(payload[key]);
+        continue;
+      }
+      if (key === "terminalAnimationsEnabled") {
+        state[key] = getTerminalAnimationsEnabled(payload[key]);
+        continue;
+      }
       state[key] = payload[key];
     }
     if (window.WebSettingsControls) {
@@ -1571,7 +1705,13 @@
       }
     }
     if (Object.prototype.hasOwnProperty.call(payload, "terminalAnimationsEnabled")) {
-      applyTerminalAnimations(payload.terminalAnimationsEnabled !== false);
+      applyTerminalAnimations(getTerminalAnimationsEnabled(payload.terminalAnimationsEnabled));
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "menuBackgroundAnimationEnabled")) {
+      applyMenuBackgroundAnimation(payload.menuBackgroundAnimationEnabled !== false);
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "menuMusicEnabled")) {
+      applyMenuMusicEnabled(payload.menuMusicEnabled !== false);
     }
     if (Object.prototype.hasOwnProperty.call(payload, "useCustomCursor")) {
       applyCustomCursorMode(payload.useCustomCursor);
@@ -1591,35 +1731,18 @@
   }
 
   function updateNavLabels() {
-    var resetButton = document.getElementById("btnSettingsReset");
-    if (resetButton) {
-      var resetLabel = resetButton.querySelector(".term-row-label");
-      if (resetLabel) resetLabel.textContent = getLocalized("settings.web.reset-defaults", "Reset defaults");
+    var resetButtons = document.querySelectorAll(".settings-tab-reset-btn .term-row-label");
+    var resetIndex;
+    var resetLabelText = getLocalized("settings.web.reset-defaults", "Reset defaults");
+    for (resetIndex = 0; resetIndex < resetButtons.length; resetIndex++) {
+      resetButtons[resetIndex].textContent = resetLabelText;
     }
-    var closeButton = document.getElementById("btnSettingsClose");
-    if (closeButton) {
-      var closeLabel = closeButton.querySelector(".term-row-label");
-      if (closeLabel) closeLabel.textContent = getLocalized("menu.back", "Back");
-    }
-    var exitButton = document.getElementById("btnExit");
-    if (exitButton) {
-      var exitLabel = exitButton.querySelector(".term-row-label");
-      if (exitLabel) exitLabel.textContent = getLocalized("web.menu.disconnect", "Disconnect");
-    }
-    var quitButton = document.getElementById("btnQuit");
-    if (quitButton) {
-      var quitLabel = quitButton.querySelector(".term-row-label");
-      if (quitLabel) quitLabel.textContent = getLocalized("web.menu.quit", "Quit");
-    }
-    var startButton = document.getElementById("btnStart");
-    if (startButton) {
-      var startLabel = startButton.querySelector(".term-row-label");
-      if (startLabel) startLabel.textContent = getLocalized("menu.start", "Start");
-    }
-    var settingsButton = document.getElementById("btnSettings");
-    if (settingsButton) {
-      var settingsLabel = settingsButton.querySelector(".term-row-label");
-      if (settingsLabel) settingsLabel.textContent = getLocalized("menu.settings", "Settings");
+    var layoutResetLabels = document.querySelectorAll(
+      '.settings-row--action[data-setting-action="reset-window-layouts"] .settings-action-btn .term-row-label'
+    );
+    var layoutResetLabelText = getLocalized("settings.web.reset-window-layouts", "Reset positions");
+    for (resetIndex = 0; resetIndex < layoutResetLabels.length; resetIndex++) {
+      layoutResetLabels[resetIndex].textContent = layoutResetLabelText;
     }
     updateComposeLabels();
   }
@@ -1660,51 +1783,47 @@
     }
   }
 
-  function init() {
-    contentRoot = document.getElementById("settingsContent");
-    tabsRoot = document.getElementById("settingsTabs");
-    var resetButton = document.getElementById("btnSettingsReset");
-
-    if (resetButton) {
-      resetButton.addEventListener("click", function (event) {
-        if (window.WebSettingsBridge) {
-          window.WebSettingsBridge.reset();
-          showSettingsSuccessToast(
-            LOCALE_KEY_RESET_DEFAULTS_DONE,
-            "Defaults restored.",
-            event.clientX,
-            event.clientY
-          );
-          return;
-        }
-        resetLocalPreview();
-        showSettingsSuccessToast(
-          LOCALE_KEY_RESET_DEFAULTS_DONE,
-          "Defaults restored.",
-          event.clientX,
-          event.clientY
-        );
-      });
+  function onDesktopWindowsRestored() {
+    if (!isSettingsWindowVisible()) return;
+    if (!ensureSettingsUiRoots()) return;
+    if (isUnityMenuHost() && !settingsHostStateReady && window.WebSettingsBridge) {
+      window.WebSettingsBridge.open();
     }
+  }
 
-    helpTooltip = document.getElementById("settingsHelpTooltip");
+  function bindToWindow(windowElement) {
+    if (!windowElement) return;
+    contentRoot = windowElement.querySelector(".settings-scroll");
+    tabsRoot = windowElement.querySelector(".settings-tabs");
+    if (!contentRoot || !tabsRoot) return;
 
-    if (contentRoot) {
-      contentRoot.addEventListener("scroll", onSettingsContentScroll, true);
-      contentRoot.classList.add("is-empty");
+    ensureSettingsScrollBound();
+    if (isUnityMenuHost() && !settingsHostStateReady) {
+      setSettingsLoadingVisible(true);
+    } else {
+      setSettingsLoadingVisible(false);
+    }
+    renderAll();
+  }
+
+  function init() {
+    if (window.WebMenuHelpTooltip) {
+      window.WebMenuHelpTooltip.init();
     }
     updateEmptyLoadingLabel();
-    renderTabs();
     if (window.WebScrollbarCursor && window.WebScrollbarCursor.initVerticalScrollViews) {
-      var settingsWorkspace = document.querySelector(".os-workspace--settings");
+      var settingsWorkspace = document.querySelector(".os-workspace--desktop");
       if (settingsWorkspace) {
         window.WebScrollbarCursor.initVerticalScrollViews(settingsWorkspace);
       }
     }
     updateNavLabels();
+    applyTerminalAnimations(getTerminalAnimationsEnabled(state.terminalAnimationsEnabled));
     if (!isUnityMenuHost()) {
       loadLocalPreview();
-      applyTerminalAnimations(state.terminalAnimationsEnabled !== false);
+      applyTerminalAnimations(getTerminalAnimationsEnabled(state.terminalAnimationsEnabled));
+      applyMenuBackgroundAnimation(state.menuBackgroundAnimationEnabled !== false);
+      applyMenuMusicEnabled(state.menuMusicEnabled !== false);
       applyCustomCursorMode(state.useCustomCursor !== false);
       if (window.WebLocaleLoader && window.WebLocaleLoader.flushPendingLanguageOptions) {
         window.WebLocaleLoader.flushPendingLanguageOptions();
@@ -1715,7 +1834,13 @@
 
     window.addEventListener("resize", onWindowResizeForSliders);
     window.addEventListener("web-settings-open", onSettingsMenuOpen);
+    window.addEventListener("web-desktop-windows-restored", onDesktopWindowsRestored);
     window.addEventListener("web-wm-layout-settled", onWorkspaceLayoutSettled);
+    if (isSettingsWindowVisible()) {
+      if (isUnityMenuHost() && !settingsHostStateReady && window.WebSettingsBridge) {
+        window.WebSettingsBridge.open();
+      }
+    }
   }
 
   function onWindowResizeForSliders() {
@@ -1726,6 +1851,10 @@
   window.WebSettings = {
     applyState: applyState,
     applyTerminalAnimations: applyTerminalAnimations,
+    applyMenuBackgroundAnimation: applyMenuBackgroundAnimation,
+    applyMenuMusicEnabled: applyMenuMusicEnabled,
+    isMenuIconSnapToGridEnabled: isMenuIconSnapToGridEnabled,
+    isMenuMusicEnabled: isMenuMusicEnabled,
     applyCustomCursorMode: applyCustomCursorMode,
     onLocaleUpdated: onLocaleUpdated,
     loadLocalPreview: loadLocalPreview,
@@ -1737,6 +1866,7 @@
       return activeTabId;
     },
     setActiveTab: setActiveTab,
+    bindToWindow: bindToWindow,
     percentFormat: percentFormat,
     buildSliderRowForField: buildSliderRow,
     renderControlsOnly: renderControlsOnly,

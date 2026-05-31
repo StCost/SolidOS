@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-hidden="true">
+  <defs>
+    <linearGradient id="gear-fill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b0bec5"/>
+      <stop offset="100%" stop-color="#607d8b"/>
+    </linearGradient>
+  </defs>
+  <path d="M24 10 L26 14 L30 13 L31 17 L35 18 L34 22 L37 25 L34 28 L35 32 L31 33 L30 37 L26 36 L24 40 L22 36 L18 37 L17 33 L13 32 L14 28 L11 25 L14 22 L13 18 L17 17 L18 13 L22 14 Z" fill="url(#gear-fill)" stroke="#37474f" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="24" cy="25" r="7" fill="#263238" stroke="#ff8000" stroke-width="2"/>
+  <circle cx="24" cy="25" r="3" fill="#ff8000"/>
+</svg>

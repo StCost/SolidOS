@@ -1,13 +1,12 @@
 (function () {
   var menu = WebMenu;
-  var singleplayerList = document.getElementById("singleplayerList");
-  var ipMultiplayerList = document.getElementById("ipMultiplayerList");
-  var steamMultiplayerList = document.getElementById("steamMultiplayerList");
-  var formNewWorld = document.getElementById("formNewWorld");
-  var formNewServer = document.getElementById("formNewServer");
-  var btnAddWorld = document.getElementById("btnAddWorld");
-  var btnAddServer = document.getElementById("btnAddServer");
   var listsSaveTimer = 0;
+  var PRESET_WORLDS = "connect-col-0";
+  var PRESET_SERVERS = "connect-col-1";
+  var PRESET_STEAM = "connect-col-2";
+  var LIST_CLASS_SINGLEPLAYER = "worlds-list--singleplayer";
+  var LIST_CLASS_IP = "worlds-list--ip";
+  var LIST_CLASS_STEAM = "worlds-list--steam";
   var LISTS_STORAGE_KEY = "cm-menu-start-lists";
 
   var DEFAULT_WORLDS = [
@@ -31,6 +30,21 @@
 
   function isUnityHost() {
     return typeof window.vuplex !== "undefined" && window.vuplex.postMessage;
+  }
+
+  function isGameMode() {
+    if (window.WebMenuMode === "game") return true;
+    var device = document.getElementById("device");
+    return !!device && device.classList.contains("menu-mode--game");
+  }
+
+  function updateConnectGameModeState() {
+    var connectDisabled = isGameMode();
+    var entries = document.querySelectorAll(".worlds-entry");
+    var index;
+    for (index = 0; index < entries.length; index++) {
+      entries[index].disabled = connectDisabled;
+    }
   }
 
   function postToUnity(payload) {
@@ -90,16 +104,20 @@
     postToUnity({ eventName: "web-world-create", name: name || "", seed: seed || "" });
   }
 
-  function resetWorldForm() {
-    formNewWorld.querySelector('[name="name"]').value = "";
-    formNewWorld.querySelector('[name="seed"]').value = "";
-    updateComposeFormState(formNewWorld, btnAddWorld);
+  function resetWorldForm(form) {
+    if (!form) return;
+    form.querySelector('[name="name"]').value = "";
+    form.querySelector('[name="seed"]').value = "";
+    var addButton = form.querySelector(".worlds-compose-add");
+    updateComposeFormState(form, addButton);
   }
 
-  function resetServerForm() {
-    formNewServer.querySelector('[name="name"]').value = "";
-    formNewServer.querySelector('[name="ip"]').value = "";
-    updateComposeFormState(formNewServer, btnAddServer);
+  function resetServerForm(form) {
+    if (!form) return;
+    form.querySelector('[name="name"]').value = "";
+    form.querySelector('[name="ip"]').value = "";
+    var addButton = form.querySelector(".worlds-compose-add");
+    updateComposeFormState(form, addButton);
   }
 
   function isComposeFormReady(form) {
@@ -139,30 +157,42 @@
     return String(index);
   }
 
-  function createDeleteButton() {
-    var deleteButton = document.createElement("button");
-    deleteButton.type = "button";
-    deleteButton.className = "worlds-entry-delete terminal-text--dim";
-    deleteButton.textContent = "X";
-    deleteButton.setAttribute("aria-label", "Delete");
-    return deleteButton;
-  }
-
-  function createConfirmButton(label, className, ariaLabel) {
+  function createEntryActionButton(className, ariaLabel, actionName, glyphLabel) {
     var button = document.createElement("button");
     button.type = "button";
-    button.className = className + " terminal-text--dim";
-    button.textContent = label;
+    button.className = className + " os-window-control worlds-entry-action";
+    if (actionName) {
+      button.setAttribute("data-wm-action", actionName);
+    }
     button.setAttribute("aria-label", ariaLabel);
+    var glyph = document.createElement("span");
+    glyph.className = "os-window-control-glyph";
+    glyph.setAttribute("aria-hidden", "true");
+    if (glyphLabel) {
+      glyph.textContent = glyphLabel;
+    }
+    button.appendChild(glyph);
     return button;
+  }
+
+  function createDismissButton(className, ariaLabel) {
+    return createEntryActionButton(className, ariaLabel, "close", "");
+  }
+
+  function createDeleteButton() {
+    return createDismissButton("worlds-entry-delete", "Delete");
+  }
+
+  function createConfirmButton(className, ariaLabel, glyphLabel) {
+    return createEntryActionButton(className, ariaLabel, "", glyphLabel);
   }
 
   function replaceDeleteWithConfirm(listItem, onConfirm) {
     var deleteButton = listItem.querySelector(".worlds-entry-delete");
     if (!deleteButton) return;
 
-    var confirmButton = createConfirmButton("✓", "worlds-entry-confirm", "Confirm delete");
-    var cancelButton = createConfirmButton("✕", "worlds-entry-cancel", "Cancel delete");
+    var confirmButton = createConfirmButton("worlds-entry-confirm", "Confirm delete", "✓");
+    var cancelButton = createDismissButton("worlds-entry-cancel", "Cancel delete");
 
     confirmButton.addEventListener("click", function (event) {
       event.preventDefault();
@@ -311,32 +341,44 @@
     scheduleListsSave();
   }
 
+  function renderListInWindows(presetName, listClassName, buildItem) {
+    var windows = document.querySelectorAll(
+      '.os-window[data-wm-preset="' + presetName + '"]'
+    );
+    var windowIndex = 0;
+    for (windowIndex = 0; windowIndex < windows.length; windowIndex++) {
+      var listRoot = windows[windowIndex].querySelector("." + listClassName);
+      if (!listRoot) continue;
+      listRoot.textContent = "";
+      var index = 0;
+      for (index = 0; index < buildItem.count; index++) {
+        listRoot.appendChild(buildItem.create(index));
+      }
+    }
+  }
+
   function renderAllLists() {
-    singleplayerList.textContent = "";
-    ipMultiplayerList.textContent = "";
-    steamMultiplayerList.textContent = "";
-
-    var index = 0;
-    for (index = 0; index < savedWorlds.length; index++) {
-      var world = savedWorlds[index];
-      singleplayerList.appendChild(
-        createSingleplayerListItem(world.seed, world.name, index + 1)
-      );
-    }
-
-    for (index = 0; index < savedServers.length; index++) {
-      var server = savedServers[index];
-      ipMultiplayerList.appendChild(
-        createIpListItem(server.ip, server.name, index + 1)
-      );
-    }
-
-    for (index = 0; index < savedFriends.length; index++) {
-      var friendEntry = savedFriends[index];
-      steamMultiplayerList.appendChild(
-        createSteamListItem(friendEntry.name, index + 1)
-      );
-    }
+    renderListInWindows(PRESET_WORLDS, LIST_CLASS_SINGLEPLAYER, {
+      count: savedWorlds.length,
+      create: function (index) {
+        var world = savedWorlds[index];
+        return createSingleplayerListItem(world.seed, world.name, index + 1);
+      }
+    });
+    renderListInWindows(PRESET_SERVERS, LIST_CLASS_IP, {
+      count: savedServers.length,
+      create: function (index) {
+        var server = savedServers[index];
+        return createIpListItem(server.ip, server.name, index + 1);
+      }
+    });
+    renderListInWindows(PRESET_STEAM, LIST_CLASS_STEAM, {
+      count: savedFriends.length,
+      create: function (index) {
+        var friendEntry = savedFriends[index];
+        return createSteamListItem(friendEntry.name, index + 1);
+      }
+    });
 
     if (window.WebScrollbarCursor) {
       var connectWorkspace = document.querySelector(".os-workspace--connect");
@@ -345,6 +387,7 @@
       }
       window.WebScrollbarCursor.refreshAllScrollbars();
     }
+    updateConnectGameModeState();
   }
 
   function collectListsPayload() {
@@ -397,11 +440,11 @@
         savedWorlds.push({ name: name, seed: seed });
         scheduleListsSave();
       }
-      resetWorldForm();
+      resetWorldForm(form);
     } else {
       var ip = menu.trimValue(ipInput.value);
       savedServers.push({ name: name, ip: ip });
-      resetServerForm();
+      resetServerForm(form);
       scheduleListsSave();
     }
 
@@ -409,30 +452,33 @@
     updateComposeFormState(form, addButton);
   }
 
-  bindComposeForm(formNewWorld, btnAddWorld);
-  bindComposeForm(formNewServer, btnAddServer);
+  var worldsBoard = document.getElementById("desktopWorkspace");
+  if (worldsBoard) {
+    worldsBoard.addEventListener("input", function (event) {
+      var input = event.target;
+      if (!input || !input.classList || !input.classList.contains("worlds-compose-input")) return;
+      var form = input.closest(".worlds-compose-dock");
+      if (!form) return;
+      var addButton = form.querySelector(".worlds-compose-add");
+      updateComposeFormState(form, addButton);
+    });
 
-  document.getElementById("btnWorldsBack").addEventListener("click", function () {
-    menu.goToIndexPage();
-  });
+    worldsBoard.addEventListener("submit", function (event) {
+      var form = event.target;
+      if (!form || !form.classList || !form.classList.contains("worlds-compose-dock")) return;
+      event.preventDefault();
+      var addButton = form.querySelector(".worlds-compose-add");
+      submitCompose(form, addButton);
+    });
 
-  formNewWorld.addEventListener("submit", function (event) {
-    event.preventDefault();
-    submitCompose(formNewWorld, btnAddWorld);
-  });
-
-  formNewServer.addEventListener("submit", function (event) {
-    event.preventDefault();
-    submitCompose(formNewServer, btnAddServer);
-  });
-
-  var worldsBoard = document.querySelector(".worlds-board");
-  worldsBoard.addEventListener("click", function (event) {
+    worldsBoard.addEventListener("click", function (event) {
     if (event.target.closest(".worlds-compose")) return;
     if (event.target.closest(".worlds-entry-delete")) return;
 
     var entry = event.target.closest(".worlds-entry");
     if (!entry) return;
+    if (isGameMode()) return;
+    if (entry.disabled) return;
 
     var kind = entry.getAttribute("data-world-kind");
     var name = entry.getAttribute("data-name");
@@ -449,10 +495,14 @@
     } else if (kind === "steam-multiplayer") {
       menu.dispatchMenuEvent("web-select-steam", detail);
     }
-  });
+    });
+  }
 
   document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") menu.goToIndexPage();
+    if (event.key !== "Escape") return;
+    if (menu.getCurrentPageId() === "start") {
+      menu.goToIndexPage();
+    }
   });
 
   window.addEventListener("web-page-changed", function (event) {
@@ -461,8 +511,12 @@
     window.dispatchEvent(new CustomEvent("web-start-page-open"));
   });
 
+  window.addEventListener("web-menu-mode-changed", updateConnectGameModeState);
+
   window.WebStartMenu = {
-    applyLists: applyLists
+    applyLists: applyLists,
+    renderAllLists: renderAllLists,
+    updateConnectGameModeState: updateConnectGameModeState
   };
 
   if (window.__webPendingStartLists) {

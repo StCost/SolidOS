@@ -22,10 +22,15 @@
   display: flex;
   flex-direction: column;
   gap: 1em;
-  padding-bottom: 0.35em;
+  padding-bottom: 1rem;
+  box-sizing: border-box;
 }
 
-.extras-scroll > .extras-view {
+.os-window[data-wm-preset="extras-games"] .extras-scroll {
+  padding-right: 0.35em;
+}
+
+.extras-scroll>.extras-view {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -157,6 +162,8 @@
   flex: 1 1 auto;
   min-height: 12rem;
   width: 100%;
+  box-sizing: border-box;
+  display: block;
   border: 1px solid rgba(255, 128, 0, 0.35);
   background: #040609;
   -webkit-tap-highlight-color: transparent;
@@ -237,7 +244,7 @@
   letter-spacing: 0.06em;
   color: rgba(255, 160, 96, 0.55);
   -webkit-text-fill-color: rgba(255, 160, 96, 0.55);
-  margin: 0 0 0.25em;
+  margin: 0 0 1em;
 }
 
 .extras-link-row {
@@ -277,7 +284,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.95em;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.03em;
+  text-transform: none;
   color: #ffcc9f;
   -webkit-text-fill-color: #ffcc9f;
 }
@@ -314,10 +322,11 @@
   flex-direction: column;
   min-height: 0;
   flex: 1 1 auto;
+  box-sizing: border-box;
 }
 
 .extras-view#extrasViewGame .extras-game-frame {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 10rem;
 }
 
@@ -341,8 +350,54 @@
 #extrasArtViewer.term-overlay {
   z-index: 19;
   padding: clamp(0.65rem, 2.5vh, 1.25rem) clamp(0.45rem, 1.25vw, 0.75rem);
-  cursor: var(--cursor-pointer);
+  cursor: var(--cursor-default);
   --extras-art-modal-open-ms: 340;
+}
+
+#extrasArtViewer .extras-art-window {
+  cursor: var(--cursor-default);
+}
+
+#extrasArtViewer .extras-art-viewer-image-box {
+  cursor: var(--cursor-pointer);
+}
+
+.extras-art-viewer-image-box {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-height: calc(90vh - 8.5rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(255, 128, 0, 0.28);
+  background: #040609;
+  appearance: none;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.extras-art-viewer-image-box:hover,
+.extras-art-viewer-image-box:focus-visible {
+  border-color: rgba(255, 128, 0, 0.45);
+  background: rgba(4, 6, 9, 0.95);
+  outline: none;
+}
+
+.extras-art-viewer-image {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  border: none;
+  background: transparent;
+  pointer-events: none;
 }
 
 #extrasArtViewer .extras-art-window {
@@ -373,25 +428,141 @@
   gap: 0.75em;
 }
 
-.extras-art-viewer-image {
-  flex: 1 1 auto;
-  min-height: 0;
+#extrasArtViewer .extras-art-viewer-actions {
+  flex-shrink: 0;
   width: 100%;
-  max-height: calc(90vh - 8.5rem);
-  object-fit: contain;
-  display: block;
-  border: 1px solid rgba(255, 128, 0, 0.28);
-  background: #040609;
+  --settings-choice-btn-height: clamp(1.05rem, 2.25vmin, 1.4rem);
+}
+
+.extras-art-viewer-switch-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.extras-art-viewer-close-btn {
+  flex-shrink: 0;
+  width: auto;
+  margin-left: auto;
+  align-self: center;
+  padding: 0.55em 0.75em;
+}
+
+.extras-art-random-option {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-width: 0;
+}
+
+.extras-art-random-switch-wrap {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  min-width: 0;
+}
+
+.extras-art-random-help-btn {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0.55em 0 0.55em 0.55em;
+  top: 0;
+  display: none !important;
+  pointer-events: none;
+}
+
+.extras-art-random-help-btn.is-visible {
+  display: inline-flex !important;
+  pointer-events: auto;
+}
+
+.extras-art-bg-option {
+  appearance: none;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.55em 0.75em;
+  margin: 0;
+  border: 1px solid rgba(255, 128, 0, 0.24);
+  background: rgba(4, 6, 9, 0.85);
+  cursor: var(--cursor-pointer);
+  text-align: left;
+}
+
+.extras-art-bg-option:hover,
+.extras-art-bg-option:focus-visible {
+  border-color: rgba(255, 128, 0, 0.45);
+  background: rgba(255, 128, 0, 0.08);
+  outline: none;
+}
+
+.extras-art-bg-option:disabled,
+.extras-art-bg-option:disabled:hover,
+.extras-art-bg-option:disabled:focus-visible {
+  filter: saturate(0.22) brightness(0.92);
+  opacity: 0.62;
+  border-color: rgba(255, 128, 0, 0.14);
+  background: rgba(4, 6, 9, 0.72);
+  cursor: var(--cursor-forbidden);
+  outline: none;
+}
+
+.extras-art-bg-option:disabled .extras-art-switch-label {
+  color: rgba(255, 160, 96, 0.42);
+  -webkit-text-fill-color: rgba(255, 160, 96, 0.42);
+}
+
+.extras-art-bg-option:disabled .settings-switch-track {
+  border-color: rgba(255, 128, 0, 0.12);
+  background: rgba(8, 10, 14, 0.92);
+}
+
+.extras-art-bg-option:disabled .settings-switch-thumb {
+  border-color: rgba(255, 128, 0, 0.1);
+  background: rgba(255, 160, 96, 0.18);
+}
+
+.extras-art-bg-option:disabled .settings-switch.is-on .settings-switch-track {
+  border-color: rgba(255, 128, 0, 0.16);
+  background: rgba(255, 128, 0, 0.06);
+}
+
+.extras-art-bg-option:disabled .settings-switch.is-on .settings-switch-thumb {
+  border-color: rgba(255, 128, 0, 0.14);
+  background: rgba(255, 160, 96, 0.28);
+}
+
+.extras-art-bg-option .settings-switch {
+  pointer-events: none;
+  flex-shrink: 0;
+  width: calc(var(--settings-choice-btn-height) * 1.85);
+  min-width: calc(var(--settings-choice-btn-height) * 1.85);
+  height: var(--settings-choice-btn-height);
+  min-height: var(--settings-choice-btn-height);
+}
+
+.extras-art-switch-label {
+  font-size: clamp(1rem, 2.4vmin, 1.45rem);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 #extrasArtViewer .term-menu {
   flex-shrink: 0;
 }
 
-.menu-screen.terminal-animations-off #extrasArtViewer {
-  --extras-art-modal-open-ms: 120;
-}
-
-.menu-screen.terminal-animations-off #extrasArtViewer .extras-art-window {
-  transition: transform 0.12s ease, opacity 0.12s ease;
+.menu-screen.terminal-animations-off .extras-art-bg-option .settings-switch-track,
+.menu-screen.terminal-animations-off .extras-art-bg-option .settings-switch-thumb {
+  --settings-switch-motion-ms: 0ms;
+  transition: none !important;
+  animation: none !important;
 }

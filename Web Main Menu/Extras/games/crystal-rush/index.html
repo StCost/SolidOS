@@ -97,7 +97,7 @@
     }
 
     #carWrap.is-collect #carShake {
-      animation: car-collect-pulse 0.42s ease-out;
+      animation: car-collect-pulse 0.26s ease-out;
     }
 
     @keyframes car-collect-pulse {
@@ -547,8 +547,7 @@
     <div id="hudDashboard" class="hidden">
       <svg id="speedGaugeSvg" viewBox="0 0 140 84" aria-hidden="true">
         <defs>
-          <linearGradient id="speedGaugeArcGradient" gradientUnits="userSpaceOnUse" x1="16" y1="72" x2="124"
-            y2="72">
+          <linearGradient id="speedGaugeArcGradient" gradientUnits="userSpaceOnUse" x1="16" y1="72" x2="124" y2="72">
             <stop offset="0%" stop-color="#42d45e" />
             <stop offset="50%" stop-color="#f0a028" />
             <stop offset="100%" stop-color="#e83828" />
@@ -610,8 +609,13 @@
     var PHASE_GAME_OVER = "gameover";
 
     var CHUNK_SIZE = 512;
-    var CHUNK_LOAD_RADIUS = 2;
-    var CHUNK_UNLOAD_RADIUS = 4;
+    var CHUNK_LOAD_RADIUS_MIN = 2;
+    var CHUNK_LOAD_RADIUS_MAX = 6;
+    var CHUNK_UNLOAD_EXTRA = 2;
+    var chunkLoadRadiusX = 2;
+    var chunkLoadRadiusY = 2;
+    var chunkUnloadRadiusX = 4;
+    var chunkUnloadRadiusY = 4;
     var WORLD_REBASE_THRESHOLD = 80000;
     var WORLD_REBASE_TARGET = 0;
     var DUST_PARTICLE_MAX = 140;
@@ -661,6 +665,7 @@
     var ENEMY_CAR_RADIUS_MAX = 38;
     var ENEMY_CAR_DRAW_REFERENCE_RADIUS = 21;
     var ENEMY_CAR_MAX_COUNT = 4;
+    var ENEMY_SPAWN_MIN_SCORE = 1000;
     var ENEMY_SPAWN_COOLDOWN_MIN = 7;
     var ENEMY_SPAWN_COOLDOWN_MAX = 13;
     var ENEMY_SIGHT_RANGE = 460;
@@ -677,7 +682,17 @@
     var ENEMY_SPEED_AT_SMALL_SIZE = 0.95;
     var ENEMY_SPEED_AT_LARGE_SIZE = 0.8;
     var ENEMY_WANDER_SPEED_MAX_FRACTION = 0.72;
-    var ENEMY_LARGE_SIZE_DESATURATE_AMOUNT = 0.1;
+    var ENEMY_LARGE_SIZE_DESATURATE_AMOUNT = 0.42;
+    var ENEMY_DEATH_CRYSTAL_RARITY = 4;
+    var ENEMY_DEATH_CRYSTAL_BASE_COUNT = 30;
+    var ENEMY_DEATH_CRYSTAL_EXTRA_MAX_COUNT = 100;
+    var ENEMY_DEATH_CRYSTAL_SIZE_MIN = 0.6;
+    var ENEMY_DEATH_CRYSTAL_SIZE_MAX = 2.05;
+    var ENEMY_DEATH_CRYSTAL_BURST_MIN = 14;
+    var ENEMY_DEATH_CRYSTAL_BURST_MAX = 42;
+    var ENEMY_DEATH_CRYSTAL_DROP_DRAG = 7.5;
+    var ENEMY_DEATH_CRYSTAL_SCATTER_RADIUS = 22;
+    var ENEMY_LOOT_PICKUP_DELAY = 0.5;
     var ENEMY_CHASE_SPEED_SPREAD = 0.82;
     var ENEMY_WANDER_TURN_MIN = 0.8;
     var ENEMY_WANDER_TURN_MAX = 2.4;
@@ -721,7 +736,10 @@
     var TIRE_TRACK_STEP_DISTANCE = 7;
     var TIRE_TRACK_MAX_PATH_LENGTH = 520;
     var TIRE_TRACK_MIN_SPEED = 28;
-    var TIRE_TRACK_LINE_WIDTH = 2.5;
+    var TIRE_TRACK_LINE_WIDTH = 5;
+    var WHEEL_DUST_MIN_SPEED = 35;
+    var WHEEL_DUST_SPEED_DIVISOR = 165;
+    var WHEEL_DUST_SPAWN_SKIP = 2;
 
     var RARITY_COLORS = [
       [48, 198, 82],
@@ -741,11 +759,11 @@
     var CRYSTAL_DEPOSIT_PATTERN_ARC = 2;
     var CRYSTAL_DEPOSIT_PATTERN_RING = 3;
     var CRYSTAL_DEPOSIT_PATTERN_VEIN = 4;
-    var COLLECT_ARC_DURATION = 0.42;
+    var COLLECT_ARC_DURATION = 0.22;
     var COLLECT_ARC_RADIUS = 52;
-    var COLLECT_FLASH_DURATION = 0.38;
-    var COLLECT_EFFECTS_DEBOUNCE = 0.2;
-    var COLLECT_RING_DURATION = 0.48;
+    var COLLECT_FLASH_DURATION = 0.2;
+    var COLLECT_EFFECTS_DEBOUNCE = 0.1;
+    var COLLECT_RING_DURATION = 0.26;
     var COLLECT_BURST_COUNT = 2;
     var COLLECT_SPARK_COUNT_BASE = 10;
     var COLLECT_STREAK_COUNT_BASE = 6;
@@ -760,16 +778,19 @@
     var COAST_DRAG = 18;
     var POINTER_HOLD_CRUISE_ACCEL = 43;
     var POINTER_STEER_ALIGNED_ANGLE = 0.11;
-    var TURN_RATE_AT_MIN_CAR_SPEED = 2.75;
+    var TURN_RATE_AT_MIN_CAR_SPEED = 3.05;
     var TURN_RATE_SPEED_DROP = 1.35;
     var TURN_RATE_AT_MAX_CAR_SPEED = TURN_RATE_AT_MIN_CAR_SPEED - TURN_RATE_SPEED_DROP;
+    var CAR_FRONT_STEER_MAX_SLOW = 0.62;
+    var CAR_TURN_SPEED_LOSS_RATE = 108;
+    var ENEMY_TURN_SPEED_LOSS_RATE = 145;
     var CAMERA_LOOK_AHEAD_SECONDS = 0.22;
     var CAMERA_SMOOTH = 7.5;
     var ROCK_SPEED_PENALTY = 95;
     var ROCK_HIT_COOLDOWN = 0.55;
 
     var MAX_HEALTH = 10;
-    var ENEMY_MAX_HEALTH = MAX_HEALTH * 3;
+    var ENEMY_MAX_HEALTH = MAX_HEALTH;
     var CRYSTAL_HEAL_BASE = 0.1;
     var CRYSTAL_HEAL_PER_SIZE = 0.05;
     var DEATH_EXPLOSION_SPARK_COUNT = 36;
@@ -784,8 +805,8 @@
     var SCORE_LABEL_RISE_RANGE = 32;
     var SCORE_LABEL_SPREAD_MIN = 26;
     var SCORE_LABEL_SPREAD_RANGE = 38;
-    var SCORE_LABEL_FLIGHT_MIN = 0.72;
-    var SCORE_LABEL_FLIGHT_RANGE = 0.26;
+    var SCORE_LABEL_FLIGHT_MIN = 0.42;
+    var SCORE_LABEL_FLIGHT_RANGE = 0.16;
 
     var canvas = document.getElementById("gameCanvas");
     var context = canvas.getContext("2d");
@@ -818,6 +839,27 @@
 
     var width = 0;
     var height = 0;
+
+    function updateChunkLoadRadiiFromViewport() {
+      var loadRadiusX = Math.ceil(width * 0.5 / CHUNK_SIZE) + 1;
+      var loadRadiusY = Math.ceil(height * 0.5 / CHUNK_SIZE) + 1;
+      if (loadRadiusX < CHUNK_LOAD_RADIUS_MIN) {
+        loadRadiusX = CHUNK_LOAD_RADIUS_MIN;
+      }
+      if (loadRadiusY < CHUNK_LOAD_RADIUS_MIN) {
+        loadRadiusY = CHUNK_LOAD_RADIUS_MIN;
+      }
+      if (loadRadiusX > CHUNK_LOAD_RADIUS_MAX) {
+        loadRadiusX = CHUNK_LOAD_RADIUS_MAX;
+      }
+      if (loadRadiusY > CHUNK_LOAD_RADIUS_MAX) {
+        loadRadiusY = CHUNK_LOAD_RADIUS_MAX;
+      }
+      chunkLoadRadiusX = loadRadiusX;
+      chunkLoadRadiusY = loadRadiusY;
+      chunkUnloadRadiusX = chunkLoadRadiusX + CHUNK_UNLOAD_EXTRA;
+      chunkUnloadRadiusY = chunkLoadRadiusY + CHUNK_UNLOAD_EXTRA;
+    }
     var devicePixelRatioScale = 1;
 
     var gamePhase = PHASE_START;
@@ -826,6 +868,7 @@
     var pointerSteeringTurning = false;
     var carFrontSteerAngle = 0;
     var carFrontSteerTarget = 0;
+    var carBodyTurnThisFrame = 0;
     var lastPointerX = 0;
     var lastPointerY = 0;
 
@@ -853,8 +896,10 @@
     var chunkKeys = [];
     var particles = [];
     var dustParticles = [];
-    var tireTrailLeft = [];
-    var tireTrailRight = [];
+    var tireTrailRearLeft = [];
+    var tireTrailRearRight = [];
+    var tireTrailFrontLeft = [];
+    var tireTrailFrontRight = [];
     var tireTrailDistanceSinceLastPoint = 0;
     var impactParticles = [];
     var collectArcs = [];
@@ -1120,13 +1165,21 @@
         chunk.crystals.push(crystal);
       }
 
-      for (trailIndex = 0; trailIndex < tireTrailLeft.length; trailIndex += 1) {
-        tireTrailLeft[trailIndex].x -= shiftX;
-        tireTrailLeft[trailIndex].y -= shiftY;
+      for (trailIndex = 0; trailIndex < tireTrailRearLeft.length; trailIndex += 1) {
+        tireTrailRearLeft[trailIndex].x -= shiftX;
+        tireTrailRearLeft[trailIndex].y -= shiftY;
       }
-      for (trailIndex = 0; trailIndex < tireTrailRight.length; trailIndex += 1) {
-        tireTrailRight[trailIndex].x -= shiftX;
-        tireTrailRight[trailIndex].y -= shiftY;
+      for (trailIndex = 0; trailIndex < tireTrailRearRight.length; trailIndex += 1) {
+        tireTrailRearRight[trailIndex].x -= shiftX;
+        tireTrailRearRight[trailIndex].y -= shiftY;
+      }
+      for (trailIndex = 0; trailIndex < tireTrailFrontLeft.length; trailIndex += 1) {
+        tireTrailFrontLeft[trailIndex].x -= shiftX;
+        tireTrailFrontLeft[trailIndex].y -= shiftY;
+      }
+      for (trailIndex = 0; trailIndex < tireTrailFrontRight.length; trailIndex += 1) {
+        tireTrailFrontRight[trailIndex].x -= shiftX;
+        tireTrailFrontRight[trailIndex].y -= shiftY;
       }
 
       var enemyIndex;
@@ -1507,6 +1560,82 @@
       return TURN_RATE_AT_MIN_CAR_SPEED + (TURN_RATE_AT_MAX_CAR_SPEED - TURN_RATE_AT_MIN_CAR_SPEED) * speedFactor;
     }
 
+    function getCarFrontSteerMaxForSpeed(speed) {
+      var speedRange = MAX_SPEED - MIN_SPEED;
+      var slowFactor = 1;
+      if (speedRange > 0) {
+        slowFactor = 1 - (speed - MIN_SPEED) / speedRange;
+      }
+      if (slowFactor < 0) {
+        slowFactor = 0;
+      }
+      if (slowFactor > 1) {
+        slowFactor = 1;
+      }
+      return CAR_FRONT_STEER_MAX + (CAR_FRONT_STEER_MAX_SLOW - CAR_FRONT_STEER_MAX) * slowFactor;
+    }
+
+    function getPlayerTurnIntensity(deltaSeconds) {
+      var steerMax = getCarFrontSteerMaxForSpeed(carSpeed);
+      var bodyTurnIntensity = 0;
+      var steerIntensity = 0;
+      var maxBodyTurn;
+      var turnIntensity;
+      if (deltaSeconds > 0.001) {
+        maxBodyTurn = getTurnRateForSpeed(carSpeed) * deltaSeconds;
+        if (maxBodyTurn > 0.001) {
+          bodyTurnIntensity = carBodyTurnThisFrame / maxBodyTurn;
+        }
+      }
+      if (steerMax > 0.001) {
+        steerIntensity = Math.abs(carFrontSteerTarget) / steerMax;
+      }
+      turnIntensity = bodyTurnIntensity;
+      if (steerIntensity > turnIntensity) {
+        turnIntensity = steerIntensity;
+      }
+      if (turnIntensity > 1) {
+        turnIntensity = 1;
+      }
+      return turnIntensity;
+    }
+
+    function applyPlayerTurnSpeedLoss(deltaSeconds) {
+      var turnIntensity;
+      var speedDrop;
+      turnIntensity = getPlayerTurnIntensity(deltaSeconds);
+      if (turnIntensity <= 0.04) {
+        return;
+      }
+      speedDrop = CAR_TURN_SPEED_LOSS_RATE * turnIntensity * turnIntensity * deltaSeconds;
+      carSpeed -= speedDrop;
+    }
+
+    function applyEnemyTurnSpeedLoss(enemy, angleDiff, turnBlend, deltaSeconds) {
+      var turnAmount;
+      var turnIntensity;
+      var speedDrop;
+      var minSpeed;
+      turnAmount = Math.abs(angleDiff * turnBlend);
+      if (turnAmount < 0.02) {
+        return;
+      }
+      turnIntensity = turnAmount / 0.85;
+      if (turnIntensity > 1) {
+        turnIntensity = 1;
+      }
+      speedDrop = ENEMY_TURN_SPEED_LOSS_RATE * turnIntensity * deltaSeconds;
+      minSpeed = ENEMY_SPEED_MIN * 0.55;
+      enemy.speed -= speedDrop;
+      enemy.targetSpeed -= speedDrop * 0.72;
+      if (enemy.speed < minSpeed) {
+        enemy.speed = minSpeed;
+      }
+      if (enemy.targetSpeed < minSpeed) {
+        enemy.targetSpeed = minSpeed;
+      }
+    }
+
     function getBoulderCarCollisionAt(bodyX, bodyY, bodyAngle, bodyRadius, rock) {
       var deltaX = bodyX - rock.x;
       var deltaY = bodyY - rock.y;
@@ -1647,7 +1776,82 @@
       }
     }
 
+    function isEnemyLootCrystalPickupReady(crystal) {
+      if (!crystal.isEnemyLoot) {
+        return true;
+      }
+      if (crystal.dropVelX !== undefined || crystal.dropVelY !== undefined) {
+        return false;
+      }
+      if (crystal.lootPickupDelay > 0) {
+        return false;
+      }
+      return true;
+    }
+
+    function spawnEnemyDeathCrystals(enemy) {
+      var crystalCount;
+      var crystalIndex;
+      var angle;
+      var burstSpeed;
+      var scatterRadius;
+      var worldX;
+      var worldY;
+      var chunkX;
+      var chunkY;
+      var chunk;
+      var crystalSize;
+      var dropVelX;
+      var dropVelY;
+
+      crystalCount = ENEMY_DEATH_CRYSTAL_BASE_COUNT +
+        Math.round(enemy.sizeScale * ENEMY_DEATH_CRYSTAL_EXTRA_MAX_COUNT);
+      if (crystalCount < 1) {
+        crystalCount = 1;
+      }
+      crystalSize = ENEMY_DEATH_CRYSTAL_SIZE_MIN +
+        enemy.sizeScale * (ENEMY_DEATH_CRYSTAL_SIZE_MAX - ENEMY_DEATH_CRYSTAL_SIZE_MIN);
+
+      for (crystalIndex = 0; crystalIndex < crystalCount; crystalIndex += 1) {
+        angle = Math.random() * Math.PI * 2;
+        burstSpeed = ENEMY_DEATH_CRYSTAL_BURST_MIN +
+          Math.random() * (ENEMY_DEATH_CRYSTAL_BURST_MAX - ENEMY_DEATH_CRYSTAL_BURST_MIN);
+        scatterRadius = enemy.radius * 0.35 +
+          Math.random() * (ENEMY_DEATH_CRYSTAL_SCATTER_RADIUS + enemy.sizeScale * 10);
+        worldX = enemy.x + Math.cos(angle) * scatterRadius;
+        worldY = enemy.y + Math.sin(angle) * scatterRadius;
+        dropVelX = Math.cos(angle) * burstSpeed;
+        dropVelY = Math.sin(angle) * burstSpeed;
+        chunkX = worldToChunk(worldX);
+        chunkY = worldToChunk(worldY);
+        chunk = getChunk(chunkX, chunkY);
+        chunk.crystals.push({
+          x: worldX,
+          y: worldY,
+          size: crystalSize * (0.82 + Math.random() * 0.28),
+          twinkle: Math.random() * Math.PI * 2,
+          twinkleSpeed: 3.2 + Math.random() * 4.5,
+          rarity: ENEMY_DEATH_CRYSTAL_RARITY,
+          collected: false,
+          collecting: false,
+          isEnemyLoot: true,
+          lootPickupDelay: 0,
+          dropVelX: dropVelX,
+          dropVelY: dropVelY,
+          dropDrag: ENEMY_DEATH_CRYSTAL_DROP_DRAG
+        });
+      }
+    }
+
+    function handleEnemyDeath(enemy) {
+      spawnEnemyDeathCrystals(enemy);
+      spawnDeathExplosionAtWorld(enemy.x, enemy.y, true);
+    }
+
     function applyEnemyDamage(enemy, collision, collisionKind) {
+      if (!enemy.chasing) {
+        return false;
+      }
       if (enemy.rockHitCooldown > 0) {
         return false;
       }
@@ -1662,10 +1866,35 @@
         collisionKind
       );
       if (enemy.health <= 0) {
-        spawnDeathExplosionAtWorld(enemy.x, enemy.y, true);
+        handleEnemyDeath(enemy);
         return true;
       }
       return false;
+    }
+
+    function updateCrystalDropPhysics(crystal, deltaSeconds) {
+      var dropSpeedSq;
+      var dropSpeed;
+
+      if (crystal.dropVelX === undefined || crystal.dropVelY === undefined) {
+        return;
+      }
+      crystal.x += crystal.dropVelX * deltaSeconds;
+      crystal.y += crystal.dropVelY * deltaSeconds;
+      if (crystal.dropDrag > 0) {
+        crystal.dropVelX *= Math.max(0, 1 - crystal.dropDrag * deltaSeconds);
+        crystal.dropVelY *= Math.max(0, 1 - crystal.dropDrag * deltaSeconds);
+      }
+      dropSpeedSq = crystal.dropVelX * crystal.dropVelX + crystal.dropVelY * crystal.dropVelY;
+      dropSpeed = Math.sqrt(dropSpeedSq);
+      if (dropSpeed < 8) {
+        crystal.dropVelX = undefined;
+        crystal.dropVelY = undefined;
+        crystal.dropDrag = undefined;
+        if (crystal.isEnemyLoot) {
+          crystal.lootPickupDelay = ENEMY_LOOT_PICKUP_DELAY;
+        }
+      }
     }
 
     function pickCrystalDepositPattern(random, depositIndex) {
@@ -1868,7 +2097,7 @@
       var centerWorldY = chunkY * CHUNK_SIZE + centerLocalY;
       var depositRadius = 72 + random() * 88;
       var densityMultiplier = 1 + random();
-      var sparkCount = Math.floor((90 + random() * 110) * densityMultiplier);
+      var sparkCount = Math.floor((44 + random() * 52) * densityMultiplier);
       var rarityPrimary = pickCrystalRarity(random);
       var raritySecondary = pickSecondCrystalRarity(random, rarityPrimary);
       var pattern = pickCrystalDepositPattern(random, depositIndex);
@@ -2018,8 +2247,8 @@
       var centerChunkY = worldToChunk(worldY);
       var offsetX;
       var offsetY;
-      for (offsetY = -CHUNK_LOAD_RADIUS; offsetY <= CHUNK_LOAD_RADIUS; offsetY += 1) {
-        for (offsetX = -CHUNK_LOAD_RADIUS; offsetX <= CHUNK_LOAD_RADIUS; offsetX += 1) {
+      for (offsetY = -chunkLoadRadiusY; offsetY <= chunkLoadRadiusY; offsetY += 1) {
+        for (offsetX = -chunkLoadRadiusX; offsetX <= chunkLoadRadiusX; offsetX += 1) {
           getChunk(centerChunkX + offsetX, centerChunkY + offsetY);
         }
       }
@@ -2060,7 +2289,7 @@
       surfaceContext.fillStyle = "rgb(" + Math.floor(baseR) + "," + Math.floor(baseG) + "," + Math.floor(baseB) + ")";
       surfaceContext.fillRect(0, 0, CHUNK_SIZE, CHUNK_SIZE);
 
-      patchCount = 18 + Math.floor(random() * 14);
+      patchCount = 10 + Math.floor(random() * 8);
       for (patchIndex = 0; patchIndex < patchCount; patchIndex += 1) {
         x = random() * CHUNK_SIZE;
         y = random() * CHUNK_SIZE;
@@ -2075,7 +2304,7 @@
         surfaceContext.fill();
       }
 
-      crackCount = 6 + Math.floor(random() * 8);
+      crackCount = 4 + Math.floor(random() * 4);
       for (crackIndex = 0; crackIndex < crackCount; crackIndex += 1) {
         x = random() * CHUNK_SIZE;
         y = random() * CHUNK_SIZE;
@@ -2095,7 +2324,7 @@
         surfaceContext.stroke();
       }
 
-      pebbleCount = 40 + Math.floor(random() * 50);
+      pebbleCount = 22 + Math.floor(random() * 26);
       for (pebbleIndex = 0; pebbleIndex < pebbleCount; pebbleIndex += 1) {
         x = random() * CHUNK_SIZE;
         y = random() * CHUNK_SIZE;
@@ -2146,8 +2375,8 @@
       var chunkX;
       var chunkY;
 
-      for (offsetY = -CHUNK_LOAD_RADIUS; offsetY <= CHUNK_LOAD_RADIUS; offsetY += 1) {
-        for (offsetX = -CHUNK_LOAD_RADIUS; offsetX <= CHUNK_LOAD_RADIUS; offsetX += 1) {
+      for (offsetY = -chunkLoadRadiusY; offsetY <= chunkLoadRadiusY; offsetY += 1) {
+        for (offsetX = -chunkLoadRadiusX; offsetX <= chunkLoadRadiusX; offsetX += 1) {
           chunkX = carChunkX + offsetX;
           chunkY = carChunkY + offsetY;
           getChunk(chunkX, chunkY);
@@ -2165,8 +2394,8 @@
           chunkKeys.splice(keyIndex, 1);
           continue;
         }
-        if (Math.abs(chunk.chunkX - carChunkX) > CHUNK_UNLOAD_RADIUS ||
-          Math.abs(chunk.chunkY - carChunkY) > CHUNK_UNLOAD_RADIUS) {
+        if (Math.abs(chunk.chunkX - carChunkX) > chunkUnloadRadiusX ||
+          Math.abs(chunk.chunkY - carChunkY) > chunkUnloadRadiusY) {
           removeKeys.push(key);
         }
       }
@@ -2412,11 +2641,12 @@
     function updateCarFrontWheelSteer(deltaSeconds) {
       var steerBlend;
       var steerDegrees;
-      if (carFrontSteerTarget > CAR_FRONT_STEER_MAX) {
-        carFrontSteerTarget = CAR_FRONT_STEER_MAX;
+      var steerMax = getCarFrontSteerMaxForSpeed(carSpeed);
+      if (carFrontSteerTarget > steerMax) {
+        carFrontSteerTarget = steerMax;
       }
-      if (carFrontSteerTarget < -CAR_FRONT_STEER_MAX) {
-        carFrontSteerTarget = -CAR_FRONT_STEER_MAX;
+      if (carFrontSteerTarget < -steerMax) {
+        carFrontSteerTarget = -steerMax;
       }
       steerBlend = 1 - Math.exp(-CAR_FRONT_STEER_SMOOTH * deltaSeconds);
       if (steerBlend > 1) {
@@ -2708,7 +2938,7 @@
         particle.velX = Math.cos(angle) * speed;
         particle.velY = Math.sin(angle) * speed;
         particle.age = 0;
-        particle.travelTime = 0.32 + Math.random() * 0.18;
+        particle.travelTime = 0.16 + Math.random() * 0.1;
         particle.size = 1 + sparkSize * 0.35;
         particle.red = red;
         particle.green = green;
@@ -2772,7 +3002,7 @@
 
       for (particleIndex = 0; particleIndex < sparkCount; particleIndex += 1) {
         angle = (particleIndex / sparkCount) * Math.PI * 2 + Math.random() * 0.5;
-        speed = 80 + Math.random() * 150 * rarityScale;
+        speed = 120 + Math.random() * 190 * rarityScale;
         if (collectSparks.length >= COLLECT_SPARK_MAX) {
           releaseCollectSpark(collectSparks.shift());
         }
@@ -2782,7 +3012,7 @@
         spark.velX = Math.cos(angle) * speed;
         spark.velY = Math.sin(angle) * speed;
         spark.age = 0;
-        spark.life = 0.26 + Math.random() * 0.24;
+        spark.life = 0.12 + Math.random() * 0.1;
         spark.size = 1.8 + rarityScale * 1.6;
         spark.red = red;
         spark.green = green;
@@ -2799,7 +3029,7 @@
       for (streakIndex = 0; streakIndex < streakCount; streakIndex += 1) {
         startX = crystalScreenX + (Math.random() - 0.5) * 14;
         startY = crystalScreenY + (Math.random() - 0.5) * 14;
-        streakSpeed = dist / (0.16 + Math.random() * 0.12);
+        streakSpeed = dist / (0.07 + Math.random() * 0.05);
         if (collectStreaks.length >= COLLECT_STREAK_MAX) {
           releaseCollectStreak(collectStreaks.shift());
         }
@@ -2809,7 +3039,7 @@
         streak.velX = (deltaX / dist) * streakSpeed;
         streak.velY = (deltaY / dist) * streakSpeed;
         streak.age = 0;
-        streak.life = 0.18 + Math.random() * 0.14;
+        streak.life = 0.09 + Math.random() * 0.07;
         streak.size = 2 + rarityScale * 1.2;
         streak.red = red;
         streak.green = green;
@@ -2993,37 +3223,53 @@
       }
     }
 
-    function spawnDustAtWheel(isLeftWheel) {
-      var wheelCenter = getCarWheelWorldPosition(
-        isLeftWheel ? CAR_REAR_WHEEL_LEFT_SVG_X : CAR_REAR_WHEEL_RIGHT_SVG_X,
-        CAR_REAR_WHEEL_SVG_Y
-      );
-      var wheelBack = getCarRearWheelTrailPosition(isLeftWheel);
+    function getCarWheelContactPosition(wheelSvgX, wheelSvgY, wheelHeadingAngle) {
+      var wheelCenter = getCarWheelWorldPosition(wheelSvgX, wheelSvgY);
+      var contactAngle = wheelHeadingAngle + Math.PI;
+      var halfWheelBack = CAR_WHEEL_HALF_LENGTH_SVG * CAR_WHEEL_SVG_TO_WORLD;
+      return {
+        x: wheelCenter.x + Math.cos(contactAngle) * halfWheelBack,
+        y: wheelCenter.y + Math.sin(contactAngle) * halfWheelBack
+      };
+    }
+
+    function spawnDustAtWheel(wheelSvgX, wheelSvgY, wheelHeadingAngle) {
+      var wheelCenter = getCarWheelWorldPosition(wheelSvgX, wheelSvgY);
+      var wheelContact = getCarWheelContactPosition(wheelSvgX, wheelSvgY, wheelHeadingAngle);
       var dust;
       if (dustParticles.length >= DUST_PARTICLE_MAX) {
         releaseDustParticle(dustParticles.shift());
       }
       dust = acquireDustParticle();
-      dust.worldX = wheelBack.x + (wheelCenter.x - wheelBack.x) * 0.35 + (Math.random() - 0.5) * 4;
-      dust.worldY = wheelBack.y + (wheelCenter.y - wheelBack.y) * 0.35 + (Math.random() - 0.5) * 4;
+      dust.worldX = wheelContact.x + (wheelCenter.x - wheelContact.x) * 0.35 + (Math.random() - 0.5) * 4;
+      dust.worldY = wheelContact.y + (wheelCenter.y - wheelContact.y) * 0.35 + (Math.random() - 0.5) * 4;
       dust.velX = (Math.random() - 0.5) * 18 - Math.cos(carAngle) * 42;
       dust.velY = (Math.random() - 0.5) * 18 - Math.sin(carAngle) * 42;
-      dust.life = 0.4 + Math.random() * 0.5;
-      dust.size = 4 + Math.random() * 10;
-      dust.alpha = 0.25 + Math.random() * 0.35;
+      dust.life = 0.45 + Math.random() * 0.55;
+      dust.size = 6 + Math.random() * 12;
+      dust.alpha = 0.32 + Math.random() * 0.38;
       dustParticles.push(dust);
     }
 
     function spawnDustTrail(deltaSeconds) {
-      var spawnCount;
+      var spawnPassCount;
       var spawnIndex;
-      if (carSpeed < 40) {
+      var frontWheelHeading = carAngle + carFrontSteerAngle;
+      if (carSpeed < WHEEL_DUST_MIN_SPEED) {
         return;
       }
-      spawnCount = Math.floor(carSpeed / 120);
-      for (spawnIndex = 0; spawnIndex < spawnCount; spawnIndex += 1) {
-        spawnDustAtWheel(true);
-        spawnDustAtWheel(false);
+      spawnPassCount = Math.floor(carSpeed / WHEEL_DUST_SPEED_DIVISOR);
+      if (spawnPassCount < 1) {
+        spawnPassCount = 1;
+      }
+      for (spawnIndex = 0; spawnIndex < spawnPassCount; spawnIndex += 1) {
+        if ((spawnIndex + simulationFrameIndex) % WHEEL_DUST_SPAWN_SKIP !== 0) {
+          continue;
+        }
+        spawnDustAtWheel(CAR_REAR_WHEEL_LEFT_SVG_X, CAR_REAR_WHEEL_SVG_Y, carAngle);
+        spawnDustAtWheel(CAR_REAR_WHEEL_RIGHT_SVG_X, CAR_REAR_WHEEL_SVG_Y, carAngle);
+        spawnDustAtWheel(CAR_FRONT_WHEEL_LEFT_X, CAR_FRONT_WHEEL_LEFT_Y, frontWheelHeading);
+        spawnDustAtWheel(CAR_FRONT_WHEEL_RIGHT_X, CAR_FRONT_WHEEL_RIGHT_Y, frontWheelHeading);
       }
     }
 
@@ -3059,28 +3305,44 @@
       };
     }
 
-    function getCarRearWheelTrailPosition(isLeftWheel) {
-      var wheelSvgX = isLeftWheel ? CAR_REAR_WHEEL_LEFT_SVG_X : CAR_REAR_WHEEL_RIGHT_SVG_X;
-      var wheelCenter = getCarWheelWorldPosition(wheelSvgX, CAR_REAR_WHEEL_SVG_Y);
-      var backAngle = carAngle + Math.PI;
-      var halfWheelBack = CAR_WHEEL_HALF_LENGTH_SVG * CAR_WHEEL_SVG_TO_WORLD;
-      return {
-        x: wheelCenter.x + Math.cos(backAngle) * halfWheelBack,
-        y: wheelCenter.y + Math.sin(backAngle) * halfWheelBack
-      };
-    }
-
     function appendTireTrailPoints() {
-      var leftWheelCenter = getCarWheelWorldPosition(CAR_REAR_WHEEL_LEFT_SVG_X, CAR_REAR_WHEEL_SVG_Y);
-      var rightWheelCenter = getCarWheelWorldPosition(CAR_REAR_WHEEL_RIGHT_SVG_X, CAR_REAR_WHEEL_SVG_Y);
+      var rearLeftContact = getCarWheelContactPosition(
+        CAR_REAR_WHEEL_LEFT_SVG_X,
+        CAR_REAR_WHEEL_SVG_Y,
+        carAngle
+      );
+      var rearRightContact = getCarWheelContactPosition(
+        CAR_REAR_WHEEL_RIGHT_SVG_X,
+        CAR_REAR_WHEEL_SVG_Y,
+        carAngle
+      );
+      var frontWheelHeading = carAngle + carFrontSteerAngle;
+      var frontLeftContact = getCarWheelContactPosition(
+        CAR_FRONT_WHEEL_LEFT_X,
+        CAR_FRONT_WHEEL_LEFT_Y,
+        frontWheelHeading
+      );
+      var frontRightContact = getCarWheelContactPosition(
+        CAR_FRONT_WHEEL_RIGHT_X,
+        CAR_FRONT_WHEEL_RIGHT_Y,
+        frontWheelHeading
+      );
 
-      tireTrailLeft.push({
-        x: leftWheelCenter.x,
-        y: leftWheelCenter.y
+      tireTrailRearLeft.push({
+        x: rearLeftContact.x,
+        y: rearLeftContact.y
       });
-      tireTrailRight.push({
-        x: rightWheelCenter.x,
-        y: rightWheelCenter.y
+      tireTrailRearRight.push({
+        x: rearRightContact.x,
+        y: rearRightContact.y
+      });
+      tireTrailFrontLeft.push({
+        x: frontLeftContact.x,
+        y: frontLeftContact.y
+      });
+      tireTrailFrontRight.push({
+        x: frontRightContact.x,
+        y: frontRightContact.y
       });
     }
 
@@ -3094,8 +3356,10 @@
       }
       tireTrailDistanceSinceLastPoint = 0;
       appendTireTrailPoints();
-      trimTireTrail(tireTrailLeft);
-      trimTireTrail(tireTrailRight);
+      trimTireTrail(tireTrailRearLeft);
+      trimTireTrail(tireTrailRearRight);
+      trimTireTrail(tireTrailFrontLeft);
+      trimTireTrail(tireTrailFrontRight);
     }
 
     function drawTireTrail(trail) {
@@ -3130,8 +3394,10 @@
     }
 
     function drawTireTrails() {
-      drawTireTrail(tireTrailLeft);
-      drawTireTrail(tireTrailRight);
+      drawTireTrail(tireTrailRearLeft);
+      drawTireTrail(tireTrailRearRight);
+      drawTireTrail(tireTrailFrontLeft);
+      drawTireTrail(tireTrailFrontRight);
     }
 
     function worldToScreen(worldX, worldY) {
@@ -3305,12 +3571,19 @@
       var crystalIndex;
       var crystal;
 
-      for (offsetY = -CHUNK_LOAD_RADIUS; offsetY <= CHUNK_LOAD_RADIUS; offsetY += 1) {
-        for (offsetX = -CHUNK_LOAD_RADIUS; offsetX <= CHUNK_LOAD_RADIUS; offsetX += 1) {
+      for (offsetY = -chunkLoadRadiusY; offsetY <= chunkLoadRadiusY; offsetY += 1) {
+        for (offsetX = -chunkLoadRadiusX; offsetX <= chunkLoadRadiusX; offsetX += 1) {
           chunk = getChunk(carChunkX + offsetX, carChunkY + offsetY);
           for (crystalIndex = 0; crystalIndex < chunk.crystals.length; crystalIndex += 1) {
             crystal = chunk.crystals[crystalIndex];
             if (!crystal.collected && !crystal.collecting) {
+              if (crystal.isEnemyLoot && crystal.lootPickupDelay > 0) {
+                crystal.lootPickupDelay -= deltaSeconds;
+                if (crystal.lootPickupDelay < 0) {
+                  crystal.lootPickupDelay = 0;
+                }
+              }
+              updateCrystalDropPhysics(crystal, deltaSeconds);
               crystal.twinkle += crystal.twinkleSpeed * deltaSeconds;
             }
           }
@@ -3338,6 +3611,9 @@
           for (crystalIndex = 0; crystalIndex < chunk.crystals.length; crystalIndex += 1) {
             crystal = chunk.crystals[crystalIndex];
             if (crystal.collected || crystal.collecting) {
+              continue;
+            }
+            if (!isEnemyLootCrystalPickupReady(crystal)) {
               continue;
             }
             deltaX = crystal.x - carWorldX;
@@ -3475,10 +3751,10 @@
       var carChunkX = worldToChunk(carWorldX);
       var carChunkY = worldToChunk(carWorldY);
 
-      if (Math.abs(enemyChunkX - carChunkX) > CHUNK_UNLOAD_RADIUS) {
+      if (Math.abs(enemyChunkX - carChunkX) > chunkUnloadRadiusX) {
         return true;
       }
-      if (Math.abs(enemyChunkY - carChunkY) > CHUNK_UNLOAD_RADIUS) {
+      if (Math.abs(enemyChunkY - carChunkY) > chunkUnloadRadiusY) {
         return true;
       }
       return !getLoadedChunk(enemyChunkX, enemyChunkY);
@@ -3490,10 +3766,10 @@
       var carChunkX = worldToChunk(carWorldX);
       var carChunkY = worldToChunk(carWorldY);
 
-      if (Math.abs(worldChunkX - carChunkX) > CHUNK_LOAD_RADIUS) {
+      if (Math.abs(worldChunkX - carChunkX) > chunkLoadRadiusX) {
         return true;
       }
-      if (Math.abs(worldChunkY - carChunkY) > CHUNK_LOAD_RADIUS) {
+      if (Math.abs(worldChunkY - carChunkY) > chunkLoadRadiusY) {
         return true;
       }
       return false;
@@ -3610,38 +3886,50 @@
       return true;
     }
 
+    function pickEnemySpawnScreenPosition() {
+      var horizontalEdgeWeight = height;
+      var verticalEdgeWeight = width;
+      var totalWeight = horizontalEdgeWeight * 2 + verticalEdgeWeight * 2;
+      var roll = Math.random() * totalWeight;
+      var inset = 50 + Math.random() * 70;
+      var spawnScreenX = 0;
+      var spawnScreenY = 0;
+
+      if (roll < horizontalEdgeWeight) {
+        spawnScreenX = -inset;
+        spawnScreenY = Math.random() * height;
+      } else if (roll < horizontalEdgeWeight * 2) {
+        spawnScreenX = width + inset;
+        spawnScreenY = Math.random() * height;
+      } else if (roll < horizontalEdgeWeight * 2 + verticalEdgeWeight) {
+        spawnScreenX = Math.random() * width;
+        spawnScreenY = -inset;
+      } else {
+        spawnScreenX = Math.random() * width;
+        spawnScreenY = height + inset;
+      }
+      return { x: spawnScreenX, y: spawnScreenY };
+    }
+
     function trySpawnEnemyCar() {
       var attemptIndex;
-      var side;
-      var inset;
-      var spawnScreenX;
-      var spawnScreenY;
+      var spawnScreen;
       var spawnWorld;
       var spawnX;
       var spawnY;
       var enemy;
+
+      if (score < ENEMY_SPAWN_MIN_SCORE) {
+        return;
+      }
 
       if (enemyCars.length >= ENEMY_CAR_MAX_COUNT) {
         return;
       }
 
       for (attemptIndex = 0; attemptIndex < 10; attemptIndex += 1) {
-        side = Math.floor(Math.random() * 4);
-        inset = 50 + Math.random() * 70;
-        if (side === 0) {
-          spawnScreenX = -inset;
-          spawnScreenY = Math.random() * height;
-        } else if (side === 1) {
-          spawnScreenX = width + inset;
-          spawnScreenY = Math.random() * height;
-        } else if (side === 2) {
-          spawnScreenX = Math.random() * width;
-          spawnScreenY = -inset;
-        } else {
-          spawnScreenX = Math.random() * width;
-          spawnScreenY = height + inset;
-        }
-        spawnWorld = screenToWorld(spawnScreenX, spawnScreenY);
+        spawnScreen = pickEnemySpawnScreenPosition();
+        spawnWorld = screenToWorld(spawnScreen.x, spawnScreen.y);
         spawnX = spawnWorld.x;
         spawnY = spawnWorld.y;
         if (!isEnemySpawnClear(spawnX, spawnY)) {
@@ -3739,6 +4027,7 @@
         }
 
         if (enemy.health <= 0) {
+          handleEnemyDeath(enemy);
           enemyCars.splice(enemyIndex, 1);
           continue;
         }
@@ -3792,9 +4081,12 @@
             }
             enemy.wanderTimer -= deltaSeconds;
             if (enemy.wanderTimer <= 0) {
+              var wanderTurn;
               enemy.wanderTimer = ENEMY_WANDER_TURN_MIN +
                 Math.random() * (ENEMY_WANDER_TURN_MAX - ENEMY_WANDER_TURN_MIN);
-              enemy.angle += (Math.random() - 0.5) * 1.35;
+              wanderTurn = (Math.random() - 0.5) * 1.35;
+              enemy.angle += wanderTurn;
+              applyEnemyTurnSpeedLoss(enemy, wanderTurn, 1, deltaSeconds);
               setEnemyWanderTargetSpeed(enemy);
             }
             targetAngle = enemy.angle;
@@ -3810,6 +4102,7 @@
             turnBlend = 1;
           }
           enemy.angle += angleDiff * turnBlend;
+          applyEnemyTurnSpeedLoss(enemy, angleDiff, turnBlend, deltaSeconds);
 
           enemy.frontSteerTarget = angleDiff * 0.58;
           if (enemy.frontSteerTarget > CAR_FRONT_STEER_MAX) {
@@ -4504,8 +4797,10 @@
       releaseAllImpactParticles();
       releaseAllCollectSparks();
       releaseAllCollectStreaks();
-      tireTrailLeft = [];
-      tireTrailRight = [];
+      tireTrailRearLeft = [];
+      tireTrailRearRight = [];
+      tireTrailFrontLeft = [];
+      tireTrailFrontRight = [];
       tireTrailDistanceSinceLastPoint = 0;
       collectArcs = [];
       collectFlashes = [];
@@ -4644,8 +4939,16 @@
       while (angleDiff < -Math.PI) {
         angleDiff += Math.PI * 2;
       }
+      var steerMax;
       pointerSteeringTurning = Math.abs(angleDiff) > POINTER_STEER_ALIGNED_ANGLE;
       carFrontSteerTarget = angleDiff * 0.58;
+      steerMax = getCarFrontSteerMaxForSpeed(carSpeed);
+      if (carFrontSteerTarget > steerMax) {
+        carFrontSteerTarget = steerMax;
+      }
+      if (carFrontSteerTarget < -steerMax) {
+        carFrontSteerTarget = -steerMax;
+      }
       turnRate = getTurnRateForSpeed(carSpeed);
       maxTurn = turnRate * deltaSeconds;
       if (angleDiff > maxTurn) {
@@ -4654,25 +4957,30 @@
       if (angleDiff < -maxTurn) {
         angleDiff = -maxTurn;
       }
+      carBodyTurnThisFrame = Math.abs(angleDiff);
       carAngle += angleDiff;
     }
 
     function updateCar(deltaSeconds) {
       var turnAmount = 0;
       var turnRate = getTurnRateForSpeed(carSpeed);
+      var steerMax = getCarFrontSteerMaxForSpeed(carSpeed);
+      var steerVisualScale = 0.82;
 
+      carBodyTurnThisFrame = 0;
       if (pointerHeld) {
         updatePointerSteering(deltaSeconds);
       } else {
         carFrontSteerTarget = 0;
         if (keysDown.a) {
           turnAmount -= turnRate * deltaSeconds;
-          carFrontSteerTarget = -CAR_FRONT_STEER_MAX * 0.82;
+          carFrontSteerTarget = -steerMax * steerVisualScale;
         }
         if (keysDown.d) {
           turnAmount += turnRate * deltaSeconds;
-          carFrontSteerTarget = CAR_FRONT_STEER_MAX * 0.82;
+          carFrontSteerTarget = steerMax * steerVisualScale;
         }
+        carBodyTurnThisFrame = Math.abs(turnAmount);
         carAngle += turnAmount;
       }
 
@@ -4687,6 +4995,8 @@
       } else {
         carSpeed -= COAST_DRAG * deltaSeconds;
       }
+
+      applyPlayerTurnSpeedLoss(deltaSeconds);
 
       if (carSpeed > MAX_SPEED) {
         carSpeed = MAX_SPEED;
@@ -4768,8 +5078,8 @@
       for (sparkIndex = collectSparks.length - 1; sparkIndex >= 0; sparkIndex -= 1) {
         spark = collectSparks[sparkIndex];
         spark.age += deltaSeconds;
-        spark.velX *= 0.91;
-        spark.velY *= 0.91;
+        spark.velX *= 0.84;
+        spark.velY *= 0.84;
         spark.x += spark.velX * deltaSeconds;
         spark.y += spark.velY * deltaSeconds;
         if (spark.age >= spark.life) {
@@ -4944,8 +5254,8 @@
 
       drawTireTrails();
 
-      for (offsetY = -CHUNK_LOAD_RADIUS; offsetY <= CHUNK_LOAD_RADIUS; offsetY += 1) {
-        for (offsetX = -CHUNK_LOAD_RADIUS; offsetX <= CHUNK_LOAD_RADIUS; offsetX += 1) {
+      for (offsetY = -chunkLoadRadiusY; offsetY <= chunkLoadRadiusY; offsetY += 1) {
+        for (offsetX = -chunkLoadRadiusX; offsetX <= chunkLoadRadiusX; offsetX += 1) {
           chunk = getChunk(carChunkX + offsetX, carChunkY + offsetY);
           drawChunkEntities(chunk);
         }
@@ -5296,6 +5606,7 @@
     function resizeCanvas() {
       width = window.innerWidth;
       height = window.innerHeight;
+      updateChunkLoadRadiiFromViewport();
       devicePixelRatioScale = window.devicePixelRatio || 1;
       canvas.width = Math.floor(width * devicePixelRatioScale);
       canvas.height = Math.floor(height * devicePixelRatioScale);

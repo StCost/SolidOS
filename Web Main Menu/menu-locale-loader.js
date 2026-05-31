@@ -220,10 +220,9 @@
 
   function initStandaloneLocale() {
     if (isUnityHost()) return;
-    // Web mode should fetch the currently selected language on init,
-    // but keep the full language list/options lazy-loaded for Settings.
     if (!canFetchLocales()) {
       warnIfFileProtocol();
+      applyLocaleMap({}, false);
       return;
     }
 
@@ -241,11 +240,7 @@
     flushPendingLanguageOptions: flushPendingLanguageOptions
   };
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initStandaloneLocale);
-  } else {
-    initStandaloneLocale();
-  }
+  initStandaloneLocale();
 
   var standaloneLocaleLoaded = false;
   function ensureStandaloneLocaleLoaded() {

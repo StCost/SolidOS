@@ -1,9 +1,5 @@
 (function () {
   var menu = WebMenu;
-  var pageStart = document.getElementById("pageStart");
-  var pageSettings = document.getElementById("pageSettings");
-  var pageCredits = document.getElementById("pageCredits");
-  var pageExtras = document.getElementById("pageExtras");
 
   function isGameMode() {
     if (window.WebMenuMode === "game") return true;
@@ -22,87 +18,30 @@
     }
   }
 
-  document.getElementById("btnStart").addEventListener("click", function () {
-    if (isGameMode()) {
-      menu.dispatchMenuEvent("web-start", {});
-      return;
-    }
-
-    menu.goToStartPage();
-  });
-
-  document.getElementById("btnSettings").addEventListener("click", function () {
-    menu.goToSettingsPage();
-    openSettingsFromUnity();
-  });
-
-  document.getElementById("btnExtras").addEventListener("click", function () {
-    menu.goToExtrasPage();
-  });
-
-  document.getElementById("btnCredit").addEventListener("click", function () {
-    menu.goToCreditsPage();
-  });
-
-  document.getElementById("btnCreditsBack").addEventListener("click", function () {
-    menu.goToIndexPage();
-  });
-
-  document.getElementById("btnSettingsClose").addEventListener("click", function () {
-    menu.goToIndexPage();
-  });
-
-  function updateMenuExitQuitButtons() {
-    var exitButton = document.getElementById("btnExit");
-    if (!exitButton) return;
-    var showDisconnect = isGameMode();
-    exitButton.hidden = !showDisconnect;
-    exitButton.setAttribute("aria-hidden", showDisconnect ? "false" : "true");
+  var creditButton = document.getElementById("btnCredit");
+  if (creditButton) {
+    creditButton.addEventListener("click", function () {
+      menu.goToCreditsPage();
+    });
   }
-
-  window.WebMenuActions = window.WebMenuActions || {};
-  window.WebMenuActions.updateExitQuitButtons = updateMenuExitQuitButtons;
-
-  document.getElementById("btnExit").addEventListener("click", function () {
-    menu.dispatchMenuEvent("web-exit-to-menu");
-  });
-
-  document.getElementById("btnQuit").addEventListener("click", function () {
-    menu.dispatchMenuEvent("web-quit");
-    if (!isGameMode() && window.close) {
-      window.close();
-    }
-  });
-
-  window.addEventListener("web-locale-applied", updateMenuExitQuitButtons);
-  window.addEventListener("web-page-changed", updateMenuExitQuitButtons);
-  window.addEventListener("web-menu-mode-changed", updateMenuExitQuitButtons);
-  updateMenuExitQuitButtons();
 
   document.addEventListener("keydown", function (event) {
     if (event.key !== "Escape") return;
     if (isGameMode()) return;
 
-    if (pageSettings && !pageSettings.hidden) {
-      menu.goToIndexPage();
+    if (window.WebExtras && window.WebExtras.handleEscape && window.WebExtras.handleEscape()) {
       return;
     }
 
-    if (pageCredits && !pageCredits.hidden) {
+    if (menu.getCurrentPageId() !== menu.PAGE_MENU) {
       menu.goToIndexPage();
       return;
     }
+  });
 
-    if (pageExtras && !pageExtras.hidden) {
-      if (window.WebExtras && window.WebExtras.handleEscape()) {
-        return;
-      }
-      menu.goToIndexPage();
-      return;
-    }
-
-    if (pageStart && !pageStart.hidden) {
-      menu.goToIndexPage();
+  window.addEventListener("web-settings-open", function () {
+    if (window.WebSettingsBridge) {
+      window.WebSettingsBridge.open();
     }
   });
 })();
