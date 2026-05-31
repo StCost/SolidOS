@@ -276,4 +276,14 @@
     syncRouteFromFocusedWindow(false);
   });
   window.addEventListener("web-desktop-windows-restored", bootRouteFromLocation);
+  window.addEventListener("web-desktop-icons-ready", function () {
+    if (window.WebExtras && window.WebExtras.refreshGameDesktopLinkSwitch) {
+      window.WebExtras.refreshGameDesktopLinkSwitch();
+    }
+  });
+  window.addEventListener("web-desktop-game-icons-restored", function () {
+    if (window.WebExtras && window.WebExtras.refreshGameDesktopLinkSwitch) {
+      window.WebExtras.refreshGameDesktopLinkSwitch();
+    }
+  });
 })();

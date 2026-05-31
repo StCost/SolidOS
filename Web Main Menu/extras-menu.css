@@ -313,34 +313,72 @@
 
 .extras-game-toolbar {
   --settings-choice-btn-height: clamp(1.05rem, 2.25vmin, 1.4rem);
+  container-type: inline-size;
+  container-name: extras-game-toolbar;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  align-items: stretch;
+  align-items: flex-start;
   gap: 0.5em;
   flex-shrink: 0;
   margin-bottom: 8px;
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
 }
 
 .extras-game-toolbar .extras-game-back {
   flex: 0 1 auto;
-  width: fit-content;
-  max-width: 50%;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
   margin-bottom: 0;
   align-self: center;
 }
 
 .extras-game-toolbar .extras-game-desktop-link-option {
-  flex: 0 0 auto;
-  width: fit-content;
-  max-width: calc(100% - 8rem);
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
   margin-left: auto;
+  margin-right: 0;
   margin-bottom: 0;
-  align-self: stretch;
-  min-height: 100%;
+  align-self: auto;
+  min-height: 0;
   height: auto;
+}
+
+@container extras-game-toolbar (min-width: 26.01rem) {
+  .extras-game-toolbar .extras-game-desktop-link-option {
+    align-self: stretch;
+  }
+}
+
+@container extras-game-toolbar (max-width: 26rem) {
+  .extras-game-toolbar .extras-game-back {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+    align-self: auto;
+    min-height: 0;
+  }
+
+  .extras-game-toolbar .extras-game-desktop-link-option {
+    flex: 0 1 auto;
+    width: auto;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: 0;
+    align-self: auto;
+    min-height: 0;
+  }
+
+  .extras-game-toolbar .extras-game-desktop-link-label,
+  .extras-game-toolbar .extras-game-back .term-row-label {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 
 .extras-game-desktop-link-option {
@@ -348,11 +386,10 @@
   display: inline-flex;
   flex-direction: row;
   align-items: center;
-  align-self: stretch;
   gap: 14px;
   width: fit-content;
   max-width: 100%;
-  min-height: 100%;
+  min-height: 0;
   height: auto;
   box-sizing: border-box;
   padding: 0.55em 0.75em;
@@ -379,12 +416,26 @@
   min-height: var(--settings-choice-btn-height, 1.2rem);
 }
 
+.extras-game-desktop-link-option .settings-switch.is-on .settings-switch-track,
+.extras-game-desktop-link-option[aria-pressed="true"] .settings-switch-track {
+  background-color: rgba(14, 10, 4, 0.95);
+  border-color: rgba(255, 128, 0, 0.55);
+}
+
+.extras-game-desktop-link-option .settings-switch.is-on .settings-switch-thumb,
+.extras-game-desktop-link-option[aria-pressed="true"] .settings-switch-thumb {
+  transform: translate3d(calc(100% + 2px), 0, 0);
+  background-color: rgba(255, 128, 0, 0.45);
+  border-color: rgba(255, 128, 0, 0.75);
+}
+
 .extras-game-desktop-link-label {
   font-size: clamp(0.92rem, 2vmin, 1.2rem);
   letter-spacing: 0.04em;
   text-transform: none;
   white-space: nowrap;
   line-height: 1.2;
+  min-width: 0;
 }
 
 .extras-game-back {
