@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Plano de fundo 03",
   "web.extras.art.close": "Fechar",
   "web.extras.art.empty": "Nenhuma arte encontrada.",
+  "web.extras.art.random-disable-hint": "Para desativar o fundo aleatório — defina qualquer arte como fundo",
   "web.extras.art.randomize-background": "Fundo aleatório",
   "web.extras.art.set-background": "Definir como fundo",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Irreal!",
   "web.game.citrus-slice.prompt-start-hint": "Clique para começar — corte cápsulas, evite bombas — erros não encerram a corrida",
   "web.game.game-over": "Fim de jogo",
+  "web.game.game-over-menu": "Menu inicial",
+  "web.game.game-over-retry": "Jogar de novo",
   "web.game.label.bonus": "bonus",
   "web.game.label.depth": "prof.",
   "web.game.label.distance": "Dist.",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "CLIQUE PARA COMEÇAR",
   "web.game.prompt.hold-jump-higher": "Pressione e segure para pular mais alto",
   "web.game.prompt.hold-or-wasd": "clique e segure ou WASD",
+  "web.game.prompt.hold-reverse-spin": "Segure para inverter a rotação — aterrisse de pé",
   "web.game.prompt.tunnel-wasd-or-click": "WASD ou segure o clique de um lado para dirigir até a borda do túnel",
   "web.game.record-congrats": "Colheita excelente!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Créditos",
   "web.window.extras-data": "extras.dat",
-  "yes": "Sim",
-  "web.extras.art.random-disable-hint": "Para desativar o fundo aleatório — defina qualquer arte como fundo"
+  "yes": "Sim"
 }

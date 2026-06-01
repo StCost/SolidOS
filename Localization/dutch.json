@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Achtergrond 03",
   "web.extras.art.close": "Sluiten",
   "web.extras.art.empty": "Geen kunst gevonden.",
+  "web.extras.art.random-disable-hint": "Om willekeurige achtergrond uit te schakelen — stel een kunstwerk in als achtergrond",
   "web.extras.art.randomize-background": "Willekeurige achtergrond",
   "web.extras.art.set-background": "Instellen als achtergrond",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Onwerkelijk!",
   "web.game.citrus-slice.prompt-start-hint": "Klik om te starten — snijd capsules, ontwijk bommen — misses beëindigen de run niet",
   "web.game.game-over": "Game over",
+  "web.game.game-over-menu": "Startmenu",
+  "web.game.game-over-retry": "Opnieuw spelen",
   "web.game.label.bonus": "bonus",
   "web.game.label.depth": "diepte",
   "web.game.label.distance": "Afstand",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "KLIK OM TE STARTEN",
   "web.game.prompt.hold-jump-higher": "Houd ingedrukt om hoger te springen",
   "web.game.prompt.hold-or-wasd": "klik en houd vast of WASD",
+  "web.game.prompt.hold-reverse-spin": "Houd ingedrukt om de rotatie te keren — land op je voeten",
   "web.game.prompt.tunnel-wasd-or-click": "WASD of houd klik aan een kant ingedrukt om naar de tunnelrand te sturen",
   "web.game.record-congrats": "Uitstekende oogst!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Credits",
   "web.window.extras-data": "extras.dat",
-  "yes": "Ja",
-  "web.extras.art.random-disable-hint": "Om willekeurige achtergrond uit te schakelen — stel een kunstwerk in als achtergrond"
+  "yes": "Ja"
 }

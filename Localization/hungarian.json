@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Háttér 03",
   "web.extras.art.close": "Bezárás",
   "web.extras.art.empty": "Nem található művészet.",
+  "web.extras.art.random-disable-hint": "A véletlen háttér kikapcsolásához — állíts be bármely műalkotást háttérnek",
   "web.extras.art.randomize-background": "Véletlen háttér",
   "web.extras.art.set-background": "Beállítás háttérként",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Hihetetlen!",
   "web.game.citrus-slice.prompt-start-hint": "Kattints az indításhoz — vágd a kapszulákat, kerüld a bombákat — a hibák nem állítják le a futást",
   "web.game.game-over": "Játék vége",
+  "web.game.game-over-menu": "Kezdőmenü",
+  "web.game.game-over-retry": "Újra",
   "web.game.label.bonus": "bonusz",
   "web.game.label.depth": "mélység",
   "web.game.label.distance": "Táv",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "KATTINTS AZ INDÍTÁSHOZ",
   "web.game.prompt.hold-jump-higher": "Tartsd nyomva a magasabb ugráshoz",
   "web.game.prompt.hold-or-wasd": "kattints és tartsd vagy WASD",
+  "web.game.prompt.hold-reverse-spin": "Tartsd nyomva a forgás megfordításához — lábaidra érkezz",
   "web.game.prompt.tunnel-wasd-or-click": "WASD vagy tartsd lenyomva a kattintást oldalra a járat széléhez kormányzáshoz",
   "web.game.record-congrats": "Kiváló aratás!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Stáblista",
   "web.window.extras-data": "extras.dat",
-  "yes": "Igen",
-  "web.extras.art.random-disable-hint": "A véletlen háttér kikapcsolásához — állíts be bármely műalkotást háttérnek"
+  "yes": "Igen"
 }

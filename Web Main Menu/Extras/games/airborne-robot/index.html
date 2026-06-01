@@ -136,8 +136,7 @@
       filter: drop-shadow(0 2px 6px rgba(10, 12, 26, 0.45));
     }
 
-    #robotWrap.is-headless #robotTorso,
-    #robotWrap.is-headless #robotFlame {
+    #robotWrap.is-headless #robotTorso {
       display: none;
     }
 
@@ -152,15 +151,6 @@
     @keyframes shield-pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.88; }
-    }
-
-    #robotFlame {
-      opacity: 0;
-      transition: opacity 0.08s linear;
-    }
-
-    #robotWrap.is-thrusting #robotFlame {
-      opacity: 1;
     }
 
     #launchLeg {
@@ -273,30 +263,6 @@
 
     #hudPlaying.hidden {
       display: none;
-    }
-
-    #hudParts {
-      top: 12px;
-      left: 14px;
-      display: flex;
-      gap: 5px;
-      align-items: center;
-    }
-
-    .part-pip {
-      width: 12px;
-      height: 12px;
-      border-radius: 3px;
-      background: #ffb060;
-      box-shadow: 0 0 6px rgba(255, 150, 60, 0.6);
-      transition: background 0.2s linear, transform 0.2s ease, opacity 0.2s linear;
-    }
-
-    .part-pip.is-lost {
-      background: #2c3550;
-      box-shadow: none;
-      transform: scale(0.7);
-      opacity: 0.5;
     }
 
     #hudHighScore {
@@ -434,6 +400,55 @@
       display: none;
     }
 
+    #gameOverActions {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.55rem;
+      margin-top: 0.85rem;
+      min-width: min(16rem, 88vw);
+      pointer-events: auto;
+      font-family: "IBM3270", "CMFallback", "IBM 3270", ui-monospace, monospace;
+      font-size: clamp(0.82rem, 1.75vmin, 1rem);
+    }
+
+    #gameOverActions.hidden {
+      display: none;
+    }
+
+    #gameOverActions .game-over-action-btn {
+      margin: 0;
+      padding: 0.62em 1em;
+      border: 1px solid rgba(255, 128, 0, 0.55);
+      background: rgba(6, 8, 12, 0.96);
+      color: #dcecff;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: var(--cursor-pointer);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      transition:
+        border-color 0.12s ease,
+        box-shadow 0.12s ease,
+        color 0.12s ease;
+    }
+
+    #gameOverActions .game-over-action-btn:hover:not(:focus-visible) {
+      border-color: rgba(255, 150, 64, 0.85);
+      color: #fff4dc;
+      box-shadow: 0 0 12px rgba(255, 100, 32, 0.18);
+    }
+
+    #gameOverActions .game-over-action-btn:focus-visible {
+      border-color: rgba(255, 150, 64, 0.95);
+      box-shadow: 0 0 14px rgba(255, 100, 32, 0.28);
+      outline: none;
+    }
+
+    #gameOverActions .game-over-action-btn--primary {
+      color: #ffe8a8;
+      border-color: rgba(255, 180, 90, 0.72);
+    }
+
     #gameScreen.is-record #screenTitle {
       animation: record-title-glow 0.9s ease-in-out infinite alternate;
       color: #ffe8a8;
@@ -478,45 +493,218 @@
 
     #robotColorPicker {
       position: absolute;
-      left: 50%;
-      bottom: 24px;
-      transform: translateX(-50%);
+      left: 12px;
+      bottom: 16px;
+      z-index: 10;
       display: flex;
-      gap: 0.55rem;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25em;
+      padding: 0.35em 0.4em 0.45em;
+      border: 1px solid rgba(255, 128, 0, 0.55);
+      background: rgba(6, 8, 12, 0.96);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
       pointer-events: auto;
+      font-family: "IBM3270", "CMFallback", "IBM 3270", ui-monospace, monospace;
+      font-size: clamp(0.78rem, 1.55vmin, 0.95rem);
+      --settings-choice-btn-height: clamp(1.8rem, 3vmin, 2.1rem);
     }
 
     #robotColorPicker.hidden {
       display: none;
     }
 
-    .robot-color-option {
-      padding: 0.3rem;
+    #robotColorPickerTitle {
       margin: 0;
-      font: inherit;
-      color: inherit;
-      border: 2px solid rgba(120, 150, 210, 0.25);
-      border-radius: 8px;
-      background: rgba(10, 14, 28, 0.65);
-      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
-      transition: border-color 0.15s linear, box-shadow 0.15s linear, transform 0.12s ease;
+      text-align: center;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      line-height: 1;
     }
 
-    .robot-color-option:hover {
-      border-color: rgba(255, 176, 96, 0.45);
-      transform: translateY(-2px);
+    #robotColorPicker .robot-color-control {
+      position: relative;
+      display: flex;
+      justify-content: center;
     }
 
-    .robot-color-option.is-selected {
-      border-color: #ffb060;
-      box-shadow: 0 0 14px rgba(255, 150, 60, 0.5);
+    #robotColorPicker input {
+      user-select: text;
+      -webkit-user-select: text;
     }
 
-    .robot-color-option svg {
-      width: clamp(34px, 7.5vmin, 46px);
+    #robotColorPicker .robot-color-open-btn {
+      display: block;
+      width: auto;
+      height: auto;
+      min-width: 0;
+      min-height: 0;
+      padding: 0.12em 0.18em;
+      margin: 0;
+      border: 1px solid rgba(255, 128, 0, 0.18);
+      border-radius: 0;
+      background: var(--ink-screen);
+      cursor: var(--cursor-pointer);
+      box-sizing: border-box;
+      line-height: 0;
+      transition:
+        border-color 0.12s ease,
+        box-shadow 0.12s ease;
+    }
+
+    #robotColorPicker .robot-color-open-btn svg {
+      width: calc(var(--settings-choice-btn-height) * 0.95);
       height: auto;
       display: block;
-      filter: drop-shadow(0 2px 5px rgba(10, 12, 26, 0.45));
+    }
+
+    #robotColorPicker .robot-color-open-btn:hover:not(:focus-visible) {
+      border-color: rgba(255, 150, 64, 0.45);
+      box-shadow: 0 0 10px rgba(255, 100, 32, 0.12);
+    }
+
+    #robotColorPicker .robot-color-open-btn:focus-visible {
+      border-color: rgba(255, 150, 64, 0.85);
+      box-shadow: 0 0 12px rgba(255, 100, 32, 0.22);
+      outline: none;
+    }
+
+    #robotColorPicker .robot-color-dialog {
+      position: absolute;
+      left: 0;
+      bottom: calc(100% + 0.45em);
+      width: min(18rem, calc(100vw - 2rem));
+      padding: 0.55em 0.65em 0.65em;
+      border: 1px solid rgba(255, 128, 0, 0.55);
+      background: rgba(6, 8, 12, 0.98);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+      box-sizing: border-box;
+      z-index: 12;
+    }
+
+    #robotColorPicker .robot-color-dialog.hidden {
+      display: none;
+    }
+
+    #robotColorPicker .robot-color-dialog-title {
+      margin: 0 0 0.35em;
+      text-align: center;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    #robotColorPicker .robot-color-sv-panel {
+      position: relative;
+      width: 100%;
+      height: clamp(6.5rem, 16vmin, 8.5rem);
+      margin-bottom: 0.45em;
+      border: 1px solid rgba(255, 128, 0, 0.28);
+      background-color: hsl(var(--robot-color-hue, 220), 100%, 50%);
+      background-image:
+        linear-gradient(to right, #ffffff, transparent),
+        linear-gradient(to top, #000000, transparent);
+      box-sizing: border-box;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    #robotColorPicker .robot-color-sv-cursor {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      margin: -6px 0 0 -6px;
+      border: 2px solid rgba(255, 200, 140, 0.95);
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.65);
+      pointer-events: none;
+      box-sizing: border-box;
+    }
+
+    #robotColorPicker .robot-color-hue-row {
+      display: flex;
+      align-items: center;
+      gap: 0.35em;
+      margin-bottom: 0.45em;
+    }
+
+    #robotColorPicker .robot-color-swatch {
+      flex: 0 0 auto;
+      width: calc(var(--settings-choice-btn-height) * 0.72);
+      height: calc(var(--settings-choice-btn-height) * 0.72);
+      border: 1px solid rgba(255, 128, 0, 0.28);
+      background: var(--ink-screen);
+      box-sizing: border-box;
+    }
+
+    #robotColorPicker .robot-color-hue-track {
+      position: relative;
+      flex: 1 1 auto;
+      height: calc(var(--settings-choice-btn-height) * 0.72);
+      min-width: 0;
+      border: 1px solid rgba(255, 128, 0, 0.28);
+      background: linear-gradient(
+        to right,
+        #ff0000 0%,
+        #ffff00 17%,
+        #00ff00 33%,
+        #00ffff 50%,
+        #0000ff 67%,
+        #ff00ff 83%,
+        #ff0000 100%
+      );
+      box-sizing: border-box;
+      touch-action: none;
+      cursor: ew-resize;
+    }
+
+    #robotColorPicker .robot-color-hue-thumb {
+      position: absolute;
+      top: 50%;
+      width: 10px;
+      height: calc(100% + 4px);
+      margin: 0 0 0 -5px;
+      border: 1px solid rgba(255, 128, 0, 0.75);
+      background-color: rgba(255, 128, 0, 0.2);
+      background-image: var(--scrollbar-thumb-stripe);
+      transform: translateY(-50%);
+      pointer-events: none;
+      box-sizing: border-box;
+    }
+
+    #robotColorPicker .robot-color-rgb-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.35em;
+    }
+
+    #robotColorPicker .robot-color-channel {
+      flex: 1 1 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.15em;
+    }
+
+    #robotColorPicker .robot-color-channel-input {
+      width: 100%;
+      max-width: none;
+      min-width: 0;
+      text-align: center;
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    #robotColorPicker .robot-color-channel-input::-webkit-outer-spin-button,
+    #robotColorPicker .robot-color-channel-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    #robotColorPicker .robot-color-channel-label {
+      text-align: center;
+      letter-spacing: 0.08em;
+      line-height: 1;
     }
   </style>
 </head>
@@ -552,11 +740,6 @@
     <div id="robotWrap" aria-hidden="true">
       <div id="robotSpin">
         <svg id="robotSvg" viewBox="-24 -28 128 164" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <g id="robotFlame">
-            <path d="M30 96 Q40 132 50 96 Q40 108 30 96 Z" fill="#ffd24a" />
-            <path d="M34 96 Q40 120 46 96 Q40 106 34 96 Z" fill="#ff7a1e" />
-            <path d="M37 96 Q40 110 43 96 Q40 102 37 96 Z" fill="#fff2c4" />
-          </g>
           <g id="robotArmLeft" class="robot-part">
             <rect x="10" y="40" width="11" height="26" rx="4" fill="#5c6b8c" stroke="#2c364f" stroke-width="1.4" />
             <circle cx="15.5" cy="68" r="5.5" fill="#7e8eb2" stroke="#2c364f" stroke-width="1.4" />
@@ -597,7 +780,6 @@
         <div id="hudSpeed">0 m/s</div>
         <div id="hudCombo" class="hidden">x0</div>
       </div>
-      <div id="hudParts" class="hud-panel"></div>
     </div>
     <div id="hudHighScore" class="hud-panel">best 0m</div>
     <div id="debugPanel" class="hidden" aria-hidden="true">
@@ -632,12 +814,32 @@
             </div>
           </div>
         </div>
+        <div class="settings-row settings-row--toggle">
+          <div class="settings-field-line">
+            <div class="settings-field-label-box">
+              <span class="settings-label">
+                <span class="settings-label-text term-row-label terminal-text">Start with shield</span>
+              </span>
+            </div>
+            <div class="settings-field-control-box settings-field-control-box--toggle">
+              <button id="debugStartWithShieldSwitch" type="button" class="settings-switch" role="switch" aria-checked="false" aria-label="Start with shield">
+                <span class="settings-switch-track" aria-hidden="true">
+                  <span class="settings-switch-thumb"></span>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div id="gameScreen">
       <h1 id="screenTitle">Airborne Robot</h1>
       <p id="controlHint">Hold to reverse spin &mdash; land on your feet</p>
       <p id="screenMeters" class="hidden">0m</p>
+      <div id="gameOverActions" class="hidden">
+        <button id="gameOverMenuButton" type="button" class="game-over-action-btn">Start Menu</button>
+        <button id="gameOverRetryButton" type="button" class="game-over-action-btn game-over-action-btn--primary">Play Again</button>
+      </div>
       <div id="robotColorPicker" aria-label="Robot color"></div>
       <div id="recordBurst" aria-hidden="true"></div>
     </div>
@@ -648,9 +850,11 @@
     var ROBOT_COLOR_STORAGE_KEY = "cm-airborne-robot-color";
     var GAME_TITLE = "Airborne Robot";
     var LOCALE_KEY_GAME_OVER = "web.game.game-over";
+    var LOCALE_KEY_GAME_OVER_MENU = "web.game.game-over-menu";
+    var LOCALE_KEY_GAME_OVER_RETRY = "web.game.game-over-retry";
     var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
     var LOCALE_KEY_METERS_SUFFIX = "web.game.meters-suffix";
-    var SPEED_SUFFIX = " m/s";
+    var LOCALE_KEY_SPEED_SUFFIX = "web.game.speed-suffix";
     var LOCALE_KEY_HOLD_REVERSE = "web.game.prompt.hold-reverse-spin";
     var HINT_FALLBACK = "Hold to reverse spin \u2014 land on your feet";
     var COMBO_PREFIX = "x";
@@ -673,8 +877,7 @@
     var LAUNCH_KICK_CONTACT = 0.1;
     var LAUNCH_FORWARD_SPEED = 430;
     var LAUNCH_BOUNCE = 540;
-    var HEAD_LAUNCH_SPEED_MULTIPLIER = 2;
-    var HEAD_LAUNCH_SPEED = HEAD_LAUNCH_SPEED_MULTIPLIER * Math.sqrt(LAUNCH_FORWARD_SPEED * LAUNCH_FORWARD_SPEED + LAUNCH_BOUNCE * LAUNCH_BOUNCE);
+    var HEAD_LAUNCH_SPEED = Math.sqrt(LAUNCH_FORWARD_SPEED * LAUNCH_FORWARD_SPEED + LAUNCH_BOUNCE * LAUNCH_BOUNCE);
     var HEAD_LAUNCH_BEACON_BONUS = 1;
     var HEAD_GAME_OVER_BOUNCE_FACTOR = 0.38;
     var HEAD_GAME_OVER_BOUNCE_MIN = 60;
@@ -710,6 +913,15 @@
     var BEACON_INTERVAL_METERS = 450;
     var BEACON_SPAWN_LEAD_METERS = 60;
     var BEACON_FADE_SECONDS = 0.6;
+    var BEACON_BEAM_BASE_OFFSET_RATIO = 1.55;
+    var BEACON_SHIELD_PERFECT_IMPACT_FACTOR = 0.88;
+    var BEACON_SHIELD_PERFECT_BOUNCE_BONUS = 200;
+    var BEACON_SHIELD_PERFECT_FORWARD_GAIN = 70;
+    var BEACON_SHIELD_PERFECT_FORWARD_SPEED_FACTOR = 0.42;
+    var SHIELD_PERFECT_LANDING_SHAKE_DURATION = 0.18;
+    var SHIELD_PERFECT_LANDING_SHAKE_STRENGTH = 5;
+    var SHIELD_PERFECT_LANDING_BURST_RADIUS = 38;
+    var SHIELD_PERFECT_LANDING_BURST_LIFE = 0.32;
     var SPARK_DEFAULT_HUE = 20;
     var SPARK_BEACON_HUE = 30;
     var SPARK_SHIELD_HUE = 52;
@@ -719,6 +931,19 @@
     var HEAD_TRAIL_MAX_POINTS = 36;
     var HEAD_TRAIL_POINT_INTERVAL = 0.016;
     var HEAD_TRAIL_POINT_LIFE = 0.55;
+    var LEG_TRAIL_FOOT_LOCAL_X_LEFT = -7;
+    var LEG_TRAIL_FOOT_LOCAL_X_RIGHT = 7;
+    var LEG_TRAIL_FOOT_LOCAL_Y = 41;
+    var LEG_TRAIL_POINT_INTERVAL = 0.014;
+    var LEG_TRAIL_BASE_MAX_POINTS = 22;
+    var LEG_TRAIL_BASE_POINT_LIFE = 0.32;
+    var LEG_TRAIL_SPEED_THRESHOLD_METERS = 25;
+    var LEG_TRAIL_SPEED_STEP_METERS = 5;
+    var LEG_TRAIL_EXTRA_POINTS_PER_STEP = 10;
+    var LEG_TRAIL_EXTRA_LIFE_PER_STEP = 0.1;
+    var LEG_TRAIL_COLOR_LIGHTEN = 0.16;
+    var LEG_TRAIL_BASE_ALPHA = 0.34;
+    var LEG_TRAIL_BRIGHTNESS_STEP = 0.09;
     var SHIELD_OUTLINE_INNER_ALPHA = 0.82;
     var SHIELD_OUTLINE_MID_ALPHA = 0.52;
     var SHIELD_OUTLINE_OUTER_ALPHA = 0.28;
@@ -729,19 +954,21 @@
     var gameRoot = document.getElementById("gameRoot");
     var robotWrap = document.getElementById("robotWrap");
     var robotSpin = document.getElementById("robotSpin");
-    var robotFlame = document.getElementById("robotFlame");
     var hudPlaying = document.getElementById("hudPlaying");
     var hudDistance = document.getElementById("hudDistance");
     var hudSpeed = document.getElementById("hudSpeed");
     var hudCombo = document.getElementById("hudCombo");
-    var hudParts = document.getElementById("hudParts");
     var hudHighScore = document.getElementById("hudHighScore");
     var debugPanel = document.getElementById("debugPanel");
     var debugSpawnInput = document.getElementById("debugSpawnInput");
     var debugGodmodeSwitch = document.getElementById("debugGodmodeSwitch");
+    var debugStartWithShieldSwitch = document.getElementById("debugStartWithShieldSwitch");
     var gameScreen = document.getElementById("gameScreen");
     var screenTitle = document.getElementById("screenTitle");
     var screenMeters = document.getElementById("screenMeters");
+    var gameOverActions = document.getElementById("gameOverActions");
+    var gameOverMenuButton = document.getElementById("gameOverMenuButton");
+    var gameOverRetryButton = document.getElementById("gameOverRetryButton");
     var controlHint = document.getElementById("controlHint");
     var recordBurst = document.getElementById("recordBurst");
     var launchLeg = document.getElementById("launchLeg");
@@ -752,80 +979,46 @@
     var robotSvg = document.getElementById("robotSvg");
     var robotHeadElement = document.getElementById("robotHead");
 
-    var ROBOT_COLOR_SCHEMES = [
-      {
-        id: "blue",
-        torso: "#6b7ba0",
-        arm: "#5c6b8c",
-        legDark: "#4a5878",
-        highlight: "#7e8eb2",
-        highlightLight: "#8694b8",
-        stroke: "#2c364f",
-        strokeLeg: "#262f47",
-        debrisDark: "#6b7ba0",
-        debrisLight: "#8694b8"
-      },
-      {
-        id: "purple",
-        torso: "#8068a8",
-        arm: "#6e5890",
-        legDark: "#5a4878",
-        highlight: "#9a84c0",
-        highlightLight: "#a894c8",
-        stroke: "#382850",
-        strokeLeg: "#302044",
-        debrisDark: "#8068a8",
-        debrisLight: "#a894c8"
-      },
-      {
-        id: "green",
-        torso: "#68a878",
-        arm: "#589068",
-        legDark: "#487858",
-        highlight: "#84c094",
-        highlightLight: "#94c8a4",
-        stroke: "#285038",
-        strokeLeg: "#204830",
-        debrisDark: "#68a878",
-        debrisLight: "#94c8a4"
-      },
-      {
-        id: "red",
-        torso: "#a86868",
-        arm: "#905858",
-        legDark: "#784848",
-        highlight: "#c08484",
-        highlightLight: "#c89494",
-        stroke: "#502828",
-        strokeLeg: "#482020",
-        debrisDark: "#a86868",
-        debrisLight: "#c89494"
-      },
-      {
-        id: "orange",
-        torso: "#c89858",
-        arm: "#b08448",
-        legDark: "#986838",
-        highlight: "#e0b878",
-        highlightLight: "#ecc888",
-        stroke: "#503818",
-        strokeLeg: "#483018",
-        debrisDark: "#c89858",
-        debrisLight: "#ecc888"
-      }
-    ];
+    var DEFAULT_ROBOT_BASE_COLOR = "#6b7ba0";
+    var LEGACY_ROBOT_COLOR_IDS = {
+      blue: "#6b7ba0",
+      purple: "#8068a8",
+      green: "#68a878",
+      red: "#a86868",
+      orange: "#c89858"
+    };
 
-    var currentRobotColorScheme = ROBOT_COLOR_SCHEMES[0];
-    var robotColorOptionElements = [];
+    var currentRobotColorScheme = buildRobotColorSchemeFromBase(DEFAULT_ROBOT_BASE_COLOR);
+    var robotColorOpenButton = null;
+    var robotColorDialogElement = null;
+    var robotColorSvPanelElement = null;
+    var robotColorSvCursorElement = null;
+    var robotColorHueTrackElement = null;
+    var robotColorHueThumbElement = null;
+    var robotColorSwatchElement = null;
+    var robotColorRedInputElement = null;
+    var robotColorGreenInputElement = null;
+    var robotColorBlueInputElement = null;
+    var robotColorPreviewElement = null;
+    var robotColorDialogOpen = false;
+    var robotColorHue = 220;
+    var robotColorSaturation = 0.25;
+    var robotColorValue = 0.63;
+    var robotColorDragMode = "";
+    var ROBOT_COLOR_DRAG_SV = "sv";
+    var ROBOT_COLOR_DRAG_HUE = "hue";
 
     var COLOR_PICKER_HOVER_AUDIO_PATH = "../../../../audio/ui-hover.wav";
     var COLOR_PICKER_CLICK_AUDIO_PATH = "../../../../audio/ui-click.wav";
+    var COLOR_PICKER_MOVE_AUDIO_PATH = "../../../../audio/ui-move.wav";
+    var COLOR_PICKER_MOVE_SOUND_MIN_INTERVAL_MS = 60;
     var colorPickerHoverAudio = null;
     var colorPickerClickAudio = null;
+    var colorPickerMoveAudio = null;
     var colorPickerSoundsUnlocked = false;
+    var colorPickerMoveSoundLastPlayedAt = 0;
 
     var limbElements = {};
-    var partPipElements = [];
 
     var width = 0;
     var height = 0;
@@ -902,8 +1095,9 @@
     var LEG_HIP_LEFT_Y = 66;
     var LEG_HIP_RIGHT_X = 46;
     var LEG_HIP_RIGHT_Y = 66;
-    var LEG_SWAY_SPEED = 3.5;
-    var LEG_SWAY_AMOUNT = 2.6;
+    var LEG_SWAY_SPEED = 4.8;
+    var LEG_SWAY_AMOUNT = 2.2;
+    var LEG_SPREAD_ANGLE = 22;
     var HEAD_NECK_X = 40;
     var HEAD_NECK_Y = 34;
     var HEAD_CENTER_X = 40;
@@ -937,6 +1131,7 @@
     var lostLimbCount = 0;
     var currentLimbDamage = 0;
     var shieldActive = false;
+    var beaconShieldPerfectLandingPending = false;
     var headDetached = false;
     var headDetachOffsetNaturalX = 0;
     var headDetachOffsetNaturalY = 0;
@@ -957,7 +1152,9 @@
     var headTrailPoints = [];
     var headTrailSampleTimer = 0;
     var headTrailActive = false;
-    var exhaustParticles = [];
+    var legTrailLeftPoints = [];
+    var legTrailRightPoints = [];
+    var legTrailSampleTimer = 0;
     var dustParticles = [];
     var dustParticleMax = 50;
     var landingRings = [];
@@ -1130,14 +1327,191 @@
       return getLocalized(LOCALE_KEY_HOLD_REVERSE, HINT_FALLBACK);
     }
 
-    function getRobotColorSchemeById(schemeId) {
-      var index;
-      for (index = 0; index < ROBOT_COLOR_SCHEMES.length; index++) {
-        if (ROBOT_COLOR_SCHEMES[index].id === schemeId) {
-          return ROBOT_COLOR_SCHEMES[index];
+    function clampColorChannel(value) {
+      if (value < 0) {
+        return 0;
+      }
+      if (value > 255) {
+        return 255;
+      }
+      return Math.round(value);
+    }
+
+    function parseHexColor(hexValue) {
+      var hex = hexValue;
+      if (!hex || typeof hex !== "string") {
+        return null;
+      }
+      hex = hex.trim();
+      if (hex.charAt(0) === "#") {
+        hex = hex.substring(1);
+      }
+      if (hex.length === 3) {
+        hex = hex.charAt(0) + hex.charAt(0) + hex.charAt(1) + hex.charAt(1) + hex.charAt(2) + hex.charAt(2);
+      }
+      if (hex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(hex)) {
+        return null;
+      }
+      return {
+        r: parseInt(hex.substring(0, 2), 16),
+        g: parseInt(hex.substring(2, 4), 16),
+        b: parseInt(hex.substring(4, 6), 16)
+      };
+    }
+
+    function rgbToHex(red, green, blue) {
+      function channelToHex(channel) {
+        var hex = clampColorChannel(channel).toString(16);
+        if (hex.length < 2) {
+          hex = "0" + hex;
+        }
+        return hex;
+      }
+      return "#" + channelToHex(red) + channelToHex(green) + channelToHex(blue);
+    }
+
+    function rgbToHsv(red, green, blue) {
+      var redNorm = red / 255;
+      var greenNorm = green / 255;
+      var blueNorm = blue / 255;
+      var max = Math.max(redNorm, greenNorm, blueNorm);
+      var min = Math.min(redNorm, greenNorm, blueNorm);
+      var delta = max - min;
+      var hue = 0;
+      var saturation = 0;
+      var value = max;
+      if (delta > 0.00001) {
+        saturation = delta / max;
+        if (max === redNorm) {
+          hue = (greenNorm - blueNorm) / delta;
+        } else if (max === greenNorm) {
+          hue = (blueNorm - redNorm) / delta + 2;
+        } else {
+          hue = (redNorm - greenNorm) / delta + 4;
+        }
+        hue = hue * 60;
+        if (hue < 0) {
+          hue = hue + 360;
         }
       }
-      return ROBOT_COLOR_SCHEMES[0];
+      return { h: hue, s: saturation, v: value };
+    }
+
+    function hsvToRgb(hue, saturation, value) {
+      var chroma = value * saturation;
+      var hueSegment = hue / 60;
+      var secondary = chroma * (1 - Math.abs(hueSegment % 2 - 1));
+      var match = value - chroma;
+      var red = 0;
+      var green = 0;
+      var blue = 0;
+      var segment = Math.floor(hueSegment);
+      if (segment === 0) {
+        red = chroma;
+        green = secondary;
+        blue = 0;
+      } else if (segment === 1) {
+        red = secondary;
+        green = chroma;
+        blue = 0;
+      } else if (segment === 2) {
+        red = 0;
+        green = chroma;
+        blue = secondary;
+      } else if (segment === 3) {
+        red = 0;
+        green = secondary;
+        blue = chroma;
+      } else if (segment === 4) {
+        red = secondary;
+        green = 0;
+        blue = chroma;
+      } else {
+        red = chroma;
+        green = 0;
+        blue = secondary;
+      }
+      return {
+        r: clampColorChannel((red + match) * 255),
+        g: clampColorChannel((green + match) * 255),
+        b: clampColorChannel((blue + match) * 255)
+      };
+    }
+
+    function setRobotColorHsvFromHex(hexValue) {
+      var rgb = parseHexColor(hexValue);
+      var hsv;
+      if (!rgb) {
+        return;
+      }
+      hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
+      robotColorHue = hsv.h;
+      robotColorSaturation = hsv.s;
+      robotColorValue = hsv.v;
+    }
+
+    function mixRgbColor(first, second, mixAmount) {
+      return {
+        r: clampColorChannel(first.r + (second.r - first.r) * mixAmount),
+        g: clampColorChannel(first.g + (second.g - first.g) * mixAmount),
+        b: clampColorChannel(first.b + (second.b - first.b) * mixAmount)
+      };
+    }
+
+    function darkenHexColor(hexValue, mixAmount) {
+      var rgb = parseHexColor(hexValue);
+      var mixed;
+      if (!rgb) {
+        return hexValue;
+      }
+      mixed = mixRgbColor(rgb, { r: 0, g: 0, b: 0 }, mixAmount);
+      return rgbToHex(mixed.r, mixed.g, mixed.b);
+    }
+
+    function lightenHexColor(hexValue, mixAmount) {
+      var rgb = parseHexColor(hexValue);
+      var mixed;
+      if (!rgb) {
+        return hexValue;
+      }
+      mixed = mixRgbColor(rgb, { r: 255, g: 255, b: 255 }, mixAmount);
+      return rgbToHex(mixed.r, mixed.g, mixed.b);
+    }
+
+    function buildRobotColorSchemeFromBase(baseHex) {
+      var normalizedBase = normalizeRobotBaseColor(baseHex);
+      if (!normalizedBase) {
+        normalizedBase = DEFAULT_ROBOT_BASE_COLOR;
+      }
+      return {
+        id: normalizedBase,
+        torso: normalizedBase,
+        arm: darkenHexColor(normalizedBase, 0.12),
+        legDark: darkenHexColor(normalizedBase, 0.28),
+        highlight: lightenHexColor(normalizedBase, 0.12),
+        highlightLight: lightenHexColor(normalizedBase, 0.18),
+        stroke: darkenHexColor(normalizedBase, 0.62),
+        strokeLeg: darkenHexColor(normalizedBase, 0.68),
+        debrisDark: normalizedBase,
+        debrisLight: lightenHexColor(normalizedBase, 0.18)
+      };
+    }
+
+    function normalizeRobotBaseColor(colorValue) {
+      var legacyColor;
+      var rgb;
+      if (!colorValue || typeof colorValue !== "string") {
+        return null;
+      }
+      legacyColor = LEGACY_ROBOT_COLOR_IDS[colorValue];
+      if (legacyColor) {
+        return legacyColor;
+      }
+      rgb = parseHexColor(colorValue);
+      if (!rgb) {
+        return null;
+      }
+      return rgbToHex(rgb.r, rgb.g, rgb.b);
     }
 
     function getMiniRobotSvgMarkup(scheme) {
@@ -1201,27 +1575,153 @@
       headRect.setAttribute("stroke", scheme.stroke);
     }
 
-    function syncRobotColorPickerSelection() {
-      var index;
-      for (index = 0; index < robotColorOptionElements.length; index++) {
-        if (robotColorOptionElements[index].getAttribute("data-color-id") === currentRobotColorScheme.id) {
-          robotColorOptionElements[index].classList.add("is-selected");
-          robotColorOptionElements[index].setAttribute("aria-pressed", "true");
-        } else {
-          robotColorOptionElements[index].classList.remove("is-selected");
-          robotColorOptionElements[index].setAttribute("aria-pressed", "false");
-        }
+    function updateRobotColorPreview() {
+      if (robotColorPreviewElement) {
+        robotColorPreviewElement.innerHTML = getMiniRobotSvgMarkup(currentRobotColorScheme);
       }
     }
 
-    function setRobotColor(schemeId) {
-      currentRobotColorScheme = getRobotColorSchemeById(schemeId);
+    function updateRobotColorDialogVisuals() {
+      var rgb;
+      if (!robotColorSvPanelElement) {
+        return;
+      }
+      robotColorSvPanelElement.style.setProperty("--robot-color-hue", String(robotColorHue));
+      if (robotColorSvCursorElement) {
+        robotColorSvCursorElement.style.left = (robotColorSaturation * 100) + "%";
+        robotColorSvCursorElement.style.top = ((1 - robotColorValue) * 100) + "%";
+      }
+      if (robotColorHueThumbElement) {
+        robotColorHueThumbElement.style.left = ((robotColorHue / 360) * 100) + "%";
+      }
+      rgb = hsvToRgb(robotColorHue, robotColorSaturation, robotColorValue);
+      if (robotColorSwatchElement) {
+        robotColorSwatchElement.style.backgroundColor = rgbToHex(rgb.r, rgb.g, rgb.b);
+      }
+      if (robotColorRedInputElement && document.activeElement !== robotColorRedInputElement) {
+        robotColorRedInputElement.value = String(rgb.r);
+      }
+      if (robotColorGreenInputElement && document.activeElement !== robotColorGreenInputElement) {
+        robotColorGreenInputElement.value = String(rgb.g);
+      }
+      if (robotColorBlueInputElement && document.activeElement !== robotColorBlueInputElement) {
+        robotColorBlueInputElement.value = String(rgb.b);
+      }
+    }
+
+    function syncRobotColorPickerSelection() {
+      updateRobotColorDialogVisuals();
+      updateRobotColorPreview();
+    }
+
+    function setRobotColor(baseColor) {
+      var normalizedColor = normalizeRobotBaseColor(baseColor);
+      if (!normalizedColor) {
+        return;
+      }
+      currentRobotColorScheme = buildRobotColorSchemeFromBase(normalizedColor);
       applyRobotColorScheme(currentRobotColorScheme);
+      setRobotColorHsvFromHex(normalizedColor);
       syncRobotColorPickerSelection();
       try {
-        window.localStorage.setItem(ROBOT_COLOR_STORAGE_KEY, currentRobotColorScheme.id);
+        window.localStorage.setItem(ROBOT_COLOR_STORAGE_KEY, normalizedColor);
       } catch (error) {
       }
+    }
+
+    function setRobotColorFromHsvState() {
+      var rgb = hsvToRgb(robotColorHue, robotColorSaturation, robotColorValue);
+      setRobotColor(rgbToHex(rgb.r, rgb.g, rgb.b));
+    }
+
+    function clampRobotColorPointerRatio(value) {
+      if (value < 0) {
+        return 0;
+      }
+      if (value > 1) {
+        return 1;
+      }
+      return value;
+    }
+
+    function updateRobotColorFromSvPointer(event) {
+      var rect = robotColorSvPanelElement.getBoundingClientRect();
+      var ratioX = clampRobotColorPointerRatio((event.clientX - rect.left) / rect.width);
+      var ratioY = clampRobotColorPointerRatio((event.clientY - rect.top) / rect.height);
+      robotColorSaturation = ratioX;
+      robotColorValue = 1 - ratioY;
+      setRobotColorFromHsvState();
+    }
+
+    function updateRobotColorFromHuePointer(event) {
+      var rect = robotColorHueTrackElement.getBoundingClientRect();
+      var ratioX = clampRobotColorPointerRatio((event.clientX - rect.left) / rect.width);
+      robotColorHue = ratioX * 360;
+      setRobotColorFromHsvState();
+    }
+
+    function endRobotColorDrag() {
+      robotColorDragMode = "";
+      window.removeEventListener("pointermove", onRobotColorDragPointerMove);
+      window.removeEventListener("pointerup", onRobotColorDragPointerUp);
+      window.removeEventListener("pointercancel", onRobotColorDragPointerUp);
+    }
+
+    function onRobotColorDragPointerMove(event) {
+      if (robotColorDragMode === ROBOT_COLOR_DRAG_SV) {
+        updateRobotColorFromSvPointer(event);
+        playColorPickerMoveSound();
+        return;
+      }
+      if (robotColorDragMode === ROBOT_COLOR_DRAG_HUE) {
+        updateRobotColorFromHuePointer(event);
+        playColorPickerMoveSound();
+      }
+    }
+
+    function onRobotColorDragPointerUp() {
+      endRobotColorDrag();
+    }
+
+    function beginRobotColorDrag(mode, event) {
+      robotColorDragMode = mode;
+      event.preventDefault();
+      event.stopPropagation();
+      if (mode === ROBOT_COLOR_DRAG_SV) {
+        updateRobotColorFromSvPointer(event);
+      } else if (mode === ROBOT_COLOR_DRAG_HUE) {
+        updateRobotColorFromHuePointer(event);
+      }
+      playColorPickerMoveSound();
+      window.addEventListener("pointermove", onRobotColorDragPointerMove);
+      window.addEventListener("pointerup", onRobotColorDragPointerUp);
+      window.addEventListener("pointercancel", onRobotColorDragPointerUp);
+    }
+
+    function openRobotColorDialog() {
+      if (!robotColorDialogElement) {
+        return;
+      }
+      robotColorDialogOpen = true;
+      robotColorDialogElement.classList.remove("hidden");
+      robotColorDialogElement.setAttribute("aria-hidden", "false");
+      if (robotColorOpenButton) {
+        robotColorOpenButton.setAttribute("aria-expanded", "true");
+      }
+      updateRobotColorDialogVisuals();
+    }
+
+    function closeRobotColorDialog() {
+      if (!robotColorDialogElement || !robotColorDialogOpen) {
+        return;
+      }
+      robotColorDialogOpen = false;
+      robotColorDialogElement.classList.add("hidden");
+      robotColorDialogElement.setAttribute("aria-hidden", "true");
+      if (robotColorOpenButton) {
+        robotColorOpenButton.setAttribute("aria-expanded", "false");
+      }
+      endRobotColorDrag();
     }
 
     function getColorPickerInterfaceVolume() {
@@ -1253,6 +1753,15 @@
       colorPickerClickAudio = new Audio(COLOR_PICKER_CLICK_AUDIO_PATH);
       colorPickerClickAudio.preload = "auto";
       return colorPickerClickAudio;
+    }
+
+    function ensureColorPickerMoveAudio() {
+      if (colorPickerMoveAudio) {
+        return colorPickerMoveAudio;
+      }
+      colorPickerMoveAudio = new Audio(COLOR_PICKER_MOVE_AUDIO_PATH);
+      colorPickerMoveAudio.preload = "auto";
+      return colorPickerMoveAudio;
     }
 
     function unlockColorPickerSounds() {
@@ -1293,52 +1802,195 @@
       playColorPickerSound(ensureColorPickerClickAudio());
     }
 
-    function onRobotColorOptionPointerEnter() {
+    function playColorPickerMoveSound() {
+      var now;
+      unlockColorPickerSounds();
+      now = Date.now();
+      if (now - colorPickerMoveSoundLastPlayedAt < COLOR_PICKER_MOVE_SOUND_MIN_INTERVAL_MS) {
+        return;
+      }
+      colorPickerMoveSoundLastPlayedAt = now;
+      playColorPickerSound(ensureColorPickerMoveAudio());
+    }
+
+    function onRobotColorOpenButtonPointerEnter() {
       playColorPickerHoverSound();
     }
 
-    function onRobotColorOptionPointerDown(event) {
+    function onRobotColorOpenButtonClick(event) {
       event.preventDefault();
       event.stopPropagation();
       playColorPickerClickSound();
-      var schemeId = event.currentTarget.getAttribute("data-color-id");
-      if (schemeId && schemeId !== currentRobotColorScheme.id) {
-        setRobotColor(schemeId);
+      if (robotColorDialogOpen) {
+        closeRobotColorDialog();
+      } else {
+        openRobotColorDialog();
       }
+    }
+
+    function onRobotColorSvPointerDown(event) {
+      beginRobotColorDrag(ROBOT_COLOR_DRAG_SV, event);
+    }
+
+    function onRobotColorHuePointerDown(event) {
+      beginRobotColorDrag(ROBOT_COLOR_DRAG_HUE, event);
+    }
+
+    function onRobotColorChannelPointerEnter() {
+      playColorPickerHoverSound();
+    }
+
+    function onRobotColorChannelPointerDown(event) {
+      event.stopPropagation();
+      playColorPickerClickSound();
+    }
+
+    function onRobotColorChannelInput() {
+      var red = parseInt(robotColorRedInputElement.value, 10);
+      var green = parseInt(robotColorGreenInputElement.value, 10);
+      var blue = parseInt(robotColorBlueInputElement.value, 10);
+      if (isNaN(red)) {
+        red = 0;
+      }
+      if (isNaN(green)) {
+        green = 0;
+      }
+      if (isNaN(blue)) {
+        blue = 0;
+      }
+      setRobotColor(rgbToHex(red, green, blue));
+    }
+
+    function onRobotColorDialogPointerDown(event) {
+      event.stopPropagation();
+    }
+
+    function buildRobotColorChannel(labelText, channelName) {
+      var channel = document.createElement("div");
+      var input = document.createElement("input");
+      var label = document.createElement("span");
+      channel.className = "robot-color-channel";
+      input.type = "number";
+      input.min = "0";
+      input.max = "255";
+      input.step = "1";
+      input.className = "settings-slider-value-input robot-color-channel-input";
+      input.setAttribute("inputmode", "numeric");
+      input.setAttribute("autocomplete", "off");
+      input.setAttribute("spellcheck", "false");
+      input.setAttribute("aria-label", channelName);
+      input.addEventListener("pointerenter", onRobotColorChannelPointerEnter);
+      input.addEventListener("pointerdown", onRobotColorChannelPointerDown);
+      input.addEventListener("input", onRobotColorChannelInput);
+      label.className = "robot-color-channel-label terminal-text--dim";
+      label.textContent = labelText;
+      channel.appendChild(input);
+      channel.appendChild(label);
+      return { channel: channel, input: input };
+    }
+
+    function buildRobotColorDialog() {
+      var dialogTitle;
+      var svPanel;
+      var svCursor;
+      var hueRow;
+      var swatch;
+      var hueTrack;
+      var hueThumb;
+      var rgbRow;
+      var redChannel;
+      var greenChannel;
+      var blueChannel;
+      robotColorDialogElement = document.createElement("div");
+      robotColorDialogElement.id = "robotColorDialog";
+      robotColorDialogElement.className = "robot-color-dialog hidden";
+      robotColorDialogElement.setAttribute("aria-hidden", "true");
+      robotColorDialogElement.addEventListener("pointerdown", onRobotColorDialogPointerDown);
+      dialogTitle = document.createElement("div");
+      dialogTitle.className = "robot-color-dialog-title term-row-label terminal-text";
+      dialogTitle.textContent = "Pick color";
+      svPanel = document.createElement("div");
+      svPanel.className = "robot-color-sv-panel";
+      svCursor = document.createElement("div");
+      svCursor.className = "robot-color-sv-cursor";
+      svPanel.appendChild(svCursor);
+      svPanel.addEventListener("pointerdown", onRobotColorSvPointerDown);
+      robotColorSvPanelElement = svPanel;
+      robotColorSvCursorElement = svCursor;
+      hueRow = document.createElement("div");
+      hueRow.className = "robot-color-hue-row";
+      swatch = document.createElement("div");
+      swatch.className = "robot-color-swatch";
+      swatch.setAttribute("aria-hidden", "true");
+      robotColorSwatchElement = swatch;
+      hueTrack = document.createElement("div");
+      hueTrack.className = "robot-color-hue-track";
+      hueThumb = document.createElement("div");
+      hueThumb.className = "robot-color-hue-thumb";
+      hueTrack.appendChild(hueThumb);
+      hueTrack.addEventListener("pointerdown", onRobotColorHuePointerDown);
+      robotColorHueTrackElement = hueTrack;
+      robotColorHueThumbElement = hueThumb;
+      hueRow.appendChild(swatch);
+      hueRow.appendChild(hueTrack);
+      rgbRow = document.createElement("div");
+      rgbRow.className = "robot-color-rgb-row";
+      redChannel = buildRobotColorChannel("R", "Red");
+      greenChannel = buildRobotColorChannel("G", "Green");
+      blueChannel = buildRobotColorChannel("B", "Blue");
+      robotColorRedInputElement = redChannel.input;
+      robotColorGreenInputElement = greenChannel.input;
+      robotColorBlueInputElement = blueChannel.input;
+      rgbRow.appendChild(redChannel.channel);
+      rgbRow.appendChild(greenChannel.channel);
+      rgbRow.appendChild(blueChannel.channel);
+      robotColorDialogElement.appendChild(dialogTitle);
+      robotColorDialogElement.appendChild(svPanel);
+      robotColorDialogElement.appendChild(hueRow);
+      robotColorDialogElement.appendChild(rgbRow);
+      return robotColorDialogElement;
     }
 
     function buildRobotColorPicker() {
-      var index;
-      var scheme;
-      var button;
+      var title;
+      var controlBox;
       robotColorPicker.innerHTML = "";
-      robotColorOptionElements.length = 0;
-      for (index = 0; index < ROBOT_COLOR_SCHEMES.length; index++) {
-        scheme = ROBOT_COLOR_SCHEMES[index];
-        button = document.createElement("button");
-        button.type = "button";
-        button.className = "robot-color-option";
-        button.setAttribute("data-color-id", scheme.id);
-        button.setAttribute("aria-pressed", "false");
-        button.innerHTML = getMiniRobotSvgMarkup(scheme);
-        button.addEventListener("pointerenter", onRobotColorOptionPointerEnter);
-        button.addEventListener("pointerdown", onRobotColorOptionPointerDown);
-        robotColorPicker.appendChild(button);
-        robotColorOptionElements.push(button);
-      }
-      syncRobotColorPickerSelection();
+      title = document.createElement("div");
+      title.id = "robotColorPickerTitle";
+      title.className = "term-row-label terminal-text";
+      title.textContent = "Color";
+      controlBox = document.createElement("div");
+      controlBox.className = "robot-color-control";
+      robotColorOpenButton = document.createElement("button");
+      robotColorOpenButton.type = "button";
+      robotColorOpenButton.className = "robot-color-open-btn";
+      robotColorOpenButton.setAttribute("aria-label", "Robot color");
+      robotColorOpenButton.setAttribute("aria-expanded", "false");
+      robotColorOpenButton.addEventListener("pointerenter", onRobotColorOpenButtonPointerEnter);
+      robotColorOpenButton.addEventListener("click", onRobotColorOpenButtonClick);
+      robotColorPreviewElement = robotColorOpenButton;
+      controlBox.appendChild(robotColorOpenButton);
+      controlBox.appendChild(buildRobotColorDialog());
+      robotColorPicker.appendChild(title);
+      robotColorPicker.appendChild(controlBox);
+      setRobotColorHsvFromHex(currentRobotColorScheme.torso);
+      updateRobotColorPreview();
+      updateRobotColorDialogVisuals();
     }
 
     function loadRobotColor() {
-      var storedSchemeId = "";
+      var storedColor = "";
+      var baseColor;
       try {
-        storedSchemeId = window.localStorage.getItem(ROBOT_COLOR_STORAGE_KEY) || "";
+        storedColor = window.localStorage.getItem(ROBOT_COLOR_STORAGE_KEY) || "";
       } catch (error) {
-        storedSchemeId = "";
+        storedColor = "";
       }
-      currentRobotColorScheme = getRobotColorSchemeById(storedSchemeId);
-      applyRobotColorScheme(currentRobotColorScheme);
-      syncRobotColorPickerSelection();
+      baseColor = normalizeRobotBaseColor(storedColor);
+      if (!baseColor) {
+        baseColor = DEFAULT_ROBOT_BASE_COLOR;
+      }
+      setRobotColor(baseColor);
     }
 
     function showRobotColorPicker() {
@@ -1346,6 +1998,7 @@
     }
 
     function hideRobotColorPicker() {
+      closeRobotColorDialog();
       robotColorPicker.classList.add("hidden");
     }
 
@@ -1363,10 +2016,12 @@
       } else if (isGameOver()) {
         screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
         screenMeters.textContent = formatMeters(distanceMeters);
+        updateGameOverActionLabels();
       }
       setHighScoreHud();
       if (isPlaying()) {
         hudDistance.textContent = formatMeters(distanceMeters);
+        setSpeedHud();
       }
     }
 
@@ -1403,7 +2058,8 @@
 
     function formatSpeed(unitsPerSecond) {
       var metersPerSecond = unitsPerSecond * METERS_PER_UNIT;
-      return Math.round(metersPerSecond) + SPEED_SUFFIX;
+      var suffix = getLocalized(LOCALE_KEY_SPEED_SUFFIX, " m/s");
+      return Math.round(metersPerSecond) + suffix;
     }
 
     function setSpeedHud() {
@@ -1431,31 +2087,6 @@
       }
     }
 
-    function buildPartPips() {
-      var index;
-      var pip;
-      hudParts.innerHTML = "";
-      partPipElements.length = 0;
-      for (index = 0; index < TOTAL_LIMBS; index++) {
-        pip = document.createElement("div");
-        pip.className = "part-pip";
-        hudParts.appendChild(pip);
-        partPipElements.push(pip);
-      }
-    }
-
-    function syncPartPips() {
-      var index;
-      var remaining = TOTAL_LIMBS - lostLimbCount;
-      for (index = 0; index < partPipElements.length; index++) {
-        if (index < remaining) {
-          partPipElements[index].classList.remove("is-lost");
-        } else {
-          partPipElements[index].classList.add("is-lost");
-        }
-      }
-    }
-
     function showAllLimbs() {
       var index;
       for (index = 0; index < LIMB_LOSS_ORDER.length; index++) {
@@ -1472,7 +2103,6 @@
           limbElements[LIMB_LOSS_ORDER[index]].classList.remove("is-lost");
         }
       }
-      syncPartPips();
     }
 
     function getRobotUnitScale() {
@@ -1596,8 +2226,11 @@
       var index;
       worldScroll = WORLD_REBASE_TARGET;
       playerWorldX -= shift;
-      for (index = 0; index < exhaustParticles.length; index++) {
-        exhaustParticles[index].worldX -= shift;
+      for (index = 0; index < legTrailLeftPoints.length; index++) {
+        legTrailLeftPoints[index].worldX -= shift;
+      }
+      for (index = 0; index < legTrailRightPoints.length; index++) {
+        legTrailRightPoints[index].worldX -= shift;
       }
       for (index = 0; index < landingRings.length; index++) {
         landingRings[index].worldX -= shift;
@@ -1610,22 +2243,43 @@
       }
     }
 
+    function updateGameOverActionLabels() {
+      gameOverMenuButton.textContent = getLocalized(LOCALE_KEY_GAME_OVER_MENU, "Start Menu");
+      gameOverRetryButton.textContent = getLocalized(LOCALE_KEY_GAME_OVER_RETRY, "Play Again");
+    }
+
+    function showGameOverActions() {
+      updateGameOverActionLabels();
+      gameOverActions.classList.remove("hidden");
+    }
+
+    function hideGameOverActions() {
+      gameOverActions.classList.add("hidden");
+    }
+
     function showStartScreen() {
       gamePhase = PHASE_START;
+      pointerHeld = false;
       gameScreen.classList.remove("hidden");
       gameScreen.classList.remove("is-record");
       hudHighScore.classList.remove("is-record");
       screenTitle.textContent = GAME_TITLE;
       controlHint.innerHTML = getStartHintText();
       controlHint.classList.remove("hidden");
+      hideGameOverActions();
       showRobotColorPicker();
       screenMeters.classList.add("hidden");
       recordBurst.classList.remove("is-active");
       recordBurst.innerHTML = "";
       hudPlaying.classList.add("hidden");
+      distanceMeters = 0;
+      landingLockTimer = 0;
+      screenShakeTimer = 0;
+      screenShakeStrength = 0;
       lostLimbCount = 0;
       currentLimbDamage = 0;
       shieldActive = false;
+      beaconShieldPerfectLandingPending = false;
       headDetached = false;
       headDetachOffsetNaturalX = 0;
       headDetachOffsetNaturalY = 0;
@@ -1649,9 +2303,17 @@
       showAllLimbs();
       resetRobotArms();
       clearDetachedLimbs();
-      syncPartPips();
+      clearHeadTrail();
+      clearLegTrail();
+      debrisParticles.length = 0;
+      sparkParticles.length = 0;
+      explosionBursts.length = 0;
+      dustParticles.length = 0;
+      landingRings.length = 0;
+      hudDistance.textContent = "0m";
+      setSpeedHud();
+      setComboHud();
       robotWrap.classList.remove("is-dead");
-      robotWrap.classList.remove("is-thrusting");
       robotWrap.classList.remove("is-headless");
       robotWrap.classList.remove("is-shielded");
       hideCountdown();
@@ -1703,6 +2365,25 @@
       setDebugGodmodeSwitch(!debugGodmodeSwitch.classList.contains("is-on"));
     }
 
+    function isDebugStartWithShieldEnabled() {
+      return debugModeEnabled && debugStartWithShieldSwitch.classList.contains("is-on");
+    }
+
+    function setDebugStartWithShieldSwitch(isOn) {
+      if (isOn) {
+        debugStartWithShieldSwitch.classList.add("is-on");
+        debugStartWithShieldSwitch.setAttribute("aria-checked", "true");
+      } else {
+        debugStartWithShieldSwitch.classList.remove("is-on");
+        debugStartWithShieldSwitch.setAttribute("aria-checked", "false");
+      }
+    }
+
+    function onDebugStartWithShieldSwitchClick(event) {
+      event.stopPropagation();
+      setDebugStartWithShieldSwitch(!debugStartWithShieldSwitch.classList.contains("is-on"));
+    }
+
     function toggleDebugMode() {
       debugModeEnabled = !debugModeEnabled;
       updateDebugPanel();
@@ -1732,6 +2413,7 @@
       screenMeters.classList.remove("hidden");
       controlHint.classList.add("hidden");
       hideRobotColorPicker();
+      showGameOverActions();
       hudPlaying.classList.add("hidden");
       if (newRecord) {
         gameScreen.classList.add("is-record");
@@ -1755,8 +2437,34 @@
       gameScreen.classList.remove("is-record");
       hudHighScore.classList.remove("is-record");
       recordBurst.classList.remove("is-active");
+      hideGameOverActions();
       hudPlaying.classList.remove("hidden");
       hideRobotColorPicker();
+    }
+
+    function onGameOverMenuButtonClick(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!isGameOver()) {
+        return;
+      }
+      showStartScreen();
+      applyGameLocale();
+      positionRobotDom();
+      positionLaunchLeg();
+    }
+
+    function onGameOverRetryButtonClick(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!isGameOver()) {
+        return;
+      }
+      startLaunch();
+    }
+
+    function onGameOverActionsPointerDown(event) {
+      event.stopPropagation();
     }
 
     function spawnRecordBurst() {
@@ -1783,6 +2491,7 @@
       lostLimbCount = 0;
       currentLimbDamage = 0;
       shieldActive = false;
+      beaconShieldPerfectLandingPending = false;
       headDetached = false;
       headDetachOffsetNaturalX = 0;
       headDetachOffsetNaturalY = 0;
@@ -1804,10 +2513,10 @@
       resetRobotArms();
       clearDetachedLimbs();
       clearHeadTrail();
+      clearLegTrail();
       debrisParticles.length = 0;
       sparkParticles.length = 0;
       explosionBursts.length = 0;
-      exhaustParticles.length = 0;
       dustParticles.length = 0;
       landingRings.length = 0;
       parallaxPhase[0] = 0;
@@ -1822,7 +2531,6 @@
       hudDistance.textContent = "0m";
       setSpeedHud();
       robotWrap.classList.remove("is-dead");
-      robotWrap.classList.remove("is-thrusting");
       robotWrap.classList.remove("is-headless");
       robotWrap.classList.remove("is-shielded");
     }
@@ -1876,6 +2584,9 @@
       launchLegFadeTimer = 0;
       triggerKickImpact();
       applyDebugSpawnAtMeters();
+      if (isDebugStartWithShieldEnabled()) {
+        setShieldActive(true);
+      }
       if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
         window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
       }
@@ -1901,7 +2612,6 @@
       if (!headDetached) {
         robotWrap.classList.add("is-dead");
       }
-      robotWrap.classList.remove("is-thrusting");
       launchLeg.classList.remove("is-visible");
       launchLegFadeTimer = -1;
       hideCountdown();
@@ -1913,11 +2623,18 @@
       if (event.target && event.target.closest && event.target.closest("#robotColorPicker")) {
         return;
       }
+      if (robotColorDialogOpen) {
+        closeRobotColorDialog();
+        return;
+      }
       if (event.target && event.target.closest && event.target.closest("#debugPanel")) {
         return;
       }
+      if (event.target && event.target.closest && event.target.closest("#gameOverActions")) {
+        return;
+      }
       pointerHeld = true;
-      if (isStart() || isGameOver()) {
+      if (isStart()) {
         startLaunch();
         return;
       }
@@ -2157,18 +2874,156 @@
       });
     }
 
-    function spawnExhaust() {
+    function getForwardSpeedMeters() {
+      return forwardSpeed * METERS_PER_UNIT;
+    }
+
+    function getLegTrailSpeedStepIndex() {
+      var speedMeters = getForwardSpeedMeters();
+      if (speedMeters <= LEG_TRAIL_SPEED_THRESHOLD_METERS) {
+        return 0;
+      }
+      return Math.floor((speedMeters - LEG_TRAIL_SPEED_THRESHOLD_METERS) / LEG_TRAIL_SPEED_STEP_METERS);
+    }
+
+    function getLegTrailSpeedStepBlend() {
+      var speedMeters = getForwardSpeedMeters();
+      if (speedMeters <= LEG_TRAIL_SPEED_THRESHOLD_METERS) {
+        return 0;
+      }
+      var overThreshold = speedMeters - LEG_TRAIL_SPEED_THRESHOLD_METERS;
+      return (overThreshold % LEG_TRAIL_SPEED_STEP_METERS) / LEG_TRAIL_SPEED_STEP_METERS;
+    }
+
+    function getLegTrailCameraLengthMultiplier() {
+      if (cameraScale >= 1) {
+        return 1;
+      }
+      return 1 / cameraScale;
+    }
+
+    function getLegTrailMaxPoints() {
+      var stepIndex = getLegTrailSpeedStepIndex();
+      var stepBlend = getLegTrailSpeedStepBlend();
+      var lengthMultiplier = getLegTrailCameraLengthMultiplier();
+      var maxPoints;
+      if (stepIndex <= 0) {
+        maxPoints = LEG_TRAIL_BASE_MAX_POINTS;
+      } else {
+        maxPoints = Math.floor(
+          LEG_TRAIL_BASE_MAX_POINTS +
+          stepIndex * LEG_TRAIL_EXTRA_POINTS_PER_STEP +
+          stepBlend * LEG_TRAIL_EXTRA_POINTS_PER_STEP
+        );
+      }
+      return Math.floor(maxPoints * lengthMultiplier);
+    }
+
+    function getLegTrailPointLife() {
+      var stepIndex = getLegTrailSpeedStepIndex();
+      var stepBlend = getLegTrailSpeedStepBlend();
+      var lengthMultiplier = getLegTrailCameraLengthMultiplier();
+      var pointLife;
+      if (stepIndex <= 0) {
+        pointLife = LEG_TRAIL_BASE_POINT_LIFE;
+      } else {
+        pointLife = (
+          LEG_TRAIL_BASE_POINT_LIFE +
+          stepIndex * LEG_TRAIL_EXTRA_LIFE_PER_STEP +
+          stepBlend * LEG_TRAIL_EXTRA_LIFE_PER_STEP
+        );
+      }
+      return pointLife * lengthMultiplier;
+    }
+
+    function getLegTrailBrightness() {
+      var stepIndex = getLegTrailSpeedStepIndex();
+      var stepBlend = getLegTrailSpeedStepBlend();
+      if (stepIndex <= 0) {
+        return LEG_TRAIL_BASE_ALPHA;
+      }
+      return (
+        LEG_TRAIL_BASE_ALPHA +
+        stepIndex * LEG_TRAIL_BRIGHTNESS_STEP +
+        stepBlend * LEG_TRAIL_BRIGHTNESS_STEP
+      );
+    }
+
+    function getLegTrailColorRgb() {
+      return parseHexColor(lightenHexColor(currentRobotColorScheme.torso, LEG_TRAIL_COLOR_LIGHTEN));
+    }
+
+    function getRobotFootNaturalPosition(isLeftFoot) {
+      var unitScale = getRobotUnitScale();
+      var localX = (isLeftFoot ? LEG_TRAIL_FOOT_LOCAL_X_LEFT : LEG_TRAIL_FOOT_LOCAL_X_RIGHT) * unitScale;
+      var localY = LEG_TRAIL_FOOT_LOCAL_Y * unitScale;
+      var cos = Math.cos(robotAngle);
+      var sin = Math.sin(robotAngle);
+      var rotatedX = localX * cos - localY * sin;
+      var rotatedY = localX * sin + localY * cos;
       var groundY = getPlayerGroundY();
-      var footY = groundY + playerYOffset;
-      exhaustParticles.push({
-        worldX: playerWorldX + (Math.random() - 0.5) * 16,
-        y: footY - 6 - Math.random() * 10,
-        radius: 5 + Math.random() * 6,
-        life: 0.5 + Math.random() * 0.4,
+      var naturalCenterY = groundY + playerYOffset - footReach;
+      return {
+        worldX: playerWorldX + rotatedX * cameraScale,
+        naturalY: naturalCenterY + rotatedY
+      };
+    }
+
+    function isLegTrailActive() {
+      return !headDetached && playerVelocityY < -30;
+    }
+
+    function clearLegTrail() {
+      legTrailLeftPoints.length = 0;
+      legTrailRightPoints.length = 0;
+      legTrailSampleTimer = 0;
+    }
+
+    function trimLegTrailPoints(points) {
+      var maxPoints = getLegTrailMaxPoints();
+      while (points.length > maxPoints) {
+        points.shift();
+      }
+    }
+
+    function pushLegTrailPoint(points, footPosition) {
+      points.push({
+        worldX: footPosition.worldX,
+        naturalY: footPosition.naturalY,
         age: 0,
-        riseSpeed: 16 + Math.random() * 26,
-        expandRate: 16 + Math.random() * 22
+        life: getLegTrailPointLife(),
+        brightness: getLegTrailBrightness()
       });
+      trimLegTrailPoints(points);
+    }
+
+    function sampleLegTrailPoints() {
+      pushLegTrailPoint(legTrailLeftPoints, getRobotFootNaturalPosition(true));
+      pushLegTrailPoint(legTrailRightPoints, getRobotFootNaturalPosition(false));
+    }
+
+    function updateLegTrailPointArray(points, deltaSeconds) {
+      var index = 0;
+      while (index < points.length) {
+        points[index].age += deltaSeconds;
+        if (points[index].age >= points[index].life) {
+          points.splice(index, 1);
+        } else {
+          index += 1;
+        }
+      }
+    }
+
+    function updateLegTrail(deltaSeconds) {
+      if (isLegTrailActive()) {
+        legTrailSampleTimer -= deltaSeconds;
+        if (legTrailSampleTimer <= 0) {
+          legTrailSampleTimer = LEG_TRAIL_POINT_INTERVAL;
+          sampleLegTrailPoints();
+        }
+      }
+      updateLegTrailPointArray(legTrailLeftPoints, deltaSeconds);
+      updateLegTrailPointArray(legTrailRightPoints, deltaSeconds);
     }
 
     function triggerScreenShake(duration, strength) {
@@ -2250,6 +3105,19 @@
       }
     }
 
+    function spawnShieldPerfectLandingBurst(originX, originY) {
+      triggerScreenShake(SHIELD_PERFECT_LANDING_SHAKE_DURATION, SHIELD_PERFECT_LANDING_SHAKE_STRENGTH);
+      spawnSparks(originX, originY, 10, SPARK_SHIELD_HUE);
+      spawnExplosionSparks(originX, originY, 8);
+      explosionBursts.push({
+        x: originX,
+        y: originY,
+        age: 0,
+        life: SHIELD_PERFECT_LANDING_BURST_LIFE,
+        maxRadius: SHIELD_PERFECT_LANDING_BURST_RADIUS
+      });
+    }
+
     function spawnHeadDetachExplosion(originX, originY) {
       var index;
       triggerScreenShake(HEAD_DETACH_SHAKE_DURATION, HEAD_DETACH_SHAKE_STRENGTH);
@@ -2308,6 +3176,24 @@
       spawnSparks(playerScreenX, getPlayerGroundY() + playerYOffset, isPerfect ? 10 : 5);
     }
 
+    function applyBeaconShieldPerfectLanding(impactSpeed) {
+      var bounceUp;
+      var contactX = playerScreenX;
+      var contactY = getPlayerGroundY();
+      beaconShieldPerfectLandingPending = false;
+      comboCount += 1;
+      setComboHud();
+      var speedGain = 14 + Math.min(comboCount, 12) * 1.6 + 12 + BEACON_SHIELD_PERFECT_FORWARD_GAIN;
+      forwardSpeed = Math.min(FORWARD_SPEED_MAX, forwardSpeed + speedGain);
+      spinBonus = Math.min(SPIN_BONUS_MAX, spinBonus + PERFECT_SPIN_BONUS);
+      bounceUp = impactSpeed * BEACON_SHIELD_PERFECT_IMPACT_FACTOR + 280 + forwardSpeed * BEACON_SHIELD_PERFECT_FORWARD_SPEED_FACTOR + 120 + BEACON_SHIELD_PERFECT_BOUNCE_BONUS;
+      playerVelocityY = -bounceUp;
+      playerYOffset = 0;
+      spawnLandingRing("perfect");
+      spawnSparks(contactX, contactY, 14, SPARK_BEACON_HUE);
+      spawnShieldPerfectLandingBurst(contactX, contactY);
+    }
+
     function setShieldActive(active) {
       shieldActive = active;
       if (active) {
@@ -2357,7 +3243,6 @@
       var limbId = LIMB_LOSS_ORDER[lostLimbCount];
       lostLimbCount += 1;
       limbElements[limbId].classList.add("is-lost");
-      syncPartPips();
       spawnDetachedLimb(limbId);
       playerVelocityY = -(impactSpeed * 0.32 + 180);
       playerYOffset = 0;
@@ -2366,9 +3251,9 @@
 
     function launchHead() {
       headDetached = true;
+      beaconShieldPerfectLandingPending = false;
       setShieldActive(false);
       robotWrap.classList.add("is-headless");
-      robotWrap.classList.remove("is-thrusting");
       resetRobotGlow();
       var facingX = Math.sin(robotAngle);
       var facingY = -Math.cos(robotAngle);
@@ -2417,7 +3302,8 @@
         playerVelocityY = 0;
       }
       forwardSpeed *= 0.94;
-      spawnSparks(playerScreenX, getPlayerGroundY() + playerYOffset - footReach, 6);
+      var headContact = getHeadScreenCenter();
+      spawnSparks(headContact.x, headContact.y, 6);
     }
 
     function updateHeadGameOverPhysics(deltaSeconds) {
@@ -2474,6 +3360,11 @@
       var groundSlopeAngle = getGroundSlopeAngle(playerWorldX);
       var uprightError = getUprightError(robotAngle - groundSlopeAngle);
       resetRobotGlow();
+      clearLegTrail();
+      if (beaconShieldPerfectLandingPending) {
+        applyBeaconShieldPerfectLanding(impactSpeed);
+        return;
+      }
       if (uprightError <= GOOD_LANDING_TOLERANCE) {
         applyGoodLanding(uprightError, impactSpeed);
       } else {
@@ -2527,11 +3418,11 @@
       if (robotGlowStrength <= 0.001) {
         return shieldFilter + ROBOT_SHADOW_FILTER;
       }
-      var innerBlur = 4 + robotGlowStrength * 18;
-      var outerBlur = 10 + robotGlowStrength * 30;
-      var innerAlpha = robotGlowStrength * 0.82;
-      var outerAlpha = robotGlowStrength * 0.44;
-      return shieldFilter + "drop-shadow(0 0 " + innerBlur.toFixed(1) + "px rgba(148, 72, 255, " + innerAlpha.toFixed(3) + ")) drop-shadow(0 0 " + outerBlur.toFixed(1) + "px rgba(120, 50, 220, " + outerAlpha.toFixed(3) + ")) " + ROBOT_SHADOW_FILTER;
+      var innerBlur = 5 + robotGlowStrength * 22;
+      var outerBlur = 12 + robotGlowStrength * 36;
+      var innerAlpha = robotGlowStrength * 1;
+      var outerAlpha = robotGlowStrength * 0.72;
+      return shieldFilter + "drop-shadow(0 0 " + innerBlur.toFixed(1) + "px rgba(185, 110, 255, " + innerAlpha.toFixed(3) + ")) drop-shadow(0 0 " + outerBlur.toFixed(1) + "px rgba(155, 80, 245, " + outerAlpha.toFixed(3) + ")) " + ROBOT_SHADOW_FILTER;
     }
 
     function updateRobotGlowFilter() {
@@ -2644,10 +3535,16 @@
         riseBlend = Math.min(1, -playerVelocityY / (ARM_VELOCITY_REFERENCE * 0.78));
       }
 
-      var motionBlend = 0.3 + fallBlend * 0.5 + riseBlend * 0.4;
       legHeadSwayPhase += deltaSeconds * LEG_SWAY_SPEED;
-      legLeftSwayAngle = Math.sin(legHeadSwayPhase) * LEG_SWAY_AMOUNT * motionBlend;
-      legRightSwayAngle = Math.sin(legHeadSwayPhase + 1.85) * LEG_SWAY_AMOUNT * motionBlend;
+      var legSwayMotionBlend = (1 - fallBlend) * (0.28 + riseBlend * 0.5);
+      var swayLeft = Math.sin(legHeadSwayPhase) * LEG_SWAY_AMOUNT * legSwayMotionBlend;
+      var swayRight = Math.sin(legHeadSwayPhase + 2.15) * LEG_SWAY_AMOUNT * legSwayMotionBlend;
+      var targetLegLeft = riseBlend * LEG_SPREAD_ANGLE + swayLeft;
+      var targetLegRight = riseBlend * (-LEG_SPREAD_ANGLE) + swayRight;
+
+      var lerpFactor = Math.min(1, deltaSeconds * ARM_ANGLE_LERP_RATE);
+      legLeftSwayAngle += (targetLegLeft - legLeftSwayAngle) * lerpFactor;
+      legRightSwayAngle += (targetLegRight - legRightSwayAngle) * lerpFactor;
 
       if (!limbElements.robotLegLeft.classList.contains("is-lost")) {
         setRobotArmRotation(limbElements.robotLegLeft, legLeftSwayAngle, LEG_HIP_LEFT_X, LEG_HIP_LEFT_Y);
@@ -2656,7 +3553,8 @@
         setRobotArmRotation(limbElements.robotLegRight, legRightSwayAngle, LEG_HIP_RIGHT_X, LEG_HIP_RIGHT_Y);
       }
       if (!headDetached && robotHeadElement) {
-        var headAngle = Math.sin(legHeadSwayPhase * 0.82 + 1.05) * HEAD_SWAY_AMOUNT * motionBlend;
+        var headMotionBlend = 0.3 + fallBlend * 0.5 + riseBlend * 0.4;
+        var headAngle = Math.sin(legHeadSwayPhase * 0.82 + 1.05) * HEAD_SWAY_AMOUNT * headMotionBlend;
         setRobotArmRotation(robotHeadElement, headAngle, HEAD_NECK_X, HEAD_NECK_Y);
       }
     }
@@ -2688,14 +3586,6 @@
       if (playerYOffset >= 0 && playerVelocityY >= 0 && landingLockTimer <= 0) {
         processLanding();
       }
-      if (!headDetached && playerVelocityY < -30) {
-        robotWrap.classList.add("is-thrusting");
-        if (Math.random() < deltaSeconds * 40) {
-          spawnExhaust();
-        }
-      } else {
-        robotWrap.classList.remove("is-thrusting");
-      }
     }
 
     function spawnBeacons() {
@@ -2725,11 +3615,11 @@
         var restoredLimbId = LIMB_LOSS_ORDER[lostLimbCount];
         limbElements[restoredLimbId].classList.remove("is-lost");
         removeDetachedLimbById(restoredLimbId);
-        syncPartPips();
         spawnSparks(playerScreenX, getPlayerGroundY() + playerYOffset - footReach, 14, SPARK_BEACON_HUE);
         return;
       }
       setShieldActive(true);
+      beaconShieldPerfectLandingPending = true;
       spawnSparks(playerScreenX, getPlayerGroundY() + playerYOffset - footReach, 16, SPARK_SHIELD_HUE);
     }
 
@@ -2779,21 +3669,6 @@
         spark.velocityY += 480 * deltaSeconds;
         if (spark.age >= spark.life) {
           sparkParticles.splice(index, 1);
-        } else {
-          index += 1;
-        }
-      }
-    }
-
-    function updateExhaust(deltaSeconds) {
-      var index = 0;
-      while (index < exhaustParticles.length) {
-        var particle = exhaustParticles[index];
-        particle.age += deltaSeconds;
-        particle.y += particle.riseSpeed * deltaSeconds;
-        particle.radius += particle.expandRate * deltaSeconds;
-        if (particle.age >= particle.life) {
-          exhaustParticles.splice(index, 1);
         } else {
           index += 1;
         }
@@ -2955,7 +3830,7 @@
         updateRobotArms(deltaSeconds);
         updateRobotLegsAndHead(deltaSeconds);
       }
-      updateExhaust(deltaSeconds);
+      updateLegTrail(deltaSeconds);
       updateDustParticles(deltaSeconds);
       updateExplosionBursts(deltaSeconds);
       updateHeadTrail(deltaSeconds);
@@ -3009,7 +3884,7 @@
       updateDebris(deltaSeconds);
       updateSparks(deltaSeconds);
       updateExplosionBursts(deltaSeconds);
-      updateExhaust(deltaSeconds);
+      updateLegTrail(deltaSeconds);
       updateLandingRings(deltaSeconds);
       updateDustParticles(deltaSeconds);
       updateHeadTrail(deltaSeconds);
@@ -3022,10 +3897,17 @@
       positionRobotDom();
     }
 
+    function getRobotVerticalAnchorOffset() {
+      if (headDetached) {
+        return getHeadCenterOffsetY();
+      }
+      return footReach;
+    }
+
     function getRobotScreenCenter() {
       var pivotY = height * GROUND_PLAYER_Y_RATIO;
       var groundY = getPlayerGroundY();
-      var naturalCenterY = groundY + playerYOffset - footReach;
+      var naturalCenterY = groundY + playerYOffset - getRobotVerticalAnchorOffset();
       var scaledCenterY = pivotY + (naturalCenterY - pivotY) * cameraScale;
       return {
         x: playerScreenX,
@@ -3920,21 +4802,22 @@
           continue;
         }
         var groundY = groundWave(beacon.worldX);
+        var beamBaseY = groundY + beamHalfWidth * BEACON_BEAM_BASE_OFFSET_RATIO;
         var alpha = 1;
         if (beacon.fadeTimer >= 0) {
           alpha = Math.max(0, 1 - beacon.fadeTimer / BEACON_FADE_SECONDS);
         }
-        var beamGradient = context.createLinearGradient(screenX, topY, screenX, groundY);
+        var beamGradient = context.createLinearGradient(screenX, topY, screenX, beamBaseY);
         beamGradient.addColorStop(0, "rgba(255, 176, 96, 0)");
         beamGradient.addColorStop(0.55, "rgba(255, 176, 96, " + (alpha * 0.32) + ")");
         beamGradient.addColorStop(1, "rgba(255, 200, 140, " + (alpha * 0.8) + ")");
         context.fillStyle = beamGradient;
-        context.fillRect(screenX - beamHalfWidth, topY, beamHalfWidth * 2, groundY - topY);
+        context.fillRect(screenX - beamHalfWidth, topY, beamHalfWidth * 2, beamBaseY - topY);
         context.fillStyle = "rgba(255, 226, 184, " + (alpha * 0.65) + ")";
-        context.fillRect(screenX - 2.5, topY, 5, groundY - topY);
+        context.fillRect(screenX - 2.5, topY, 5, beamBaseY - topY);
         context.fillStyle = "rgba(255, 190, 120, " + (alpha * 0.5) + ")";
         context.beginPath();
-        context.ellipse(screenX, groundY, beamHalfWidth * 1.4, beamHalfWidth * 0.45, 0, 0, TWO_PI);
+        context.ellipse(screenX, beamBaseY, beamHalfWidth * 1.4, beamHalfWidth * 0.45, 0, 0, TWO_PI);
         context.fill();
       }
     }
@@ -3960,25 +4843,86 @@
       context.globalAlpha = 1;
     }
 
-    function drawExhaust() {
+    function drawLegTrailSegment(previousScreenX, previousNaturalY, currentScreenX, currentNaturalY, trailProgress, fade, brightness) {
+      var trailColor = getLegTrailColorRgb();
+      var alpha = fade * brightness;
+      var lineWidth = 2 + trailProgress * 10;
+      context.strokeStyle = "rgba(" + trailColor.r + ", " + trailColor.g + ", " + trailColor.b + ", " + (alpha * 0.42) + ")";
+      context.lineWidth = lineWidth * 2.2;
+      context.beginPath();
+      context.moveTo(previousScreenX, previousNaturalY);
+      context.lineTo(currentScreenX, currentNaturalY);
+      context.stroke();
+      context.strokeStyle = "rgba(" + trailColor.r + ", " + trailColor.g + ", " + trailColor.b + ", " + alpha + ")";
+      context.lineWidth = lineWidth;
+      context.beginPath();
+      context.moveTo(previousScreenX, previousNaturalY);
+      context.lineTo(currentScreenX, currentNaturalY);
+      context.stroke();
+    }
+
+    function drawLegTrailPointArray(points, isLeftFoot) {
+      if (points.length < 1) {
+        return;
+      }
       var index;
-      for (index = 0; index < exhaustParticles.length; index++) {
-        var particle = exhaustParticles[index];
-        var screenX = particle.worldX - worldScroll;
-        if (screenX < -60 || screenX > width + 60) {
+      var lastIndex = points.length - 1;
+      for (index = 1; index < points.length; index++) {
+        var previous = points[index - 1];
+        var current = points[index];
+        var previousScreenX = previous.worldX - worldScroll;
+        var currentScreenX = current.worldX - worldScroll;
+        if (currentScreenX < worldViewLeft - 120 && previousScreenX < worldViewLeft - 120) {
           continue;
         }
-        var fade = 1 - particle.age / particle.life;
-        var alpha = fade * 0.32;
-        var gradient = context.createRadialGradient(screenX, particle.y, particle.radius * 0.15, screenX, particle.y, particle.radius);
-        gradient.addColorStop(0, "rgba(255, 240, 220, " + (alpha * 0.95) + ")");
-        gradient.addColorStop(0.45, "rgba(220, 210, 220, " + (alpha * 0.5) + ")");
-        gradient.addColorStop(1, "rgba(180, 178, 190, 0)");
-        context.fillStyle = gradient;
-        context.beginPath();
-        context.arc(screenX, particle.y, particle.radius, 0, TWO_PI);
-        context.fill();
+        if (previousScreenX > worldViewRight + 120 && currentScreenX > worldViewRight + 120) {
+          continue;
+        }
+        var trailProgress = index / lastIndex;
+        var fade = (1 - current.age / current.life) * (0.18 + trailProgress * 0.82);
+        if (fade <= 0) {
+          continue;
+        }
+        drawLegTrailSegment(
+          previousScreenX,
+          previous.naturalY,
+          currentScreenX,
+          current.naturalY,
+          trailProgress,
+          fade,
+          current.brightness
+        );
       }
+      if (isLegTrailActive()) {
+        var lastPoint = points[lastIndex];
+        var foot = getRobotFootNaturalPosition(isLeftFoot);
+        var lastScreenX = lastPoint.worldX - worldScroll;
+        var footScreenX = foot.worldX - worldScroll;
+        var footFade = 1 - lastPoint.age / lastPoint.life;
+        if (footFade > 0) {
+          drawLegTrailSegment(
+            lastScreenX,
+            lastPoint.naturalY,
+            footScreenX,
+            foot.naturalY,
+            1,
+            footFade,
+            getLegTrailBrightness()
+          );
+        }
+      }
+    }
+
+    function drawLegTrail() {
+      if (legTrailLeftPoints.length < 1 && legTrailRightPoints.length < 1) {
+        return;
+      }
+      context.save();
+      context.lineCap = "round";
+      context.lineJoin = "round";
+      drawLegTrailPointArray(legTrailLeftPoints, true);
+      drawLegTrailPointArray(legTrailRightPoints, false);
+      context.restore();
     }
 
     function drawDebris() {
@@ -4132,9 +5076,9 @@
       drawCityTransitionLayer(3, cityWeights);
       context.globalAlpha = 1;
       drawDustParticles();
-      drawExhaust();
-      drawGround();
+      drawLegTrail();
       drawBeacons();
+      drawGround();
       drawLandingRings();
       drawDebris();
       drawSparks();
@@ -4166,13 +5110,16 @@
     window.addEventListener("keydown", onDebugKeyDown);
     debugPanel.addEventListener("pointerdown", onDebugPanelPointerDown);
     debugGodmodeSwitch.addEventListener("click", onDebugGodmodeSwitchClick);
+    debugStartWithShieldSwitch.addEventListener("click", onDebugStartWithShieldSwitchClick);
+    gameOverMenuButton.addEventListener("click", onGameOverMenuButtonClick);
+    gameOverRetryButton.addEventListener("click", onGameOverRetryButtonClick);
+    gameOverActions.addEventListener("pointerdown", onGameOverActionsPointerDown);
     canvas.addEventListener("pointerdown", onPointerDown);
     gameScreen.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerUp);
 
     cacheLimbElements();
-    buildPartPips();
     buildRobotColorPicker();
     loadRobotColor();
     initSkyStars();
