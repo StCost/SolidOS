@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Arka plan 03",
   "web.extras.art.close": "Kapat",
   "web.extras.art.empty": "Sanat bulunamadı.",
+  "web.extras.art.random-disable-hint": "Rastgele arka planı kapatmak için — herhangi bir sanat eserini arka plan yapın",
   "web.extras.art.randomize-background": "Rastgele arka plan",
   "web.extras.art.set-background": "Arka plan yap",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Gerçek dışı!",
   "web.game.citrus-slice.prompt-start-hint": "Başlamak için tıkla — kapsülleri kes, bombalardan kaçın — ıskalar koşuyu bitirmez",
   "web.game.game-over": "Oyun bitti",
+  "web.game.game-over-menu": "Başlangıç menüsü",
+  "web.game.game-over-retry": "Tekrar oyna",
   "web.game.label.bonus": "bonus",
   "web.game.label.depth": "derinlik",
   "web.game.label.distance": "Mesafe",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "BAŞLAMAK İÇİN TIKLA",
   "web.game.prompt.hold-jump-higher": "Daha yüksek zıplamak için basılı tut",
   "web.game.prompt.hold-or-wasd": "tıkla ve basılı tut veya WASD",
+  "web.game.prompt.hold-reverse-spin": "Dönmeyi tersine çevirmek için basılı tut — ayakların üzerine in",
   "web.game.prompt.tunnel-wasd-or-click": "WASD veya tünel kenarına yönlendirmek için bir yanda tıklamayı basılı tut",
   "web.game.record-congrats": "Harika hasat!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Jenerik",
   "web.window.extras-data": "extras.dat",
-  "yes": "Evet",
-  "web.extras.art.random-disable-hint": "Rastgele arka planı kapatmak için — herhangi bir sanat eserini arka plan yapın"
+  "yes": "Evet"
 }

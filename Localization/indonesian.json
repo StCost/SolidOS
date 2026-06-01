@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Latar 03",
   "web.extras.art.close": "Tutup",
   "web.extras.art.empty": "Tidak ada seni ditemukan.",
+  "web.extras.art.random-disable-hint": "Untuk menonaktifkan latar acak — tetapkan karya seni apa pun sebagai latar",
   "web.extras.art.randomize-background": "Latar acak",
   "web.extras.art.set-background": "Atur sebagai latar",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Tak nyata!",
   "web.game.citrus-slice.prompt-start-hint": "Klik untuk mulai — potong kapsul, hindari bom — miss tidak mengakhiri lari",
   "web.game.game-over": "Permainan selesai",
+  "web.game.game-over-menu": "Menu awal",
+  "web.game.game-over-retry": "Main lagi",
   "web.game.label.bonus": "bonus",
   "web.game.label.depth": "kedalaman",
   "web.game.label.distance": "Jarak",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "KLIK UNTUK MULAI",
   "web.game.prompt.hold-jump-higher": "Tekan dan tahan untuk lompat lebih tinggi",
   "web.game.prompt.hold-or-wasd": "klik dan tahan atau WASD",
+  "web.game.prompt.hold-reverse-spin": "Tahan untuk membalik putaran — mendarat dengan kaki",
   "web.game.prompt.tunnel-wasd-or-click": "WASD atau tahan klik di sisi untuk mengarah ke tepi terowongan",
   "web.game.record-congrats": "Panen luar biasa!",
   "web.game.speed-suffix": " m/d",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Kredit",
   "web.window.extras-data": "extras.dat",
-  "yes": "Ya",
-  "web.extras.art.random-disable-hint": "Untuk menonaktifkan latar acak — tetapkan karya seni apa pun sebagai latar"
+  "yes": "Ya"
 }

@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Φόντο 03",
   "web.extras.art.close": "Κλείσιμο",
   "web.extras.art.empty": "Δεν βρέθηκε τέχνη.",
+  "web.extras.art.random-disable-hint": "Για να απενεργοποιήσετε το τυχαίο φόντο — ορίστε οποιοδήποτε έργο ως φόντο",
   "web.extras.art.randomize-background": "Τυχαίο φόντο",
   "web.extras.art.set-background": "Ορισμός ως φόντο",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Απίστευτα!",
   "web.game.citrus-slice.prompt-start-hint": "Κλικ για έναρξη — κόψε κάψουλες, απόφυγε βόμβες — τα αποτυχημένα δεν τελειώνουν τον γύρο",
   "web.game.game-over": "Τέλος παιχνιδιού",
+  "web.game.game-over-menu": "Μενού έναρξης",
+  "web.game.game-over-retry": "Παίξε ξανά",
   "web.game.label.bonus": "μπόνους",
   "web.game.label.depth": "βάθος",
   "web.game.label.distance": "Απόστ.",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "ΚΛΙΚ ΓΙΑ ΕΚΚΙΝΗΣΗ",
   "web.game.prompt.hold-jump-higher": "Κρατήστε πατημένο για ψηλότερο άλμα",
   "web.game.prompt.hold-or-wasd": "κλικ και κράτημα ή WASD",
+  "web.game.prompt.hold-reverse-spin": "Κράτησε πατημένο για αντίστροφη περιστροφή — προσγειώσου στα πόδια σου",
   "web.game.prompt.tunnel-wasd-or-click": "WASD ή κράτα κλικ σε πλευρά για να κατευθυνθείς στην άκρη του σήραγγα",
   "web.game.record-congrats": "Εξαιρετική συγκομιδή!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Τίτλοι",
   "web.window.extras-data": "extras.dat",
-  "yes": "Ναι",
-  "web.extras.art.random-disable-hint": "Για να απενεργοποιήσετε το τυχαίο φόντο — ορίστε οποιοδήποτε έργο ως φόντο"
+  "yes": "Ναι"
 }

@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "背景 03",
   "web.extras.art.close": "閉じる",
   "web.extras.art.empty": "アートが見つかりません。",
+  "web.extras.art.random-disable-hint": "ランダム背景を無効にするには — 任意のアートを背景に設定してください",
   "web.extras.art.randomize-background": "背景をランダム化",
   "web.extras.art.set-background": "背景に設定",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "アンリアル！",
   "web.game.citrus-slice.prompt-start-hint": "クリックで開始 — カプセルを切り、爆弾を避ける — ミスしてもランは終わらない",
   "web.game.game-over": "ゲームオーバー",
+  "web.game.game-over-menu": "スタートメニュー",
+  "web.game.game-over-retry": "もう一度",
   "web.game.label.bonus": "ボーナス",
   "web.game.label.depth": "深度",
   "web.game.label.distance": "距離",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "クリックで開始",
   "web.game.prompt.hold-jump-higher": "長押しで高くジャンプ",
   "web.game.prompt.hold-or-wasd": "クリック長押しまたは WASD",
+  "web.game.prompt.hold-reverse-spin": "長押しで回転を反転 — 足から着地",
   "web.game.prompt.tunnel-wasd-or-click": "WASD または側面をクリック長押しでトンネル端へ操縦",
   "web.game.record-congrats": "素晴らしい収穫！",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "クレジット",
   "web.window.extras-data": "extras.dat",
-  "yes": "はい",
-  "web.extras.art.random-disable-hint": "ランダム背景を無効にするには — 任意のアートを背景に設定してください"
+  "yes": "はい"
 }

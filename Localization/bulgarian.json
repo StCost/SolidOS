@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Фон 03",
   "web.extras.art.close": "Затвори",
   "web.extras.art.empty": "Няма намерено арт.",
+  "web.extras.art.random-disable-hint": "За да изключите случайния фон — задайте произволно изображение като фон",
   "web.extras.art.randomize-background": "Случаен фон",
   "web.extras.art.set-background": "Задай като фон",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Нереално!",
   "web.game.citrus-slice.prompt-start-hint": "Кликни за старт — режи капсули, избягвай бомби — пропуските не спират играта",
   "web.game.game-over": "Край на играта",
+  "web.game.game-over-menu": "Начално меню",
+  "web.game.game-over-retry": "Играй отново",
   "web.game.label.bonus": "бонус",
   "web.game.label.depth": "дълб.",
   "web.game.label.distance": "Дист.",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "КЛИК — СТАРТ",
   "web.game.prompt.hold-jump-higher": "Натиснете и задръжте за по-висок скок",
   "web.game.prompt.hold-or-wasd": "клик и задържане или WASD",
+  "web.game.prompt.hold-reverse-spin": "Задръжте, за да обърнете въртенето — кацнете на краката си",
   "web.game.prompt.tunnel-wasd-or-click": "WASD или задръж клик отстрани, за да заведеш към ръба на тунела",
   "web.game.record-congrats": "Отлична жътва!",
   "web.game.speed-suffix": " м/с",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Екип",
   "web.window.extras-data": "extras.dat",
-  "yes": "Да",
-  "web.extras.art.random-disable-hint": "За да изключите случайния фон — задайте произволно изображение като фон"
+  "yes": "Да"
 }

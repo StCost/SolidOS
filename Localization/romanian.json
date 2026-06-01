@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Fundal 03",
   "web.extras.art.close": "Închide",
   "web.extras.art.empty": "Nu s-a găsit artă.",
+  "web.extras.art.random-disable-hint": "Pentru a dezactiva fundalul aleator — setează orice operă ca fundal",
   "web.extras.art.randomize-background": "Fundal aleator",
   "web.extras.art.set-background": "Setează ca fundal",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Ireal!",
   "web.game.citrus-slice.prompt-start-hint": "Clic pentru start — taie capsule, evită bombe — ratările nu opresc cursa",
   "web.game.game-over": "Joc terminat",
+  "web.game.game-over-menu": "Meniu start",
+  "web.game.game-over-retry": "Joacă din nou",
   "web.game.label.bonus": "bonus",
   "web.game.label.depth": "adânc.",
   "web.game.label.distance": "Distanță",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "CLIC PENTRU START",
   "web.game.prompt.hold-jump-higher": "Ține apăsat pentru un salt mai înalt",
   "web.game.prompt.hold-or-wasd": "clic și ține apăsat sau WASD",
+  "web.game.prompt.hold-reverse-spin": "Ține apăsat pentru a inversa rotația — aterizează pe picioare",
   "web.game.prompt.tunnel-wasd-or-click": "WASD sau ține apăsat clic pe o parte pentru a ghida spre marginea tunelului",
   "web.game.record-congrats": "Recoltă excelentă!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Credite",
   "web.window.extras-data": "extras.dat",
-  "yes": "Da",
-  "web.extras.art.random-disable-hint": "Pentru a dezactiva fundalul aleator — setează orice operă ca fundal"
+  "yes": "Da"
 }

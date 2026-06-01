@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "배경 03",
   "web.extras.art.close": "닫기",
   "web.extras.art.empty": "아트를 찾을 수 없습니다.",
+  "web.extras.art.random-disable-hint": "무작위 배경을 끄려면 — 아무 아트나 배경으로 설정하세요",
   "web.extras.art.randomize-background": "배경 무작위",
   "web.extras.art.set-background": "배경으로 설정",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "언리얼!",
   "web.game.citrus-slice.prompt-start-hint": "클릭하여 시작 — 캡슐을 베고, 폭탄을 피하세요 — 실수해도 런이 끝나지 않습니다",
   "web.game.game-over": "게임 오버",
+  "web.game.game-over-menu": "시작 메뉴",
+  "web.game.game-over-retry": "다시 하기",
   "web.game.label.bonus": "보너스",
   "web.game.label.depth": "깊이",
   "web.game.label.distance": "거리",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "클릭하여 시작",
   "web.game.prompt.hold-jump-higher": "길게 눌러 더 높이 점프",
   "web.game.prompt.hold-or-wasd": "클릭 유지 또는 WASD",
+  "web.game.prompt.hold-reverse-spin": "길게 눌러 회전을 반대로 — 발로 착지하세요",
   "web.game.prompt.tunnel-wasd-or-click": "WASD 또는 한쪽을 클릭 길게 눌러 터널 가장자리로 조종",
   "web.game.record-congrats": "훌륭한 수확!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "크레딧",
   "web.window.extras-data": "extras.dat",
-  "yes": "예",
-  "web.extras.art.random-disable-hint": "무작위 배경을 끄려면 — 아무 아트나 배경으로 설정하세요"
+  "yes": "예"
 }

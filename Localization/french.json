@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Arrière-plan 03",
   "web.extras.art.close": "Fermer",
   "web.extras.art.empty": "Aucun art trouvé.",
+  "web.extras.art.random-disable-hint": "Pour désactiver l’arrière-plan aléatoire — définissez une œuvre comme arrière-plan",
   "web.extras.art.randomize-background": "Fond aléatoire",
   "web.extras.art.set-background": "Définir comme fond",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Irréel !",
   "web.game.citrus-slice.prompt-start-hint": "Cliquez pour commencer — tranchez les capsules, évitez les bombes — les ratés ne terminent pas la partie",
   "web.game.game-over": "Partie terminée",
+  "web.game.game-over-menu": "Menu de départ",
+  "web.game.game-over-retry": "Rejouer",
   "web.game.label.bonus": "bonus",
   "web.game.label.depth": "prof.",
   "web.game.label.distance": "Dist.",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "CLIQUEZ POUR COMMENCER",
   "web.game.prompt.hold-jump-higher": "Maintenez pour sauter plus haut",
   "web.game.prompt.hold-or-wasd": "cliquez et maintenez ou WASD",
+  "web.game.prompt.hold-reverse-spin": "Maintenez pour inverser la rotation — atterrissez sur vos pieds",
   "web.game.prompt.tunnel-wasd-or-click": "WASD ou maintenez un clic sur un côté pour diriger vers le bord du tunnel",
   "web.game.record-congrats": "Excellente récolte !",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Crédits",
   "web.window.extras-data": "extras.dat",
-  "yes": "Oui",
-  "web.extras.art.random-disable-hint": "Pour désactiver l’arrière-plan aléatoire — définissez une œuvre comme arrière-plan"
+  "yes": "Oui"
 }

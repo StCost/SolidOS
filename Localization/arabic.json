@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "خلفية 03",
   "web.extras.art.close": "إغلاق",
   "web.extras.art.empty": "لم يتم العثور على فن.",
+  "web.extras.art.random-disable-hint": "لإيقاف الخلفية العشوائية — عيّن أي عمل فن كخلفية",
   "web.extras.art.randomize-background": "خلفية عشوائية",
   "web.extras.art.set-background": "تعيين كخلفية",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "لا يُصدق!",
   "web.game.citrus-slice.prompt-start-hint": "انقر للبدء — قطّع الحبيبات، تجنّب القنابل — الأخطاء لا تنهي الجولة",
   "web.game.game-over": "انتهت اللعبة",
+  "web.game.game-over-menu": "قائمة البداية",
+  "web.game.game-over-retry": "العب مجدداً",
   "web.game.label.bonus": "مكافأة",
   "web.game.label.depth": "العمق",
   "web.game.label.distance": "المسافة",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "انقر للبدء",
   "web.game.prompt.hold-jump-higher": "اضغط مع الاستمرار للقفز أعلى",
   "web.game.prompt.hold-or-wasd": "انقر واستمر أو WASD",
+  "web.game.prompt.hold-reverse-spin": "اضغط مع الاستمرار لعكس الدوران — اهبط على قدميك",
   "web.game.prompt.tunnel-wasd-or-click": "WASD أو اضغط مع الاستمرار على جانب لتوجيه نحو حافة النفق",
   "web.game.record-congrats": "حصاد رائع!",
   "web.game.speed-suffix": " م/ث",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "الاعتمادات",
   "web.window.extras-data": "extras.dat",
-  "yes": "نعم",
-  "web.extras.art.random-disable-hint": "لإيقاف الخلفية العشوائية — عيّن أي عمل فن كخلفية"
+  "yes": "نعم"
 }

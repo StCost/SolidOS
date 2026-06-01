@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Tło 03",
   "web.extras.art.close": "Zamknij",
   "web.extras.art.empty": "Nie znaleziono grafik.",
+  "web.extras.art.random-disable-hint": "Aby wyłączyć losowe tło — ustaw dowolne dzieło jako tło",
   "web.extras.art.randomize-background": "Losowe tło",
   "web.extras.art.set-background": "Ustaw jako tło",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Nierealne!",
   "web.game.citrus-slice.prompt-start-hint": "Kliknij, aby zacząć — tnij kapsuły, unikaj bomb — pudła nie kończą biegu",
   "web.game.game-over": "Koniec gry",
+  "web.game.game-over-menu": "Menu startowe",
+  "web.game.game-over-retry": "Zagraj ponownie",
   "web.game.label.bonus": "premia",
   "web.game.label.depth": "głęb.",
   "web.game.label.distance": "Dyst.",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "KLIKNIJ, BY ROZPOCZĄĆ",
   "web.game.prompt.hold-jump-higher": "Przytrzymaj, aby skoczyć wyżej",
   "web.game.prompt.hold-or-wasd": "kliknij i przytrzymaj lub WASD",
+  "web.game.prompt.hold-reverse-spin": "Przytrzymaj, aby odwrócić obrót — wyląduj na nogach",
   "web.game.prompt.tunnel-wasd-or-click": "WASD lub przytrzymaj klik z boku, aby sterować do krawędzi tunelu",
   "web.game.record-congrats": "Doskonałe żniwa!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Autorzy",
   "web.window.extras-data": "extras.dat",
-  "yes": "Tak",
-  "web.extras.art.random-disable-hint": "Aby wyłączyć losowe tło — ustaw dowolne dzieło jako tło"
+  "yes": "Tak"
 }

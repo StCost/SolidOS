@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Sfondo 03",
   "web.extras.art.close": "Chiudi",
   "web.extras.art.empty": "Nessuna arte trovata.",
+  "web.extras.art.random-disable-hint": "Per disattivare lo sfondo casuale — imposta un’opera come sfondo",
   "web.extras.art.randomize-background": "Sfondo casuale",
   "web.extras.art.set-background": "Imposta come sfondo",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Irreale!",
   "web.game.citrus-slice.prompt-start-hint": "Clicca per iniziare — taglia le capsule, evita le bombe — i miss non terminano la partita",
   "web.game.game-over": "Game over",
+  "web.game.game-over-menu": "Menu iniziale",
+  "web.game.game-over-retry": "Gioca di nuovo",
   "web.game.label.bonus": "bonus",
   "web.game.label.depth": "prof.",
   "web.game.label.distance": "Distanza",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "CLICCA PER INIZIARE",
   "web.game.prompt.hold-jump-higher": "Tieni premuto per saltare più in alto",
   "web.game.prompt.hold-or-wasd": "clicca e tieni premuto o WASD",
+  "web.game.prompt.hold-reverse-spin": "Tieni premuto per invertire la rotazione — atterra in piedi",
   "web.game.prompt.tunnel-wasd-or-click": "WASD o tieni premuto il clic su un lato per sterzare verso il bordo del tunnel",
   "web.game.record-congrats": "Raccolto eccellente!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Crediti",
   "web.window.extras-data": "extras.dat",
-  "yes": "Sì",
-  "web.extras.art.random-disable-hint": "Per disattivare lo sfondo casuale — imposta un’opera come sfondo"
+  "yes": "Sì"
 }

@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Pozadí 03",
   "web.extras.art.close": "Zavřít",
   "web.extras.art.empty": "Žádné umění nenalezeno.",
+  "web.extras.art.random-disable-hint": "Pro vypnutí náhodného pozadí nastavte libovolné umění jako pozadí",
   "web.extras.art.randomize-background": "Náhodné pozadí",
   "web.extras.art.set-background": "Nastavit jako pozadí",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Neuvěřitelné!",
   "web.game.citrus-slice.prompt-start-hint": "Klikni pro start — řež kapsle, vyhýbej se bombám — minutí neukončí běh",
   "web.game.game-over": "Konec hry",
+  "web.game.game-over-menu": "Startovní menu",
+  "web.game.game-over-retry": "Hrát znovu",
   "web.game.label.bonus": "bonus",
   "web.game.label.depth": "hloub.",
   "web.game.label.distance": "Vzdál.",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "KLIKNĚTE PRO START",
   "web.game.prompt.hold-jump-higher": "Podržte pro vyšší skok",
   "web.game.prompt.hold-or-wasd": "klikněte a držte nebo WASD",
+  "web.game.prompt.hold-reverse-spin": "Držte pro obrácení rotace — přistaňte na nohy",
   "web.game.prompt.tunnel-wasd-or-click": "WASD nebo podrž klik na straně pro řízení k okraji tunelu",
   "web.game.record-congrats": "Skvělá sklizeň!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Titulky",
   "web.window.extras-data": "extras.dat",
-  "yes": "Ano",
-  "web.extras.art.random-disable-hint": "Pro vypnutí náhodného pozadí nastavte libovolné umění jako pozadí"
+  "yes": "Ano"
 }

@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Tausta 03",
   "web.extras.art.close": "Sulje",
   "web.extras.art.empty": "Taidetta ei löytynyt.",
+  "web.extras.art.random-disable-hint": "Poistaaksesi satunnaisen taustan — aseta mikä tahansa taide taustaksi",
   "web.extras.art.randomize-background": "Satunnainen tausta",
   "web.extras.art.set-background": "Aseta taustaksi",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Uskomaton!",
   "web.game.citrus-slice.prompt-start-hint": "Klikkaa aloittaaksesi — viillä kapseleita, vältä pommeja — ohi menot eivät lopeta juoksua",
   "web.game.game-over": "Peli ohi",
+  "web.game.game-over-menu": "Aloitusvalikko",
+  "web.game.game-over-retry": "Pelaa uudelleen",
   "web.game.label.bonus": "bonus",
   "web.game.label.depth": "syvyys",
   "web.game.label.distance": "Matka",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "ALOITA NAPAUTTAMALLA",
   "web.game.prompt.hold-jump-higher": "Paina ja pidä hypätäksesi korkeammalle",
   "web.game.prompt.hold-or-wasd": "napauta ja pidä tai WASD",
+  "web.game.prompt.hold-reverse-spin": "Pidä pohjassa kääntääksesi pyörimisen — laskeudu jalkojesi päälle",
   "web.game.prompt.tunnel-wasd-or-click": "WASD tai pidä klikkaus sivulla ohjataksesi tunnelin reunaan",
   "web.game.record-congrats": "Erinomainen sato!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Tekijät",
   "web.window.extras-data": "extras.dat",
-  "yes": "Kyllä",
-  "web.extras.art.random-disable-hint": "Poistaaksesi satunnaisen taustan — aseta mikä tahansa taide taustaksi"
+  "yes": "Kyllä"
 }

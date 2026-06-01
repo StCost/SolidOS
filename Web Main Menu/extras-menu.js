@@ -1,6 +1,8 @@
 (function () {
   var PAGE_EXTRAS = "extras";
   var EVENT_OPEN_EXTERNAL_URL = "web-open-external-url";
+  var MESSAGE_START_SCREEN_READY = "web-extras-game-start-screen-ready";
+  var MESSAGE_GAMEPLAY_STARTED = "web-extras-game-gameplay-started";
 
   var VIEW_ART = "art";
   var VIEW_GAMES = "games";
@@ -466,6 +468,48 @@
       if (games[index].id === gameId) return games[index];
     }
     return null;
+  }
+
+  function stopExtrasGameStartMusic() {
+    if (window.WebExtrasGameStartMusic && window.WebExtrasGameStartMusic.forceStop) {
+      window.WebExtrasGameStartMusic.forceStop();
+    }
+  }
+
+  function setExtrasGameMusicPaths(gameId) {
+    var game = findGameById(gameId);
+    if (!window.WebExtrasGameStartMusic || !window.WebExtrasGameStartMusic.setMusicPaths) {
+      return;
+    }
+    if (!game) {
+      return;
+    }
+    window.WebExtrasGameStartMusic.setMusicPaths(game.startMusicPath, game.gameplayMusicPath);
+  }
+
+  function onGameFrameMessage(event) {
+    if (!gameFrame || !gameFrame.contentWindow) return;
+    if (event.source !== gameFrame.contentWindow) return;
+    if (currentView !== VIEW_GAME) return;
+
+    var data = event.data;
+    if (!data || typeof data.type !== "string") return;
+
+    if (data.type === MESSAGE_START_SCREEN_READY) {
+      if (window.WebExtrasGameStartMusic && window.WebExtrasGameStartMusic.setUsesStartScreenMusic) {
+        window.WebExtrasGameStartMusic.setUsesStartScreenMusic();
+      }
+      if (window.WebExtrasGameStartMusic && window.WebExtrasGameStartMusic.start) {
+        window.WebExtrasGameStartMusic.start();
+      }
+      return;
+    }
+
+    if (data.type === MESSAGE_GAMEPLAY_STARTED) {
+      if (window.WebExtrasGameStartMusic && window.WebExtrasGameStartMusic.stop) {
+        window.WebExtrasGameStartMusic.stop();
+      }
+    }
   }
 
   function isBlankGameFrameSrc(frameSrc) {
@@ -947,6 +991,7 @@
     game = findGameById(gameId);
     if (!game || !gameFrame) return;
     activeGameId = gameId;
+    setExtrasGameMusicPaths(gameId);
     if (window.WebDesktop && window.WebDesktop.ensureGameDesktopLinkIcon) {
       window.WebDesktop.ensureGameDesktopLinkIcon(gameId);
     }
@@ -960,6 +1005,7 @@
   }
 
   function closeGame() {
+    stopExtrasGameStartMusic();
     activeGameId = "";
     setGameInputForwarding(false);
     if (window.WebGameFrameInputHost) {
@@ -1384,6 +1430,7 @@
   }
 
   function onExtrasBackMenuClick() {
+    stopExtrasGameStartMusic();
     setGameInputForwarding(false);
     if (gameFrame) gameFrame.src = "about:blank";
     if (window.WebMenu && window.WebMenu.goToIndexPage) {
@@ -1412,6 +1459,7 @@
     }
     currentView = "";
     closeArtViewer();
+    stopExtrasGameStartMusic();
     setGameInputForwarding(false);
     if (gameFrame) gameFrame.src = "about:blank";
     renderExtras();
@@ -1526,6 +1574,7 @@
     event.stopPropagation();
   });
 
+  window.addEventListener("message", onGameFrameMessage);
   window.addEventListener("web-locale-applied", renderExtras);
   window.addEventListener("web-page-changed", onPageChanged);
   window.addEventListener("web-desktop-icons-ready", scheduleRefreshGameDesktopLinkSwitchState);
