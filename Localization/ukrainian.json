@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Фон 03",
   "web.extras.art.close": "Закрити",
   "web.extras.art.empty": "Арт не знайдено.",
+  "web.extras.art.random-disable-hint": "Щоб вимкнути випадковий фон — установіть будь-яке зображення як фон",
   "web.extras.art.randomize-background": "Випадковий фон",
   "web.extras.art.set-background": "Встановити фоном",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Нереально!",
   "web.game.citrus-slice.prompt-start-hint": "Клік — старт. Ріжте капсули, уникайте бомб — промахи не завершують забіг",
   "web.game.game-over": "Гра закінчена",
+  "web.game.game-over-menu": "До меню",
+  "web.game.game-over-retry": "Ще раз",
   "web.game.label.bonus": "бонус",
   "web.game.label.depth": "глиб.",
   "web.game.label.distance": "Дист.",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "КЛІК — СТАРТ",
   "web.game.prompt.hold-jump-higher": "Утримуйте для вищого стрибка",
   "web.game.prompt.hold-or-wasd": "клік і утримання або WASD",
+  "web.game.prompt.hold-reverse-spin": "Утримуйте для зворотного обертання — приземляйтеся на ноги",
   "web.game.prompt.tunnel-wasd-or-click": "WASD або утримуйте клік збоку, щоб вести до краю тунелю",
   "web.game.record-congrats": "Відмінний урожай!",
   "web.game.speed-suffix": " м/с",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Автори",
   "web.window.extras-data": "extras.dat",
-  "yes": "Так",
-  "web.extras.art.random-disable-hint": "Щоб вимкнути випадковий фон — установіть будь-яке зображення як фон"
+  "yes": "Так"
 }

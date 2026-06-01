@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Nền 03",
   "web.extras.art.close": "Đóng",
   "web.extras.art.empty": "Không tìm thấy nghệ thuật.",
+  "web.extras.art.random-disable-hint": "Để tắt nền ngẫu nhiên — đặt bất kỳ tác phẩm nào làm nền",
   "web.extras.art.randomize-background": "Nền ngẫu nhiên",
   "web.extras.art.set-background": "Đặt làm nền",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Không thật!",
   "web.game.citrus-slice.prompt-start-hint": "Nhấp để bắt đầu — chém viên nang, tránh bom — trượt không kết thúc lượt",
   "web.game.game-over": "Kết thúc",
+  "web.game.game-over-menu": "Menu bắt đầu",
+  "web.game.game-over-retry": "Chơi lại",
   "web.game.label.bonus": "thuong",
   "web.game.label.depth": "độ sâu",
   "web.game.label.distance": "Cự ly",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "BẤM ĐỂ BẮT ĐẦU",
   "web.game.prompt.hold-jump-higher": "Nhấn giữ để nhảy cao hơn",
   "web.game.prompt.hold-or-wasd": "bấm giữ hoặc WASD",
+  "web.game.prompt.hold-reverse-spin": "Giữ để đảo chiều quay — tiếp đất bằng chân",
   "web.game.prompt.tunnel-wasd-or-click": "WASD hoặc giữ nhấp một bên để lái về mép đường hầm",
   "web.game.record-congrats": "Mùa gặt xuất sắc!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Đội ngũ",
   "web.window.extras-data": "extras.dat",
-  "yes": "Có",
-  "web.extras.art.random-disable-hint": "Để tắt nền ngẫu nhiên — đặt bất kỳ tác phẩm nào làm nền"
+  "yes": "Có"
 }

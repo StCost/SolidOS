@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "背景 03",
   "web.extras.art.close": "關閉",
   "web.extras.art.empty": "找不到藝術作品。",
+  "web.extras.art.random-disable-hint": "要關閉隨機背景 — 將任意藝術作品設為背景",
   "web.extras.art.randomize-background": "隨機背景",
   "web.extras.art.set-background": "設為背景",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "難以置信！",
   "web.game.citrus-slice.prompt-start-hint": "點擊開始 — 切開膠囊，避開炸彈 — 失誤不會結束本局",
   "web.game.game-over": "遊戲結束",
+  "web.game.game-over-menu": "開始選單",
+  "web.game.game-over-retry": "再玩一次",
   "web.game.label.bonus": "獎勵",
   "web.game.label.depth": "深度",
   "web.game.label.distance": "距離",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "點擊開始",
   "web.game.prompt.hold-jump-higher": "按住跳得更高",
   "web.game.prompt.hold-or-wasd": "點擊按住或 WASD",
+  "web.game.prompt.hold-reverse-spin": "按住反轉旋轉 — 雙腳落地",
   "web.game.prompt.tunnel-wasd-or-click": "WASD 或在側面按住點擊以駛向隧道邊緣",
   "web.game.record-congrats": "豐收出色！",
   "web.game.speed-suffix": " 公尺/秒",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "製作人員",
   "web.window.extras-data": "extras.dat",
-  "yes": "是",
-  "web.extras.art.random-disable-hint": "要關閉隨機背景 — 將任意藝術作品設為背景"
+  "yes": "是"
 }

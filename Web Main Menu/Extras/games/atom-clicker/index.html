@@ -665,6 +665,7 @@
     </div>
     </div>
   </div>
+  <script src="../extras-game-start-music-notify.js"></script>
   <script>
     var degreeSymbol = "\u00B0";
     var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
@@ -1384,6 +1385,9 @@
     document.addEventListener("selectstart", function (event) {
       event.preventDefault();
     });
+    if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
+      window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
+    }
   </script>
 </body>
 </html>

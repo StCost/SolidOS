@@ -304,6 +304,7 @@
       </div>
     </div>
   </div>
+  <script src="../extras-game-start-music-notify.js"></script>
   <script>
     (function () {
       var canvas = document.getElementById("gameCanvas");
@@ -990,6 +991,9 @@
         controlHintEl.textContent = getStartHintText();
         holeGrowing = false;
         updateStartCrystalPreviews();
+        if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
+          window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
+        }
       }
 
       function startSession() {
@@ -999,6 +1003,9 @@
         sessionStarted = true;
         gameScreenEl.classList.add("hidden");
         beginHoleGrowCycle();
+        if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
+          window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
+        }
       }
 
       function placeSurfaceCrystal(col, row, cellType, clusterId) {

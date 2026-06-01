@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Bakgrund 03",
   "web.extras.art.close": "Stäng",
   "web.extras.art.empty": "Ingen konst hittades.",
+  "web.extras.art.random-disable-hint": "För att stänga av slumpmässig bakgrund — välj valfritt konstverk som bakgrund",
   "web.extras.art.randomize-background": "Slumpmässig bakgrund",
   "web.extras.art.set-background": "Ange som bakgrund",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "Overkligt!",
   "web.game.citrus-slice.prompt-start-hint": "Klicka för att starta — skär kapslar, undvik bomber — missar avslutar inte löpet",
   "web.game.game-over": "Spelet är slut",
+  "web.game.game-over-menu": "Startmeny",
+  "web.game.game-over-retry": "Spela igen",
   "web.game.label.bonus": "bonus",
   "web.game.label.depth": "djup",
   "web.game.label.distance": "Distans",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "KLICKA FÖR ATT STARTA",
   "web.game.prompt.hold-jump-higher": "Håll intryckt för högre hopp",
   "web.game.prompt.hold-or-wasd": "klicka och håll eller WASD",
+  "web.game.prompt.hold-reverse-spin": "Håll för att vända rotationen — landa på fötterna",
   "web.game.prompt.tunnel-wasd-or-click": "WASD eller håll klick på en sida för att styra mot tunnelkanten",
   "web.game.record-congrats": "Utmärkt skörd!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Medverkande",
   "web.window.extras-data": "extras.dat",
-  "yes": "Ja",
-  "web.extras.art.random-disable-hint": "För att stänga av slumpmässig bakgrund — välj valfritt konstverk som bakgrund"
+  "yes": "Ja"
 }

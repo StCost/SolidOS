@@ -34,6 +34,15 @@
         difficulty: 3
       },
       {
+        id: "airborne-robot",
+        title: "Airborne Robot",
+        path: "Extras/games/airborne-robot/index.html",
+        image: "Extras/games/airborne-robot/airborne-robot-preview.png",
+        difficulty: 4,
+        startMusicPath: "../audio/ui-robot-start-music.wav",
+        gameplayMusicPath: "../audio/ui-robot-game-music.wav"
+      },
+      {
         id: "orbital-golf",
         title: "Orbital Golf",
         path: "Extras/games/orbital-golf/index.html",

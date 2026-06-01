@@ -590,6 +590,7 @@
       </div>
     </div>
   </div>
+  <script src="../extras-game-start-music-notify.js"></script>
   <script>
     var HIGH_SCORE_STORAGE_KEY = "cm-trouble-drivers-high-score";
     var DISTANCE_BEST_STORAGE_KEY = "cm-trouble-drivers-best-distance";
@@ -4711,6 +4712,9 @@
       updateSpeedGauge();
       updateCheckEngineHud();
       focusGameInput();
+      if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
+        window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
+      }
     }
 
     function tryStartFromInput() {
@@ -4831,6 +4835,9 @@
       preloadChunksAroundWorld(0, 0);
       updateCheckEngineHud();
       setCarWrapTransform();
+      if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
+        window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
+      }
     }
 
     function onMovementKeyDown(code) {

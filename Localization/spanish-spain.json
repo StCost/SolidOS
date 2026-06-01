@@ -207,6 +207,7 @@
   "web.extras.art.background-03": "Fondo 03",
   "web.extras.art.close": "Cerrar",
   "web.extras.art.empty": "No se encontró arte.",
+  "web.extras.art.random-disable-hint": "Para desactivar el fondo aleatorio — establece cualquier arte como fondo",
   "web.extras.art.randomize-background": "Fondo aleatorio",
   "web.extras.art.set-background": "Establecer como fondo",
   "web.extras.art.viewer-title": "art_viewer.exe",
@@ -257,6 +258,8 @@
   "web.game.citrus-slice.praise.unreal": "¡Irreal!",
   "web.game.citrus-slice.prompt-start-hint": "Clic para empezar — corta cápsulas, evita bombas — los fallos no terminan la partida",
   "web.game.game-over": "Fin del juego",
+  "web.game.game-over-menu": "Menú inicial",
+  "web.game.game-over-retry": "Jugar de nuevo",
   "web.game.label.bonus": "bonificacion",
   "web.game.label.depth": "prof.",
   "web.game.label.distance": "Dist.",
@@ -277,6 +280,7 @@
   "web.game.prompt.click-start": "CLIC PARA EMPEZAR",
   "web.game.prompt.hold-jump-higher": "Mantén pulsado para saltar más alto",
   "web.game.prompt.hold-or-wasd": "clic y mantén o WASD",
+  "web.game.prompt.hold-reverse-spin": "Mantén pulsado para invertir la rotación — aterriza de pie",
   "web.game.prompt.tunnel-wasd-or-click": "WASD o mantén el clic en un lado para dirigir hacia el borde del túnel",
   "web.game.record-congrats": "¡Excelente cosecha!",
   "web.game.speed-suffix": " m/s",
@@ -310,6 +314,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Créditos",
   "web.window.extras-data": "extras.dat",
-  "yes": "Sí",
-  "web.extras.art.random-disable-hint": "Para desactivar el fondo aleatorio — establece cualquier arte como fondo"
+  "yes": "Sí"
 }
