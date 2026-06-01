@@ -1,0 +1,46 @@
+#menuWelcomeBoot {
+  position: fixed;
+  inset: 0;
+  z-index: 200000;
+  transition: opacity 0.48s ease, visibility 0.48s ease;
+}
+
+#menuWelcomeBoot.menu-boot-dismissed {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#device.menu-boot-pending {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#menuWelcomeBoot:not(.menu-welcome-boot--loading-mode) .os-statusbar {
+  display: none;
+}
+
+#menuWelcomeBoot .os-workspace--boot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+}
+
+#menuWelcomeBoot .menu-welcome-loading-panel {
+  width: min(42rem, 100%);
+  border: 1px solid rgba(255, 128, 0, 0.32);
+  background: var(--ink-window);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.65),
+    inset 0 0 0 1px rgba(255, 128, 0, 0.06);
+}
+
+#menuWelcomeBoot.menu-welcome-boot--loading-mode .menu-welcome-loading-panel {
+  display: block !important;
+}
+
+#menuWelcomeBoot:not(.menu-welcome-boot--loading-mode) .menu-welcome-loading-panel {
+  display: none !important;
+}

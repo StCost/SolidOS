@@ -12,7 +12,8 @@
     "web-start-lists-save",
     "web-open-external-url",
     "web-extras-game-input",
-    "web-extras-game-profile"
+    "web-extras-game-profile",
+    "web-extras-game-record-save"
   ];
 
   function postToUnity(event) {
@@ -32,7 +33,9 @@
       listsJson: detail.listsJson || "",
       url: detail.url || "",
       active: detail.active === true,
-      inputMode: detail.inputMode || ""
+      inputMode: detail.inputMode || "",
+      gameId: detail.gameId || "",
+      recordsJson: detail.recordsJson || ""
     };
 
     window.vuplex.postMessage(JSON.stringify(payload));

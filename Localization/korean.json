@@ -238,7 +238,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "최고",
-  "web.game.blackhole-golf.out-of-hits": "타수 소진",
+  "web.game.orbital-golf.out-of-hits": "타수 소진",
   "web.game.citrus-slice.combo": "콤보 x{0}",
   "web.game.citrus-slice.missed": "실수 {0}",
   "web.game.citrus-slice.perfect": "퍼펙트! +{0}",

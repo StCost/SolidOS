@@ -238,7 +238,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "สูงสุด",
-  "web.game.blackhole-golf.out-of-hits": "หมดครั้ง",
+  "web.game.orbital-golf.out-of-hits": "หมดครั้ง",
   "web.game.citrus-slice.combo": "คอมโบ x{0}",
   "web.game.citrus-slice.missed": "พลาด {0}",
   "web.game.citrus-slice.perfect": "เพอร์เฟกต์! +{0}",

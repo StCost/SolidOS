@@ -238,7 +238,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "bäst",
-  "web.game.blackhole-golf.out-of-hits": "SLAGEN SLUT",
+  "web.game.orbital-golf.out-of-hits": "SLAGEN SLUT",
   "web.game.citrus-slice.combo": "combo x{0}",
   "web.game.citrus-slice.missed": "missar {0}",
   "web.game.citrus-slice.perfect": "PERFEKT! +{0}",

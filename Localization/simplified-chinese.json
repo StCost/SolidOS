@@ -238,7 +238,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "最高",
-  "web.game.blackhole-golf.out-of-hits": "击球用尽",
+  "web.game.orbital-golf.out-of-hits": "击球用尽",
   "web.game.citrus-slice.combo": "连击 x{0}",
   "web.game.citrus-slice.missed": "失误 {0}",
   "web.game.citrus-slice.perfect": "完美！ +{0}",

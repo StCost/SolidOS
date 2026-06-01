@@ -238,7 +238,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "Best",
-  "web.game.blackhole-golf.out-of-hits": "SCHLÄGE AUFgebraucht",
+  "web.game.orbital-golf.out-of-hits": "SCHLÄGE AUFgebraucht",
   "web.game.citrus-slice.combo": "kombo x{0}",
   "web.game.citrus-slice.missed": "verfehlt {0}",
   "web.game.citrus-slice.perfect": "PERFEKT! +{0}",

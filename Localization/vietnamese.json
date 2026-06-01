@@ -238,7 +238,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "kỷ lục",
-  "web.game.blackhole-golf.out-of-hits": "HẾT CÚ",
+  "web.game.orbital-golf.out-of-hits": "HẾT CÚ",
   "web.game.citrus-slice.combo": "combo x{0}",
   "web.game.citrus-slice.missed": "trượt {0}",
   "web.game.citrus-slice.perfect": "HOÀN HẢO! +{0}",

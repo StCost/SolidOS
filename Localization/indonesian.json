@@ -238,7 +238,7 @@
   "web.extras.prompt.cd-up": "cd ..",
   "web.extras.prompt.dir": "dir",
   "web.game.best-label": "terbaik",
-  "web.game.blackhole-golf.out-of-hits": "PUKULAN HABIS",
+  "web.game.orbital-golf.out-of-hits": "PUKULAN HABIS",
   "web.game.citrus-slice.combo": "kombo x{0}",
   "web.game.citrus-slice.missed": "miss {0}",
   "web.game.citrus-slice.perfect": "SEMPURNA! +{0}",
