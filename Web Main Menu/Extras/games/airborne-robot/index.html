@@ -706,6 +706,18 @@
       letter-spacing: 0.08em;
       line-height: 1;
     }
+
+    html.preview-capture,
+    html.preview-capture body {
+      width: 624px;
+      height: 430px;
+      overflow: hidden;
+    }
+
+    html.preview-capture #gameRoot {
+      width: 624px;
+      height: 430px;
+    }
   </style>
 </head>
 <body>
@@ -860,6 +872,14 @@
     var COMBO_PREFIX = "x";
 
     var METERS_PER_UNIT = 0.06;
+
+    var PREVIEW_CAPTURE_QUERY = "previewCapture=1";
+    var PREVIEW_CAPTURE_WIDTH = 624;
+    var PREVIEW_CAPTURE_HEIGHT = 430;
+    var PREVIEW_CAPTURE_DISTANCE_METERS = 372;
+    var PREVIEW_CAPTURE_HIGH_SCORE_METERS = 700;
+    var PREVIEW_CAPTURE_COMBO_COUNT = 4;
+    var previewCaptureMode = window.location.search.indexOf(PREVIEW_CAPTURE_QUERY) >= 0;
 
     // ========== DEBUG-ONLY — revert: delete this entire block ==========
     var DEBUG_MODE_KEY_CODE = "F8";
@@ -5002,6 +5022,92 @@
       gameRoot.style.transform = "translate(" + shake.x + "px, " + shake.y + "px)";
     }
 
+    function addPreviewDebrisParticle(screenX, screenY, size, rotation, color) {
+      debrisParticles.push({
+        x: screenX,
+        y: screenY,
+        velocityX: 0,
+        velocityY: 0,
+        rotation: rotation,
+        spin: 0,
+        size: size,
+        age: 0.2,
+        life: 1.4,
+        color: color
+      });
+    }
+
+    function setupPreviewCapture() {
+      var ringWorldX;
+      var debrisColors;
+      var index;
+      document.documentElement.classList.add("preview-capture");
+      width = PREVIEW_CAPTURE_WIDTH;
+      height = PREVIEW_CAPTURE_HEIGHT;
+      devicePixelRatioScale = 1;
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
+      gameRoot.style.width = width + "px";
+      gameRoot.style.height = height + "px";
+      document.body.style.width = width + "px";
+      document.body.style.height = height + "px";
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      robotPx = Math.max(64, Math.min(140, Math.min(width, height) * 0.16));
+      footReach = robotPx * footReachRatio;
+      robotWrap.style.width = getRobotWrapWidth() + "px";
+      robotWrap.style.height = getRobotWrapHeight() + "px";
+      playerScreenX = width * 0.28;
+      gamePhase = PHASE_PLAYING;
+      distanceMeters = PREVIEW_CAPTURE_DISTANCE_METERS;
+      highScoreMeters = PREVIEW_CAPTURE_HIGH_SCORE_METERS;
+      comboCount = PREVIEW_CAPTURE_COMBO_COUNT;
+      forwardSpeed = 430;
+      worldScroll = distanceMeters / METERS_PER_UNIT;
+      playerWorldX = worldScroll + playerScreenX;
+      plateauEndWorldX = playerScreenX + robotPx * PLATEAU_EDGE_OFFSET_FACTOR;
+      playerYOffset = -92;
+      playerVelocityY = -110;
+      robotAngle = 0.48;
+      robotGlowStrength = 0.74;
+      cameraScale = 0.9;
+      beaconsSpawnedCount = Math.floor(distanceMeters / BEACON_INTERVAL_METERS);
+      beacons.length = 0;
+      spawnBeacons();
+      ringWorldX = playerWorldX + 170;
+      landingRings.push({
+        worldX: ringWorldX,
+        groundY: groundWave(ringWorldX),
+        age: 0.24,
+        life: 0.5,
+        maxRadius: 44,
+        quality: "good"
+      });
+      debrisColors = getDebrisColorPair();
+      addPreviewDebrisParticle(playerScreenX + 58, getPlayerGroundY() + playerYOffset - footReach + 18, 8, 0.35, debrisColors.light);
+      addPreviewDebrisParticle(playerScreenX + 82, getPlayerGroundY() + playerYOffset - footReach + 34, 6, -0.8, debrisColors.dark);
+      addPreviewDebrisParticle(playerScreenX + 44, getPlayerGroundY() + playerYOffset - footReach + 42, 5, 1.1, debrisColors.light);
+      hideGameScreen();
+      hideRobotColorPicker();
+      gameScreen.classList.add("hidden");
+      hudPlaying.classList.remove("hidden");
+      debugPanel.classList.add("hidden");
+      damageFlash.style.display = "none";
+      launchLeg.classList.remove("is-visible");
+      hudDistance.textContent = formatMeters(distanceMeters);
+      setSpeedHud();
+      setComboHud();
+      setHighScoreHud();
+      for (index = 0; index < skyCraft.length; index++) {
+        skyCraft[index].x = (index + 0.5) / skyCraft.length * width;
+      }
+      skyCraftSeeded = true;
+      positionRobotDom();
+      updateRobotGlowFilter();
+      window.__previewCaptureReady = true;
+    }
+
     function render() {
       applyScreenShake();
       context.save();
@@ -5079,12 +5185,17 @@
     bindLocaleListener();
     loadHighScore();
     debugSpawnInput.value = String(DEBUG_SPAWN_DEFAULT_METERS);
-    resizeCanvas();
-    showStartScreen();
-    applyGameLocale();
-    positionRobotDom();
-    render();
-    window.requestAnimationFrame(gameLoop);
+    if (previewCaptureMode) {
+      setupPreviewCapture();
+      render();
+    } else {
+      resizeCanvas();
+      showStartScreen();
+      applyGameLocale();
+      positionRobotDom();
+      render();
+      window.requestAnimationFrame(gameLoop);
+    }
   </script>
 </body>
 </html>
