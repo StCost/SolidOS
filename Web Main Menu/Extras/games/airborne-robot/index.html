@@ -857,6 +857,7 @@
     </div>
   </div>
   <script src="../extras-game-start-music-notify.js"></script>
+  <script src="../extras-game-ui-audio-paths.js"></script>
   <script>
     var HIGH_SCORE_STORAGE_KEY = "cm-airborne-robot-high-score";
     var ROBOT_COLOR_STORAGE_KEY = "cm-airborne-robot-color";
@@ -1020,9 +1021,9 @@
     var ROBOT_COLOR_DRAG_SV = "sv";
     var ROBOT_COLOR_DRAG_HUE = "hue";
 
-    var COLOR_PICKER_HOVER_AUDIO_PATH = "../../../../audio/ui-hover.wav";
-    var COLOR_PICKER_CLICK_AUDIO_PATH = "../../../../audio/ui-click.wav";
-    var COLOR_PICKER_MOVE_AUDIO_PATH = "../../../../audio/ui-move.wav";
+    var COLOR_PICKER_HOVER_AUDIO_FILE = "ui-hover.wav";
+    var COLOR_PICKER_CLICK_AUDIO_FILE = "ui-click.wav";
+    var COLOR_PICKER_MOVE_AUDIO_FILE = "ui-move.wav";
     var COLOR_PICKER_MOVE_SOUND_MIN_INTERVAL_MS = 60;
     var colorPickerHoverAudio = null;
     var colorPickerClickAudio = null;
@@ -1748,11 +1749,18 @@
       return 0.5;
     }
 
+    function getColorPickerUiSoundPath(fileName) {
+      if (window.WebExtrasGameUiAudioPaths && window.WebExtrasGameUiAudioPaths.getUiSoundPath) {
+        return window.WebExtrasGameUiAudioPaths.getUiSoundPath(fileName);
+      }
+      return "../../../../audio/" + fileName;
+    }
+
     function ensureColorPickerHoverAudio() {
       if (colorPickerHoverAudio) {
         return colorPickerHoverAudio;
       }
-      colorPickerHoverAudio = new Audio(COLOR_PICKER_HOVER_AUDIO_PATH);
+      colorPickerHoverAudio = new Audio(getColorPickerUiSoundPath(COLOR_PICKER_HOVER_AUDIO_FILE));
       colorPickerHoverAudio.preload = "auto";
       return colorPickerHoverAudio;
     }
@@ -1761,7 +1769,7 @@
       if (colorPickerClickAudio) {
         return colorPickerClickAudio;
       }
-      colorPickerClickAudio = new Audio(COLOR_PICKER_CLICK_AUDIO_PATH);
+      colorPickerClickAudio = new Audio(getColorPickerUiSoundPath(COLOR_PICKER_CLICK_AUDIO_FILE));
       colorPickerClickAudio.preload = "auto";
       return colorPickerClickAudio;
     }
@@ -1770,7 +1778,7 @@
       if (colorPickerMoveAudio) {
         return colorPickerMoveAudio;
       }
-      colorPickerMoveAudio = new Audio(COLOR_PICKER_MOVE_AUDIO_PATH);
+      colorPickerMoveAudio = new Audio(getColorPickerUiSoundPath(COLOR_PICKER_MOVE_AUDIO_FILE));
       colorPickerMoveAudio.preload = "auto";
       return colorPickerMoveAudio;
     }

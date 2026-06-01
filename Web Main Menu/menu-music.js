@@ -1,5 +1,12 @@
 (function () {
-  var MUSIC_PATH = "../audio/menu-music.mp3";
+  var MUSIC_FILE = "menu-music.mp3";
+
+  function getMusicPath() {
+    if (window.WebMenuAudioPaths && window.WebMenuAudioPaths.getMenuAudioPath) {
+      return window.WebMenuAudioPaths.getMenuAudioPath(MUSIC_FILE);
+    }
+    return "../audio/" + MUSIC_FILE;
+  }
   var FADE_STEP_MS = 50;
   var FADE_DURATION_MS = 10000;
   var FADE_DURATION_PAUSE_MS = 1500;
@@ -34,7 +41,7 @@
 
   function ensureMusicAudio() {
     if (musicAudio) return musicAudio;
-    musicAudio = new Audio(MUSIC_PATH);
+    musicAudio = new Audio(getMusicPath());
     musicAudio.loop = true;
     musicAudio.preload = "auto";
     musicAudio.volume = 0;

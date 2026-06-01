@@ -63,7 +63,7 @@ Browsers block `fetch()` on `file://` pages. Serve this folder over HTTP:
 
 Then open `http://localhost:8765/Web%20Main%20Menu/index.html`. Locales load from `Localization/*.json` via `fetch`.
 
-GitHub Pages serves the same menu at the repo root (`index.html`); the workflow copies `Web Main Menu/`, `Localization/`, and `audio/` into the published artifact and rewrites `../` asset paths for that layout.
+GitHub Pages serves the same menu at the repo root (`index.html`); the workflow copies `Web Main Menu/`, `Localization/`, and `audio/` into the published artifact. `menu-audio-paths.js` picks `audio/` vs `../audio/` from the page URL so menu and extras game music work in both layouts.
 
 Requires [Node.js](https://nodejs.org/) (`npx` on PATH).
 
