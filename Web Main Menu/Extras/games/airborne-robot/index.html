@@ -914,14 +914,6 @@
     var BEACON_SPAWN_LEAD_METERS = 60;
     var BEACON_FADE_SECONDS = 0.6;
     var BEACON_BEAM_BASE_OFFSET_RATIO = 1.55;
-    var BEACON_SHIELD_PERFECT_IMPACT_FACTOR = 0.88;
-    var BEACON_SHIELD_PERFECT_BOUNCE_BONUS = 200;
-    var BEACON_SHIELD_PERFECT_FORWARD_GAIN = 70;
-    var BEACON_SHIELD_PERFECT_FORWARD_SPEED_FACTOR = 0.42;
-    var SHIELD_PERFECT_LANDING_SHAKE_DURATION = 0.18;
-    var SHIELD_PERFECT_LANDING_SHAKE_STRENGTH = 5;
-    var SHIELD_PERFECT_LANDING_BURST_RADIUS = 38;
-    var SHIELD_PERFECT_LANDING_BURST_LIFE = 0.32;
     var SPARK_DEFAULT_HUE = 20;
     var SPARK_BEACON_HUE = 30;
     var SPARK_SHIELD_HUE = 52;
@@ -1131,7 +1123,6 @@
     var lostLimbCount = 0;
     var currentLimbDamage = 0;
     var shieldActive = false;
-    var beaconShieldPerfectLandingPending = false;
     var headDetached = false;
     var headDetachOffsetNaturalX = 0;
     var headDetachOffsetNaturalY = 0;
@@ -2279,7 +2270,6 @@
       lostLimbCount = 0;
       currentLimbDamage = 0;
       shieldActive = false;
-      beaconShieldPerfectLandingPending = false;
       headDetached = false;
       headDetachOffsetNaturalX = 0;
       headDetachOffsetNaturalY = 0;
@@ -2491,7 +2481,6 @@
       lostLimbCount = 0;
       currentLimbDamage = 0;
       shieldActive = false;
-      beaconShieldPerfectLandingPending = false;
       headDetached = false;
       headDetachOffsetNaturalX = 0;
       headDetachOffsetNaturalY = 0;
@@ -3105,19 +3094,6 @@
       }
     }
 
-    function spawnShieldPerfectLandingBurst(originX, originY) {
-      triggerScreenShake(SHIELD_PERFECT_LANDING_SHAKE_DURATION, SHIELD_PERFECT_LANDING_SHAKE_STRENGTH);
-      spawnSparks(originX, originY, 10, SPARK_SHIELD_HUE);
-      spawnExplosionSparks(originX, originY, 8);
-      explosionBursts.push({
-        x: originX,
-        y: originY,
-        age: 0,
-        life: SHIELD_PERFECT_LANDING_BURST_LIFE,
-        maxRadius: SHIELD_PERFECT_LANDING_BURST_RADIUS
-      });
-    }
-
     function spawnHeadDetachExplosion(originX, originY) {
       var index;
       triggerScreenShake(HEAD_DETACH_SHAKE_DURATION, HEAD_DETACH_SHAKE_STRENGTH);
@@ -3174,24 +3150,6 @@
       playerYOffset = 0;
       spawnLandingRing(isPerfect ? "perfect" : "good");
       spawnSparks(playerScreenX, getPlayerGroundY() + playerYOffset, isPerfect ? 10 : 5);
-    }
-
-    function applyBeaconShieldPerfectLanding(impactSpeed) {
-      var bounceUp;
-      var contactX = playerScreenX;
-      var contactY = getPlayerGroundY();
-      beaconShieldPerfectLandingPending = false;
-      comboCount += 1;
-      setComboHud();
-      var speedGain = 14 + Math.min(comboCount, 12) * 1.6 + 12 + BEACON_SHIELD_PERFECT_FORWARD_GAIN;
-      forwardSpeed = Math.min(FORWARD_SPEED_MAX, forwardSpeed + speedGain);
-      spinBonus = Math.min(SPIN_BONUS_MAX, spinBonus + PERFECT_SPIN_BONUS);
-      bounceUp = impactSpeed * BEACON_SHIELD_PERFECT_IMPACT_FACTOR + 280 + forwardSpeed * BEACON_SHIELD_PERFECT_FORWARD_SPEED_FACTOR + 120 + BEACON_SHIELD_PERFECT_BOUNCE_BONUS;
-      playerVelocityY = -bounceUp;
-      playerYOffset = 0;
-      spawnLandingRing("perfect");
-      spawnSparks(contactX, contactY, 14, SPARK_BEACON_HUE);
-      spawnShieldPerfectLandingBurst(contactX, contactY);
     }
 
     function setShieldActive(active) {
@@ -3251,7 +3209,6 @@
 
     function launchHead() {
       headDetached = true;
-      beaconShieldPerfectLandingPending = false;
       setShieldActive(false);
       robotWrap.classList.add("is-headless");
       resetRobotGlow();
@@ -3361,10 +3318,6 @@
       var uprightError = getUprightError(robotAngle - groundSlopeAngle);
       resetRobotGlow();
       clearLegTrail();
-      if (beaconShieldPerfectLandingPending) {
-        applyBeaconShieldPerfectLanding(impactSpeed);
-        return;
-      }
       if (uprightError <= GOOD_LANDING_TOLERANCE) {
         applyGoodLanding(uprightError, impactSpeed);
       } else {
@@ -3619,7 +3572,6 @@
         return;
       }
       setShieldActive(true);
-      beaconShieldPerfectLandingPending = true;
       spawnSparks(playerScreenX, getPlayerGroundY() + playerYOffset - footReach, 16, SPARK_SHIELD_HUE);
     }
 
