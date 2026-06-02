@@ -5,6 +5,7 @@
   var HOUR_WIN = 6;
   var NIGHT_MAX = 5;
   var POWER_START = 100;
+  var POWER_DISPLAY_MAX = 99;
   var TICK_MS = 100;
   var HOUR_REAL_SECONDS = 45;
   var POWER_REPORT_GAIN = 22;
@@ -17,6 +18,14 @@
   var POWER_OUT_SCARE_MIN_MS = 5000;
   var POWER_OUT_SCARE_MAX_MS = 12000;
   var POWER_OUT_SCREAMER_FLASH_MS = 520;
+  var CAM_MAP_MARGIN_X = 8;
+  var CAM_MAP_MARGIN_Y = 12;
+  var CAM_MAP_SPAN_X = 84;
+  var CAM_MAP_SPAN_Y = 76;
+  var CAM_MAP_NODE_HALF_W = 6;
+  var CAM_MAP_NODE_HALF_H = 5;
+  var CAM_MAP_NODE_GAP = 3;
+  var CAM_MAP_PLACE_TRIES = 80;
 
   var ROOM_NAME_KEYS = [
     "web.game.factory-night.room.01",
@@ -387,6 +396,45 @@
     menuPreviewRoomIndex = pickRandomInt(CAM_NUMBERS.length);
   }
 
+  function pickCamMapRandom() {
+    return Math.random();
+  }
+
+  function shuffleCamPlaceOrder(count) {
+    var order = [];
+    var index;
+    var swapIndex;
+    var temp;
+    for (index = 0; index < count; index++) {
+      order.push(index);
+    }
+    for (index = count - 1; index > 0; index--) {
+      swapIndex = Math.floor(pickCamMapRandom() * (index + 1));
+      temp = order[index];
+      order[index] = order[swapIndex];
+      order[swapIndex] = temp;
+    }
+    return order;
+  }
+
+  function getCamMapNodeRect(centerX, centerY) {
+    return {
+      left: centerX - CAM_MAP_NODE_HALF_W,
+      top: centerY - CAM_MAP_NODE_HALF_H,
+      right: centerX + CAM_MAP_NODE_HALF_W,
+      bottom: centerY + CAM_MAP_NODE_HALF_H
+    };
+  }
+
+  function camMapRectsOverlap(rectA, rectB) {
+    return (
+      rectA.left < rectB.right + CAM_MAP_NODE_GAP &&
+      rectA.right > rectB.left - CAM_MAP_NODE_GAP &&
+      rectA.top < rectB.bottom + CAM_MAP_NODE_GAP &&
+      rectA.bottom > rectB.top - CAM_MAP_NODE_GAP
+    );
+  }
+
   function getNightDifficulty() {
     return (0.55 + state.night * 0.18) * (0.7 + state.aggression * 0.5);
   }
@@ -524,6 +572,8 @@
 
   function layoutCamMap() {
     var index;
+    var orderIndex;
+    var placeOrder;
     var edgeIndex;
     var edge;
     var nodeA;
@@ -533,8 +583,8 @@
     var positions = [];
     var usedRects = [];
     var tries;
-    var left;
-    var top;
+    var centerX;
+    var centerY;
     var rect;
     var overlaps;
     var checkIndex;
@@ -544,33 +594,34 @@
     camMapNodesEl.innerHTML = "";
     camMapEdgesEl.innerHTML = "";
     for (index = 0; index < ROOM_COUNT; index++) {
+      positions.push(null);
+    }
+    placeOrder = shuffleCamPlaceOrder(ROOM_COUNT);
+    for (orderIndex = 0; orderIndex < ROOM_COUNT; orderIndex++) {
+      index = placeOrder[orderIndex];
       tries = 0;
-      while (tries < 50) {
-        left = 10 + nextNightRandom() * 80;
-        top = 58 + nextNightRandom() * 36;
-        rect = { left: left, top: top, right: left + 10, bottom: top + 8 };
+      while (tries < CAM_MAP_PLACE_TRIES) {
+        centerX = CAM_MAP_MARGIN_X + pickCamMapRandom() * CAM_MAP_SPAN_X;
+        centerY = CAM_MAP_MARGIN_Y + pickCamMapRandom() * CAM_MAP_SPAN_Y;
+        rect = getCamMapNodeRect(centerX, centerY);
         overlaps = false;
         for (checkIndex = 0; checkIndex < usedRects.length; checkIndex++) {
-          var other = usedRects[checkIndex];
-          if (
-            rect.left < other.right &&
-            rect.right > other.left &&
-            rect.top < other.bottom &&
-            rect.bottom > other.top
-          ) {
+          if (camMapRectsOverlap(rect, usedRects[checkIndex])) {
             overlaps = true;
             break;
           }
         }
         if (!overlaps) {
           usedRects.push(rect);
-          positions.push({ x: left, y: top });
+          positions[index] = { x: centerX, y: centerY };
           break;
         }
         tries = tries + 1;
       }
-      if (positions.length <= index) {
-        positions.push({ x: 12 + index * 14, y: 72 });
+      if (!positions[index]) {
+        centerX = CAM_MAP_MARGIN_X + pickCamMapRandom() * CAM_MAP_SPAN_X;
+        centerY = CAM_MAP_MARGIN_Y + pickCamMapRandom() * CAM_MAP_SPAN_Y;
+        positions[index] = { x: centerX, y: centerY };
       }
     }
     state.camNodePositions = positions;
@@ -634,7 +685,11 @@
       powerFillEl.style.width = String(Math.max(0, state.power)) + "%";
     }
     if (powerPercentEl) {
-      powerPercentEl.textContent = String(Math.max(0, Math.floor(state.power))) + "%";
+      var powerDisplay = Math.max(0, Math.floor(state.power));
+      if (powerDisplay > POWER_DISPLAY_MAX) {
+        powerDisplay = POWER_DISPLAY_MAX;
+      }
+      powerPercentEl.textContent = String(powerDisplay) + "%";
     }
     if (powerHudEl) {
       if (state.power <= 25) {

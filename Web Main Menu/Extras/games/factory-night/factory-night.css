@@ -615,8 +615,9 @@ button {
 #powerPercent {
   font-size: 10px;
   color: rgba(200, 160, 100, 0.85);
-  min-width: 2.5em;
+  min-width: 3ch;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .reports-label {
