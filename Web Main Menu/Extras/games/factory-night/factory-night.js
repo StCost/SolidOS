@@ -1,5 +1,6 @@
 (function () {
   var STORAGE_BEST_NIGHT = "factoryNightBestNight";
+  var STORAGE_BEST_CORRECT_REPORTS = "factoryNightBestCorrectReports";
   var HOUR_DISPLAY_START = 12;
   var HOUR_WIN = 6;
   var NIGHT_MAX = 5;
@@ -17,7 +18,16 @@
   var POWER_OUT_SCARE_MAX_MS = 12000;
   var POWER_OUT_SCREAMER_FLASH_MS = 520;
 
-  var ROOM_NAMES = [
+  var ROOM_NAME_KEYS = [
+    "web.game.factory-night.room.01",
+    "web.game.factory-night.room.02",
+    "web.game.factory-night.room.03",
+    "web.game.factory-night.room.04",
+    "web.game.factory-night.room.05",
+    "web.game.factory-night.room.06"
+  ];
+
+  var ROOM_NAME_FALLBACKS = [
     "CAM-01 LOADING BAY",
     "CAM-02 CONVEYOR LINE",
     "CAM-03 FURNACE PIT",
@@ -25,6 +35,8 @@
     "CAM-05 WELD STATION",
     "CAM-06 BREAK ROOM"
   ];
+
+  var ROOM_COUNT = ROOM_NAME_FALLBACKS.length;
 
   var CAM_GRAPH_EDGES = [
     [0, 1],
@@ -64,7 +76,6 @@
   var powerFillEl;
   var powerPercentEl;
   var powerHudEl;
-  var usageValueEl;
   var monitorRoomNameEl;
   var monitorBlockEl;
   var startOverlayEl;
@@ -73,8 +84,9 @@
   var powerOutOverlayEl;
   var fullscreenScreamerEl;
   var jumpscareFaceEl;
-  var bestNightValueEl;
-  var gameOverReasonEl;
+  var bestNightLineEl;
+  var bestCorrectReportsLineEl;
+  var correctReportsValueEl;
 
   var state;
   var tickTimer;
@@ -82,6 +94,7 @@
   var powerOutScareTimer;
   var powerOutScreamerTimer;
   var bestNight;
+  var bestCorrectReports;
   var preloadedImages = {};
   var audioContext;
   var menuPreviewRoomIndex = 0;
@@ -120,6 +133,81 @@
     } else if (fileName.indexOf("cam") === 0) {
       cameraAmbientPaths.push(path);
     }
+  }
+
+  function getGameText(key, fallback) {
+    if (window.WebGameLocale && window.WebGameLocale.get) {
+      return window.WebGameLocale.get(key, fallback);
+    }
+    return fallback;
+  }
+
+  function formatGameText(key, fallback) {
+    var argIndex;
+    var text = getGameText(key, fallback);
+    for (argIndex = 2; argIndex < arguments.length; argIndex++) {
+      text = text.split("{" + String(argIndex - 2) + "}").join(String(arguments[argIndex]));
+    }
+    return text;
+  }
+
+  function getRoomName(roomIndex) {
+    if (roomIndex < 0 || roomIndex >= ROOM_NAME_KEYS.length) {
+      return ROOM_NAME_FALLBACKS[0];
+    }
+    return getGameText(ROOM_NAME_KEYS[roomIndex], ROOM_NAME_FALLBACKS[roomIndex]);
+  }
+
+  function updateStartButtonLabel(nightNumber) {
+    var startButton = document.getElementById("startButton");
+    if (startButton) {
+      startButton.textContent = formatGameText(
+        "web.game.factory-night.start-night",
+        "START NIGHT {0}",
+        nightNumber
+      );
+    }
+  }
+
+  function updateBestNightLine() {
+    if (bestNightLineEl) {
+      bestNightLineEl.textContent = formatGameText(
+        "web.game.factory-night.best-night",
+        "Best night reached: {0}",
+        bestNight
+      );
+    }
+  }
+
+  function updateBestCorrectReportsLine() {
+    if (bestCorrectReportsLineEl) {
+      bestCorrectReportsLineEl.textContent = formatGameText(
+        "web.game.factory-night.best-correct",
+        "Best correct reports: {0}",
+        bestCorrectReports
+      );
+    }
+  }
+
+  function applyGameLocale() {
+    if (window.WebGameLocale && window.WebGameLocale.applyDom) {
+      window.WebGameLocale.applyDom();
+    }
+    document.title = getGameText("web.game.factory-night.title", "Factory Night");
+    updateStartButtonLabel(state ? state.night : 1);
+    updateBestNightLine();
+    updateBestCorrectReportsLine();
+    if (state && monitorRoomNameEl) {
+      if (state.playing) {
+        monitorRoomNameEl.textContent = getRoomName(state.cameraIndex);
+      } else {
+        monitorRoomNameEl.textContent = getRoomName(menuPreviewRoomIndex);
+      }
+    }
+  }
+
+  function onGameLocaleApplied() {
+    applyGameLocale();
   }
 
   function buildImageRegistry() {
@@ -197,6 +285,34 @@
     }
   }
 
+  function loadBestCorrectReports() {
+    var raw = 0;
+    try {
+      raw = parseInt(window.localStorage.getItem(STORAGE_BEST_CORRECT_REPORTS) || "0", 10);
+    } catch (error) {
+      raw = 0;
+    }
+    if (isNaN(raw) || raw < 0) {
+      raw = 0;
+    }
+    return raw;
+  }
+
+  function saveBestCorrectReports(value) {
+    try {
+      window.localStorage.setItem(STORAGE_BEST_CORRECT_REPORTS, String(value));
+    } catch (error) {
+    }
+  }
+
+  function trySaveBestCorrectReports(count) {
+    if (count > bestCorrectReports) {
+      bestCorrectReports = count;
+      saveBestCorrectReports(bestCorrectReports);
+      updateBestCorrectReportsLine();
+    }
+  }
+
   function createInitialState() {
     return {
       playing: false,
@@ -219,7 +335,8 @@
       nightSeed: 0,
       nightRngState: 1,
       currentFeedPath: "",
-      currentFeedIsMonster: false
+      currentFeedIsMonster: false,
+      correctReports: 0
     };
   }
 
@@ -426,7 +543,7 @@
     }
     camMapNodesEl.innerHTML = "";
     camMapEdgesEl.innerHTML = "";
-    for (index = 0; index < ROOM_NAMES.length; index++) {
+    for (index = 0; index < ROOM_COUNT; index++) {
       tries = 0;
       while (tries < 50) {
         left = 10 + nextNightRandom() * 80;
@@ -471,7 +588,7 @@
       line.setAttribute("y2", String(nodeB.y));
       camMapEdgesEl.appendChild(line);
     }
-    for (index = 0; index < ROOM_NAMES.length; index++) {
+    for (index = 0; index < ROOM_COUNT; index++) {
       button = document.createElement("button");
       button.type = "button";
       button.className = "cam-map-node";
@@ -504,9 +621,6 @@
 
   function countUsage() {
     state.usage = FIXED_POWER_USAGE;
-    if (usageValueEl) {
-      usageValueEl.textContent = String(FIXED_POWER_USAGE);
-    }
   }
 
   function updateHud() {
@@ -527,6 +641,13 @@
         powerHudEl.classList.add("is-low");
       } else {
         powerHudEl.classList.remove("is-low");
+      }
+    }
+    if (correctReportsValueEl) {
+      if (state.playing && !state.gameOver) {
+        correctReportsValueEl.textContent = String(state.correctReports);
+      } else {
+        correctReportsValueEl.textContent = "0";
       }
     }
     countUsage();
@@ -902,7 +1023,7 @@
     if (!state.playing) {
       return;
     }
-    if (index < 0 || index >= ROOM_NAMES.length) {
+    if (index < 0 || index >= ROOM_COUNT) {
       return;
     }
     previousIndex = state.cameraIndex;
@@ -911,7 +1032,7 @@
     }
     state.cameraIndex = index;
     if (monitorRoomNameEl) {
-      monitorRoomNameEl.textContent = ROOM_NAMES[index];
+      monitorRoomNameEl.textContent = getRoomName(index);
     }
     setActiveCamNode(index);
     if (state.camFeedsPending) {
@@ -988,6 +1109,8 @@
     isMonster = state.currentFeedIsMonster;
     if (isMonster) {
       applyReportPowerGain();
+      state.correctReports = state.correctReports + 1;
+      trySaveBestCorrectReports(state.correctReports);
     }
     forceRefreshAllCameraFeeds();
     showReportedEffect();
@@ -1029,10 +1152,6 @@
     return POWER_OUT_SCARE_MIN_MS + Math.floor(
       Math.random() * (POWER_OUT_SCARE_MAX_MS - POWER_OUT_SCARE_MIN_MS + 1)
     );
-  }
-
-  function getPowerOutScareReason() {
-    return "Something reached you in the dark.";
   }
 
   function playJumpscareScream() {
@@ -1079,13 +1198,11 @@
   }
 
   function triggerPowerOutScreamer() {
-    var reason;
     var screamerPath;
     if (!state.playing || state.gameOver || !state.powerOut) {
       return;
     }
     powerOutScareTimer = 0;
-    reason = getPowerOutScareReason();
     screamerPath = getRandomScreamerPath();
     preloadImage(screamerPath);
     showFullscreenScreamer(screamerPath);
@@ -1102,7 +1219,7 @@
       if (powerOutOverlayEl) {
         powerOutOverlayEl.classList.add("is-hidden");
       }
-      loseGame(reason, screamerPath);
+      loseGame(screamerPath);
     }, POWER_OUT_SCREAMER_FLASH_MS);
   }
 
@@ -1139,16 +1256,14 @@
     if (state.night >= bestNight) {
       bestNight = state.night;
       saveBestNight(bestNight);
-      if (bestNightValueEl) {
-        bestNightValueEl.textContent = String(bestNight);
-      }
+      updateBestNightLine();
     }
     if (winOverlayEl) {
       winOverlayEl.classList.remove("is-hidden");
     }
   }
 
-  function loseGame(reason, screamerPath) {
+  function loseGame(screamerPath) {
     var facePath;
     if (state.gameOver) {
       return;
@@ -1165,9 +1280,6 @@
     }
     if (gameRoot) {
       gameRoot.classList.add("is-jumpscare");
-    }
-    if (gameOverReasonEl) {
-      gameOverReasonEl.textContent = reason;
     }
     if (gameOverOverlayEl) {
       gameOverOverlayEl.classList.remove("is-hidden");
@@ -1205,13 +1317,18 @@
     updateHud();
   }
 
-  function startNight(nightNumber) {
+  function startNight(nightNumber, keepCorrectReports) {
+    var savedCorrectReports = 0;
+    if (keepCorrectReports && state) {
+      savedCorrectReports = state.correctReports;
+    }
     stopTimers();
     state = createInitialState();
+    state.correctReports = savedCorrectReports;
     state.night = nightNumber;
     state.playing = true;
     setNightSeed(buildNightSeed(nightNumber));
-    state.cameraIndex = pickRandomInt(ROOM_NAMES.length);
+    state.cameraIndex = pickRandomInt(ROOM_COUNT);
     rollNightIntensity();
     resetUsedPathsForAllRooms();
     initAllCameraFeeds();
@@ -1232,7 +1349,7 @@
       powerOutOverlayEl.classList.add("is-hidden");
     }
     if (monitorRoomNameEl) {
-      monitorRoomNameEl.textContent = ROOM_NAMES[state.cameraIndex];
+      monitorRoomNameEl.textContent = getRoomName(state.cameraIndex);
     }
     setActiveCamNode(state.cameraIndex);
     setMonitorVisual();
@@ -1265,7 +1382,7 @@
     var startButton = document.getElementById("startButton");
     if (startButton) {
       startButton.addEventListener("click", function () {
-        startNight(1);
+        startNight(1, false);
       });
     }
     var nextNightButton = document.getElementById("nextNightButton");
@@ -1276,7 +1393,7 @@
           showStartMenu();
           return;
         }
-        startNight(next);
+        startNight(next, true);
       });
     }
     var winMenuButton = document.getElementById("winMenuButton");
@@ -1288,7 +1405,7 @@
     var retryButton = document.getElementById("retryButton");
     if (retryButton) {
       retryButton.addEventListener("click", function () {
-        startNight(state.night);
+        startNight(state.night, false);
       });
     }
   }
@@ -1321,8 +1438,11 @@
     }
     var startButton = document.getElementById("startButton");
     if (startButton) {
-      startButton.textContent = "START NIGHT 1";
+      updateStartButtonLabel(1);
     }
+    updateBestNightLine();
+    updateBestCorrectReportsLine();
+    applyGameLocale();
     applyCameraFeedInstant();
   }
 
@@ -1340,7 +1460,6 @@
     powerFillEl = document.getElementById("powerFill");
     powerPercentEl = document.getElementById("powerPercent");
     powerHudEl = document.getElementById("powerHud");
-    usageValueEl = document.getElementById("usageValue");
     monitorRoomNameEl = document.getElementById("monitorRoomName");
     monitorBlockEl = document.getElementById("monitorBlock");
     startOverlayEl = document.getElementById("startOverlay");
@@ -1349,20 +1468,24 @@
     powerOutOverlayEl = document.getElementById("powerOutOverlay");
     fullscreenScreamerEl = document.getElementById("fullscreenScreamer");
     jumpscareFaceEl = document.getElementById("jumpscareFace");
-    bestNightValueEl = document.getElementById("bestNightValue");
-    gameOverReasonEl = document.getElementById("gameOverReason");
+    bestNightLineEl = document.getElementById("bestNightLine");
+    bestCorrectReportsLineEl = document.getElementById("bestCorrectReportsLine");
+    correctReportsValueEl = document.getElementById("correctReportsValue");
+
+    window.addEventListener("web-locale-applied", onGameLocaleApplied);
 
     loadImageManifest(function () {
       bestNight = loadBestNight();
-      if (bestNightValueEl) {
-        bestNightValueEl.textContent = String(bestNight);
-      }
+      bestCorrectReports = loadBestCorrectReports();
       preloadAllAssets();
       state = createInitialState();
       pickMenuPreviewRoom();
       bindUi();
       setMonitorVisual();
       updateHud();
+      updateBestNightLine();
+      updateBestCorrectReportsLine();
+      applyGameLocale();
     });
   }
 
