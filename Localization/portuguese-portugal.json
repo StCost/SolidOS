@@ -244,7 +244,6 @@
   "web.game.cargo-convoy.hint": "Escolte o camião pelo deserto. Selecione os veículos, clique para reposicionar, recolha cristais e reforce o comboio.",
   "web.game.cargo-convoy.score-label": "PONTOS",
   "web.game.cargo-convoy.spawn-escort": "+ ESCOLTA ({0})",
-  "web.game.cargo-convoy.title": "Cargo Convoy",
   "web.game.citrus-slice.combo": "combo x{0}",
   "web.game.citrus-slice.missed": "falhas {0}",
   "web.game.citrus-slice.perfect": "PERFEITO! +{0}",

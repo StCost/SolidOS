@@ -244,7 +244,6 @@
   "web.game.cargo-convoy.hint": "رافق الشاحنة عبر الأرض القاحلة. اختر مركباتك، انقر لإعادة التموضع، اجمع البلورات وعزّز القافلة.",
   "web.game.cargo-convoy.score-label": "النتيجة",
   "web.game.cargo-convoy.spawn-escort": "+ حرس ({0})",
-  "web.game.cargo-convoy.title": "قافلة الشحن",
   "web.game.citrus-slice.combo": "كومبو x{0}",
   "web.game.citrus-slice.missed": "أخطاء {0}",
   "web.game.citrus-slice.perfect": "مثالي! +{0}",

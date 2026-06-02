@@ -244,7 +244,6 @@
   "web.game.cargo-convoy.hint": "護送卡車穿越荒原。選擇載具，點擊 reposition，收集水晶並增援車隊。",
   "web.game.cargo-convoy.score-label": "分數",
   "web.game.cargo-convoy.spawn-escort": "+ 護衛 ({0})",
-  "web.game.cargo-convoy.title": "Cargo Convoy",
   "web.game.citrus-slice.combo": "連擊 x{0}",
   "web.game.citrus-slice.missed": "失誤 {0}",
   "web.game.citrus-slice.perfect": "完美！ +{0}",

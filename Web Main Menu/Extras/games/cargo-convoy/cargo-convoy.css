@@ -199,6 +199,22 @@ body {
   color: #ffe898;
 }
 
+#gameOverScore {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.2em;
+  color: #fff6e0;
+  text-shadow: 0 0 12px rgba(255, 210, 120, 0.45);
+}
+
+#gameOverScore.hidden {
+  display: none;
+}
+
+#gameScreen.is-record #gameOverScore {
+  color: #ffe898;
+}
+
 #selectionRing {
   position: absolute;
   width: 48px;

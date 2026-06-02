@@ -244,7 +244,6 @@
   "web.game.cargo-convoy.hint": "Eskortujte tahač pustinou. Vybírejte vozidla, klikněte pro přesun, sbírejte krystaly a posilte konvoj.",
   "web.game.cargo-convoy.score-label": "SKÓRE",
   "web.game.cargo-convoy.spawn-escort": "+ ESKORT ({0})",
-  "web.game.cargo-convoy.title": "Cargo Convoy",
   "web.game.citrus-slice.combo": "kombo x{0}",
   "web.game.citrus-slice.missed": "minutí {0}",
   "web.game.citrus-slice.perfect": "PERFEKTNÍ! +{0}",

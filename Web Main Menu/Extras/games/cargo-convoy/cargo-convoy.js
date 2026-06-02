@@ -1,11 +1,11 @@
 (function () {
   var HIGH_SCORE_STORAGE_KEY = "cm-cargo-convoy-high-score";
   var GAME_TITLE = "Cargo Convoy";
-  var LOCALE_KEY_TITLE = "web.game.cargo-convoy.title";
   var LOCALE_KEY_HINT = "web.game.cargo-convoy.hint";
   var LOCALE_KEY_GAME_OVER = "web.game.game-over";
   var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
   var LOCALE_KEY_DISTANCE = "web.game.cargo-convoy.distance-label";
+  var LOCALE_KEY_SCORE = "web.game.cargo-convoy.score-label";
   var LOCALE_KEY_CRYSTALS = "web.game.cargo-convoy.crystals-label";
   var LOCALE_KEY_SPAWN = "web.game.cargo-convoy.spawn-escort";
 
@@ -109,13 +109,13 @@
   var ENEMY_TRUCK_SPAWN_CHANCE_MAX = 0.3;
   var SELECTED_ESCORT_FIRE_RANGE_FACTOR = 2;
   var TRUCK_MINE_EVADE_DETECT_RANGE = 480;
-  var WRECK_DESPAWN_MARGIN = 640;
   var BOSS_TRUCK_HEALTH = 480;
   var BOSS_TRUCK_MOVE_SPEED = 78;
   var BOSS_CRYSTAL_DROP_BASE = 50;
   var BOSS_CRYSTAL_DROP_SPREAD = 15;
 
   var UNIT_ON_SCREEN_MARGIN = 48;
+  var UNIT_DESPAWN_SCREEN_MARGIN = 96;
 
   var ENEMY_SPAWN_INTERVAL_MIN = 4.5;
   var ENEMY_SPAWN_INTERVAL_MAX = 9;
@@ -232,6 +232,7 @@
   var spawnEscortButton = document.getElementById("spawnEscortButton");
   var gameScreen = document.getElementById("gameScreen");
   var screenTitle = document.getElementById("screenTitle");
+  var gameOverScore = document.getElementById("gameOverScore");
   var controlHint = document.getElementById("controlHint");
 
   var width = 0;
@@ -264,6 +265,8 @@
 
   var truckUnit = null;
   var units = [];
+  var cachedFriendlyUnits = [];
+  var cachedEnemyUnits = [];
   var projectiles = [];
   var crystals = [];
   var debrisItems = [];
@@ -475,7 +478,7 @@
   }
 
   function getGameTitle() {
-    return getLocalized(LOCALE_KEY_TITLE, GAME_TITLE);
+    return GAME_TITLE;
   }
 
   function focusGameRoot() {
@@ -1331,6 +1334,10 @@
     var cellIndex;
     var cell;
     var despawnWorldX;
+    var despawnWorldYMin;
+    var despawnWorldYMax;
+    var cellMinY;
+    var cellMaxY;
     var viewMinWorldX;
     var viewMaxWorldX;
     var viewMinWorldY;
@@ -1349,9 +1356,15 @@
       }
     }
     despawnWorldX = cameraX - width * 0.5 - TERRAIN_CELL_DESPAWN_MARGIN;
+    despawnWorldYMin = cameraY - height * 0.5 - TERRAIN_CELL_DESPAWN_MARGIN;
+    despawnWorldYMax = cameraY + height * 0.5 + TERRAIN_CELL_DESPAWN_MARGIN;
     for (cellIndex = terrainCells.length - 1; cellIndex >= 0; cellIndex -= 1) {
       cell = terrainCells[cellIndex];
-      if (cell.cellX * TERRAIN_CELL_WIDTH + TERRAIN_CELL_WIDTH < despawnWorldX) {
+      cellMaxY = cell.cellY * TERRAIN_CELL_HEIGHT + TERRAIN_CELL_HEIGHT;
+      cellMinY = cell.cellY * TERRAIN_CELL_HEIGHT;
+      if (cell.cellX * TERRAIN_CELL_WIDTH + TERRAIN_CELL_WIDTH < despawnWorldX
+        || cellMaxY < despawnWorldYMin
+        || cellMinY > despawnWorldYMax) {
         delete terrainSpawnedCellKeys[getTerrainCellKey(cell.cellX, cell.cellY)];
         terrainCells.splice(cellIndex, 1);
       }
@@ -1403,6 +1416,8 @@
 
   function initWorld() {
     units.length = 0;
+    cachedFriendlyUnits.length = 0;
+    cachedEnemyUnits.length = 0;
     projectiles.length = 0;
     crystals.length = 0;
     terrainCells.length = 0;
@@ -1493,11 +1508,17 @@
     syncSpawnButton();
   }
 
+  function syncGameOverScore() {
+    var scoreLabel = getLocalized(LOCALE_KEY_SCORE, "SCORE");
+    gameOverScore.textContent = scoreLabel + " " + String(getRunDistance());
+  }
+
   function showStartScreen() {
     gamePhase = PHASE_START;
     gameScreen.classList.remove("hidden");
     gameScreen.classList.remove("is-record");
     screenTitle.textContent = getGameTitle();
+    gameOverScore.classList.add("hidden");
     controlHint.textContent = getLocalized(
       LOCALE_KEY_HINT,
       "Escort the hauler across the wasteland. Select vehicles, click to reposition, collect crystals, reinforce the convoy."
@@ -1514,6 +1535,8 @@
     gamePhase = PHASE_GAME_OVER;
     gameScreen.classList.remove("hidden");
     screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
+    syncGameOverScore();
+    gameOverScore.classList.remove("hidden");
     controlHint.classList.add("hidden");
     hudTop.classList.add("hidden");
     spawnPanel.classList.add("hidden");
@@ -1730,6 +1753,21 @@
     return isWorldPositionOnScreen(unit.x, unit.y);
   }
 
+  function isWorldPositionOffScreenForDespawn(worldX, worldY) {
+    var screenPos = worldToScreen(worldX, worldY);
+    return screenPos.x < -UNIT_DESPAWN_SCREEN_MARGIN
+      || screenPos.x > width + UNIT_DESPAWN_SCREEN_MARGIN
+      || screenPos.y < -UNIT_DESPAWN_SCREEN_MARGIN
+      || screenPos.y > height + UNIT_DESPAWN_SCREEN_MARGIN;
+  }
+
+  function isUnitOffScreenForDespawn(unit) {
+    if (!unit) {
+      return false;
+    }
+    return isWorldPositionOffScreenForDespawn(unit.x, unit.y);
+  }
+
   function getUnitById(unitId) {
     var index;
     for (index = 0; index < units.length; index += 1) {
@@ -1741,25 +1779,25 @@
   }
 
   function getFriendlyUnits() {
-    var result = [];
     var index;
+    cachedFriendlyUnits.length = 0;
     for (index = 0; index < units.length; index += 1) {
       if (!units[index].dead && units[index].team === "friendly") {
-        result.push(units[index]);
+        cachedFriendlyUnits.push(units[index]);
       }
     }
-    return result;
+    return cachedFriendlyUnits;
   }
 
   function getEnemyUnits() {
-    var result = [];
     var index;
+    cachedEnemyUnits.length = 0;
     for (index = 0; index < units.length; index += 1) {
       if (!units[index].dead && units[index].team === "enemy") {
-        result.push(units[index]);
+        cachedEnemyUnits.push(units[index]);
       }
     }
-    return result;
+    return cachedEnemyUnits;
   }
 
   function getUnitTurretWorldPosition(unit, turret) {
@@ -3847,16 +3885,59 @@
   function updateWrecks(deltaSeconds) {
     var index;
     var unit;
-    var despawnX;
-    despawnX = scrollCameraX - WRECK_DESPAWN_MARGIN;
-    for (index = units.length - 1; index >= 0; index -= 1) {
+    for (index = 0; index < units.length; index += 1) {
       unit = units[index];
       if (!unit.isWreck) {
         continue;
       }
       unit.wreckFireTime += deltaSeconds;
-      if (unit.x < despawnX) {
+    }
+  }
+
+  function cleanupOffScreenUnits() {
+    var index;
+    var unit;
+    for (index = units.length - 1; index >= 0; index -= 1) {
+      unit = units[index];
+      if (unit.kind === UNIT_TRUCK) {
+        continue;
+      }
+      if (unit.team === "friendly" && !unit.dead) {
+        continue;
+      }
+      if (!unit.dead && unit.team === "enemy") {
+        if (isUnitOffScreenForDespawn(unit)) {
+          units.splice(index, 1);
+        }
+        continue;
+      }
+      if (unit.isWreck && isUnitOffScreenForDespawn(unit)) {
+        if (unit.id === selectedUnitId) {
+          selectedUnitId = -1;
+        }
         units.splice(index, 1);
+      }
+    }
+  }
+
+  function cleanupOffScreenProjectiles() {
+    var index;
+    var projectile;
+    for (index = projectiles.length - 1; index >= 0; index -= 1) {
+      projectile = projectiles[index];
+      if (isWorldPositionOffScreenForDespawn(projectile.x, projectile.y)) {
+        projectiles.splice(index, 1);
+      }
+    }
+  }
+
+  function cleanupOffScreenMines() {
+    var mineIndex;
+    var mine;
+    for (mineIndex = mines.length - 1; mineIndex >= 0; mineIndex -= 1) {
+      mine = mines[mineIndex];
+      if (isWorldPositionOffScreenForDespawn(mine.x, mine.y)) {
+        mines.splice(mineIndex, 1);
       }
     }
   }
@@ -3869,6 +3950,11 @@
     var flicker;
     var flameHeight;
     var flameWidth;
+    var flameTipY;
+    var flameMidY;
+    var flameGlowY;
+    var isCarWreck;
+    isCarWreck = !isUnitTruckKind(unit);
     fireCount = isUnitTruckKind(unit) ? 4 : 2;
     for (fireIndex = 0; fireIndex < fireCount; fireIndex += 1) {
       if (isUnitTruckKind(unit)) {
@@ -3881,17 +3967,26 @@
       flicker = Math.sin(unit.wreckFireTime * 9 + fireIndex * 1.9) * 0.5 + 0.5;
       flameHeight = (8 + flicker * 10) * (isUnitTruckKind(unit) ? 1.15 : 1);
       flameWidth = 4 + flicker * 4;
+      if (isCarWreck) {
+        flameTipY = localY - flameHeight;
+        flameMidY = localY - flameHeight * 0.55;
+        flameGlowY = localY - flameHeight * 0.42;
+      } else {
+        flameTipY = localY + flameHeight;
+        flameMidY = localY + flameHeight * 0.55;
+        flameGlowY = localY + flameHeight * 0.42;
+      }
       context.fillStyle = "rgba(255, " + Math.floor(70 + flicker * 110) + ", 18, " + (0.45 + flicker * 0.4) + ")";
       context.beginPath();
       context.moveTo(localX, localY);
-      context.lineTo(localX - flameWidth * 0.5, localY + flameHeight * 0.55);
-      context.lineTo(localX, localY + flameHeight);
-      context.lineTo(localX + flameWidth * 0.5, localY + flameHeight * 0.55);
+      context.lineTo(localX - flameWidth * 0.5, flameMidY);
+      context.lineTo(localX, flameTipY);
+      context.lineTo(localX + flameWidth * 0.5, flameMidY);
       context.closePath();
       context.fill();
       context.fillStyle = "rgba(255, 210, 80, " + (0.25 + flicker * 0.35) + ")";
       context.beginPath();
-      context.arc(localX, localY + flameHeight * 0.42, flameWidth * 0.35, 0, TWO_PI);
+      context.arc(localX, flameGlowY, flameWidth * 0.35, 0, TWO_PI);
       context.fill();
     }
   }
@@ -3949,6 +4044,7 @@
       updateDustParticles(deltaSeconds);
       updateCamera(deltaSeconds);
       updateDistanceTraveledFromTruck(truckXBeforeScroll, scrollMove);
+      cleanupOffScreenUnits();
       return;
     }
     if (!isPlaying()) {
@@ -3969,6 +4065,9 @@
     updateUnitCrystalCollection();
     updateCamera(deltaSeconds);
     updateDistanceTraveledFromTruck(truckXBeforeScroll, scrollMove);
+    cleanupOffScreenUnits();
+    cleanupOffScreenProjectiles();
+    cleanupOffScreenMines();
 
     if (enemySpawnTimer > 0) {
       updatePendingSpawnWarnings();
@@ -4089,6 +4188,10 @@
     if (hitUnit) {
       if (hitUnit.id === selectedUnitId && hitUnit.kind === UNIT_ESCORT) {
         toggleEscortCombatMode(hitUnit);
+        return;
+      }
+      if (hitUnit.id === selectedUnitId && hitUnit.kind === UNIT_TRUCK) {
+        spawnEscortBehindTruck();
         return;
       }
       selectUnit(hitUnit);
@@ -5335,6 +5438,7 @@
       screenTitle.textContent = getGameTitle();
     } else if (isGameOver()) {
       screenTitle.textContent = getLocalized(LOCALE_KEY_GAME_OVER, "Game Over");
+      syncGameOverScore();
     }
     controlHint.textContent = getLocalized(
       LOCALE_KEY_HINT,
