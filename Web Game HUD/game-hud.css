@@ -31,7 +31,7 @@ body {
 }
 
 html.game-hud--unity-cursor,
-html.game-hud--unity-cursor *:not(#chatInput):not(.game-hud-chat-input) {
+html.game-hud--unity-cursor * {
   cursor: none !important;
 }
 
@@ -214,29 +214,6 @@ html.game-hud--unity-cursor *:not(#chatInput):not(.game-hud-chat-input) {
   pointer-events: auto;
 }
 
-.game-hud-chat-caret {
-  position: absolute;
-  width: 2px;
-  height: 1.1em;
-  background: rgba(255, 175, 95, 1);
-  box-shadow: 0 0 6px rgba(255, 128, 0, 0.55);
-  pointer-events: none;
-  z-index: 2;
-  animation: game-hud-chat-caret-blink 1s step-end infinite;
-}
-
-@keyframes game-hud-chat-caret-blink {
-  0%,
-  49% {
-    opacity: 1;
-  }
-
-  50%,
-  100% {
-    opacity: 0;
-  }
-}
-
 .game-hud-chat-input-row .term-prompt-path {
   flex-shrink: 0;
 }
@@ -273,17 +250,6 @@ html.game-hud--unity-cursor *:not(#chatInput):not(.game-hud-chat-input) {
 .game-hud-chat-input.worlds-compose-input:focus {
   border-bottom-color: rgba(255, 128, 0, 0.75);
   background: rgba(2, 4, 7, 0.85);
-}
-
-html.game-hud--unity-cursor #chatInput,
-html.game-hud--unity-cursor .game-hud-chat-input {
-  caret-color: transparent;
-}
-
-html.game-hud--unity-cursor #chatInput:focus,
-html.game-hud--unity-cursor .game-hud-chat-input:focus {
-  outline: 1px solid rgba(255, 128, 0, 0.45);
-  outline-offset: 1px;
 }
 
 .game-hud-panel {
@@ -396,7 +362,7 @@ html.game-hud--unity-cursor .game-hud-chat-input:focus {
   min-width: min(96vw, 720px);
   box-sizing: border-box;
   pointer-events: auto;
-  cursor: var(--cursor-pointer);
+  cursor: var(--cursor-default);
 }
 
 .game-hud-slot {
@@ -411,7 +377,7 @@ html.game-hud--unity-cursor .game-hud-chat-input:focus {
   box-sizing: border-box;
   box-shadow: inset 0 1px 0 rgba(255, 160, 80, 0.06);
   pointer-events: auto;
-  cursor: var(--cursor-pointer);
+  cursor: var(--cursor-default);
 }
 
 .game-hud-slot.is-selected,

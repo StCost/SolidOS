@@ -1799,6 +1799,7 @@ var WebWindowManager = (function () {
     function beginDrag(clientX, clientY, pointerId) {
       var container = getLayoutContainer(windowElement);
       if (!container) return;
+      if (activeDrag && activeDrag.windowElement === windowElement) return;
 
       prepareWindowDragStart(windowElement);
       clearMaximizedStateForUserGeometry(windowElement);
@@ -1823,6 +1824,7 @@ var WebWindowManager = (function () {
       if (!isWindowDragHandleTarget(event.target)) return;
       beginDrag(event.clientX, event.clientY, null);
       event.preventDefault();
+      event.stopPropagation();
     }
 
     function onDragPointerDown(event) {
@@ -1837,6 +1839,7 @@ var WebWindowManager = (function () {
         } catch (error) {}
       }
       event.preventDefault();
+      event.stopPropagation();
     }
 
     windowElement.addEventListener("mousedown", onDragMouseDown);
@@ -2411,8 +2414,6 @@ var WebWindowManager = (function () {
   function bindWindowControlButton(buttonElement, windowElement, actionName) {
     if (!buttonElement) return;
 
-    var pointerDownOnButton = false;
-
     function runControlAction(event) {
       if (buttonElement.wmControlActionLock) return;
       buttonElement.wmControlActionLock = true;
@@ -2439,27 +2440,12 @@ var WebWindowManager = (function () {
 
     buttonElement.addEventListener("pointerdown", function (event) {
       event.stopPropagation();
-      pointerDownOnButton = true;
     });
     buttonElement.addEventListener("mousedown", function (event) {
       event.stopPropagation();
-      pointerDownOnButton = true;
-    });
-    buttonElement.addEventListener("pointerup", function (event) {
-      if (!pointerDownOnButton) return;
-      pointerDownOnButton = false;
-      if (event.button != null && event.button !== 0) return;
-      runControlAction(event);
-    });
-    buttonElement.addEventListener("pointercancel", function () {
-      pointerDownOnButton = false;
     });
     buttonElement.addEventListener("click", function (event) {
-      if (pointerDownOnButton) {
-        pointerDownOnButton = false;
-        runControlAction(event);
-        return;
-      }
+      event.stopPropagation();
       runControlAction(event);
     });
   }
