@@ -21,6 +21,10 @@
   }
 
   function readRouteFromLocation() {
+    if (!isWebMode()) {
+      return { window: "", tab: "" };
+    }
+
     var windowPreset = "";
     var tabValue = "";
     if (window.location.search) {
@@ -160,6 +164,9 @@
   }
 
   function applyWindowPresetFromRoute(presetName, tabValue) {
+    if (!isWebMode()) {
+      return false;
+    }
     if (!presetName || !isValidDesktopWindowPreset(presetName)) {
       return false;
     }
@@ -247,7 +254,9 @@
     return applyingRoute;
   }
 
-  captureInitialRouteFromLocation();
+  if (isWebMode()) {
+    captureInitialRouteFromLocation();
+  }
 
   window.WebMenuRoute = {
     isWebMode: isWebMode,
@@ -255,9 +264,15 @@
     parseWindowPresetFromLocation: parseWindowPresetFromLocation,
     parseTabFromLocation: parseTabFromLocation,
     getInitialWindowPreset: function () {
+      if (!isWebMode()) {
+        return "";
+      }
       return initialRouteWindow;
     },
     getInitialTab: function () {
+      if (!isWebMode()) {
+        return "";
+      }
       return initialRouteTab;
     },
     applyWindowPresetFromRoute: applyWindowPresetFromRoute,

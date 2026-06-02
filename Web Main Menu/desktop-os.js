@@ -94,7 +94,6 @@ var WebDesktop = (function () {
   var suppressIconActivationIconIds = {};
   var suppressIconClickTimer = 0;
   var iconPointerGestureId = 0;
-  var iconActivatedGestureId = -1;
   var selectedIconIds = {};
   var activeMarqueeSelect = null;
   var desktopMarqueeBox = null;
@@ -265,9 +264,6 @@ var WebDesktop = (function () {
     if (windowManager.clampManagedWindowToContainer) {
       windowManager.clampManagedWindowToContainer(windowElement);
     }
-    if (windowManager.relayoutActivePage) {
-      windowManager.relayoutActivePage();
-    }
 
     if (playOpenAnimation !== false && windowManager.playWindowOpen) {
       windowManager.playWindowOpen(windowElement, 0);
@@ -304,6 +300,16 @@ var WebDesktop = (function () {
     }
   }
 
+  function hideWindowElementVisualOnly(windowElement) {
+    if (!windowElement) return;
+    var windowManager = getWindowManager();
+    if (windowManager && windowManager.closeWindowVisualOnly) {
+      windowManager.closeWindowVisualOnly(windowElement);
+      return;
+    }
+    windowElement.classList.add("os-window--closed");
+  }
+
   function openWindow(presetName, playOpenAnimation) {
     return showWindowElement(getWindowByPreset(presetName), playOpenAnimation);
   }
@@ -328,9 +334,6 @@ var WebDesktop = (function () {
     }
     if (windowManager && windowManager.clampManagedWindowToContainer) {
       windowManager.clampManagedWindowToContainer(windowElement);
-    }
-    if (windowManager && windowManager.relayoutActivePage) {
-      windowManager.relayoutActivePage();
     }
     runWindowOpenHooks(windowElement, presetName);
     if (windowManager && windowManager.focusWindow) {
@@ -362,10 +365,21 @@ var WebDesktop = (function () {
     hideWindowElement(getWindowByPreset(presetName));
   }
 
+  function closeWindowVisualOnly(presetName) {
+    hideWindowElementVisualOnly(getWindowByPreset(presetName));
+  }
+
   function closeAllAppWindows() {
     var index = 0;
     for (index = 0; index < APP_WINDOW_PRESETS.length; index++) {
       closeWindow(APP_WINDOW_PRESETS[index]);
+    }
+  }
+
+  function closeAllAppWindowsVisualOnly() {
+    var index = 0;
+    for (index = 0; index < APP_WINDOW_PRESETS.length; index++) {
+      closeWindowVisualOnly(APP_WINDOW_PRESETS[index]);
     }
   }
 
@@ -411,9 +425,35 @@ var WebDesktop = (function () {
     return Object.prototype.hasOwnProperty.call(PORTRAIT_DEFAULT_ICON_LAYOUTS, iconId);
   }
 
+  function shouldOpenTitleWindowFromSaved() {
+    var windowManager = getWindowManager();
+    if (windowManager && windowManager.shouldDesktopWindowBeOpen) {
+      return windowManager.shouldDesktopWindowBeOpen(WINDOW_PRESET_TITLE);
+    }
+    if (isGameMode()) {
+      return false;
+    }
+    if (isMenuLayoutPhoneVertical()) {
+      return false;
+    }
+    return true;
+  }
+
   function showDesktopHome() {
-    closeAllAppWindows();
-    openWindow(WINDOW_PRESET_TITLE, false);
+    if (isGameMode()) {
+      if (shouldOpenTitleWindowFromSaved()) {
+        openWindow(WINDOW_PRESET_TITLE, false);
+      } else {
+        closeWindowVisualOnly(WINDOW_PRESET_TITLE);
+      }
+      return;
+    }
+    closeAllAppWindowsVisualOnly();
+    if (shouldOpenTitleWindowFromSaved()) {
+      openWindow(WINDOW_PRESET_TITLE, false);
+      return;
+    }
+    closeWindowVisualOnly(WINDOW_PRESET_TITLE);
   }
 
   function openWorldsDesktop() {
@@ -666,9 +706,6 @@ var WebDesktop = (function () {
     var styleElement = document.getElementById(ICON_LAYOUT_BOOTSTRAP_STYLE_ID);
     if (styleElement && styleElement.parentNode) {
       styleElement.parentNode.removeChild(styleElement);
-    }
-    if (window.__cmIconLayoutsPayload) {
-      window.__cmIconLayoutsPayload = null;
     }
   }
 
@@ -1175,16 +1212,34 @@ var WebDesktop = (function () {
     return payload;
   }
 
+  function cancelPendingIconLayoutSave() {
+    if (iconLayoutSaveTimer) {
+      window.clearTimeout(iconLayoutSaveTimer);
+      iconLayoutSaveTimer = 0;
+    }
+  }
+
   function postIconLayoutsSave() {
     var payload = buildIconLayoutsPayload();
+    var payloadJson = "";
+    try {
+      payloadJson = JSON.stringify(payload);
+    } catch (error) {
+      payloadJson = "";
+    }
+
+    // Always keep local storage in sync, even in Unity host mode.
+    // This makes desktop-icon-layouts-bootstrap.js able to place icons correctly on first paint.
+    window.__cmIconLayoutsPayload = payload;
+    writeIconLayoutsToStorage(payload);
+
     if (!isUnityHost()) {
-      writeIconLayoutsToStorage(payload);
       return;
     }
     window.vuplex.postMessage(
       JSON.stringify({
         eventName: "web-icon-layout-save",
-        layoutsJson: JSON.stringify(payload)
+        layoutsJson: payloadJson || JSON.stringify(payload)
       })
     );
   }
@@ -2072,20 +2127,18 @@ var WebDesktop = (function () {
     if (!desktopSurface || desktopSurface.wmDesktopMarqueeBound) return;
     desktopSurface.wmDesktopMarqueeBound = true;
 
-    function onMarqueePointerDown(event) {
+    function beginMarqueeSelectAt(clientX, clientY, pointerId) {
       var windowManager;
-      if (event.button != null && event.button !== 0) return;
-      if (event.isPrimary === false) return;
-      if (activeIconDrag || pendingIconPress) return;
-      if (!shouldBeginDesktopMarqueeFromTarget(event.target)) return;
+      var point;
+      if (activeMarqueeSelect || activeIconDrag || pendingIconPress) return;
+      if (!desktopMarqueeBox) return;
       windowManager = getWindowManager();
       if (windowManager && windowManager.clearDesktopWindowFocus) {
         windowManager.clearDesktopWindowFocus();
       }
-      if (!desktopMarqueeBox) return;
-      var point = clientPointToLayoutPoint(event.clientX, event.clientY);
+      point = clientPointToLayoutPoint(clientX, clientY);
       activeMarqueeSelect = {
-        pointerId: event.pointerId,
+        pointerId: pointerId,
         startX: point.left,
         startY: point.top,
         currentX: point.left,
@@ -2094,13 +2147,30 @@ var WebDesktop = (function () {
         layerElement: desktopSurface,
         moved: false
       };
-      try {
-        desktopSurface.setPointerCapture(event.pointerId);
-      } catch (error) { }
+      if (pointerId != null) {
+        try {
+          desktopSurface.setPointerCapture(pointerId);
+        } catch (error) { }
+      }
+    }
+
+    function onMarqueePointerDown(event) {
+      if (event.button != null && event.button !== 0) return;
+      if (event.isPrimary === false) return;
+      if (!shouldBeginDesktopMarqueeFromTarget(event.target)) return;
+      beginMarqueeSelectAt(event.clientX, event.clientY, event.pointerId);
+      event.preventDefault();
+    }
+
+    function onMarqueeMouseDown(event) {
+      if (event.button != null && event.button !== 0) return;
+      if (!shouldBeginDesktopMarqueeFromTarget(event.target)) return;
+      beginMarqueeSelectAt(event.clientX, event.clientY, null);
       event.preventDefault();
     }
 
     desktopSurface.addEventListener("pointerdown", onMarqueePointerDown);
+    desktopSurface.addEventListener("mousedown", onMarqueeMouseDown);
   }
 
   function initDesktopMarqueeLayer() {
@@ -2311,10 +2381,9 @@ var WebDesktop = (function () {
     }, ICON_CLICK_SUPPRESS_MS);
   }
 
-  function finishIconPressClick(press) {
-    if (!press || !press.iconElement) return;
-    selectSingleIcon(press.iconElement);
-    activateDesktopIconFromTap(press.iconElement, press.gestureId);
+  function activateDesktopIconFromTap(iconElement) {
+    if (shouldSuppressIconActivation(iconElement)) return;
+    onIconActivated(iconElement);
   }
 
   function endIconDrag() {
@@ -2424,13 +2493,12 @@ var WebDesktop = (function () {
       return;
     }
 
-    var press = pendingIconPress;
     pendingIconPress = null;
-    finishIconPressClick(press);
   }
 
   function onDocumentMouseUp(event) {
     if (event.button != null && event.button !== 0) return;
+    if (window.PointerEvent) return;
     onDocumentPointerUp(event);
   }
 
@@ -2444,14 +2512,6 @@ var WebDesktop = (function () {
     if (!iconId || iconId !== suppressIconActivationIconId) return false;
     clearSuppressIconActivation();
     return true;
-  }
-
-  function activateDesktopIconFromTap(iconElement, gestureId) {
-    if (shouldSuppressIconActivation(iconElement)) return;
-    if (gestureId != null) {
-      iconActivatedGestureId = gestureId;
-    }
-    onIconActivated(iconElement);
   }
 
   function bindDesktopIcon(iconElement) {
@@ -2482,27 +2542,16 @@ var WebDesktop = (function () {
     }
 
     function onIconClick(event) {
-      if (iconActivatedGestureId === iconPointerGestureId) {
-        iconActivatedGestureId = -1;
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
+      if (event.button != null && event.button !== 0) return;
       if (shouldSuppressIconActivation(iconElement)) {
         event.preventDefault();
         event.stopPropagation();
         return;
       }
-      if (pendingIconPress && pendingIconPress.iconElement === iconElement) {
-        var press = pendingIconPress;
-        pendingIconPress = null;
-        event.preventDefault();
-        event.stopPropagation();
-        finishIconPressClick(press);
-        return;
-      }
       selectSingleIcon(iconElement);
-      onIconActivated(iconElement);
+      activateDesktopIconFromTap(iconElement);
+      event.preventDefault();
+      event.stopPropagation();
     }
 
     function onIconFocus() {
@@ -2575,6 +2624,8 @@ var WebDesktop = (function () {
     desktopWorkspace = document.getElementById("desktopWorkspace");
     if (!desktopSurface || !desktopIconsRoot) return;
 
+    cancelPendingIconLayoutSave();
+
     updateMenuLayoutPhoneMode();
 
     if (window.WebDesktopAppIcons && window.WebDesktopAppIcons.mountDesktopIcons) {
@@ -2587,6 +2638,9 @@ var WebDesktop = (function () {
     populateDefaultIconLayoutTable();
     if (!isUnityHost()) {
       mergePersistedIconLayoutPayload(readIconLayoutsFromStorage());
+      clearIconLayoutBootstrap();
+    } else {
+      mergePersistedIconLayoutPayload(getPersistedIconLayoutsPayload());
       clearIconLayoutBootstrap();
     }
     syncGameDesktopLinkIdsFromIconLayoutTable();
@@ -2601,7 +2655,12 @@ var WebDesktop = (function () {
     restoreEnabledGameDesktopIcons();
     updateActionIconsState();
 
+    if (!isUnityHost()) {
+      window.__cmIconLayoutsPayload = buildIconLayoutsPayload();
+    }
+
     document.addEventListener("pointermove", onIconPointerMove);
+    document.addEventListener("mousemove", onIconPointerMove);
     document.addEventListener("pointerup", onDocumentPointerUp);
     document.addEventListener("pointercancel", onDocumentPointerUp);
     document.addEventListener("mouseup", onDocumentMouseUp);
@@ -2631,6 +2690,9 @@ var WebDesktop = (function () {
   }
 
   function getRouteWindowPresetFromLocation() {
+    if (isUnityHost()) {
+      return "";
+    }
     if (window.WebMenuRoute && window.WebMenuRoute.getInitialWindowPreset) {
       var initialPreset = window.WebMenuRoute.getInitialWindowPreset();
       if (initialPreset) {
@@ -2663,13 +2725,13 @@ var WebDesktop = (function () {
       window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
       return;
     }
-    closeAllAppWindows();
+    closeAllAppWindowsVisualOnly();
     if (routePreset && windowManager && windowManager.isDesktopWindowPreset(routePreset)) {
       window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
       return;
     }
     if (menuLayoutPhoneVertical) {
-      hideWindowElement(getWindowByPreset(WINDOW_PRESET_TITLE));
+      hideWindowElementVisualOnly(getWindowByPreset(WINDOW_PRESET_TITLE));
       window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
       return;
     }
@@ -3144,6 +3206,10 @@ var WebDesktop = (function () {
     bindDesktopWindowsToggle();
     window.addEventListener("web-desktop-windows-restored", onDesktopWindowsRestored);
     initDefaultWindows();
+    if (window.WebWindowManager && window.WebWindowManager.cancelPendingLayoutSave) {
+      window.WebWindowManager.cancelPendingLayoutSave();
+    }
+    cancelPendingIconLayoutSave();
     window.__cmMenuBootDesktopReady = true;
     window.dispatchEvent(new CustomEvent("web-desktop-icons-ready"));
   }
@@ -3175,6 +3241,9 @@ var WebDesktop = (function () {
     isWindowOpen: isWindowOpen,
     getWindowByPreset: getWindowByPreset,
     applyIconLayouts: function (payload) {
+      if (payload) {
+        window.__cmIconLayoutsPayload = payload;
+      }
       populateSavedIconLayoutTable(payload);
       syncGameDesktopLinkIdsFromIconLayoutTable();
       applyAllSavedIconLayoutsAndResolve();
@@ -3200,12 +3269,10 @@ var WebDesktop = (function () {
     setGameDesktopLinkEnabled: setGameDesktopLinkEnabledState,
     ensureGameDesktopLinkIcon: ensureGameDesktopLinkIcon,
     flushIconLayoutsSave: function () {
-      if (iconLayoutSaveTimer) {
-        window.clearTimeout(iconLayoutSaveTimer);
-        iconLayoutSaveTimer = 0;
-      }
+      cancelPendingIconLayoutSave();
       postIconLayoutsSave();
     },
+    cancelPendingIconLayoutSave: cancelPendingIconLayoutSave,
     logIconLayoutDiffFromDefaults: logIconLayoutsDiffFromDefaults,
     buildIconLayoutDiffFromDefaultsPayload: buildIconLayoutsDiffFromDefaultsPayload,
     hasOpenAppWindows: hasOpenAppWindows,

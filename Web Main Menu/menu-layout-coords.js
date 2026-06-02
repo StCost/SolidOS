@@ -80,6 +80,14 @@ var WebMenuLayoutCoords = (function () {
     if (layout.width !== undefined) stored.width = layout.width;
     if (layout.height !== undefined) stored.height = layout.height;
     if (layout.zIndex !== undefined) stored.zIndex = layout.zIndex;
+    if (layout.left !== undefined && layout.top !== undefined) {
+      top = layout.top;
+      centerOffsets = absoluteToCenterOffset(layout.left, top, containerElement);
+      stored.anchor = centerOffsets.anchor;
+      stored.centerOffsetX = centerOffsets.centerOffsetX;
+      stored.centerOffsetY = centerOffsets.centerOffsetY;
+      return stored;
+    }
     if (isCenterLayoutEntry(layout)) {
       stored.anchor = ANCHOR_CENTER;
       stored.centerOffsetX = Math.round(layout.centerOffsetX || 0);
@@ -144,9 +152,9 @@ var WebMenuLayoutCoords = (function () {
     return (
       "left:calc(50% + " +
       offsetX +
-      "px)!important;top:calc(50% + " +
+      "px);top:calc(50% + " +
       offsetY +
-      "px)!important;"
+      "px);"
     );
   }
 

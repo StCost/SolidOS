@@ -14,7 +14,7 @@ body {
   inset: 0;
   display: flex;
   align-items: flex-end;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 0;
   box-sizing: border-box;
   pointer-events: none;
@@ -23,9 +23,233 @@ body {
 .game-hud-anchor {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  max-width: min(96vw, 920px);
+  align-items: stretch;
+  gap: 8px;
   width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+html.game-hud--unity-cursor,
+html.game-hud--unity-cursor * {
+  cursor: none !important;
+}
+
+.game-hud-chat.os-window {
+  --wm-border: rgba(255, 128, 0, 0.32);
+  --wm-border-inset: rgba(255, 128, 0, 0.06);
+  --wm-chrome-edge: rgba(255, 128, 0, 0.2);
+  --wm-control-edge: rgba(255, 128, 0, 0.35);
+  position: relative;
+  display: none;
+  flex-direction: column;
+  align-self: flex-start;
+  margin-left: 0;
+  border-left: none;
+  width: min(96vw, 720px);
+  max-width: min(96vw, 720px);
+  min-height: 140px;
+  max-height: min(38vh, 280px);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.game-hud-chat.os-window::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-image: url("../Web Main Menu/hazard-tile.png");
+  background-repeat: repeat;
+  background-size: 16px 16px;
+  opacity: 0.45;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.game-hud-chat.os-window.is-open {
+  display: flex;
+}
+
+.game-hud-chat .os-window-body-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-hud-chat-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(8px, 1.2vmin, 12px);
+  gap: 0;
+}
+
+.game-hud-chat-log-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.game-hud-chat-log-host > .menu-v-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.game-hud--chat-interactive .game-hud-chat.is-open {
+  pointer-events: auto;
+}
+
+.web-standalone .game-hud-chat.is-open {
+  pointer-events: auto;
+}
+
+.game-hud--chat-focused .game-hud-chat.os-window {
+  --wm-border: rgba(255, 168, 88, 0.72);
+  --wm-border-inset: rgba(255, 168, 88, 0.14);
+  --wm-chrome-edge: rgba(255, 168, 88, 0.35);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.65),
+    inset 0 0 0 1px var(--wm-border-inset),
+    0 0 18px rgba(255, 100, 40, 0.22);
+}
+
+.game-hud-chat-log.menu-v-scroll-view {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 6px 2px 8px;
+  box-sizing: border-box;
+  pointer-events: auto;
+  cursor: var(--cursor-default);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.game-hud-chat-log-inner,
+.game-hud-chat-line {
+  cursor: var(--cursor-default);
+}
+
+.game-hud-chat-log-inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: 100%;
+  min-height: min-content;
+}
+
+.game-hud-chat-line {
+  margin: 0 0 4px;
+  font-size: clamp(0.72rem, 1.45vmin, 0.88rem);
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  word-break: break-word;
+  white-space: pre-wrap;
+  color: rgba(255, 204, 159, 0.95);
+  -webkit-text-fill-color: rgba(255, 204, 159, 0.95);
+  text-shadow: 0 1px 0 rgba(24, 14, 8, 0.9);
+}
+
+.game-hud-chat-line .game-hud-chat-color {
+  background: none;
+  background-image: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  filter: none;
+}
+
+.game-hud-chat-line .game-hud-chat-size {
+  -webkit-text-fill-color: currentColor;
+}
+
+.game-hud-chat-line b {
+  font-weight: bold;
+}
+
+.game-hud-chat-line i {
+  font-style: italic;
+}
+
+.game-hud-chat-line u {
+  text-decoration: underline;
+}
+
+.game-hud-chat-line s {
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+
+.game-hud-chat-prefix {
+  display: inline;
+  color: rgba(255, 160, 80, 0.55);
+  -webkit-text-fill-color: rgba(255, 160, 80, 0.55);
+  background: none;
+  filter: none;
+}
+
+.game-hud-chat-input-row.term-prompt {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45em;
+  flex-shrink: 0;
+  margin: 0;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 128, 0, 0.2);
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.game-hud-chat-input-row .term-prompt-path {
+  flex-shrink: 0;
+}
+
+.game-hud-chat-input.worlds-compose-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0.3em 0.4em;
+  border: none;
+  border-bottom: 1px solid rgba(255, 128, 0, 0.35);
+  background: rgba(2, 4, 7, 0.6);
+  color: rgba(255, 160, 80, 0.95);
+  -webkit-text-fill-color: rgba(255, 160, 80, 0.95);
+  font: inherit;
+  font-size: clamp(0.8rem, 1.6vmin, 0.95rem);
+  letter-spacing: 0.06em;
+  outline: none;
+  pointer-events: auto;
+  cursor: var(--cursor-text);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.game-hud-chat-input-row .term-prompt-path {
+  cursor: var(--cursor-default);
+}
+
+.game-hud-chat-input.worlds-compose-input::placeholder {
+  color: rgba(255, 128, 0, 0.35);
+  -webkit-text-fill-color: rgba(255, 128, 0, 0.35);
+}
+
+.game-hud-chat-input.worlds-compose-input:focus {
+  border-bottom-color: rgba(255, 128, 0, 0.75);
+  background: rgba(2, 4, 7, 0.85);
 }
 
 .game-hud-panel {
@@ -33,6 +257,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  align-self: center;
   gap: 8px;
   width: fit-content;
   max-width: 100%;
@@ -137,6 +362,7 @@ body {
   min-width: min(96vw, 720px);
   box-sizing: border-box;
   pointer-events: auto;
+  cursor: var(--cursor-default);
 }
 
 .game-hud-slot {
@@ -151,6 +377,7 @@ body {
   box-sizing: border-box;
   box-shadow: inset 0 1px 0 rgba(255, 160, 80, 0.06);
   pointer-events: auto;
+  cursor: var(--cursor-default);
 }
 
 .game-hud-slot.is-selected,
@@ -302,7 +529,9 @@ body {
     min-width: 0;
   }
 
-  .game-hud-panel {
+  .game-hud-panel,
+  .game-hud-chat {
     width: min(96vw, 420px);
+    max-width: min(96vw, 420px);
   }
 }

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Factory Night</title>
+  <style>
+    html:not(.locale-ready) [data-locale-key],
+    html:not(.locale-ready) [data-locale-aria-label] {
+      visibility: hidden;
+    }
+  </style>
+  <script src="../../iframe-game-locale.js"></script>
+  <link rel="stylesheet" href="factory-night.css" />
+</head>
+<body>
+  <div id="gameRoot">
+    <div id="officeScene" aria-hidden="true">
+      <div id="officeWall"></div>
+      <div id="guardSilhouette"></div>
+      <div id="deskGlow"></div>
+      <div id="ventLeft"></div>
+      <div id="ventRight"></div>
+    </div>
+
+    <div id="deviceFrame">
+      <div id="hudTop">
+        <div id="statusLeft">
+          <span id="statusTitle" data-locale-key="web.game.factory-night.title">Factory Night</span>
+          <span id="nightLabel"><span data-locale-key="web.game.factory-night.night-label">NIGHT</span> <span id="nightValue">1</span></span>
+        </div>
+        <div id="statusCenter">
+          <div id="timeLabel"><span id="hourValue">12</span> <span id="ampmValue" data-locale-key="web.game.factory-night.am">AM</span></div>
+        </div>
+        <div id="statusRight">
+          <div id="reportsHud">
+            <span class="reports-label" data-locale-key="web.game.factory-night.correct-label">OK</span>
+            <span id="correctReportsValue">0</span>
+          </div>
+          <div id="powerHud">
+            <span id="powerPercent">99%</span>
+            <div id="powerBar"><div id="powerFill"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="monitorBlock">
+        <div id="monitorBezel">
+          <div id="monitorHeader">
+            <span id="monitorTitle" data-locale-key="web.game.factory-night.monitor-title">FAC-SEC / CAM FEED</span>
+            <span id="monitorRoomName">CAM-01 LOADING BAY</span>
+          </div>
+          <div id="cameraViewport">
+            <img id="cameraFeedImg" src="" alt="" />
+            <div id="camSwitchNoise" aria-hidden="true"></div>
+            <div id="monitorStatic"></div>
+            <div id="monitorScanlines"></div>
+            <div id="camMapPanel" data-locale-aria-label="web.game.factory-night.cam-map-aria" aria-label="Camera map">
+              <svg id="camMapSvg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <g id="camMapEdges"></g>
+              </svg>
+              <div id="camMapNodes"></div>
+            </div>
+            <div id="cameraReported" class="is-hidden" data-locale-key="web.game.factory-night.reported">REPORTED</div>
+            <div id="cameraNoSignal" class="is-hidden" data-locale-key="web.game.factory-night.no-signal">NO SIGNAL</div>
+          </div>
+          <div id="monitorControlsBottom">
+            <button type="button" id="reportButton" data-locale-aria-label="web.game.factory-night.report-aria" aria-label="Report anomaly" data-locale-key="web.game.factory-night.report">REPORT</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="startOverlay">
+      <h1 data-locale-key="web.game.factory-night.title">FACTORY NIGHT</h1>
+      <p class="tagline" data-locale-key="web.game.factory-night.tagline">Industrial security shift. Watch the feeds. Report what should not be there.</p>
+      <ul class="briefing">
+        <li data-locale-key="web.game.factory-night.briefing.1">Each camera shows a random feed — switch cams to check them all.</li>
+        <li data-locale-key="web.game.factory-night.briefing.2">Use REPORT on anomalies — correct calls restore power and refresh every camera.</li>
+        <li data-locale-key="web.game.factory-night.briefing.3">Survive until 6:00 AM — or last as long as you can.</li>
+      </ul>
+      <button type="button" id="startButton">START NIGHT 1</button>
+      <p id="bestNightLine"></p>
+      <p id="bestCorrectReportsLine"></p>
+    </div>
+
+    <div id="winOverlay" class="end-overlay is-hidden">
+      <h2 data-locale-key="web.game.factory-night.win-time">6:00 AM</h2>
+      <p data-locale-key="web.game.factory-night.win-text">Shift complete. The factory exhales without you.</p>
+      <button type="button" class="end-btn" id="nextNightButton" data-locale-key="web.game.factory-night.next-night">NEXT NIGHT</button>
+      <button type="button" class="end-btn secondary" id="winMenuButton" data-locale-key="web.game.factory-night.menu">MENU</button>
+    </div>
+
+    <div id="gameOverOverlay" class="end-overlay is-hidden">
+      <div id="jumpscareFace"></div>
+      <h2 id="gameOverTitle" data-locale-key="web.game.factory-night.game-over-title">TERMINATED</h2>
+      <button type="button" class="end-btn" id="retryButton" data-locale-key="web.game.factory-night.retry-night">RETRY NIGHT</button>
+    </div>
+
+    <div id="powerOutOverlay" class="is-hidden">
+      <span data-locale-key="web.game.factory-night.power-lost">POWER LOST</span>
+    </div>
+
+    <div id="fullscreenScreamer" class="is-hidden" aria-hidden="true"></div>
+  </div>
+  <script src="factory-night.js"></script>
+</body>
+</html>

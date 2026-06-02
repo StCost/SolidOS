@@ -8,6 +8,7 @@
   <title>LOAD</title>
   <script src="../Web Main Menu/menu-background.js"></script>
   <link rel="stylesheet" href="../Web Main Menu/screen-shared.css" />
+  <link rel="stylesheet" href="../Web Main Menu/desktop-os.css" />
   <link rel="stylesheet" href="loading.css" />
   <script src="../Web Main Menu/menu-common.js" defer></script>
   <script src="loading.js" defer></script>
@@ -24,35 +25,46 @@
     <div class="screen-vignette" aria-hidden="true"></div>
 
     <div class="os-shell">
-      <header class="os-statusbar" aria-hidden="true">
-        <span class="os-statusbar-segment terminal-text--dim">NODE CM-LOCAL</span>
-        <span class="os-statusbar-segment terminal-text--dim">boot_ldr.sys</span>
-        <span class="os-statusbar-segment os-statusbar-segment--right terminal-text--dim os-clock">00:00:00</span>
-      </header>
-
       <div class="os-workspace os-workspace--loading">
-        <section class="loading-panel os-window" aria-labelledby="loadingPanelTitle">
+        <section class="loading-panel os-window os-window--focused os-window--loading" aria-labelledby="loadingPanelTitle">
           <header class="os-window-chrome">
             <div class="os-window-controls" aria-hidden="true">
-              <span class="os-window-dot os-window-dot--active"></span>
-              <span class="os-window-dot"></span>
-              <span class="os-window-dot"></span>
+              <button type="button" class="os-window-dot os-window-control" data-wm-action="minimize" disabled
+                tabindex="-1">
+                <span class="os-window-control-glyph" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="os-window-dot os-window-control" data-wm-action="maximize" disabled
+                tabindex="-1">
+                <span class="os-window-control-glyph" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="os-window-dot os-window-control" data-wm-action="close" disabled
+                tabindex="-1">
+                <span class="os-window-control-glyph" aria-hidden="true"></span>
+              </button>
             </div>
             <p class="os-window-title terminal-text--dim" id="loadingPanelTitle">load_status.lst</p>
           </header>
-          <div class="loading-panel-body os-window-body--terminal">
-            <p class="loading-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\boot&gt;</span> type load_status.lst</p>
-            <p class="loading-text terminal-text" id="loadingText">2/4 Memorizing...</p>
-            <div class="loading-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-              <div class="loading-bar-track">
-                <div class="loading-bar-fill" id="loadingBarFill"></div>
-                <div class="loading-bar-shimmer" aria-hidden="true"></div>
+          <div class="os-window-body-shell">
+            <div class="loading-panel-body os-window-body os-window-body--terminal">
+              <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\boot&gt;</span> type
+                load_status.lst</p>
+              <p class="loading-text terminal-text" id="loadingText">2/4 Memorizing...</p>
+              <div class="loading-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div class="loading-bar-track">
+                  <div class="loading-bar-fill" id="loadingBarFill"></div>
+                  <div class="loading-bar-shimmer" aria-hidden="true"></div>
+                </div>
+                <span class="loading-bar-label terminal-text--dim" id="loadingPercent">0%</span>
               </div>
-              <span class="loading-bar-label terminal-text--dim" id="loadingPercent">0%</span>
             </div>
           </div>
         </section>
       </div>
+      <header class="os-statusbar os-statusbar--bottom" aria-hidden="true">
+        <span class="os-statusbar-segment terminal-text--dim">NODE CM-LOCAL</span>
+        <span class="os-statusbar-segment terminal-text--dim">boot_ldr.sys</span>
+        <span class="os-statusbar-segment os-statusbar-segment--right terminal-text--dim os-clock">00:00:00</span>
+      </header>
     </div>
   </main>
 </body>
