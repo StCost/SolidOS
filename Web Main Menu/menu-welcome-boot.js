@@ -236,6 +236,10 @@
       rootElement.classList.remove("menu-boot-dismissed");
     }
     setDeviceBootPending(true);
+    syncReadinessFromDom();
+    if (isContentReady()) {
+      tryFinishBoot();
+    }
   }
 
   function dismiss() {

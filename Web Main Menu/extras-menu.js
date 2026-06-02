@@ -172,6 +172,9 @@
   }
 
   function notifyRouteChanged() {
+    if (window.WebMenuRoute && window.WebMenuRoute.isWebMode && !window.WebMenuRoute.isWebMode()) {
+      return;
+    }
     window.dispatchEvent(new CustomEvent("web-extras-route-changed"));
   }
 

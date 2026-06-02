@@ -142,6 +142,12 @@
         return "pointer";
       }
       if (element.classList) {
+        if (element.classList.contains("os-window-control")) {
+          if (element.disabled) {
+            return "default";
+          }
+          return "pointer";
+        }
         if (
           element.classList.contains("term-title") ||
           element.classList.contains("term-row") ||
@@ -223,17 +229,17 @@
       return resizeToken;
     }
 
+    var interactiveToken = getInteractiveTokenFromElement(pointTarget);
+    if (interactiveToken) {
+      return interactiveToken;
+    }
+
     var element = pointTarget;
     while (element && element !== document.documentElement) {
       if (element.classList && element.classList.contains("os-window-chrome--drag")) {
         return "drag";
       }
       element = element.parentElement;
-    }
-
-    var interactiveToken = getInteractiveTokenFromElement(pointTarget);
-    if (interactiveToken) {
-      return interactiveToken;
     }
 
     return "default";

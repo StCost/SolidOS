@@ -28,17 +28,8 @@
   min-height: 100%;
 }
 
-#menuWelcomeBoot .menu-welcome-loading-panel {
-  width: min(42rem, 100%);
-  border: 1px solid rgba(255, 128, 0, 0.32);
-  background: var(--ink-window);
-  box-shadow:
-    0 8px 28px rgba(0, 0, 0, 0.65),
-    inset 0 0 0 1px rgba(255, 128, 0, 0.06);
-}
-
 #menuWelcomeBoot.menu-welcome-boot--loading-mode .menu-welcome-loading-panel {
-  display: block !important;
+  display: flex !important;
 }
 
 #menuWelcomeBoot:not(.menu-welcome-boot--loading-mode) .menu-welcome-loading-panel {

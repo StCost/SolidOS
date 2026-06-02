@@ -211,6 +211,7 @@
   "web.extras.art.set-background": "設為背景",
   "web.extras.art.viewer-title": "art_viewer.exe",
   "web.extras.game.back": "返回遊戲列表",
+  "web.extras.game.link-on-desktop": "連結到桌面",
   "web.extras.games.empty": "找不到遊戲。",
   "web.extras.hub.text": "遊戲、藝術和社群連結。",
   "web.extras.link.confirm-cancel": "取消",

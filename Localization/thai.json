@@ -211,6 +211,7 @@
   "web.extras.art.set-background": "ตั้งเป็นพื้นหลัง",
   "web.extras.art.viewer-title": "art_viewer.exe",
   "web.extras.game.back": "กลับไปเกม",
+  "web.extras.game.link-on-desktop": "ลิงก์บนเดสก์ท็อป",
   "web.extras.games.empty": "ไม่พบเกม",
   "web.extras.hub.text": "เกม อาร์ต และลิงก์ชุมชน",
   "web.extras.link.confirm-cancel": "ยกเลิก",

@@ -211,6 +211,7 @@
   "web.extras.art.set-background": "배경으로 설정",
   "web.extras.art.viewer-title": "art_viewer.exe",
   "web.extras.game.back": "게임 목록으로",
+  "web.extras.game.link-on-desktop": "바탕 화면에 링크",
   "web.extras.games.empty": "게임을 찾을 수 없습니다.",
   "web.extras.hub.text": "게임, 아트 및 커뮤니티 링크.",
   "web.extras.link.confirm-cancel": "취소",
