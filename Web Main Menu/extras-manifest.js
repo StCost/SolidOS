@@ -51,6 +51,15 @@
         difficulty: 4
       },
       {
+        id: "sector-vector",
+        title: "Sector Vector",
+        path: "Extras/games/sector-vector/index.html",
+        image: "Extras/games/sector-vector/sector-vector-preview.png",
+        desktopIcon: "Extras/games/sector-vector/sector-vector-desktop-icon.png",
+        difficulty: 5,
+        inputMode: "movement"
+      },
+      {
         id: "trouble-drivers",
         title: "Trouble Drivers",
         path: "Extras/games/trouble-drivers/index.html",
@@ -60,13 +69,14 @@
         inputMode: "movement"
       },
       {
-        id: "sector-vector",
-        title: "Sector Vector",
-        path: "Extras/games/sector-vector/index.html",
-        image: "Extras/games/sector-vector/sector-vector-preview.png",
-        desktopIcon: "Extras/games/sector-vector/sector-vector-desktop-icon.png",
+        id: "cargo-convoy",
+        title: "Cargo Convoy",
+        titleKey: "web.game.cargo-convoy.title",
+        path: "Extras/games/cargo-convoy/index.html",
+        image: "Extras/games/cargo-convoy/cargo-convoy-preview.png",
+        desktopIcon: "Extras/games/cargo-convoy/cargo-convoy-desktop-icon.png",
         difficulty: 5,
-        inputMode: "movement"
+        inputMode: "cursor"
       },
       {
         id: "factory-night",

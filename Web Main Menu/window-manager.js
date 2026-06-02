@@ -1696,24 +1696,14 @@ var WebWindowManager = (function () {
   }
 
   function setRouteBootDesktopVisibility(routePresetName) {
-    var presetName;
     if (!routePresetName || !DEFAULT_DESKTOP_WINDOW_LAYOUTS[routePresetName]) {
       return;
     }
-    for (presetName in DEFAULT_DESKTOP_WINDOW_LAYOUTS) {
-      if (!Object.prototype.hasOwnProperty.call(DEFAULT_DESKTOP_WINDOW_LAYOUTS, presetName)) {
-        continue;
-      }
-      if (!savedLayoutTable[presetName]) {
-        continue;
-      }
-      if (presetName === routePresetName) {
-        savedLayoutTable[presetName].open = true;
-        savedLayoutTable[presetName].minimized = false;
-      } else {
-        savedLayoutTable[presetName].open = false;
-      }
+    if (!savedLayoutTable[routePresetName]) {
+      return;
     }
+    savedLayoutTable[routePresetName].open = true;
+    savedLayoutTable[routePresetName].minimized = false;
     applyDesktopWindowVisibilityFromSaved();
   }
 

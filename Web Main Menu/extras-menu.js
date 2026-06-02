@@ -624,7 +624,7 @@
     if (game && game.inputMode === "movement") {
       return "movement";
     }
-    if (gameId === "trouble-drivers" || gameId === "sector-vector") {
+    if (gameId === "trouble-drivers" || gameId === "sector-vector" || gameId === "cargo-convoy") {
       return "movement";
     }
     return "cursor";
