@@ -33,7 +33,7 @@ button {
   z-index: 0;
   background:
     radial-gradient(ellipse 90% 55% at 50% 88%, rgba(255, 120, 40, 0.08), transparent 60%),
-    url("assets/office-booth.png") center center / cover no-repeat,
+    url("assets/office-booth.jpg") center center / cover no-repeat,
     linear-gradient(180deg, #12100c 0%, #080604 45%, #040302 100%);
 }
 
@@ -805,7 +805,7 @@ button {
   height: min(52vh, 420px);
   margin-bottom: 12px;
   border-radius: 6px;
-  background: url("assets/screamer-01.png") center / cover no-repeat;
+  background: url("assets/screamer-01.jpg") center / cover no-repeat;
   border: 3px solid #6a3030;
   box-shadow: 0 0 32px rgba(180, 32, 32, 0.5);
   animation: jumpscare-shake 0.35s ease-in-out 3;
