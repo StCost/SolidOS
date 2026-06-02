@@ -16,6 +16,11 @@
   pointer-events: none;
 }
 
+html.menu-layouts-pending #device {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 #menuWelcomeBoot:not(.menu-welcome-boot--loading-mode) .os-statusbar {
   display: none;
 }
