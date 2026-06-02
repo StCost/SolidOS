@@ -66,7 +66,10 @@
         image: "Extras/games/sector-vector/sector-vector-preview.png",
         desktopIcon: "Extras/games/sector-vector/sector-vector-desktop-icon.png",
         difficulty: 5,
-        inputMode: "movement"
+        inputMode: "movement",
+        startMusicPath: "ui-sector-vector-start-music.wav",
+        gameplayMusicPath: "ui-sector-vector-game-music.wav",
+        gameOverMusicPath: "ui-sector-vector-gameover-music.wav"
       },
       {
         id: "playing-cards",

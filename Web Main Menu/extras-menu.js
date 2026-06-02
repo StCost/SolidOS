@@ -3,6 +3,7 @@
   var EVENT_OPEN_EXTERNAL_URL = "web-open-external-url";
   var MESSAGE_START_SCREEN_READY = "web-extras-game-start-screen-ready";
   var MESSAGE_GAMEPLAY_STARTED = "web-extras-game-gameplay-started";
+  var MESSAGE_GAME_OVER = "web-extras-game-over";
 
   var VIEW_ART = "art";
   var VIEW_GAMES = "games";
@@ -484,7 +485,11 @@
     if (!game) {
       return;
     }
-    window.WebExtrasGameStartMusic.setMusicPaths(game.startMusicPath, game.gameplayMusicPath);
+    window.WebExtrasGameStartMusic.setMusicPaths(
+      game.startMusicPath,
+      game.gameplayMusicPath,
+      game.gameOverMusicPath
+    );
   }
 
   function onGameFrameMessage(event) {
@@ -508,6 +513,13 @@
     if (data.type === MESSAGE_GAMEPLAY_STARTED) {
       if (window.WebExtrasGameStartMusic && window.WebExtrasGameStartMusic.stop) {
         window.WebExtrasGameStartMusic.stop();
+      }
+      return;
+    }
+
+    if (data.type === MESSAGE_GAME_OVER) {
+      if (window.WebExtrasGameStartMusic && window.WebExtrasGameStartMusic.startGameOver) {
+        window.WebExtrasGameStartMusic.startGameOver();
       }
     }
   }
