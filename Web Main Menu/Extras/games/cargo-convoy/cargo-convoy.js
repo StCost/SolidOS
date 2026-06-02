@@ -6,8 +6,6 @@
   var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
   var LOCALE_KEY_DISTANCE = "web.game.cargo-convoy.distance-label";
   var LOCALE_KEY_SCORE = "web.game.cargo-convoy.score-label";
-  var LOCALE_KEY_CRYSTALS = "web.game.cargo-convoy.crystals-label";
-  var LOCALE_KEY_SPAWN = "web.game.cargo-convoy.spawn-escort";
 
   var PHASE_START = "start";
   var PHASE_PLAYING = "playing";
@@ -133,7 +131,6 @@
   var MINEFIELD_SPAWN_INTERVAL_SCALE_MAX = 3.2;
   var MINEFIELD_SPAWN_INTERVAL_MIN_FLOOR = 8;
   var MINEFIELD_WARNING_DURATION = 4;
-  var MINEFIELD_WARNING_SCREEN_X = 48;
   var MINEFIELD_SPAWN_OFFSCREEN_MARGIN = 96;
   var MINEFIELD_VERTICAL_SPREAD = 0.42;
   var MINEFIELD_CLUSTER_RADIUS = 130;
@@ -150,7 +147,7 @@
   var ROCKET_STRIKE_SPAWN_INTERVAL_MIN_FLOOR = 8;
   var ROCKET_STRIKE_WARNING_DURATION = 4;
   var ROCKET_STRIKE_SCREEN_OFFSET_X_FACTOR = 0.16;
-  var ROCKET_STRIKE_VERTICAL_SPREAD = 0.42;
+  var ROCKET_STRIKE_SCREEN_OFFSET_Y_FACTOR = 0.22;
   var ROCKET_STRIKE_RADIUS = 130;
   var ROCKET_STRIKE_DAMAGE = 38;
   var ROCKET_STRIKE_FALL_FROM_TOP = 96;
@@ -195,13 +192,16 @@
   var UNIT_DEFLECTION_PUSH_MIN = 6;
   var UNIT_MOVE_PUSH_ATTEMPTS = 2;
 
-  var KEYBOARD_MOVE_SPEED_FACTOR = 1.12;
   var KEYBOARD_WORLD_MARGIN_Y_FACTOR = 0.44;
   var KEYBOARD_WORLD_MARGIN_X_FACTOR = 0.44;
   var KEYBOARD_DIAGONAL_SCALE = 0.70710678;
+  var KEYBOARD_DRIVE_LOOKAHEAD_CAR = 18;
+  var KEYBOARD_DRIVE_LOOKAHEAD_TRUCK = 24;
 
-  var CAMERA_FOLLOW_SMOOTH_SPEED_X = 7.5;
-  var CAMERA_FOLLOW_SMOOTH_SPEED_Y = 5.5;
+  var CAMERA_FOLLOW_SMOOTH_SPEED_X = 4.2;
+  var CAMERA_FOLLOW_SMOOTH_SPEED_Y = 3.2;
+  var CAMERA_FOLLOW_LAG_SECONDS = 0.16;
+  var CAMERA_VELOCITY_SMOOTH_SPEED = 11;
   var CAMERA_TRUCK_SCREEN_MARGIN_X_FACTOR = 0.12;
   var CAMERA_TRUCK_SCREEN_MARGIN_Y_FACTOR = 0.14;
 
@@ -226,10 +226,7 @@
   var truckDamageVignette = document.getElementById("truckDamageVignette");
   var hudTop = document.getElementById("hudTop");
   var hudDistance = document.getElementById("hudDistance");
-  var hudCrystals = document.getElementById("hudCrystals");
   var hudBest = document.getElementById("hudBest");
-  var spawnPanel = document.getElementById("spawnPanel");
-  var spawnEscortButton = document.getElementById("spawnEscortButton");
   var gameScreen = document.getElementById("gameScreen");
   var screenTitle = document.getElementById("screenTitle");
   var gameOverScore = document.getElementById("gameOverScore");
@@ -248,6 +245,12 @@
   var cameraX = 0;
   var cameraY = 0;
   var scrollCameraX = 0;
+  var truckCameraPreviousX = 0;
+  var truckCameraPreviousY = 0;
+  var truckCameraVelocityX = 0;
+  var truckCameraVelocityY = 0;
+  var truckPositionAfterScrollX = 0;
+  var truckPositionAfterScrollY = 0;
   var mouseScreenX = 0;
   var mouseScreenY = 0;
   var mouseWorldX = 0;
@@ -390,12 +393,17 @@
     playSynthOscillatorBurst("square", startFrequency, 220, peakGain, 0.08);
   }
 
-  function playSynthLaserBurst() {
+  function playSynthLaserBurst(team) {
+    var peakGain;
     if (gameTime - synthLastLaserTime < SYNTH_LASER_INTERVAL) {
       return;
     }
     synthLastLaserTime = gameTime;
-    playSynthOscillatorBurst("sawtooth", 640, 420, 0.035, 0.05);
+    peakGain = 0.05;
+    if (team === SYNTH_TEAM_FRIENDLY) {
+      peakGain = 0.062;
+    }
+    playSynthOscillatorBurst("sawtooth", 640, 420, peakGain, 0.1);
   }
 
   function playSynthHealBurst() {
@@ -521,20 +529,24 @@
     }
   }
 
+  function isSelectedUnitKeyboardDriving() {
+    if (!isPlaying() || selectedUnitId < 0) {
+      return false;
+    }
+    return keysDown.w || keysDown.a || keysDown.s || keysDown.d;
+  }
+
   function updateSelectedUnitKeyboardMove(deltaSeconds) {
     var unit;
     var moveX;
     var moveY;
     var moveLen;
-    var speed;
-    var nextDestinationX;
-    var nextDestinationY;
+    var dirX;
+    var dirY;
+    var leadDistance;
     var worldMarginY;
     var worldMarginX;
-    if (!isPlaying() || selectedUnitId < 0) {
-      return;
-    }
-    if (!keysDown.w && !keysDown.a && !keysDown.s && !keysDown.d) {
+    if (!isSelectedUnitKeyboardDriving()) {
       return;
     }
     unit = getUnitById(selectedUnitId);
@@ -563,18 +575,50 @@
     if (moveLen < 0.001) {
       return;
     }
-    speed = getUnitMoveSpeedForHorizontalDirection(unit, moveX / moveLen) * KEYBOARD_MOVE_SPEED_FACTOR;
-    nextDestinationX = unit.destinationX + moveX * speed * deltaSeconds;
-    nextDestinationY = unit.destinationY + moveY * speed * deltaSeconds;
+    dirX = moveX / moveLen;
+    dirY = moveY / moveLen;
+    leadDistance = isUnitTruckKind(unit) ? KEYBOARD_DRIVE_LOOKAHEAD_TRUCK : KEYBOARD_DRIVE_LOOKAHEAD_CAR;
+    if (isUnitTruckKind(unit)) {
+      unit.hasTruckScreenDestination = false;
+    }
+    unit.destinationX = unit.x + dirX * leadDistance;
+    unit.destinationY = unit.y + dirY * leadDistance;
     worldMarginY = height * KEYBOARD_WORLD_MARGIN_Y_FACTOR;
     worldMarginX = width * KEYBOARD_WORLD_MARGIN_X_FACTOR;
-    nextDestinationY = clamp(nextDestinationY, cameraY - worldMarginY, cameraY + worldMarginY);
-    nextDestinationX = clamp(nextDestinationX, cameraX - worldMarginX, cameraX + worldMarginX);
-    unit.destinationX = nextDestinationX;
-    unit.destinationY = nextDestinationY;
-    if (unit.kind === UNIT_ESCORT) {
-      setEscortGuardOffset(unit, unit.destinationX, unit.destinationY);
+    unit.destinationY = clamp(unit.destinationY, cameraY - worldMarginY, cameraY + worldMarginY);
+    unit.destinationX = clamp(unit.destinationX, cameraX - worldMarginX, cameraX + worldMarginX);
+  }
+
+  function setTruckPositionAfterScroll() {
+    if (!truckUnit || truckUnit.dead) {
+      truckPositionAfterScrollX = 0;
+      truckPositionAfterScrollY = 0;
+      return;
     }
+    truckPositionAfterScrollX = truckUnit.x;
+    truckPositionAfterScrollY = truckUnit.y;
+  }
+
+  function applyTruckMovementOffsetToSelectedDriver() {
+    var unit;
+    var truckDeltaX;
+    var truckDeltaY;
+    if (!truckUnit || truckUnit.dead || !isSelectedUnitKeyboardDriving()) {
+      return;
+    }
+    unit = getUnitById(selectedUnitId);
+    if (!unit || unit.dead || unit.team !== "friendly" || unit.id === truckUnit.id) {
+      return;
+    }
+    truckDeltaX = truckUnit.x - truckPositionAfterScrollX;
+    truckDeltaY = truckUnit.y - truckPositionAfterScrollY;
+    if (truckDeltaX === 0 && truckDeltaY === 0) {
+      return;
+    }
+    unit.x += truckDeltaX;
+    unit.y += truckDeltaY;
+    unit.destinationX += truckDeltaX;
+    unit.destinationY += truckDeltaY;
   }
 
   function onKeyDown(event) {
@@ -754,6 +798,7 @@
     if (hazardY == null) {
       return;
     }
+    truckUnit.hasTruckScreenDestination = false;
     if (truckUnit.y > hazardY) {
       steerDirection = 1;
     } else if (truckUnit.y < hazardY) {
@@ -767,11 +812,44 @@
     truckUnit.destinationY = clamp(truckUnit.destinationY, cameraY - worldMarginY, cameraY + worldMarginY);
   }
 
+  function resetTruckCameraFollowState() {
+    if (!truckUnit || truckUnit.dead) {
+      truckCameraPreviousX = cameraX;
+      truckCameraPreviousY = cameraY;
+      truckCameraVelocityX = 0;
+      truckCameraVelocityY = 0;
+      return;
+    }
+    truckCameraPreviousX = truckUnit.x;
+    truckCameraPreviousY = truckUnit.y;
+    truckCameraVelocityX = scrollSpeed;
+    truckCameraVelocityY = 0;
+  }
+
+  function updateTruckCameraVelocity(deltaSeconds) {
+    var instantVelocityX;
+    var instantVelocityY;
+    var velocitySmoothFactor;
+    if (!truckUnit || truckUnit.dead || deltaSeconds <= 0) {
+      return;
+    }
+    instantVelocityX = (truckUnit.x - truckCameraPreviousX) / deltaSeconds;
+    instantVelocityY = (truckUnit.y - truckCameraPreviousY) / deltaSeconds;
+    truckCameraPreviousX = truckUnit.x;
+    truckCameraPreviousY = truckUnit.y;
+    velocitySmoothFactor = getCameraFollowSmoothFactor(CAMERA_VELOCITY_SMOOTH_SPEED, deltaSeconds);
+    truckCameraVelocityX += (instantVelocityX - truckCameraVelocityX) * velocitySmoothFactor;
+    truckCameraVelocityY += (instantVelocityY - truckCameraVelocityY) * velocitySmoothFactor;
+  }
+
   function getCameraTargetPosition() {
     if (!truckUnit || truckUnit.dead) {
       return { x: cameraX, y: cameraY };
     }
-    return { x: truckUnit.x, y: truckUnit.y };
+    return {
+      x: truckUnit.x - truckCameraVelocityX * CAMERA_FOLLOW_LAG_SECONDS,
+      y: truckUnit.y - truckCameraVelocityY * CAMERA_FOLLOW_LAG_SECONDS
+    };
   }
 
   function clampCameraTargetToKeepTruckOnScreen(targetX, targetY) {
@@ -1019,6 +1097,7 @@
       isWreck: false,
       wreckFireTime: 0
     };
+    initTruckScreenDestinationFields(unit);
     nextUnitId += 1;
     return unit;
   }
@@ -1096,9 +1175,7 @@
       wreckFireTime: 0
     };
     if (kind === UNIT_ESCORT) {
-      unit.guardOffsetX = 0;
-      unit.guardOffsetY = 0;
-      unit.hasGuardOffset = false;
+      initTruckScreenDestinationFields(unit);
       unit.combatMode = rollEscortCombatMode();
       setEscortCombatModeFromTurrets(unit);
     }
@@ -1161,23 +1238,103 @@
     }
   }
 
-  function setEscortGuardOffset(unit, worldX, worldY) {
-    if (!unit || unit.kind !== UNIT_ESCORT || !truckUnit || truckUnit.dead) {
+  function getTruckScreenPosition() {
+    if (!truckUnit || truckUnit.dead) {
+      return null;
+    }
+    return worldToScreen(truckUnit.x, truckUnit.y);
+  }
+
+  function initTruckScreenDestinationFields(unit) {
+    unit.hasTruckScreenDestination = false;
+    unit.destinationScreenOffsetX = 0;
+    unit.destinationScreenOffsetY = 0;
+  }
+
+  function getWorldPositionFromTruckScreenOffset(unit) {
+    var truckScreen;
+    var destScreenX;
+    var destScreenY;
+    if (!unit || !unit.hasTruckScreenDestination || !truckUnit || truckUnit.dead) {
+      return null;
+    }
+    truckScreen = getTruckScreenPosition();
+    if (!truckScreen) {
+      return null;
+    }
+    destScreenX = truckScreen.x + unit.destinationScreenOffsetX;
+    destScreenY = truckScreen.y + unit.destinationScreenOffsetY;
+    return screenToWorld(destScreenX, destScreenY);
+  }
+
+  function applyTruckScreenDestinationToUnit(unit) {
+    var worldDestination = getWorldPositionFromTruckScreenOffset(unit);
+    if (!worldDestination) {
       return;
     }
-    unit.guardOffsetX = worldX - truckUnit.x;
-    unit.guardOffsetY = worldY - truckUnit.y;
-    unit.hasGuardOffset = true;
+    unit.destinationX = worldDestination.x;
+    unit.destinationY = worldDestination.y;
+  }
+
+  function setTruckScreenDestinationForUnit(unit, screenX, screenY) {
+    var truckScreen;
+    if (!unit || !truckUnit || truckUnit.dead) {
+      return;
+    }
+    truckScreen = getTruckScreenPosition();
+    if (!truckScreen) {
+      return;
+    }
+    unit.destinationScreenOffsetX = screenX - truckScreen.x;
+    unit.destinationScreenOffsetY = screenY - truckScreen.y;
+    unit.hasTruckScreenDestination = true;
+    applyTruckScreenDestinationToUnit(unit);
+  }
+
+  function setTruckScreenDestinationFromWorld(unit, worldX, worldY) {
+    var truckScreen;
+    var destinationScreen;
+    if (!unit || !truckUnit || truckUnit.dead) {
+      return;
+    }
+    truckScreen = getTruckScreenPosition();
+    if (!truckScreen) {
+      return;
+    }
+    destinationScreen = worldToScreen(worldX, worldY);
+    unit.destinationScreenOffsetX = destinationScreen.x - truckScreen.x;
+    unit.destinationScreenOffsetY = destinationScreen.y - truckScreen.y;
+    unit.hasTruckScreenDestination = true;
+    applyTruckScreenDestinationToUnit(unit);
+  }
+
+  function updateTruckScreenRelativeDestinations() {
+    var index;
+    var unit;
+    if (!truckUnit || truckUnit.dead) {
+      return;
+    }
+    for (index = 0; index < units.length; index += 1) {
+      unit = units[index];
+      if (unit.dead || unit.team !== "friendly") {
+        continue;
+      }
+      if (unit.id === selectedUnitId && isSelectedUnitKeyboardDriving()) {
+        continue;
+      }
+      if (!unit.hasTruckScreenDestination) {
+        continue;
+      }
+      applyTruckScreenDestinationToUnit(unit);
+    }
+  }
+
+  function setEscortGuardOffset(unit, worldX, worldY) {
+    setTruckScreenDestinationFromWorld(unit, worldX, worldY);
   }
 
   function getEscortGuardWorldPosition(unit) {
-    if (!unit || !unit.hasGuardOffset || !truckUnit || truckUnit.dead) {
-      return null;
-    }
-    return {
-      x: truckUnit.x + unit.guardOffsetX,
-      y: truckUnit.y + unit.guardOffsetY
-    };
+    return getWorldPositionFromTruckScreenOffset(unit);
   }
 
   function getUnitFollowStandoffDistance(follower, target) {
@@ -1446,6 +1603,7 @@
     selectedUnitId = truckUnit.id;
     cameraX = truckUnit.x;
     cameraY = truckUnit.y;
+    resetTruckCameraFollowState();
 
     var escortSpawnPos = getEscortSpawnPositionBehindTruck();
     var escortDestination = getRandomEscortDestinationAroundTruck();
@@ -1494,18 +1652,20 @@
     }
   }
 
-  function syncSpawnButton() {
-    var spawnCost = getEscortSpawnCost();
-    var spawnLabel = getLocalized(LOCALE_KEY_SPAWN, "+ ESCORT ({0})");
-    var buttonText = spawnLabel.replace("{0}", String(spawnCost));
-    spawnEscortButton.textContent = buttonText;
-    spawnEscortButton.disabled = crystalCount < spawnCost;
-  }
-
   function syncPlayingHud() {
     hudDistance.textContent = String(getRunDistance());
-    hudCrystals.textContent = String(crystalCount);
-    syncSpawnButton();
+  }
+
+  function tryAutoSpawnEscorts() {
+    var spawnCost;
+    if (!isPlaying() || !truckUnit || truckUnit.dead) {
+      return;
+    }
+    spawnCost = getEscortSpawnCost();
+    while (crystalCount >= spawnCost) {
+      spawnEscortBehindTruck();
+      spawnCost = getEscortSpawnCost();
+    }
   }
 
   function syncGameOverScore() {
@@ -1525,7 +1685,6 @@
     );
     controlHint.classList.remove("hidden");
     hudTop.classList.add("hidden");
-    spawnPanel.classList.add("hidden");
     selectionRing.classList.remove("is-visible");
     resetMovementKeys();
     updateTruckDamageVignette();
@@ -1539,7 +1698,6 @@
     gameOverScore.classList.remove("hidden");
     controlHint.classList.add("hidden");
     hudTop.classList.add("hidden");
-    spawnPanel.classList.add("hidden");
     selectionRing.classList.remove("is-visible");
     resetMovementKeys();
     if (isRecord) {
@@ -1556,7 +1714,6 @@
     initWorld();
     gameScreen.classList.add("hidden");
     hudTop.classList.remove("hidden");
-    spawnPanel.classList.remove("hidden");
     syncPlayingHud();
     focusGameRoot();
     setGameInputMovementMode();
@@ -1946,8 +2103,10 @@
   function getUnitTurretFireRange(unit, turret) {
     var fireRange;
     fireRange = getTurretFireRange(turret);
-    if (unit.id === selectedUnitId && unit.kind === UNIT_ESCORT && unit.team === "friendly") {
-      fireRange *= SELECTED_ESCORT_FIRE_RANGE_FACTOR;
+    if (unit.id === selectedUnitId && unit.team === "friendly") {
+      if (unit.kind === UNIT_ESCORT || unit.kind === UNIT_TRUCK) {
+        fireRange *= SELECTED_ESCORT_FIRE_RANGE_FACTOR;
+      }
     }
     return fireRange;
   }
@@ -2019,7 +2178,8 @@
     }
     damageUnit(targetUnit, damage, targetX, targetY);
     spawnLaserBeam(fromX, fromY, targetX, targetY, team);
-    playSynthLaserBurst();
+    spawnMuzzleFlash(fromX, fromY, Math.atan2(targetY - fromY, targetX - fromX), team, true);
+    playSynthLaserBurst(team);
   }
 
   function spawnLaserBeam(fromX, fromY, toX, toY, team) {
@@ -2231,9 +2391,10 @@
 
       if (target) {
         targetAngle = Math.atan2(target.y - worldPos.y, target.x - worldPos.x);
-        deltaAngle = angleDifference(turret.angle, targetAngle);
+        aimAngle = unit.angle + turret.angle;
+        deltaAngle = angleDifference(aimAngle, targetAngle);
         turret.angle += clamp(deltaAngle, -TURRET_TURN_SPEED * deltaSeconds, TURRET_TURN_SPEED * deltaSeconds);
-        aimAngle = turret.angle;
+        aimAngle = unit.angle + turret.angle;
         if (turret.type === TURRET_TYPE_LASER) {
           if (isBeamTurretOnTarget(aimAngle, targetAngle)) {
             fireLaser(muzzlePos.x, muzzlePos.y, target, unit.team, deltaSeconds);
@@ -2927,13 +3088,12 @@
     var unit;
     var closestEnemy;
     var followDestination;
-    var guardPosition;
     for (index = 0; index < units.length; index += 1) {
       unit = units[index];
       if (unit.dead || unit.team !== "friendly" || unit.kind !== UNIT_ESCORT) {
         continue;
       }
-      if (unit.id === selectedUnitId) {
+      if (unit.id === selectedUnitId && isSelectedUnitKeyboardDriving()) {
         continue;
       }
       if (unit.combatMode === COMBAT_MODE_ATTACK) {
@@ -2945,10 +3105,8 @@
           continue;
         }
       }
-      guardPosition = getEscortGuardWorldPosition(unit);
-      if (guardPosition) {
-        unit.destinationX = guardPosition.x;
-        unit.destinationY = guardPosition.y;
+      if (unit.hasTruckScreenDestination) {
+        applyTruckScreenDestinationToUnit(unit);
       }
     }
   }
@@ -3181,23 +3339,23 @@
       return { x: 0, y: 0 };
     }
     return {
-      x: cameraX + pendingRocketStrikeWarning.screenOffsetX,
-      y: pendingRocketStrikeWarning.worldImpactY
+      x: pendingRocketStrikeWarning.worldX,
+      y: pendingRocketStrikeWarning.worldY
     };
   }
 
   function rollPendingRocketStrikeWarning() {
-    var laneSpread;
-    var offsetRange;
+    var horizontalSpread;
+    var verticalSpread;
     if (!truckUnit || truckUnit.dead) {
       pendingRocketStrikeWarning = null;
       return;
     }
-    laneSpread = height * ROCKET_STRIKE_VERTICAL_SPREAD;
-    offsetRange = width * ROCKET_STRIKE_SCREEN_OFFSET_X_FACTOR;
+    horizontalSpread = width * ROCKET_STRIKE_SCREEN_OFFSET_X_FACTOR;
+    verticalSpread = height * ROCKET_STRIKE_SCREEN_OFFSET_Y_FACTOR;
     pendingRocketStrikeWarning = {
-      screenOffsetX: randomRange(-offsetRange, offsetRange),
-      worldImpactY: truckUnit.y + randomRange(-laneSpread, laneSpread),
+      worldX: truckUnit.x + randomRange(-horizontalSpread, horizontalSpread),
+      worldY: truckUnit.y + randomRange(-verticalSpread, verticalSpread),
       progress: 0
     };
   }
@@ -3275,18 +3433,15 @@
   }
 
   function getMinefieldWarningScreenPosition() {
-    var screenX = width - MINEFIELD_WARNING_SCREEN_X;
-    var screenY;
     if (!pendingMinefieldWarning) {
-      return { x: screenX, y: height * 0.5 };
+      return worldToScreen(cameraX, cameraY);
     }
-    screenY = pendingMinefieldWarning.worldCenterY - cameraY + height * 0.5;
-    return { x: screenX, y: screenY };
+    return worldToScreen(pendingMinefieldWarning.worldCenterX, pendingMinefieldWarning.worldCenterY);
   }
 
   function getMinefieldSpawnWorldPosition() {
     return {
-      x: cameraX + width * 0.5 + MINEFIELD_SPAWN_OFFSCREEN_MARGIN + randomRange(24, MINEFIELD_CLUSTER_RADIUS),
+      x: pendingMinefieldWarning.worldCenterX,
       y: pendingMinefieldWarning.worldCenterY
     };
   }
@@ -3299,6 +3454,7 @@
     }
     laneSpread = height * MINEFIELD_VERTICAL_SPREAD;
     pendingMinefieldWarning = {
+      worldCenterX: truckUnit.x + width * 0.5 + MINEFIELD_SPAWN_OFFSCREEN_MARGIN + randomRange(24, MINEFIELD_CLUSTER_RADIUS),
       worldCenterY: truckUnit.y + randomRange(-laneSpread, laneSpread),
       progress: 0
     };
@@ -3552,6 +3708,7 @@
     spawnCrystalCollectFlyEffect(worldPos.x, worldPos.y, crystal.red, crystal.green, crystal.blue, crystal.size, crystal.rarity);
     crystalCount += crystal.value;
     crystals.splice(index, 1);
+    tryAutoSpawnEscorts();
     syncPlayingHud();
     playSynthCollect();
   }
@@ -3688,7 +3845,9 @@
     for (index = 0; index < units.length; index += 1) {
       if (!units[index].dead) {
         units[index].x += move;
-        units[index].destinationX += move;
+        if (!units[index].hasTruckScreenDestination) {
+          units[index].destinationX += move;
+        }
       }
     }
 
@@ -3716,6 +3875,7 @@
     var unit;
     updateSelectedUnitKeyboardMove(deltaSeconds);
     updateTruckAutoEvade(deltaSeconds);
+    updateTruckScreenRelativeDestinations();
     updateFriendlyEscortTargets();
     enemyPathUpdateTimer -= deltaSeconds;
     if (enemyPathUpdateTimer <= 0) {
@@ -3736,6 +3896,7 @@
     }
     resolveUnitOverlaps();
     updateObstacleCollisions();
+    applyTruckMovementOffsetToSelectedDriver();
   }
 
   function updateCollectFlyEffect(effect, deltaSeconds) {
@@ -3820,6 +3981,7 @@
       }
       return;
     }
+    updateTruckCameraVelocity(deltaSeconds);
     cameraTarget = getCameraTargetPosition();
     clampedTarget = clampCameraTargetToKeepTruckOnScreen(cameraTarget.x, cameraTarget.y);
     smoothFactorX = getCameraFollowSmoothFactor(CAMERA_FOLLOW_SMOOTH_SPEED_X, deltaSeconds);
@@ -4056,6 +4218,7 @@
 
     truckXBeforeScroll = truckUnit && !truckUnit.dead ? truckUnit.x : 0;
     scrollMove = updateConvoyScroll(deltaSeconds);
+    setTruckPositionAfterScroll();
     updateUnits(deltaSeconds);
     updateMines();
     updateProjectiles(deltaSeconds);
@@ -4147,23 +4310,16 @@
     updateSelectionRing();
   }
 
-  function setDestinationForSelected(worldX, worldY) {
+  function setDestinationForSelected(screenX, screenY) {
     var unit = getUnitById(selectedUnitId);
     if (!unit) {
       return;
     }
-    unit.destinationX = worldX;
-    unit.destinationY = worldY;
-    if (unit.kind === UNIT_ESCORT) {
-      setEscortGuardOffset(unit, worldX, worldY);
-    }
+    setTruckScreenDestinationForUnit(unit, screenX, screenY);
   }
 
   function onPointerDown(event) {
     if (event.button !== 0) {
-      return;
-    }
-    if (event.target === spawnEscortButton) {
       return;
     }
     event.preventDefault();
@@ -4190,10 +4346,6 @@
         toggleEscortCombatMode(hitUnit);
         return;
       }
-      if (hitUnit.id === selectedUnitId && hitUnit.kind === UNIT_TRUCK) {
-        spawnEscortBehindTruck();
-        return;
-      }
       selectUnit(hitUnit);
       return;
     }
@@ -4201,8 +4353,7 @@
     tryCollectCrystalsAtScreen(point.x, point.y, CRYSTAL_PICKUP_RADIUS);
 
     if (selectedUnitId >= 0) {
-      var world = screenToWorld(point.x, point.y);
-      setDestinationForSelected(world.x, world.y);
+      setDestinationForSelected(point.x, point.y);
     }
   }
 
@@ -4612,22 +4763,25 @@
 
   function drawUnits() {
     var sorted = units.slice();
+    var index;
+    var unit;
     sorted.sort(function (unitA, unitB) {
       return unitA.y - unitB.y;
     });
-    var index;
-    var unit;
     for (index = 0; index < sorted.length; index += 1) {
       unit = sorted[index];
-      if (unit.isWreck) {
-        if (isUnitTruckKind(unit)) {
-          drawTruckUnit(unit);
-        } else {
-          drawCarUnit(unit);
-        }
+      if (!unit.isWreck) {
         continue;
       }
-      if (unit.dead) {
+      if (isUnitTruckKind(unit)) {
+        drawTruckUnit(unit);
+      } else {
+        drawCarUnit(unit);
+      }
+    }
+    for (index = 0; index < sorted.length; index += 1) {
+      unit = sorted[index];
+      if (unit.isWreck || unit.dead) {
         continue;
       }
       if (isUnitTruckKind(unit)) {
@@ -5078,6 +5232,9 @@
     if (!unit || !isPlaying()) {
       return;
     }
+    if (isSelectedUnitKeyboardDriving()) {
+      return;
+    }
     if (!shouldDrawUnitTrajectory(unit)) {
       return;
     }
@@ -5303,6 +5460,7 @@
   }
 
   function drawRocketStrikeWarnings() {
+    var impactScreen;
     var targetScreenX;
     var targetScreenY;
     var progress;
@@ -5324,8 +5482,9 @@
     if (progress > 1) {
       progress = 1;
     }
-    targetScreenX = width * 0.5 + pendingRocketStrikeWarning.screenOffsetX;
-    targetScreenY = pendingRocketStrikeWarning.worldImpactY - cameraY + height * 0.5;
+    impactScreen = worldToScreen(pendingRocketStrikeWarning.worldX, pendingRocketStrikeWarning.worldY);
+    targetScreenX = impactScreen.x;
+    targetScreenY = impactScreen.y;
     fallDistance = targetScreenY + ROCKET_STRIKE_FALL_FROM_TOP;
     rocketScreenY = targetScreenY - (1 - progress) * fallDistance;
     alpha = 0.42 + progress * 0.52;
@@ -5445,7 +5604,6 @@
       "Escort the hauler across the wasteland. Select vehicles, click to reposition, collect crystals, reinforce the convoy."
     );
     syncBestHud(gameScreen.classList.contains("is-record"));
-    syncSpawnButton();
     if (isPlaying()) {
       syncPlayingHud();
     }
@@ -5466,14 +5624,6 @@
     render();
     window.requestAnimationFrame(gameLoop);
   }
-
-  spawnEscortButton.addEventListener("click", function (event) {
-    event.preventDefault();
-    event.stopPropagation();
-    if (isPlaying()) {
-      spawnEscortBehindTruck();
-    }
-  });
 
   window.addEventListener("resize", resizeCanvas);
   window.addEventListener("keydown", onKeyDown);
