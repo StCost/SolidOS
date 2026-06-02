@@ -71,7 +71,6 @@
       {
         id: "cargo-convoy",
         title: "Cargo Convoy",
-        titleKey: "web.game.cargo-convoy.title",
         path: "Extras/games/cargo-convoy/index.html",
         image: "Extras/games/cargo-convoy/cargo-convoy-preview.png",
         desktopIcon: "Extras/games/cargo-convoy/cargo-convoy-desktop-icon.png",

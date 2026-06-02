@@ -244,7 +244,6 @@
   "web.game.cargo-convoy.hint": "Hộ tống xe tải qua vùng hoang. Chọn xe, bấm để di chuyển, thu tinh thể và tăng cường đoàn hộ tống.",
   "web.game.cargo-convoy.score-label": "ĐIỂM",
   "web.game.cargo-convoy.spawn-escort": "+ HỘ TỐNG ({0})",
-  "web.game.cargo-convoy.title": "Cargo Convoy",
   "web.game.citrus-slice.combo": "combo x{0}",
   "web.game.citrus-slice.missed": "trượt {0}",
   "web.game.citrus-slice.perfect": "HOÀN HẢO! +{0}",

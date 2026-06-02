@@ -244,7 +244,6 @@
   "web.game.cargo-convoy.hint": "Супроводжуйте тягач через пустище. Обирайте машини, клікайте для переміщення, збирайте кристали та посилюйте конвой.",
   "web.game.cargo-convoy.score-label": "РАХУНОК",
   "web.game.cargo-convoy.spawn-escort": "+ ЕСКОРТ ({0})",
-  "web.game.cargo-convoy.title": "Вантажний конвой",
   "web.game.citrus-slice.combo": "комбо x{0}",
   "web.game.citrus-slice.missed": "промахи {0}",
   "web.game.citrus-slice.perfect": "ІДЕАЛЬНО! +{0}",

@@ -244,7 +244,6 @@
   "web.game.cargo-convoy.hint": "Escortez le camion à travers la lande. Sélectionnez vos véhicules, cliquez pour les repositionner, collectez des cristaux et renforcez le convoi.",
   "web.game.cargo-convoy.score-label": "SCORE",
   "web.game.cargo-convoy.spawn-escort": "+ ESCORTE ({0})",
-  "web.game.cargo-convoy.title": "Cargo Convoy",
   "web.game.citrus-slice.combo": "combo x{0}",
   "web.game.citrus-slice.missed": "ratés {0}",
   "web.game.citrus-slice.perfect": "PARFAIT ! +{0}",
