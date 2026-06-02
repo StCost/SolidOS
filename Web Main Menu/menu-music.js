@@ -1,7 +1,15 @@
 (function () {
-  var MUSIC_PATH = "../audio/menu-music.mp3";
+  var MUSIC_FILE = "menu-music.mp3";
+
+  function getMusicPath() {
+    if (window.WebMenuAudioPaths && window.WebMenuAudioPaths.getMenuAudioPath) {
+      return window.WebMenuAudioPaths.getMenuAudioPath(MUSIC_FILE);
+    }
+    return "../audio/" + MUSIC_FILE;
+  }
   var FADE_STEP_MS = 50;
   var FADE_DURATION_MS = 10000;
+  var FADE_DURATION_PAUSE_MS = 1500;
 
   var musicAudio = null;
   var fadeTimerId = 0;
@@ -33,7 +41,7 @@
 
   function ensureMusicAudio() {
     if (musicAudio) return musicAudio;
-    musicAudio = new Audio(MUSIC_PATH);
+    musicAudio = new Audio(getMusicPath());
     musicAudio.loop = true;
     musicAudio.preload = "auto";
     musicAudio.volume = 0;
@@ -59,7 +67,7 @@
     musicAudio.volume = volume;
   }
 
-  function fadeMusicTo(targetVolume) {
+  function fadeMusicTo(targetVolume, fadeDurationMs) {
     if (!musicAudio) return;
 
     clearFadeTimer();
@@ -69,6 +77,9 @@
 
     fadeStartVolume = musicAudio.volume;
     fadeStartTime = Date.now();
+
+    var durationMs = fadeDurationMs;
+    if (!durationMs || durationMs < 1) durationMs = FADE_DURATION_MS;
 
     if (Math.abs(fadeStartVolume - fadeTargetVolume) < 0.001) {
       setMusicVolumeImmediate(fadeTargetVolume);
@@ -80,7 +91,7 @@
 
     fadeTimerId = window.setInterval(function () {
       var elapsed = Date.now() - fadeStartTime;
-      var progress = elapsed / FADE_DURATION_MS;
+      var progress = elapsed / durationMs;
       if (progress >= 1) progress = 1;
 
       var nextVolume = fadeStartVolume + (fadeTargetVolume - fadeStartVolume) * progress;
@@ -95,8 +106,16 @@
     }, FADE_STEP_MS);
   }
 
+  function isExtrasGameGameplayMusicActive() {
+    if (window.WebExtrasGameStartMusic && window.WebExtrasGameStartMusic.isGameplayMusicActive) {
+      return window.WebExtrasGameStartMusic.isGameplayMusicActive();
+    }
+    return false;
+  }
+
   function startMenuMusic() {
     if (isGameMode()) return;
+    if (isExtrasGameGameplayMusicActive()) return;
     if (!audioUnlocked) return;
 
     var audio = ensureMusicAudio();
@@ -123,9 +142,17 @@
     fadeMusicTo(0);
   }
 
+  function pauseMenuMusicTemporarily() {
+    if (!musicAudio) return;
+    fadeMusicTo(0, FADE_DURATION_PAUSE_MS);
+  }
+
   function syncMenuMusic() {
     if (isGameMode()) {
       stopMenuMusic();
+      return;
+    }
+    if (isExtrasGameGameplayMusicActive()) {
       return;
     }
     if (!isMenuMusicEnabled()) {
@@ -179,6 +206,8 @@
   }
 
   window.WebMenuMusic = {
+    pauseTemporarily: pauseMenuMusicTemporarily,
+    resumeIfAllowed: syncMenuMusic,
     sync: syncMenuMusic
   };
 })();

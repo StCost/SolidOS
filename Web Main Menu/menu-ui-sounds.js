@@ -1,8 +1,15 @@
 (function () {
-  var AUDIO_HOVER_PATH = "../audio/ui-hover.wav";
-  var AUDIO_CLICK_PATH = "../audio/ui-click.wav";
-  var AUDIO_TERMINAL_OPEN_PATH = "../audio/ui-terminal.wav";
-  var AUDIO_MOVE_PATH = "../audio/ui-move.wav";
+  var AUDIO_HOVER_FILE = "ui-hover.wav";
+  var AUDIO_CLICK_FILE = "ui-click.wav";
+  var AUDIO_TERMINAL_OPEN_FILE = "ui-terminal.wav";
+  var AUDIO_MOVE_FILE = "ui-move.wav";
+
+  function getUiSoundPath(fileName) {
+    if (window.WebMenuAudioPaths && window.WebMenuAudioPaths.getMenuAudioPath) {
+      return window.WebMenuAudioPaths.getMenuAudioPath(fileName);
+    }
+    return "../audio/" + fileName;
+  }
 
   var PAGE_MENU = "menu";
   var PAGE_START = "start";
@@ -10,10 +17,10 @@
   var PAGE_CREDITS = "credits";
   var PAGE_EXTRAS = "extras";
 
-  var hoverAudio = new Audio(AUDIO_HOVER_PATH);
-  var clickAudio = new Audio(AUDIO_CLICK_PATH);
-  var terminalOpenAudio = new Audio(AUDIO_TERMINAL_OPEN_PATH);
-  var moveAudio = new Audio(AUDIO_MOVE_PATH);
+  var hoverAudio = new Audio(getUiSoundPath(AUDIO_HOVER_FILE));
+  var clickAudio = new Audio(getUiSoundPath(AUDIO_CLICK_FILE));
+  var terminalOpenAudio = new Audio(getUiSoundPath(AUDIO_TERMINAL_OPEN_FILE));
+  var moveAudio = new Audio(getUiSoundPath(AUDIO_MOVE_FILE));
   var lastHoverKey = "";
   var audioUnlocked = false;
   var skippedInitialPageChange = false;
