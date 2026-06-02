@@ -136,7 +136,7 @@
       isMonster: isMonster
     });
     if (isMonster) {
-      if (fileName.indexOf("screamer-") === 0 || fileName === "jumpscare.png") {
+      if (fileName.indexOf("screamer-") === 0 || fileName === "jumpscare.jpg") {
         screamerPaths.push(path);
       }
     } else if (fileName.indexOf("cam") === 0) {
@@ -458,7 +458,7 @@
     var cleanName;
     var paths;
     var index;
-    cleanName = "cam" + getCamNumber(roomIndex) + "-clean.png";
+    cleanName = "cam" + getCamNumber(roomIndex) + "-clean.jpg";
     if (imageManifest.safe.indexOf(cleanName) >= 0) {
       return getAssetPath(SAFE_FOLDER, cleanName);
     }
@@ -528,7 +528,7 @@
   function getRandomScreamerPath() {
     var index;
     if (screamerPaths.length === 0) {
-      return getAssetPath(MONSTER_FOLDER, "jumpscare.png");
+      return getAssetPath(MONSTER_FOLDER, "jumpscare.jpg");
     }
     index = Math.floor(Math.random() * screamerPaths.length);
     return screamerPaths[index];

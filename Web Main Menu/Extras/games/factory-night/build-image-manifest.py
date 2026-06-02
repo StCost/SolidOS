@@ -1,6 +1,6 @@
 """
 Scan assets/safe and assets/monster, write assets/image-manifest.json.
-Run after adding or moving PNGs: python build-image-manifest.py
+Run after adding or moving feed JPEGs: python build-image-manifest.py
 """
 
 from __future__ import annotations
@@ -15,12 +15,13 @@ MONSTER_DIR = os.path.join(ASSETS_DIR, "monster")
 MANIFEST_PATH = os.path.join(ASSETS_DIR, "image-manifest.json")
 
 
-def list_pngs(folder: str) -> list[str]:
+def list_feed_images(folder: str) -> list[str]:
     if not os.path.isdir(folder):
         return []
     names = []
     for name in os.listdir(folder):
-        if name.lower().endswith(".png"):
+        lower = name.lower()
+        if lower.endswith(".jpg") or lower.endswith(".jpeg"):
             names.append(name)
     names.sort()
     return names
@@ -30,8 +31,8 @@ def main() -> None:
     os.makedirs(SAFE_DIR, exist_ok=True)
     os.makedirs(MONSTER_DIR, exist_ok=True)
     manifest = {
-        "safe": list_pngs(SAFE_DIR),
-        "monster": list_pngs(MONSTER_DIR),
+        "safe": list_feed_images(SAFE_DIR),
+        "monster": list_feed_images(MONSTER_DIR),
     }
     with open(MANIFEST_PATH, "w", encoding="utf-8") as handle:
         json.dump(manifest, handle, indent=2)
