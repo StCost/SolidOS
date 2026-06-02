@@ -34,14 +34,6 @@
         difficulty: 3
       },
       {
-        id: "factory-night",
-        title: "Factory Night",
-        path: "Extras/games/factory-night/index.html",
-        image: "Extras/games/factory-night/factory-night-preview.png",
-        desktopIcon: "Extras/games/factory-night/factory-night-desktop-icon.png",
-        difficulty: 4
-      },
-      {
         id: "airborne-robot",
         title: "Airborne Robot",
         path: "Extras/games/airborne-robot/index.html",
@@ -75,6 +67,14 @@
         desktopIcon: "Extras/games/sector-vector/sector-vector-desktop-icon.png",
         difficulty: 5,
         inputMode: "movement"
+      },
+      {
+        id: "factory-night",
+        title: "Factory Night",
+        path: "Extras/games/factory-night/index.html",
+        image: "Extras/games/factory-night/factory-night-preview.png",
+        desktopIcon: "Extras/games/factory-night/factory-night-desktop-icon.png",
+        difficulty: 5
       },
       {
         id: "playing-cards",
