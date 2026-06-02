@@ -36,6 +36,7 @@
   var STORAGE_VALUE_TRUE = "1";
   var gameDesktopLinkSwitchRefreshTimer = 0;
   var gameDesktopLinkSwitchIgnoreRefreshUntil = 0;
+  var suppressGamePickerClickUntil = 0;
   var GAME_DESKTOP_LINK_SWITCH_HANDLED_FLAG = "extrasGameDesktopLinkHandled";
   var IFRAME_EMBED_RESET_STYLE_ID = "cm-iframe-embed-reset";
   var IFRAME_GAME_CURSOR_SCRIPT_ID = "cm-iframe-game-cursor";
@@ -175,6 +176,9 @@
   }
 
   function notifyRouteChanged() {
+    if (window.WebMenuRoute && window.WebMenuRoute.isWebMode && !window.WebMenuRoute.isWebMode()) {
+      return;
+    }
     window.dispatchEvent(new CustomEvent("web-extras-route-changed"));
   }
 
@@ -1019,6 +1023,7 @@
   function closeGame() {
     stopExtrasGameStartMusic();
     activeGameId = "";
+    suppressGamePickerClickUntil = Date.now() + 350;
     setGameInputForwarding(false);
     if (window.WebGameFrameInputHost) {
       window.WebGameFrameInputHost.setInputMode("cursor");
@@ -1401,6 +1406,11 @@
     var target = event.target;
     var gamesWindow;
     if (!target || !target.closest) return;
+    if (suppressGamePickerClickUntil && Date.now() < suppressGamePickerClickUntil) {
+      event.stopPropagation();
+      event.preventDefault();
+      return;
+    }
     var gamePicker = target.closest(".extras-game-picker");
     if (!gamePicker) return;
     event.stopPropagation();
@@ -1443,6 +1453,7 @@
 
   function onExtrasBackMenuClick() {
     stopExtrasGameStartMusic();
+    suppressGamePickerClickUntil = Date.now() + 350;
     setGameInputForwarding(false);
     if (gameFrame) gameFrame.src = "about:blank";
     if (window.WebMenu && window.WebMenu.goToIndexPage) {

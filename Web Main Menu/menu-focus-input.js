@@ -7,6 +7,7 @@
   var cursorY = 0;
   var cursorReady = false;
   var pointerDownActive = false;
+  var pointerDragFromMenuTarget = false;
 
   if (window[boundFlag]) {
     return;
@@ -257,6 +258,37 @@
     return false;
   }
 
+  function isMenuPointerDragTarget(element) {
+    if (!element || !element.closest) {
+      return false;
+    }
+    if (isDragTarget(element)) {
+      return true;
+    }
+    if (element.closest(".os-desktop-icon")) {
+      return true;
+    }
+    if (element.closest(".os-window-chrome--drag, .os-window-title--drag")) {
+      return true;
+    }
+    if (element.closest(".os-wm-resize")) {
+      return true;
+    }
+    if (element.closest(".os-desktop, #desktopSurface, .os-desktop-icons, #desktopIcons")) {
+      if (element.closest(".os-window")) {
+        return false;
+      }
+      if (element.closest(".os-desktop-icon")) {
+        return false;
+      }
+      if (element.closest(".os-statusbar")) {
+        return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
   function dispatchPointerClickAt(clientX, clientY) {
     var target;
     var pointerInit;
@@ -270,9 +302,6 @@
     target.dispatchEvent(new PointerEvent("pointerup", pointerInit));
     mouseInit = buildMouseInit(clientX, clientY);
     target.dispatchEvent(new MouseEvent("click", mouseInit));
-    if (typeof target.click === "function") {
-      target.click();
-    }
   }
 
   function dispatchPointerDownAt(clientX, clientY) {
@@ -288,7 +317,7 @@
     pointerDownActive = true;
   }
 
-  function dispatchPointerUpAt(clientX, clientY) {
+  function dispatchPointerUpAt(clientX, clientY, suppressClick) {
     var target;
     var pointerInit;
     var mouseInit;
@@ -299,19 +328,24 @@
     pointerInit = buildPointerInit(clientX, clientY);
     pointerInit.buttons = 0;
     target.dispatchEvent(new PointerEvent("pointerup", pointerInit));
-    mouseInit = buildMouseInit(clientX, clientY);
-    target.dispatchEvent(new MouseEvent("click", mouseInit));
+    if (!suppressClick) {
+      mouseInit = buildMouseInit(clientX, clientY);
+      target.dispatchEvent(new MouseEvent("click", mouseInit));
+    }
     pointerDownActive = false;
+    pointerDragFromMenuTarget = false;
   }
 
   function actionPress() {
     var target;
     ensureCursorPosition();
     target = getTargetAtCursor();
-    if (isDragTarget(target)) {
+    if (isMenuPointerDragTarget(target)) {
+      pointerDragFromMenuTarget = true;
       dispatchPointerDownAt(cursorX, cursorY);
       return;
     }
+    pointerDragFromMenuTarget = false;
     dispatchPointerClickAt(cursorX, cursorY);
   }
 
@@ -320,12 +354,17 @@
     if (!pointerDownActive) {
       return;
     }
-    dispatchPointerUpAt(cursorX, cursorY);
+    dispatchPointerUpAt(cursorX, cursorY, pointerDragFromMenuTarget);
   }
 
   function actionRepeat() {
+    var target;
     ensureCursorPosition();
     if (pointerDownActive) {
+      return;
+    }
+    target = getTargetAtCursor();
+    if (isMenuPointerDragTarget(target)) {
       return;
     }
     dispatchPointerClickAt(cursorX, cursorY);

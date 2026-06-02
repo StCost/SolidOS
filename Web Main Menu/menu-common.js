@@ -60,13 +60,6 @@ var WebMenu = (function () {
   function showPage(pageId) {
     if (!pageMenu) return;
 
-    if (window.WebWindowManager && window.WebWindowManager.flushLayoutsSave) {
-      window.WebWindowManager.flushLayoutsSave();
-    }
-    if (window.WebDesktop && window.WebDesktop.flushIconLayoutsSave) {
-      window.WebDesktop.flushIconLayoutsSave();
-    }
-
     pageMenu.hidden = false;
     currentLogicalPageId = pageId;
 
@@ -180,3 +173,15 @@ var WebMenu = (function () {
     handleGamePauseInput: handleGamePauseInput
   };
 })();
+
+function flushMenuDesktopLayoutsBeforeLeave() {
+  if (window.WebWindowManager && window.WebWindowManager.flushLayoutsSave) {
+    window.WebWindowManager.flushLayoutsSave();
+  }
+  if (window.WebDesktop && window.WebDesktop.flushIconLayoutsSave) {
+    window.WebDesktop.flushIconLayoutsSave();
+  }
+}
+
+window.addEventListener("beforeunload", flushMenuDesktopLayoutsBeforeLeave);
+window.addEventListener("pagehide", flushMenuDesktopLayoutsBeforeLeave);

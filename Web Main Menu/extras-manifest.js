@@ -72,6 +72,14 @@
         gameOverMusicPath: "ui-sector-vector-gameover-music.wav"
       },
       {
+        id: "factory-night",
+        title: "Factory Night",
+        path: "Extras/games/factory-night/index.html",
+        image: "Extras/games/factory-night/factory-night-preview.png",
+        desktopIcon: "Extras/games/factory-night/factory-night-desktop-icon.png",
+        difficulty: 5
+      },
+      {
         id: "playing-cards",
         title: "Playing Cards",
         path: "Extras/games/playing-cards/index.html",
