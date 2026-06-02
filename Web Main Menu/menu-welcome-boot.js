@@ -227,6 +227,18 @@
     dismiss();
   }
 
+  function showForLoading() {
+    bindElements();
+    setWelcomeOnlyMode(false);
+    bindLoadingElements();
+    if (pendingState) {
+      applyState(pendingState);
+    }
+    if (!dismissed) {
+      show();
+    }
+  }
+
   function show() {
     bindElements();
     dismissed = false;
@@ -243,7 +255,10 @@
   }
 
   function dismiss() {
-    if (dismissed) return;
+    if (dismissed) {
+      setDeviceBootPending(false);
+      return;
+    }
     dismissed = true;
     setDeviceBootPending(false);
     if (rootElement) {
@@ -302,6 +317,7 @@
     applyBootStep: applyBootStep,
     setBackgroundTransparentTransition: setBackgroundTransparentTransition,
     show: show,
+    showForLoading: showForLoading,
     dismiss: dismiss,
     requestUnityDismiss: requestUnityDismiss,
     isContentReady: isContentReady,
