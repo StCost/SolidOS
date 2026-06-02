@@ -10,8 +10,11 @@
   var HOUR_REAL_SECONDS = 45;
   var POWER_REPORT_GAIN = 22;
   var POWER_OUT_DRAIN_MULT = 0.08;
-  var POWER_DRAIN_USAGE_MULT = 1.35;
+  var POWER_DRAIN_USAGE_MULT = 1.75;
   var FIXED_POWER_USAGE = 1;
+  var MONSTER_VIEW_DRAIN_DELAY_MS = 1000;
+  var MONSTER_VIEW_DRAIN_MULT = 2.35;
+  var NIGHT_POWER_DRAIN_MULT_PER_NIGHT = 1.5;
   var REPORTED_FLASH_MS = 1100;
   var ALL_CAMERAS_REFRESH_MS = 9000;
   var CAM_CHANGE_FADE_MS = 1000;
@@ -109,6 +112,11 @@
   var menuPreviewRoomIndex = 0;
   var feedAssignRefreshActive = false;
   var feedAssignPreviousPaths = [];
+  var cameraMotionRafHandle = 0;
+  var cameraMotionStartMs = 0;
+  var cameraMotionCornerDurationMs = 1700;
+  var cameraMotionCornerHoldMs = 220;
+  var cameraMotionZoom = 1.06;
 
   function registerImageMeta(path, isMonster) {
     imageIsMonster[path] = isMonster;
@@ -252,7 +260,7 @@
 
   function loadImageManifest(done) {
     var request = new XMLHttpRequest();
-    request.open("GET", IMAGE_MANIFEST_URL, true);
+    request.open("GET", IMAGE_MANIFEST_URL + "?v=" + String(Date.now()), true);
     request.onload = function () {
       if (request.status >= 200 && request.status < 300) {
         try {
@@ -345,7 +353,8 @@
       nightRngState: 1,
       currentFeedPath: "",
       currentFeedIsMonster: false,
-      correctReports: 0
+      correctReports: 0,
+      monsterViewStartMs: 0
     };
   }
 
@@ -367,6 +376,103 @@
       return 0;
     }
     return Math.floor(Math.random() * maxExclusive);
+  }
+
+  function clamp01(value) {
+    if (value <= 0) {
+      return 0;
+    }
+    if (value >= 1) {
+      return 1;
+    }
+    return value;
+  }
+
+  function lerpNumber(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  function applyCameraMotionCss(panX, panY, zoom) {
+    if (!cameraViewportEl) {
+      return;
+    }
+    cameraViewportEl.style.setProperty("--camera-pan-x", String(Math.round(panX)) + "px");
+    cameraViewportEl.style.setProperty("--camera-pan-y", String(Math.round(panY)) + "px");
+    cameraViewportEl.style.setProperty("--camera-zoom", String(zoom));
+  }
+
+  function applyStaticRotationCss(rotationDeg) {
+    if (!cameraViewportEl) {
+      return;
+    }
+    cameraViewportEl.style.setProperty("--static-rot", String(rotationDeg) + "deg");
+  }
+
+  function getCameraCornerScanPan(nowMs) {
+    var cornerDurationMs = cameraMotionCornerDurationMs;
+    var holdMs = cameraMotionCornerHoldMs;
+    if (holdMs < 0) {
+      holdMs = 0;
+    }
+    if (holdMs > cornerDurationMs) {
+      holdMs = cornerDurationMs;
+    }
+    var moveMs = cornerDurationMs - holdMs;
+    var stepMs = cornerDurationMs;
+    var cycleMs = stepMs * 4;
+    var t = nowMs - cameraMotionStartMs;
+    if (t < 0) {
+      t = 0;
+    }
+    var within = t % cycleMs;
+    var segmentIndex = Math.floor(within / stepMs);
+    var segmentT = clamp01((within - segmentIndex * stepMs) / stepMs);
+
+    var corners = [
+      { x: -1, y: -1 },
+      { x: 1, y: -1 },
+      { x: 1, y: 1 },
+      { x: -1, y: 1 }
+    ];
+    var from = corners[segmentIndex % corners.length];
+    var to = corners[(segmentIndex + 1) % corners.length];
+
+    return {
+      x: (segmentT <= (holdMs / stepMs) || moveMs <= 0) ? from.x : lerpNumber(from.x, to.x, clamp01((segmentT * stepMs - holdMs) / moveMs)),
+      y: (segmentT <= (holdMs / stepMs) || moveMs <= 0) ? from.y : lerpNumber(from.y, to.y, clamp01((segmentT * stepMs - holdMs) / moveMs))
+    };
+  }
+
+  function updateCameraMotionFrame() {
+    if (!cameraViewportEl) {
+      cameraMotionRafHandle = 0;
+      return;
+    }
+
+    var nowMs = Date.now();
+
+    applyStaticRotationCss(pickRandomInt(4) * 90);
+
+    var zoom = cameraMotionZoom;
+    var viewportWidth = cameraViewportEl.clientWidth || 0;
+    var viewportHeight = cameraViewportEl.clientHeight || 0;
+    var maxPanX = Math.max(0, Math.floor(((viewportWidth * zoom) - viewportWidth) * 0.5));
+    var maxPanY = Math.max(0, Math.floor(((viewportHeight * zoom) - viewportHeight) * 0.5));
+    var usablePanX = Math.floor(maxPanX * 0.92);
+    var usablePanY = Math.floor(maxPanY * 0.92);
+
+    var scan = getCameraCornerScanPan(nowMs);
+    applyCameraMotionCss(scan.x * usablePanX, scan.y * usablePanY, zoom);
+
+    cameraMotionRafHandle = window.requestAnimationFrame(updateCameraMotionFrame);
+  }
+
+  function ensureCameraMotionLoop() {
+    if (cameraMotionRafHandle) {
+      return;
+    }
+    cameraMotionStartMs = Date.now();
+    cameraMotionRafHandle = window.requestAnimationFrame(updateCameraMotionFrame);
   }
 
   function setNightSeed(seed) {
@@ -437,6 +543,17 @@
 
   function getNightDifficulty() {
     return (0.55 + state.night * 0.18) * (0.7 + state.aggression * 0.5);
+  }
+
+  function getNightPowerDrainMult() {
+    if (!state || !state.playing) {
+      return 1;
+    }
+    var nightIndex = (state.night | 0) - 1;
+    if (nightIndex <= 0) {
+      return 1;
+    }
+    return Math.pow(NIGHT_POWER_DRAIN_MULT_PER_NIGHT, nightIndex);
   }
 
   function getHourDisplay() {
@@ -716,6 +833,11 @@
     state.camFeedVersion = state.camFeedVersion + 1;
     state.currentFeedPath = path;
     state.currentFeedIsMonster = getFeedIsMonster(path);
+    if (state.currentFeedIsMonster) {
+      state.monsterViewStartMs = Date.now();
+    } else {
+      state.monsterViewStartMs = 0;
+    }
     cameraFeedImg.src = path + "?v=" + String(state.camFeedVersion);
     if (state.playing && !state.gameOver && !state.powerOut) {
       markPathUsedForRoom(state.cameraIndex, path);
@@ -1022,6 +1144,11 @@
     state.camFeedVersion = state.camFeedVersion + 1;
     state.currentFeedPath = path;
     state.currentFeedIsMonster = getFeedIsMonster(path);
+    if (state.currentFeedIsMonster) {
+      state.monsterViewStartMs = Date.now();
+    } else {
+      state.monsterViewStartMs = 0;
+    }
     cameraFeedImg.src = path + "?v=" + String(state.camFeedVersion);
     cameraViewportEl.classList.remove("is-cam-switch");
     void cameraViewportEl.offsetWidth;
@@ -1056,6 +1183,7 @@
       var idlePath = getCamCleanPath(menuPreviewRoomIndex);
       state.currentFeedPath = idlePath;
       state.currentFeedIsMonster = false;
+      state.monsterViewStartMs = 0;
       state.camFeedVersion = state.camFeedVersion + 1;
       cameraFeedImg.src = idlePath + "?v=" + String(state.camFeedVersion);
       return;
@@ -1176,10 +1304,20 @@
   function drainPower(deltaSeconds) {
     var mult = 1;
     var drain;
+    var nowMs;
+    var monsterVisibleMs;
     if (state.powerOut) {
       mult = POWER_OUT_DRAIN_MULT;
     } else if (state.power < 30) {
       mult = 0.55 + state.power / 60;
+    }
+    mult = mult * getNightPowerDrainMult();
+    if (state.currentFeedIsMonster && state.monsterViewStartMs > 0) {
+      nowMs = Date.now();
+      monsterVisibleMs = nowMs - state.monsterViewStartMs;
+      if (monsterVisibleMs >= MONSTER_VIEW_DRAIN_DELAY_MS) {
+        mult = mult * MONSTER_VIEW_DRAIN_MULT;
+      }
     }
     drain = state.usage * POWER_DRAIN_USAGE_MULT * deltaSeconds * getNightDifficulty() * mult;
     state.power = state.power - drain;
@@ -1541,6 +1679,7 @@
       updateBestNightLine();
       updateBestCorrectReportsLine();
       applyGameLocale();
+      ensureCameraMotionLoop();
     });
   }
 

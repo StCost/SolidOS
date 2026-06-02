@@ -430,9 +430,6 @@
     target.dispatchEvent(new PointerEvent("pointerup", pointerInit));
     mouseInit = buildMouseInit(clientX, clientY);
     target.dispatchEvent(new MouseEvent("click", mouseInit));
-    if (typeof target.click === "function") {
-      target.click();
-    }
   }
 
   function pointerClick() {
