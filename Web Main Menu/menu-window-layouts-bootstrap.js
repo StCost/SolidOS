@@ -37,12 +37,18 @@
     var presetSelector;
     var width;
     var height;
+    var sizeCss = "";
     if (!entry || !entry.preset) continue;
     if (!window.WebMenuLayoutCoords.isCenterLayoutEntry(entry)) continue;
-    if (entry.width === undefined || entry.height === undefined) continue;
     presetSelector = escapePresetSelector(entry.preset);
-    width = Math.round(entry.width);
-    height = Math.round(entry.height);
+    if (entry.width !== undefined) {
+      width = Math.round(entry.width);
+      sizeCss += "width:" + width + "px;";
+    }
+    if (entry.height !== undefined) {
+      height = Math.round(entry.height);
+      sizeCss += "height:" + height + "px;";
+    }
     cssRules.push(
       "html." +
         HTML_BOOTSTRAP_CLASS +
@@ -50,19 +56,12 @@
         presetSelector +
         '"]{' +
         window.WebMenuLayoutCoords.buildCenterCssPosition(entry) +
-        "width:" +
-        width +
-        "px;height:" +
-        height +
-        "px;bottom:auto;right:auto;transform:none;margin:0;}"
+        sizeCss +
+        "bottom:auto;right:auto;transform:none;margin:0;}"
     );
   }
 
   if (!cssRules.length) return;
-
-  cssRules.push(
-    "html." + HTML_BOOTSTRAP_CLASS + " .os-window[data-wm-preset]{visibility:hidden}"
-  );
 
   document.documentElement.classList.add(HTML_BOOTSTRAP_CLASS);
 

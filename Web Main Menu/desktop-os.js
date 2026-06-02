@@ -1221,15 +1221,25 @@ var WebDesktop = (function () {
 
   function postIconLayoutsSave() {
     var payload = buildIconLayoutsPayload();
+    var payloadJson = "";
+    try {
+      payloadJson = JSON.stringify(payload);
+    } catch (error) {
+      payloadJson = "";
+    }
+
+    // Always keep local storage in sync, even in Unity host mode.
+    // This makes desktop-icon-layouts-bootstrap.js able to place icons correctly on first paint.
+    window.__cmIconLayoutsPayload = payload;
+    writeIconLayoutsToStorage(payload);
+
     if (!isUnityHost()) {
-      window.__cmIconLayoutsPayload = payload;
-      writeIconLayoutsToStorage(payload);
       return;
     }
     window.vuplex.postMessage(
       JSON.stringify({
         eventName: "web-icon-layout-save",
-        layoutsJson: JSON.stringify(payload)
+        layoutsJson: payloadJson || JSON.stringify(payload)
       })
     );
   }
