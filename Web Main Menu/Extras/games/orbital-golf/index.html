@@ -295,6 +295,7 @@
       </div>
     </div>
   </div>
+  <script src="../extras-game-start-music-notify.js"></script>
   <script>
     (function () {
       var canvas = document.getElementById("gameCanvas");
@@ -2997,6 +2998,9 @@
           levelIntroPromptEl.textContent = getLocalized(LOCALE_KEY_PROMPT_START, "CLICK TO START");
           levelIntroPromptEl.classList.remove("is-hidden");
         }
+        if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
+          window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
+        }
       }
 
       function refreshLevelIntroText() {
@@ -3377,12 +3381,16 @@
       }
 
       function hideLevelIntro() {
+        var wasActive = levelIntroActive;
         levelIntroActive = false;
         levelIntroTimer = 0;
         levelIntroCardOpacity = 0;
         levelIntroCardEl.style.opacity = "0";
         levelIntroOverlayEl.classList.add("is-hidden");
         hideLevelIntroPrompt();
+        if (wasActive && window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
+          window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
+        }
       }
 
       function updateLevelIntro(deltaSeconds) {

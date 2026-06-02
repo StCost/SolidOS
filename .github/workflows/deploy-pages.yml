@@ -35,7 +35,7 @@ jobs:
           cp -r audio _site/
           touch _site/.nojekyll
           sed -i 's|\.\./Localization/|Localization/|g' _site/menu-locale-loader.js
-          sed -i 's|\.\./audio/|audio/|g' _site/menu-music.js _site/menu-ui-sounds.js
+          sed -i 's|\.\./audio/|audio/|g' _site/menu-music.js _site/menu-ui-sounds.js _site/extras-game-start-music.js _site/extras-manifest.js
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
