@@ -211,6 +211,7 @@
   "web.extras.art.set-background": "Aseta taustaksi",
   "web.extras.art.viewer-title": "art_viewer.exe",
   "web.extras.game.back": "Takaisin peleihin",
+  "web.extras.game.link-on-desktop": "Linkki työpöydälle",
   "web.extras.games.empty": "Pelejä ei löytynyt.",
   "web.extras.hub.text": "Pelit, taide ja yhteisön linkit.",
   "web.extras.link.confirm-cancel": "Peruuta",

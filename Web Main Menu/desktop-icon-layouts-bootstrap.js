@@ -12,6 +12,9 @@
   }
 
   function readLayoutsPayload() {
+    if (window.__cmIconLayoutsPayload) {
+      return window.__cmIconLayoutsPayload;
+    }
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
@@ -20,8 +23,6 @@
       return null;
     }
   }
-
-  if (isUnityHost()) return;
 
   var payload = readLayoutsPayload();
   var layouts = payload && payload.layouts ? payload.layouts : [];

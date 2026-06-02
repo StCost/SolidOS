@@ -1,5 +1,5 @@
 .loading-screen {
-  background: #06080c;
+  background: var(--ink-screen);
   transition: background-color 0.55s ease;
 }
 
@@ -33,30 +33,34 @@
   z-index: 4;
 }
 
-.os-workspace--loading {
+.os-workspace--loading,
+#menuWelcomeBoot .os-workspace--boot {
   justify-content: center;
   align-items: center;
 }
 
-.loading-panel {
+.loading-panel,
+#menuWelcomeBoot .menu-welcome-loading-panel {
   width: min(42rem, 100%);
-  border: 1px solid rgba(255, 128, 0, 0.32);
-  background: var(--ink-window);
-  box-shadow:
-    0 8px 28px rgba(0, 0, 0, 0.65),
-    inset 0 0 0 1px rgba(255, 128, 0, 0.06);
+  max-width: calc(100% - 2 * clamp(12px, 2.5vmin, 24px));
+}
+
+.os-window--loading .os-window-controls {
+  pointer-events: none;
+}
+
+.os-window--loading .os-window-control {
+  cursor: default;
+}
+
+.os-window--loading .os-window-control:disabled {
+  opacity: 1;
 }
 
 .loading-panel-body {
   display: flex;
   flex-direction: column;
   gap: 1.1em;
-  padding: 0.85em 1em 1.15em;
-}
-
-.loading-prompt {
-  font-size: clamp(0.78rem, 1.45vmin, 0.92rem);
-  letter-spacing: 0.08em;
 }
 
 .loading-text {
@@ -79,9 +83,9 @@
   flex: 1 1 auto;
   height: 1.15rem;
   overflow: hidden;
-  border: 1px solid rgba(255, 128, 0, 0.28);
+  border: 1px solid var(--wm-border);
   background: rgba(4, 6, 9, 0.92);
-  box-shadow: inset 0 0 0 1px rgba(255, 128, 0, 0.05);
+  box-shadow: inset 0 0 0 1px var(--wm-border-inset);
 }
 
 .loading-bar-fill {

@@ -211,6 +211,7 @@
   "web.extras.art.set-background": "背景に設定",
   "web.extras.art.viewer-title": "art_viewer.exe",
   "web.extras.game.back": "ゲーム一覧へ",
+  "web.extras.game.link-on-desktop": "デスクトップにリンク",
   "web.extras.games.empty": "ゲームが見つかりません。",
   "web.extras.hub.text": "ゲーム、アート、コミュニティリンク。",
   "web.extras.link.confirm-cancel": "キャンセル",

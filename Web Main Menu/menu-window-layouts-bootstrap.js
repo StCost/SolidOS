@@ -12,6 +12,9 @@
   }
 
   function readLayoutsPayload() {
+    if (window.__cmWmLayoutsPayload) {
+      return window.__cmWmLayoutsPayload;
+    }
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
@@ -20,8 +23,6 @@
       return null;
     }
   }
-
-  if (isUnityHost()) return;
 
   var payload = readLayoutsPayload();
   var layouts = payload && payload.layouts ? payload.layouts : [];
@@ -51,9 +52,9 @@
         window.WebMenuLayoutCoords.buildCenterCssPosition(entry) +
         "width:" +
         width +
-        "px!important;height:" +
+        "px;height:" +
         height +
-        "px!important;bottom:auto!important;right:auto!important;transform:none!important;margin:0!important;}"
+        "px;bottom:auto;right:auto;transform:none;margin:0;}"
     );
   }
 
