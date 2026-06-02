@@ -631,15 +631,9 @@
   }
 
   function setGameInputProfile(gameId) {
-    var inputMode = getGameInputMode(gameId);
     if (window.WebGameFrameInputHost) {
-      window.WebGameFrameInputHost.setInputMode(inputMode);
+      window.WebGameFrameInputHost.setInputMode(getGameInputMode(gameId));
     }
-    window.dispatchEvent(
-      new CustomEvent("web-extras-game-profile", {
-        detail: { gameId: gameId, inputMode: inputMode, name: gameId }
-      })
-    );
   }
 
   function syncFrameGameInputMode() {
@@ -652,9 +646,6 @@
     if (window.WebGameFrameInputHost) {
       window.WebGameFrameInputHost.setForwardingEnabled(enabled);
     }
-    window.dispatchEvent(
-      new CustomEvent("web-extras-game-input", { detail: { active: enabled } })
-    );
   }
 
   function focusGameKeyboardTarget() {
@@ -1013,9 +1004,6 @@
     activeGameId = "";
     suppressGamePickerClickUntil = Date.now() + 350;
     setGameInputForwarding(false);
-    if (window.WebGameFrameInputHost) {
-      window.WebGameFrameInputHost.setInputMode("cursor");
-    }
     if (gameFrame) gameFrame.src = "about:blank";
     showView(VIEW_GAMES);
   }

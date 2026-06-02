@@ -11,8 +11,6 @@
     "web-window-layout-reset",
     "web-start-lists-save",
     "web-open-external-url",
-    "web-extras-game-input",
-    "web-extras-game-profile",
     "web-extras-game-record-save"
   ];
 
