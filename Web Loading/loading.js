@@ -6,6 +6,7 @@
   var barElement = null;
   var rootElement = null;
   var BACKGROUND_TRANSPARENT_CLASS = "loading-background-transparent";
+  var LOADING_STEP_COUNT = 4;
 
   function clampProgress(progress) {
     if (progress < 0) return 0;
@@ -61,8 +62,22 @@
     if (pendingState) applyState(pendingState);
   }
 
+  function applyBootStep(stepIndex) {
+    var clampedIndex = stepIndex;
+    if (clampedIndex < 0) {
+      clampedIndex = 0;
+    }
+    if (clampedIndex >= LOADING_STEP_COUNT) {
+      clampedIndex = LOADING_STEP_COUNT - 1;
+    }
+    applyState({
+      progress: (clampedIndex + 1) / LOADING_STEP_COUNT
+    });
+  }
+
   window.WebLoading = {
     applyState: applyState,
+    applyBootStep: applyBootStep,
     setBackgroundTransparentTransition: setBackgroundTransparentTransition
   };
 

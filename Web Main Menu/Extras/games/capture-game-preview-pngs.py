@@ -26,6 +26,7 @@ GAMES = [
     ("deep-collapse", 2800),
     ("citrus-slice", 2200),
     ("last-run", 2200),
+    ("factory-night", 3500),
     ("orbital-golf", 2800),
     ("trouble-drivers", 2800),
     ("sector-vector", 2800),

@@ -14,6 +14,7 @@
   var STACK_PULSE_MS = 280;
 
   var CHAT_EVENT_SUBMIT = "web-hud-chat-submit";
+  var CHAT_EVENT_FOCUS = "web-hud-chat-focus";
   var CHAT_MAX_LINES = 200;
   var CHAT_IDLE_HIDE_MS = 12000;
 
@@ -31,13 +32,13 @@
   var chatOpen = false;
   var chatFocused = false;
   var chatInputSession = false;
+  var chatOpenEnterSuppressUntil = 0;
+  var CHAT_OPEN_ENTER_SUPPRESS_MS = 300;
   var chatIdleHideTimer = null;
   var commandHistory = [];
   var commandHistoryIndex = 0;
   var chatBindingsReady = false;
   var standaloneWebBindingsReady = false;
-  var unityChatCaretElement = null;
-  var unityChatCaretMeasureContext = null;
   var slotElements = [];
   var slotIconCache = [];
   var slotIconClearTimers = [];
@@ -769,15 +770,26 @@
     }
   }
 
+  function suppressOpenEnterKey() {
+    chatOpenEnterSuppressUntil = Date.now() + CHAT_OPEN_ENTER_SUPPRESS_MS;
+  }
+
+  function shouldSuppressOpenEnterKey() {
+    return Date.now() < chatOpenEnterSuppressUntil;
+  }
+
   function setChatInputSession(active) {
     chatInputSession = !!active;
     if (chatInputSession) {
+      suppressOpenEnterKey();
       clearChatIdleHideTimer();
       setChatState({ open: true, focused: true });
+      syncUnityChatFocus();
       return;
     }
     clearChatIdleHideTimer();
     setChatFocused(false);
+    syncUnityChatFocus();
     scheduleChatIdleHide();
   }
 
@@ -791,11 +803,11 @@
       chatInputElement.focus();
       var length = chatInputElement.value.length;
       chatInputElement.setSelectionRange(length, length);
-      scheduleUnityChatCaretUpdate();
     } else if (!chatInputSession) {
       chatInputElement.blur();
     }
     applyChatOpenState();
+    syncUnityChatFocus();
   }
 
   function refocusChatInputIfSession() {
@@ -806,8 +818,8 @@
       chatInputElement.focus();
       var length = chatInputElement.value.length;
       chatInputElement.setSelectionRange(length, length);
-      scheduleUnityChatCaretUpdate();
       applyChatOpenState();
+      syncUnityChatFocus();
     }, 0);
   }
 
@@ -816,6 +828,7 @@
     if (payload.session === true || payload.session === false) {
       chatInputSession = !!payload.session;
       if (chatInputSession) {
+        suppressOpenEnterKey();
         clearChatIdleHideTimer();
       }
     }
@@ -865,6 +878,7 @@
     if (chatInputSession && chatInputElement && document.activeElement !== chatInputElement) {
       refocusChatInputIfSession();
     }
+    syncUnityChatFocus();
   }
 
   function openChatByDefault() {
@@ -883,11 +897,30 @@
     );
   }
 
+  function postChatFocus(focused) {
+    if (!isUnityHost()) return;
+    window.vuplex.postMessage(
+      JSON.stringify({
+        eventName: CHAT_EVENT_FOCUS,
+        focused: !!focused
+      })
+    );
+  }
+
+  function syncUnityChatFocus() {
+    if (!isUnityHost()) return;
+    postChatFocus(!!chatInputSession);
+  }
+
   function submitChatInput() {
     if (!chatInputElement) return;
     var text = chatInputElement.value;
     if (isUnityHost()) {
-      postChatSubmit(text);
+      var trimmedUnity = text.replace(/^\s+|\s+$/g, "");
+      if (!trimmedUnity) {
+        return;
+      }
+      postChatSubmit(trimmedUnity);
       chatInputElement.value = "";
       if (chatInputSession) {
         refocusChatInputIfSession();
@@ -921,6 +954,9 @@
     }
     if (event.key === "Enter") {
       event.preventDefault();
+      if (shouldSuppressOpenEnterKey()) {
+        return;
+      }
       submitChatInput();
       return;
     }
@@ -970,66 +1006,6 @@
     }
   }
 
-  function getUnityChatCaretMeasureContext() {
-    if (!unityChatCaretMeasureContext) {
-      var canvas = document.createElement("canvas");
-      unityChatCaretMeasureContext = canvas.getContext("2d");
-    }
-    return unityChatCaretMeasureContext;
-  }
-
-  function updateUnityChatCaret() {
-    if (!unityChatCaretElement || !chatInputElement || !chatInputRowElement) return;
-    if (document.activeElement !== chatInputElement) {
-      unityChatCaretElement.hidden = true;
-      return;
-    }
-    unityChatCaretElement.hidden = false;
-    var inputStyle = window.getComputedStyle(chatInputElement);
-    var measureContext = getUnityChatCaretMeasureContext();
-    measureContext.font = inputStyle.font;
-    var selectionStart = chatInputElement.selectionStart;
-    if (selectionStart == null || selectionStart < 0) {
-      selectionStart = chatInputElement.value.length;
-    }
-    var textBeforeCaret = chatInputElement.value.substring(0, selectionStart);
-    var caretOffsetX = measureContext.measureText(textBeforeCaret).width;
-    var inputRect = chatInputElement.getBoundingClientRect();
-    var rowRect = chatInputRowElement.getBoundingClientRect();
-    var paddingLeft = parseFloat(inputStyle.paddingLeft);
-    if (isNaN(paddingLeft)) {
-      paddingLeft = 0;
-    }
-    var top =
-      inputRect.top -
-      rowRect.top +
-      (inputRect.height - unityChatCaretElement.offsetHeight) * 0.5;
-    unityChatCaretElement.style.left = String(inputRect.left - rowRect.left + paddingLeft + caretOffsetX) + "px";
-    unityChatCaretElement.style.top = String(top) + "px";
-  }
-
-  function scheduleUnityChatCaretUpdate() {
-    if (!unityChatCaretElement) return;
-    window.requestAnimationFrame(updateUnityChatCaret);
-  }
-
-  function bindUnityChatCaret() {
-    if (!isUnityHost() || !chatInputElement || !chatInputRowElement) return;
-    if (unityChatCaretElement) return;
-    unityChatCaretElement = document.createElement("span");
-    unityChatCaretElement.className = "game-hud-chat-caret";
-    unityChatCaretElement.hidden = true;
-    unityChatCaretElement.setAttribute("aria-hidden", "true");
-    chatInputRowElement.appendChild(unityChatCaretElement);
-    chatInputElement.addEventListener("input", scheduleUnityChatCaretUpdate);
-    chatInputElement.addEventListener("keydown", scheduleUnityChatCaretUpdate);
-    chatInputElement.addEventListener("keyup", scheduleUnityChatCaretUpdate);
-    chatInputElement.addEventListener("click", scheduleUnityChatCaretUpdate);
-    chatInputElement.addEventListener("focus", scheduleUnityChatCaretUpdate);
-    chatInputElement.addEventListener("blur", scheduleUnityChatCaretUpdate);
-    window.addEventListener("resize", scheduleUnityChatCaretUpdate);
-  }
-
   function bindChatDom() {
     if (chatBindingsReady) return;
     gameHudRootElement = document.getElementById("gameHudRoot");
@@ -1047,7 +1023,6 @@
       chatInputRowElement.addEventListener("mousedown", onChatInputMouseDown);
     }
     refreshChatScrollbar();
-    bindUnityChatCaret();
   }
 
   function setHudUnityCursorEnabled(enabled) {
@@ -1094,6 +1069,7 @@
     applyIconUpdates: applyIconUpdates,
     addChatMessage: addChatMessage,
     setChatState: setChatState,
+    suppressOpenEnterKey: suppressOpenEnterKey,
     openChatByDefault: openChatByDefault,
     clearChatMessages: clearChatMessages,
     setCommandHistory: setCommandHistory

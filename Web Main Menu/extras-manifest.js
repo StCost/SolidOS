@@ -34,6 +34,14 @@
         difficulty: 3
       },
       {
+        id: "factory-night",
+        title: "Factory Night",
+        path: "Extras/games/factory-night/index.html",
+        image: "Extras/games/factory-night/factory-night-preview.png",
+        desktopIcon: "Extras/games/factory-night/factory-night-desktop-icon.png",
+        difficulty: 4
+      },
+      {
         id: "orbital-golf",
         title: "Orbital Golf",
         path: "Extras/games/orbital-golf/index.html",

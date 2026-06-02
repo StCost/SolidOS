@@ -94,7 +94,6 @@ var WebDesktop = (function () {
   var suppressIconActivationIconIds = {};
   var suppressIconClickTimer = 0;
   var iconPointerGestureId = 0;
-  var iconActivatedGestureId = -1;
   var selectedIconIds = {};
   var activeMarqueeSelect = null;
   var desktopMarqueeBox = null;
@@ -2118,20 +2117,18 @@ var WebDesktop = (function () {
     if (!desktopSurface || desktopSurface.wmDesktopMarqueeBound) return;
     desktopSurface.wmDesktopMarqueeBound = true;
 
-    function onMarqueePointerDown(event) {
+    function beginMarqueeSelectAt(clientX, clientY, pointerId) {
       var windowManager;
-      if (event.button != null && event.button !== 0) return;
-      if (event.isPrimary === false) return;
-      if (activeIconDrag || pendingIconPress) return;
-      if (!shouldBeginDesktopMarqueeFromTarget(event.target)) return;
+      var point;
+      if (activeMarqueeSelect || activeIconDrag || pendingIconPress) return;
+      if (!desktopMarqueeBox) return;
       windowManager = getWindowManager();
       if (windowManager && windowManager.clearDesktopWindowFocus) {
         windowManager.clearDesktopWindowFocus();
       }
-      if (!desktopMarqueeBox) return;
-      var point = clientPointToLayoutPoint(event.clientX, event.clientY);
+      point = clientPointToLayoutPoint(clientX, clientY);
       activeMarqueeSelect = {
-        pointerId: event.pointerId,
+        pointerId: pointerId,
         startX: point.left,
         startY: point.top,
         currentX: point.left,
@@ -2140,13 +2137,30 @@ var WebDesktop = (function () {
         layerElement: desktopSurface,
         moved: false
       };
-      try {
-        desktopSurface.setPointerCapture(event.pointerId);
-      } catch (error) { }
+      if (pointerId != null) {
+        try {
+          desktopSurface.setPointerCapture(pointerId);
+        } catch (error) { }
+      }
+    }
+
+    function onMarqueePointerDown(event) {
+      if (event.button != null && event.button !== 0) return;
+      if (event.isPrimary === false) return;
+      if (!shouldBeginDesktopMarqueeFromTarget(event.target)) return;
+      beginMarqueeSelectAt(event.clientX, event.clientY, event.pointerId);
+      event.preventDefault();
+    }
+
+    function onMarqueeMouseDown(event) {
+      if (event.button != null && event.button !== 0) return;
+      if (!shouldBeginDesktopMarqueeFromTarget(event.target)) return;
+      beginMarqueeSelectAt(event.clientX, event.clientY, null);
       event.preventDefault();
     }
 
     desktopSurface.addEventListener("pointerdown", onMarqueePointerDown);
+    desktopSurface.addEventListener("mousedown", onMarqueeMouseDown);
   }
 
   function initDesktopMarqueeLayer() {
@@ -2357,10 +2371,9 @@ var WebDesktop = (function () {
     }, ICON_CLICK_SUPPRESS_MS);
   }
 
-  function finishIconPressClick(press) {
-    if (!press || !press.iconElement) return;
-    selectSingleIcon(press.iconElement);
-    activateDesktopIconFromTap(press.iconElement, press.gestureId);
+  function activateDesktopIconFromTap(iconElement) {
+    if (shouldSuppressIconActivation(iconElement)) return;
+    onIconActivated(iconElement);
   }
 
   function endIconDrag() {
@@ -2470,13 +2483,12 @@ var WebDesktop = (function () {
       return;
     }
 
-    var press = pendingIconPress;
     pendingIconPress = null;
-    finishIconPressClick(press);
   }
 
   function onDocumentMouseUp(event) {
     if (event.button != null && event.button !== 0) return;
+    if (window.PointerEvent) return;
     onDocumentPointerUp(event);
   }
 
@@ -2490,14 +2502,6 @@ var WebDesktop = (function () {
     if (!iconId || iconId !== suppressIconActivationIconId) return false;
     clearSuppressIconActivation();
     return true;
-  }
-
-  function activateDesktopIconFromTap(iconElement, gestureId) {
-    if (shouldSuppressIconActivation(iconElement)) return;
-    if (gestureId != null) {
-      iconActivatedGestureId = gestureId;
-    }
-    onIconActivated(iconElement);
   }
 
   function bindDesktopIcon(iconElement) {
@@ -2528,27 +2532,16 @@ var WebDesktop = (function () {
     }
 
     function onIconClick(event) {
-      if (iconActivatedGestureId === iconPointerGestureId) {
-        iconActivatedGestureId = -1;
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
+      if (event.button != null && event.button !== 0) return;
       if (shouldSuppressIconActivation(iconElement)) {
         event.preventDefault();
         event.stopPropagation();
         return;
       }
-      if (pendingIconPress && pendingIconPress.iconElement === iconElement) {
-        var press = pendingIconPress;
-        pendingIconPress = null;
-        event.preventDefault();
-        event.stopPropagation();
-        finishIconPressClick(press);
-        return;
-      }
       selectSingleIcon(iconElement);
-      onIconActivated(iconElement);
+      activateDesktopIconFromTap(iconElement);
+      event.preventDefault();
+      event.stopPropagation();
     }
 
     function onIconFocus() {
@@ -2657,6 +2650,7 @@ var WebDesktop = (function () {
     }
 
     document.addEventListener("pointermove", onIconPointerMove);
+    document.addEventListener("mousemove", onIconPointerMove);
     document.addEventListener("pointerup", onDocumentPointerUp);
     document.addEventListener("pointercancel", onDocumentPointerUp);
     document.addEventListener("mouseup", onDocumentMouseUp);
