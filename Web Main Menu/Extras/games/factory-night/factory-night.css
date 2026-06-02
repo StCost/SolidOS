@@ -255,6 +255,10 @@ button {
   background: #050403;
   border: 2px solid #1e1a14;
   overflow: hidden;
+  --camera-zoom: 1.06;
+  --camera-pan-x: 0px;
+  --camera-pan-y: 0px;
+  --static-rot: 0deg;
 }
 
 #cameraFeedImg {
@@ -263,14 +267,17 @@ button {
   height: 100%;
   object-fit: cover;
   background: #050403;
+  transform: translate(var(--camera-pan-x), var(--camera-pan-y)) scale(var(--camera-zoom));
+  transform-origin: 50% 50%;
+  will-change: transform;
 }
 
 #camSwitchNoise {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
+  left: -45%;
+  right: -45%;
+  top: -45%;
+  bottom: -45%;
   z-index: 3;
   pointer-events: none;
   opacity: 0;
@@ -278,6 +285,9 @@ button {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.65' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
   background-size: 120px 120px;
   mix-blend-mode: screen;
+  transform: rotate(var(--static-rot));
+  transform-origin: 50% 50%;
+  will-change: transform;
 }
 
 #cameraViewport.is-cam-switch #camSwitchNoise {
@@ -295,27 +305,27 @@ button {
 @keyframes cam-switch-noise-flicker {
   0% {
     opacity: 0.85;
-    transform: translate(0, 0);
+    transform: rotate(var(--static-rot)) translate(0, 0);
   }
 
   25% {
     opacity: 1;
-    transform: translate(-1px, 1px);
+    transform: rotate(var(--static-rot)) translate(-1px, 1px);
   }
 
   50% {
     opacity: 0.9;
-    transform: translate(1px, -1px);
+    transform: rotate(var(--static-rot)) translate(1px, -1px);
   }
 
   75% {
     opacity: 1;
-    transform: translate(-1px, -1px);
+    transform: rotate(var(--static-rot)) translate(-1px, -1px);
   }
 
   100% {
     opacity: 0.88;
-    transform: translate(1px, 1px);
+    transform: rotate(var(--static-rot)) translate(1px, 1px);
   }
 }
 
@@ -382,15 +392,18 @@ button {
 
 #monitorStatic {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
+  left: -45%;
+  right: -45%;
+  top: -45%;
+  bottom: -45%;
   pointer-events: none;
   opacity: 0.07;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
   mix-blend-mode: overlay;
   animation: static-flicker 0.15s steps(2) infinite;
+  transform: rotate(var(--static-rot));
+  transform-origin: 50% 50%;
+  will-change: transform;
 }
 
 @keyframes static-flicker {
