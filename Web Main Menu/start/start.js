@@ -52,6 +52,33 @@
     window.vuplex.postMessage(JSON.stringify(payload));
   }
 
+  function runWebConnectPreview(detail) {
+    var header = buildConnectLoadingHeader(detail);
+    if (window.WebMenuBoot && window.WebMenuBoot.runFakeConnectLoading) {
+      window.WebMenuBoot.runFakeConnectLoading(null, header);
+    }
+  }
+
+  function buildConnectLoadingHeader(detail) {
+    if (!detail) return "";
+    if (detail.kind === "singleplayer") {
+      if (detail.name && detail.seed) {
+        return detail.name + " · " + detail.seed;
+      }
+      return detail.name || detail.seed || "";
+    }
+    if (detail.kind === "ip-multiplayer") {
+      if (detail.name && detail.ip) {
+        return detail.name + " · " + detail.ip;
+      }
+      return detail.name || detail.ip || "";
+    }
+    if (detail.kind === "steam-multiplayer") {
+      return detail.name || "";
+    }
+    return "";
+  }
+
   function copyListEntries(source) {
     var copy = [];
     var index;
@@ -485,6 +512,11 @@
     var seed = entry.getAttribute("data-seed");
     var ip = entry.getAttribute("data-ip");
     var detail = { kind: kind, name: name, seed: seed, ip: ip };
+
+    if (!isUnityHost()) {
+      runWebConnectPreview(detail);
+      return;
+    }
 
     if (kind === "singleplayer") {
       menu.dispatchMenuEvent("web-select-world", detail);

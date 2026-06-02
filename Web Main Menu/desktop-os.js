@@ -487,11 +487,11 @@ var WebDesktop = (function () {
   }
 
   function openLinksDesktop() {
-    openWindow("extras-links", true);
+    return openWindow("extras-links", true);
   }
 
   function openCreditsDesktop() {
-    openWindow("credits-content", true);
+    return openWindow("credits-content", true);
   }
 
   function openExtrasDesktop() {
@@ -2710,11 +2710,16 @@ var WebDesktop = (function () {
       window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
       return;
     }
-    closeAllAppWindowsVisualOnly();
     if (routePreset && windowManager && windowManager.isDesktopWindowPreset(routePreset)) {
+      if (menuLayoutPhoneVertical) {
+        hideWindowElementVisualOnly(getWindowByPreset(WINDOW_PRESET_TITLE));
+      } else if (shouldOpenTitleWindowFromSaved()) {
+        openWindow(WINDOW_PRESET_TITLE, false);
+      }
       window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
       return;
     }
+    closeAllAppWindowsVisualOnly();
     if (menuLayoutPhoneVertical) {
       hideWindowElementVisualOnly(getWindowByPreset(WINDOW_PRESET_TITLE));
       window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
