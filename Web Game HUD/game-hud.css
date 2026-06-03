@@ -46,8 +46,8 @@ html.game-hud--unity-cursor * {
   align-self: flex-start;
   margin-left: 0;
   border-left: none;
-  width: min(96vw, 720px);
-  max-width: min(96vw, 720px);
+  width: min(96vw, 520px);
+  max-width: min(96vw, 520px);
   min-height: 140px;
   max-height: min(38vh, 280px);
   pointer-events: none;
@@ -531,7 +531,7 @@ html.game-hud--unity-cursor * {
 
   .game-hud-panel,
   .game-hud-chat {
-    width: min(96vw, 420px);
-    max-width: min(96vw, 420px);
+    width: min(96vw, 380px);
+    max-width: min(96vw, 380px);
   }
 }

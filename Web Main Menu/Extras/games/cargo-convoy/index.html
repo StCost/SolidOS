@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cargo Convoy</title>
+  <script src="../iframe-game-locale.js"></script>
+  <script src="../iframe-game-input.js"></script>
+  <link rel="stylesheet" href="cargo-convoy.css" />
+</head>
+
+<body>
+  <div id="gameRoot" tabindex="0">
+    <canvas id="gameCanvas" aria-hidden="true"></canvas>
+    <div id="truckDamageVignette" class="hidden" aria-hidden="true"></div>
+    <div id="selectionRing" aria-hidden="true"></div>
+    <div id="hudTop" class="hidden">
+      <div class="hud-stat">
+        <div class="hud-stat-label" data-locale-key="web.game.cargo-convoy.distance-label">DIST</div>
+        <div class="hud-stat-value" id="hudDistance">0</div>
+      </div>
+    </div>
+    <div id="hudBest">best 0</div>
+    <div id="gameScreen">
+      <h1 id="screenTitle">Cargo Convoy</h1>
+      <p id="gameOverScore" class="game-over-score hidden">SCORE 0</p>
+      <p id="controlHint" data-locale-key="web.game.cargo-convoy.hint">
+        Escort the hauler across the wasteland. Select your vehicles, click to reposition, collect crystals, and
+        reinforce the convoy.
+      </p>
+    </div>
+  </div>
+  <script src="cargo-convoy.js"></script>
+</body>
+
+</html>

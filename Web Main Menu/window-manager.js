@@ -353,6 +353,14 @@ var WebWindowManager = (function () {
     mergePersistedWindowLayoutPayload(payload);
   }
 
+  function syncWindowLayoutsPayloadToHost(payload) {
+    if (!payload) {
+      payload = buildLayoutsPayloadFromSavedTable();
+    }
+    window.__cmWmLayoutsPayload = payload;
+    writeLayoutsToStorage(payload);
+  }
+
   function applySavedLayouts(payload) {
     if (payload) {
       window.__cmWmLayoutsPayload = payload;
@@ -363,7 +371,15 @@ var WebWindowManager = (function () {
     applySavedWindowStackOrder();
     applySavedChromeStatesFromSaved();
     clearLayoutBootstrap();
+    syncWindowLayoutsPayloadToHost(payload);
+    revealDesktopAfterLayoutsReady();
     window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
+  }
+
+  function revealDesktopAfterLayoutsReady() {
+    if (document.documentElement) {
+      document.documentElement.classList.remove("menu-layouts-pending");
+    }
   }
 
   function applySavedChromeStatesFromSaved() {
@@ -744,16 +760,6 @@ var WebWindowManager = (function () {
     return buildLayoutsPayloadFromSavedTable();
   }
 
-  function persistLayoutsPayloadToHost(payload) {
-    if (!payload) {
-      payload = buildLayoutsPayloadFromSavedTable();
-    }
-    window.__cmWmLayoutsPayload = payload;
-    if (!isUnityHost()) {
-      writeLayoutsToStorage(payload);
-    }
-  }
-
   function getInitialDesktopOpenDefault(presetName) {
     if (presetName === "menu-splash") {
       if (isGameMenuMode()) return false;
@@ -1085,12 +1091,13 @@ var WebWindowManager = (function () {
       });
       return;
     }
-    clearLayoutBootstrap();
     applyAllSavedLayoutsInDocument();
     applyDesktopWindowVisibilityFromSaved();
     applySavedWindowStackOrder(true);
     applySavedChromeStatesFromSaved();
-    window.__cmWmLayoutsPayload = buildLayoutsPayloadFromSavedTable();
+    clearLayoutBootstrap();
+    syncWindowLayoutsPayloadToHost(null);
+    revealDesktopAfterLayoutsReady();
     if (onComplete) onComplete();
   }
 
@@ -1099,15 +1106,6 @@ var WebWindowManager = (function () {
     populateDefaultWindowLayoutTable();
     mergePersistedWindowLayoutPayload(getPersistedLayoutsPayload());
     applyAllSavedLayoutsWhenReady(null);
-  }
-
-  function postWindowLayoutsReset() {
-    if (!isUnityHost()) return;
-    window.vuplex.postMessage(
-      JSON.stringify({
-        eventName: "web-window-layout-reset"
-      })
-    );
   }
 
   function resetAllWindowLayouts() {
@@ -1141,7 +1139,6 @@ var WebWindowManager = (function () {
     syncOverlayWindow();
     syncActivePageWindows();
 
-    postWindowLayoutsReset();
     writeLayoutsToStorage({ layouts: [] });
 
     window.dispatchEvent(new CustomEvent("web-wm-layouts-reset"));
@@ -1149,16 +1146,7 @@ var WebWindowManager = (function () {
 
   function postWindowLayoutsSave() {
     var payload = collectWindowLayoutsPayload();
-    if (!isUnityHost()) {
-      persistLayoutsPayloadToHost(payload);
-      return;
-    }
-    window.vuplex.postMessage(
-      JSON.stringify({
-        eventName: "web-window-layout-save",
-        layoutsJson: JSON.stringify(payload)
-      })
-    );
+    syncWindowLayoutsPayloadToHost(payload);
   }
 
   function scheduleWindowLayoutsSave() {
@@ -1708,24 +1696,14 @@ var WebWindowManager = (function () {
   }
 
   function setRouteBootDesktopVisibility(routePresetName) {
-    var presetName;
     if (!routePresetName || !DEFAULT_DESKTOP_WINDOW_LAYOUTS[routePresetName]) {
       return;
     }
-    for (presetName in DEFAULT_DESKTOP_WINDOW_LAYOUTS) {
-      if (!Object.prototype.hasOwnProperty.call(DEFAULT_DESKTOP_WINDOW_LAYOUTS, presetName)) {
-        continue;
-      }
-      if (!savedLayoutTable[presetName]) {
-        continue;
-      }
-      if (presetName === routePresetName) {
-        savedLayoutTable[presetName].open = true;
-        savedLayoutTable[presetName].minimized = false;
-      } else {
-        savedLayoutTable[presetName].open = false;
-      }
+    if (!savedLayoutTable[routePresetName]) {
+      return;
     }
+    savedLayoutTable[routePresetName].open = true;
+    savedLayoutTable[routePresetName].minimized = false;
     applyDesktopWindowVisibilityFromSaved();
   }
 
@@ -2867,11 +2845,7 @@ var WebWindowManager = (function () {
       device.classList.add("menu-defer-animations");
     }
     cancelPendingLayoutSave();
-    if (!isUnityHost()) {
-      loadPersistedLayouts();
-    } else if (hasPersistedWindowLayouts()) {
-      loadPersistedLayouts();
-    }
+    loadPersistedLayouts();
     initAll();
     if (!isUnityHost() && hasPersistedWindowLayouts()) {
       var routePreset = "";
@@ -2904,6 +2878,8 @@ var WebWindowManager = (function () {
   window.addEventListener("web-menu-boot-dismiss", function () {
     if (hasPersistedWindowLayouts()) {
       applyAllSavedLayoutsWhenReady(null);
+    } else {
+      revealDesktopAfterLayoutsReady();
     }
   });
   window.addEventListener("web-page-changed", function () {
