@@ -20,6 +20,14 @@
   var COMBAT_MODE_DEFENSE = "defense";
   var COMBAT_MODE_ATTACK_COLOR = "#e85848";
   var COMBAT_MODE_DEFENSE_COLOR = "#5aa0f0";
+  var ESCORT_DEFENSE_DAMAGE_TAKEN_FACTOR = 0.75;
+  var ESCORT_ATTACK_DAMAGE_DEALT_FACTOR = 1.25;
+  var UNIT_STAR_KILLS_PER_STAR = 10;
+  var UNIT_STAR_HEAL_MAX_HEALTH_FACTOR = 10;
+  var UNIT_STAR_DAMAGE_TAKEN_REDUCTION = 0.01;
+  var UNIT_STAR_DAMAGE_DEALT_BONUS = 0.01;
+  var UNIT_STAR_HEAL_BONUS = 0.01;
+  var UNIT_STAR_DISPLAY_MAX_ICONS = 20;
 
   var NPC_PATH_UPDATE_INTERVAL = 0.55;
 
@@ -72,6 +80,7 @@
 
   var CRYSTAL_PICKUP_RADIUS = 42;
   var CRYSTAL_HOVER_RADIUS = 52;
+  var CRYSTAL_SPAWN_SCREEN_EDGE_MARGIN = 20;
   var TERRAIN_CELL_WIDTH = 640;
   var TERRAIN_CELL_HEIGHT = 320;
   var TERRAIN_CELL_X_MARGIN = 1;
@@ -106,7 +115,12 @@
   var ENEMY_TRUCK_SPAWN_CHANCE_SCALE_PER_KM = 0.018;
   var ENEMY_TRUCK_SPAWN_CHANCE_MAX = 0.3;
   var SELECTED_ESCORT_FIRE_RANGE_FACTOR = 2;
+  var SELECTED_UNIT_TURRET_TURN_SPEED_FACTOR = 2;
   var TRUCK_MINE_EVADE_DETECT_RANGE = 480;
+  var TRUCK_PATH_FORWARD_RANGE = 480;
+  var TRUCK_PATH_HALF_WIDTH_PADDING = 28;
+  var TRUCK_FOLLOW_ESCORT_SEPARATION_SCREEN_X_FACTOR = 0.3;
+  var TRUCK_FOLLOW_ESCORT_SEPARATION_SCREEN_Y_FACTOR = 0.3;
   var BOSS_TRUCK_HEALTH = 480;
   var BOSS_TRUCK_MOVE_SPEED = 78;
   var BOSS_CRYSTAL_DROP_BASE = 50;
@@ -131,7 +145,10 @@
   var MINEFIELD_SPAWN_INTERVAL_SCALE_MAX = 3.2;
   var MINEFIELD_SPAWN_INTERVAL_MIN_FLOOR = 8;
   var MINEFIELD_WARNING_DURATION = 4;
-  var MINEFIELD_SPAWN_OFFSCREEN_MARGIN = 96;
+  var MINEFIELD_SPAWN_EXTRA_MARGIN = 320;
+  var MINEFIELD_DROP_SCREEN_INSET_FACTOR = 0.1;
+  var MINEFIELD_DROP_FALL_HEIGHT = 168;
+  var MINEFIELD_DROP_FALL_DURATION = 0.9;
   var MINEFIELD_VERTICAL_SPREAD = 0.42;
   var MINEFIELD_CLUSTER_RADIUS = 130;
   var MINEFIELD_COUNT_MIN = 20;
@@ -176,10 +193,11 @@
   var UNIT_SWAY_ENEMY_TILT = 0.028;
   var UNIT_SWAY_FRIENDLY_TILT = 0.05;
 
-  var UNIT_COLLISION_PADDING = 5;
+  var UNIT_COLLISION_PADDING = 4;
   var UNIT_FOLLOW_STANDOFF_PADDING = 6;
-  var UNIT_SEPARATION_SMOOTH = 0.55;
-  var UNIT_SEPARATION_PASS_COUNT = 3;
+  var UNIT_SEPARATION_SMOOTH = 0.38;
+  var UNIT_SEPARATION_PASS_COUNT = 4;
+  var UNIT_SEPARATION_MAX_PER_STEP = 12;
   var UNIT_MOVE_OVERLAP_EPSILON = 0.05;
   var UNIT_MOVE_PUSH_SMOOTH = 0.72;
   var UNIT_PUSH_MAX_PER_FRAME = 26;
@@ -208,8 +226,8 @@
   var TRUCK_AUTO_EVADE_LOOKAHEAD = 88;
   var TRUCK_AUTO_EVADE_WORLD_MARGIN_Y_FACTOR = 0.38;
 
-  var ESCORT_SPAWN_RADIUS_MIN = 56;
-  var ESCORT_SPAWN_RADIUS_MAX = 140;
+  var ESCORT_SPAWN_RADIUS_MIN = 120;
+  var ESCORT_SPAWN_RADIUS_MAX = 280;
   var ESCORT_SPAWN_ATTEMPTS = 24;
 
   var TRAJECTORY_FRIENDLY_LINE = "rgba(100, 170, 255, 0.22)";
@@ -544,8 +562,7 @@
     var dirX;
     var dirY;
     var leadDistance;
-    var worldMarginY;
-    var worldMarginX;
+    var clampedDestination;
     if (!isSelectedUnitKeyboardDriving()) {
       return;
     }
@@ -583,10 +600,40 @@
     }
     unit.destinationX = unit.x + dirX * leadDistance;
     unit.destinationY = unit.y + dirY * leadDistance;
-    worldMarginY = height * KEYBOARD_WORLD_MARGIN_Y_FACTOR;
-    worldMarginX = width * KEYBOARD_WORLD_MARGIN_X_FACTOR;
-    unit.destinationY = clamp(unit.destinationY, cameraY - worldMarginY, cameraY + worldMarginY);
-    unit.destinationX = clamp(unit.destinationX, cameraX - worldMarginX, cameraX + worldMarginX);
+    clampedDestination = clampFriendlyUnitMoveDestination(unit, unit.destinationX, unit.destinationY);
+    unit.destinationX = clampedDestination.x;
+    unit.destinationY = clampedDestination.y;
+  }
+
+  function setWorldDestinationForUnit(unit, screenX, screenY) {
+    var worldPos;
+    var clampedDestination;
+    if (!unit) {
+      return;
+    }
+    worldPos = screenToWorld(screenX, screenY);
+    unit.hasTruckScreenDestination = false;
+    clampedDestination = clampFriendlyUnitMoveDestination(unit, worldPos.x, worldPos.y);
+    unit.destinationX = clampedDestination.x;
+    unit.destinationY = clampedDestination.y;
+  }
+
+  function updateSelectedEscortHoldPosition() {
+    var unit;
+    var arriveDist;
+    var distSq;
+    unit = getSelectedEscortUnit();
+    if (!unit || isSelectedUnitKeyboardDriving()) {
+      return;
+    }
+    arriveDist = 5;
+    distSq = distanceSquared(unit.x, unit.y, unit.destinationX, unit.destinationY);
+    if (distSq > arriveDist * arriveDist) {
+      return;
+    }
+    unit.hasTruckScreenDestination = false;
+    unit.destinationX = unit.x;
+    unit.destinationY = unit.y;
   }
 
   function setTruckPositionAfterScroll() {
@@ -709,12 +756,49 @@
     return unit.kind === UNIT_TRUCK || unit.kind === UNIT_BOSS_TRUCK;
   }
 
+  function isUnitCarKind(unit) {
+    if (!unit || unit.dead || isUnitTruckKind(unit)) {
+      return false;
+    }
+    return unit.kind === UNIT_ESCORT || unit.kind === UNIT_ENEMY;
+  }
+
+  function shouldSkipUnitPairCarCollision(unit, other) {
+    return isUnitCarKind(unit) && isUnitCarKind(other);
+  }
+
   function isSelectedFriendlyCar() {
     var unit = getUnitById(selectedUnitId);
     if (!unit || unit.dead || unit.team !== "friendly") {
       return false;
     }
     return unit.kind !== UNIT_TRUCK;
+  }
+
+  function getSelectedEscortUnit() {
+    var unit;
+    if (selectedUnitId < 0) {
+      return null;
+    }
+    unit = getUnitById(selectedUnitId);
+    if (!unit || unit.dead || unit.team !== "friendly" || unit.kind !== UNIT_ESCORT) {
+      return null;
+    }
+    return unit;
+  }
+
+  function getCameraFollowUnit() {
+    var unit;
+    if (selectedUnitId >= 0) {
+      unit = getUnitById(selectedUnitId);
+      if (unit && !unit.dead && unit.team === "friendly") {
+        return unit;
+      }
+    }
+    if (truckUnit && !truckUnit.dead) {
+      return truckUnit;
+    }
+    return null;
   }
 
   function isTruckSelected() {
@@ -731,6 +815,67 @@
     return cameraY;
   }
 
+  function getTruckPathHalfWidth() {
+    if (!truckUnit || truckUnit.dead) {
+      return TRUCK_WIDTH * 0.55 + TRUCK_PATH_HALF_WIDTH_PADDING;
+    }
+    return getUnitCollisionRadius(truckUnit) + TRUCK_PATH_HALF_WIDTH_PADDING;
+  }
+
+  function isHazardOnTruckPath(hazardX, hazardY, hazardRadius) {
+    var pathHalfWidth;
+    var deltaX;
+    var deltaY;
+    var combinedRadius;
+    if (!truckUnit || truckUnit.dead) {
+      return false;
+    }
+    pathHalfWidth = getTruckPathHalfWidth();
+    deltaX = hazardX - truckUnit.x;
+    deltaY = hazardY - truckUnit.y;
+    if (deltaX < -pathHalfWidth - hazardRadius) {
+      return false;
+    }
+    if (deltaX > TRUCK_PATH_FORWARD_RANGE + hazardRadius) {
+      return false;
+    }
+    combinedRadius = pathHalfWidth + hazardRadius;
+    if (Math.abs(deltaY) > combinedRadius) {
+      return false;
+    }
+    return true;
+  }
+
+  function getAverageOnScreenMineHazardWorldY() {
+    var mineIndex;
+    var mine;
+    var sumY;
+    var count;
+    if (!truckUnit || truckUnit.dead) {
+      return null;
+    }
+    sumY = 0;
+    count = 0;
+    for (mineIndex = 0; mineIndex < mines.length; mineIndex += 1) {
+      mine = mines[mineIndex];
+      if (!mine.active || mine.falling) {
+        continue;
+      }
+      if (!isHazardOnTruckPath(mine.x, mine.y, MINE_TRIGGER_RADIUS)) {
+        continue;
+      }
+      if (!isWorldPositionOnScreen(mine.x, mine.y)) {
+        continue;
+      }
+      sumY += mine.y;
+      count += 1;
+    }
+    if (count === 0) {
+      return null;
+    }
+    return sumY / count;
+  }
+
   function getActiveTruckHazardWorldY() {
     var bestY;
     var bestDistSq;
@@ -738,8 +883,7 @@
     var mineWarningActive;
     var impactPos;
     var mineSpawnPos;
-    var mineIndex;
-    var mine;
+    var mineAverageY;
     var distSq;
     var detectRangeSq;
     if (!truckUnit || truckUnit.dead) {
@@ -751,37 +895,107 @@
     rocketActive = pendingRocketStrikeWarning
       && rocketStrikeSpawnTimer > 0
       && rocketStrikeSpawnTimer <= ROCKET_STRIKE_WARNING_DURATION;
-    mineWarningActive = pendingMinefieldWarning
-      && minefieldSpawnTimer > 0
-      && minefieldSpawnTimer <= MINEFIELD_WARNING_DURATION;
+    mineWarningActive = pendingMinefieldWarning && !pendingMinefieldWarning.dropStarted;
     if (rocketActive) {
       impactPos = getRocketStrikeImpactWorldPosition();
-      distSq = distanceSquared(truckUnit.x, truckUnit.y, impactPos.x, impactPos.y);
-      if (distSq < bestDistSq) {
-        bestDistSq = distSq;
-        bestY = impactPos.y;
+      if (isHazardOnTruckPath(impactPos.x, impactPos.y, ROCKET_STRIKE_RADIUS)) {
+        distSq = distanceSquared(truckUnit.x, truckUnit.y, impactPos.x, impactPos.y);
+        if (distSq < bestDistSq) {
+          bestDistSq = distSq;
+          bestY = impactPos.y;
+        }
       }
     }
     if (mineWarningActive) {
       mineSpawnPos = getMinefieldSpawnWorldPosition();
-      distSq = distanceSquared(truckUnit.x, truckUnit.y, mineSpawnPos.x, mineSpawnPos.y);
-      if (distSq < bestDistSq) {
-        bestDistSq = distSq;
-        bestY = pendingMinefieldWarning.worldCenterY;
+      if (isHazardOnTruckPath(mineSpawnPos.x, mineSpawnPos.y, MINEFIELD_CLUSTER_RADIUS)) {
+        distSq = distanceSquared(truckUnit.x, truckUnit.y, mineSpawnPos.x, mineSpawnPos.y);
+        if (distSq < bestDistSq) {
+          bestDistSq = distSq;
+          bestY = pendingMinefieldWarning.worldCenterY;
+        }
       }
     }
-    for (mineIndex = 0; mineIndex < mines.length; mineIndex += 1) {
-      mine = mines[mineIndex];
-      if (!mine.active) {
-        continue;
-      }
-      distSq = distanceSquared(truckUnit.x, truckUnit.y, mine.x, mine.y);
+    mineAverageY = getAverageOnScreenMineHazardWorldY();
+    if (mineAverageY != null) {
+      distSq = distanceSquared(truckUnit.x, truckUnit.y, truckUnit.x, mineAverageY);
       if (distSq <= detectRangeSq && distSq < bestDistSq) {
         bestDistSq = distSq;
-        bestY = mine.y;
+        bestY = mineAverageY;
       }
     }
     return bestY;
+  }
+
+  function setTruckHoldLaneDestination() {
+    if (!truckUnit || truckUnit.dead) {
+      return;
+    }
+    truckUnit.hasTruckScreenDestination = false;
+    truckUnit.destinationX = truckUnit.x;
+    truckUnit.destinationY = truckUnit.y;
+  }
+
+  function clearTruckMoveCommand() {
+    setTruckHoldLaneDestination();
+  }
+
+  function restoreEscortGuardFollow(unit) {
+    if (!unit || unit.dead || unit.kind !== UNIT_ESCORT) {
+      return;
+    }
+    setTruckScreenDestinationFromWorld(unit, unit.x, unit.y);
+  }
+
+  function beginEscortPlayerControl(unit) {
+    if (!unit || unit.dead || unit.kind !== UNIT_ESCORT) {
+      return;
+    }
+    unit.hasTruckScreenDestination = false;
+    unit.destinationX = unit.x;
+    unit.destinationY = unit.y;
+  }
+
+  function shouldTruckFollowSelectedEscort(escort) {
+    var absDeltaX;
+    var absDeltaY;
+    var separationX;
+    var separationY;
+    if (!escort || !truckUnit || truckUnit.dead) {
+      return false;
+    }
+    if (width <= 0 || height <= 0) {
+      return false;
+    }
+    absDeltaX = Math.abs(escort.x - truckUnit.x);
+    absDeltaY = Math.abs(escort.y - truckUnit.y);
+    separationX = width * TRUCK_FOLLOW_ESCORT_SEPARATION_SCREEN_X_FACTOR;
+    separationY = height * TRUCK_FOLLOW_ESCORT_SEPARATION_SCREEN_Y_FACTOR;
+    if (absDeltaX >= separationX) {
+      return true;
+    }
+    if (absDeltaY >= separationY) {
+      return true;
+    }
+    return false;
+  }
+
+  function updateTruckFollowSelectedEscort() {
+    var escort;
+    if (!truckUnit || truckUnit.dead || !isPlaying() || isTruckSelected()) {
+      return false;
+    }
+    escort = getSelectedEscortUnit();
+    if (!escort) {
+      return false;
+    }
+    if (!shouldTruckFollowSelectedEscort(escort)) {
+      return false;
+    }
+    truckUnit.hasTruckScreenDestination = false;
+    truckUnit.destinationX = escort.x;
+    truckUnit.destinationY = escort.y;
+    return true;
   }
 
   function updateTruckAutoEvade(deltaSeconds) {
@@ -795,86 +1009,228 @@
       return;
     }
     hazardY = getActiveTruckHazardWorldY();
-    if (hazardY == null) {
+    if (hazardY != null) {
+      truckUnit.hasTruckScreenDestination = false;
+      if (truckUnit.y > hazardY) {
+        steerDirection = 1;
+      } else if (truckUnit.y < hazardY) {
+        steerDirection = -1;
+      } else {
+        steerDirection = truckUnit.y >= cameraY ? 1 : -1;
+      }
+      truckUnit.destinationX = truckUnit.x;
+      truckUnit.destinationY = truckUnit.y + steerDirection * TRUCK_AUTO_EVADE_LOOKAHEAD;
+      worldMarginY = height * TRUCK_AUTO_EVADE_WORLD_MARGIN_Y_FACTOR;
+      truckUnit.destinationY = clamp(truckUnit.destinationY, cameraY - worldMarginY, cameraY + worldMarginY);
       return;
     }
-    truckUnit.hasTruckScreenDestination = false;
-    if (truckUnit.y > hazardY) {
-      steerDirection = 1;
-    } else if (truckUnit.y < hazardY) {
-      steerDirection = -1;
-    } else {
-      steerDirection = truckUnit.y >= cameraY ? 1 : -1;
+    if (updateTruckFollowSelectedEscort()) {
+      return;
     }
-    truckUnit.destinationX = truckUnit.x;
-    truckUnit.destinationY = truckUnit.y + steerDirection * TRUCK_AUTO_EVADE_LOOKAHEAD;
-    worldMarginY = height * TRUCK_AUTO_EVADE_WORLD_MARGIN_Y_FACTOR;
-    truckUnit.destinationY = clamp(truckUnit.destinationY, cameraY - worldMarginY, cameraY + worldMarginY);
+    setTruckHoldLaneDestination();
   }
 
   function resetTruckCameraFollowState() {
-    if (!truckUnit || truckUnit.dead) {
+    var followUnit;
+    followUnit = getCameraFollowUnit();
+    if (!followUnit) {
       truckCameraPreviousX = cameraX;
       truckCameraPreviousY = cameraY;
       truckCameraVelocityX = 0;
       truckCameraVelocityY = 0;
       return;
     }
-    truckCameraPreviousX = truckUnit.x;
-    truckCameraPreviousY = truckUnit.y;
+    truckCameraPreviousX = followUnit.x;
+    truckCameraPreviousY = followUnit.y;
     truckCameraVelocityX = scrollSpeed;
     truckCameraVelocityY = 0;
   }
 
   function updateTruckCameraVelocity(deltaSeconds) {
+    var followUnit;
     var instantVelocityX;
     var instantVelocityY;
     var velocitySmoothFactor;
-    if (!truckUnit || truckUnit.dead || deltaSeconds <= 0) {
+    followUnit = getCameraFollowUnit();
+    if (!followUnit || deltaSeconds <= 0) {
       return;
     }
-    instantVelocityX = (truckUnit.x - truckCameraPreviousX) / deltaSeconds;
-    instantVelocityY = (truckUnit.y - truckCameraPreviousY) / deltaSeconds;
-    truckCameraPreviousX = truckUnit.x;
-    truckCameraPreviousY = truckUnit.y;
+    instantVelocityX = (followUnit.x - truckCameraPreviousX) / deltaSeconds;
+    instantVelocityY = (followUnit.y - truckCameraPreviousY) / deltaSeconds;
+    truckCameraPreviousX = followUnit.x;
+    truckCameraPreviousY = followUnit.y;
     velocitySmoothFactor = getCameraFollowSmoothFactor(CAMERA_VELOCITY_SMOOTH_SPEED, deltaSeconds);
     truckCameraVelocityX += (instantVelocityX - truckCameraVelocityX) * velocitySmoothFactor;
     truckCameraVelocityY += (instantVelocityY - truckCameraVelocityY) * velocitySmoothFactor;
   }
 
   function getCameraTargetPosition() {
-    if (!truckUnit || truckUnit.dead) {
+    var followUnit;
+    followUnit = getCameraFollowUnit();
+    if (!followUnit) {
       return { x: cameraX, y: cameraY };
     }
     return {
-      x: truckUnit.x - truckCameraVelocityX * CAMERA_FOLLOW_LAG_SECONDS,
-      y: truckUnit.y - truckCameraVelocityY * CAMERA_FOLLOW_LAG_SECONDS
+      x: followUnit.x - truckCameraVelocityX * CAMERA_FOLLOW_LAG_SECONDS,
+      y: followUnit.y - truckCameraVelocityY * CAMERA_FOLLOW_LAG_SECONDS
     };
   }
 
+  function getSelectedEscortWorldMoveBounds() {
+    var escort;
+    var marginX;
+    var marginY;
+    var maxSpanX;
+    var maxSpanY;
+    var unitRadius;
+    var minX;
+    var maxX;
+    var minY;
+    var maxY;
+    var screenMinX;
+    var screenMaxX;
+    var screenMinY;
+    var screenMaxY;
+    escort = getSelectedEscortUnit();
+    if (!escort || !truckUnit || truckUnit.dead) {
+      return null;
+    }
+    marginX = width * CAMERA_TRUCK_SCREEN_MARGIN_X_FACTOR;
+    marginY = height * CAMERA_TRUCK_SCREEN_MARGIN_Y_FACTOR;
+    unitRadius = getUnitCollisionRadius(escort);
+    maxSpanX = width - marginX * 2 - unitRadius * 2;
+    maxSpanY = height - marginY * 2 - unitRadius * 2;
+    if (maxSpanX < 0) {
+      maxSpanX = 0;
+    }
+    if (maxSpanY < 0) {
+      maxSpanY = 0;
+    }
+    minX = truckUnit.x - maxSpanX;
+    maxX = truckUnit.x + maxSpanX;
+    minY = truckUnit.y - maxSpanY;
+    maxY = truckUnit.y + maxSpanY;
+    screenMinX = cameraX - width * 0.5 + marginX + unitRadius;
+    screenMaxX = cameraX + width * 0.5 - marginX - unitRadius;
+    screenMinY = cameraY - height * 0.5 + marginY + unitRadius;
+    screenMaxY = cameraY + height * 0.5 - marginY - unitRadius;
+    if (minX < screenMinX) {
+      minX = screenMinX;
+    }
+    if (maxX > screenMaxX) {
+      maxX = screenMaxX;
+    }
+    if (minY < screenMinY) {
+      minY = screenMinY;
+    }
+    if (maxY > screenMaxY) {
+      maxY = screenMaxY;
+    }
+    if (minX > maxX) {
+      minX = (minX + maxX) * 0.5;
+      maxX = minX;
+    }
+    if (minY > maxY) {
+      minY = (minY + maxY) * 0.5;
+      maxY = minY;
+    }
+    return { minX: minX, maxX: maxX, minY: minY, maxY: maxY };
+  }
+
+  function clampFriendlyUnitMoveDestination(unit, destX, destY) {
+    var bounds;
+    var worldMarginY;
+    var worldMarginX;
+    if (unit && unit.kind === UNIT_ESCORT && unit.id === selectedUnitId) {
+      bounds = getSelectedEscortWorldMoveBounds();
+      if (bounds) {
+        return {
+          x: clamp(destX, bounds.minX, bounds.maxX),
+          y: clamp(destY, bounds.minY, bounds.maxY)
+        };
+      }
+    }
+    worldMarginY = height * KEYBOARD_WORLD_MARGIN_Y_FACTOR;
+    worldMarginX = width * KEYBOARD_WORLD_MARGIN_X_FACTOR;
+    return {
+      x: clamp(destX, cameraX - worldMarginX, cameraX + worldMarginX),
+      y: clamp(destY, cameraY - worldMarginY, cameraY + worldMarginY)
+    };
+  }
+
+  function clampSelectedEscortWorldPosition(unit) {
+    var bounds;
+    if (!unit || unit.kind !== UNIT_ESCORT || unit.id !== selectedUnitId) {
+      return;
+    }
+    bounds = getSelectedEscortWorldMoveBounds();
+    if (!bounds) {
+      return;
+    }
+    unit.x = clamp(unit.x, bounds.minX, bounds.maxX);
+    unit.y = clamp(unit.y, bounds.minY, bounds.maxY);
+    unit.destinationX = clamp(unit.destinationX, bounds.minX, bounds.maxX);
+    unit.destinationY = clamp(unit.destinationY, bounds.minY, bounds.maxY);
+  }
+
   function clampCameraTargetToKeepTruckOnScreen(targetX, targetY) {
+    var escort;
+    var followUnit;
     var marginX;
     var marginY;
     var minCameraX;
     var maxCameraX;
     var minCameraY;
     var maxCameraY;
-    if (!truckUnit || truckUnit.dead) {
+    escort = getSelectedEscortUnit();
+    if (escort && truckUnit && !truckUnit.dead) {
+      marginX = width * CAMERA_TRUCK_SCREEN_MARGIN_X_FACTOR;
+      marginY = height * CAMERA_TRUCK_SCREEN_MARGIN_Y_FACTOR;
+      minCameraX = truckUnit.x - width * 0.5 + marginX;
+      if (escort.x - width * 0.5 + marginX > minCameraX) {
+        minCameraX = escort.x - width * 0.5 + marginX;
+      }
+      maxCameraX = truckUnit.x + width * 0.5 - marginX;
+      if (escort.x + width * 0.5 - marginX < maxCameraX) {
+        maxCameraX = escort.x + width * 0.5 - marginX;
+      }
+      minCameraY = truckUnit.y - height * 0.5 + marginY;
+      if (escort.y - height * 0.5 + marginY > minCameraY) {
+        minCameraY = escort.y - height * 0.5 + marginY;
+      }
+      maxCameraY = truckUnit.y + height * 0.5 - marginY;
+      if (escort.y + height * 0.5 - marginY < maxCameraY) {
+        maxCameraY = escort.y + height * 0.5 - marginY;
+      }
+      if (minCameraX > maxCameraX) {
+        targetX = (minCameraX + maxCameraX) * 0.5;
+      } else {
+        targetX = clamp(targetX, minCameraX, maxCameraX);
+      }
+      if (minCameraY > maxCameraY) {
+        targetY = (minCameraY + maxCameraY) * 0.5;
+      } else {
+        targetY = clamp(targetY, minCameraY, maxCameraY);
+      }
+      return { x: targetX, y: targetY };
+    }
+    followUnit = getCameraFollowUnit();
+    if (!followUnit) {
       return { x: targetX, y: targetY };
     }
     marginX = width * CAMERA_TRUCK_SCREEN_MARGIN_X_FACTOR;
     marginY = height * CAMERA_TRUCK_SCREEN_MARGIN_Y_FACTOR;
-    minCameraX = truckUnit.x - width * 0.5 + marginX;
-    maxCameraX = truckUnit.x + width * 0.5 - marginX;
-    minCameraY = truckUnit.y - height * 0.5 + marginY;
-    maxCameraY = truckUnit.y + height * 0.5 - marginY;
+    minCameraX = followUnit.x - width * 0.5 + marginX;
+    maxCameraX = followUnit.x + width * 0.5 - marginX;
+    minCameraY = followUnit.y - height * 0.5 + marginY;
+    maxCameraY = followUnit.y + height * 0.5 - marginY;
     if (minCameraX > maxCameraX) {
-      targetX = truckUnit.x;
+      targetX = followUnit.x;
     } else {
       targetX = clamp(targetX, minCameraX, maxCameraX);
     }
     if (minCameraY > maxCameraY) {
-      targetY = truckUnit.y;
+      targetY = followUnit.y;
     } else {
       targetY = clamp(targetY, minCameraY, maxCameraY);
     }
@@ -992,21 +1348,6 @@
     return TURRET_TYPE_BALLISTIC;
   }
 
-  function tryUpgradeFriendlyBallisticTurret(turret) {
-    if (turret.type !== TURRET_TYPE_BALLISTIC) {
-      return;
-    }
-    if (Math.random() < LASER_TURRET_SPAWN_CHANCE) {
-      turret.type = TURRET_TYPE_LASER;
-      turret.fireCooldown = 0;
-      return;
-    }
-    if (Math.random() < HEAL_TURRET_SPAWN_CHANCE) {
-      turret.type = TURRET_TYPE_HEAL;
-      turret.fireCooldown = 0;
-    }
-  }
-
   function unitHasHealTurret(unit) {
     var turretIndex;
     var turret;
@@ -1025,24 +1366,6 @@
     }
     if (unitHasHealTurret(unit)) {
       unit.combatMode = COMBAT_MODE_DEFENSE;
-    }
-  }
-
-  function rollFriendlyLaserTurretUpgrades() {
-    var unitIndex;
-    var unit;
-    var turretIndex;
-    var turret;
-    for (unitIndex = 0; unitIndex < units.length; unitIndex += 1) {
-      unit = units[unitIndex];
-      if (unit.dead || unit.team !== "friendly") {
-        continue;
-      }
-      for (turretIndex = 0; turretIndex < unit.turrets.length; turretIndex += 1) {
-        turret = unit.turrets[turretIndex];
-        tryUpgradeFriendlyBallisticTurret(turret);
-      }
-      setEscortCombatModeFromTurrets(unit);
     }
   }
 
@@ -1085,9 +1408,9 @@
       width: TRUCK_WIDTH,
       radius: TRUCK_WIDTH * 0.55,
       turrets: [
-        createTurret(TRUCK_LENGTH * 0.22, 0, TRUCK_TURRET_WOBBLE),
-        createTurret(-TRUCK_LENGTH * 0.14, 0, TRUCK_TURRET_WOBBLE),
-        createTurret(-TRUCK_LENGTH * 0.32, 0, TRUCK_TURRET_WOBBLE)
+        createTurret(TRUCK_LENGTH * 0.22, 0, TRUCK_TURRET_WOBBLE, rollCarTurretType()),
+        createTurret(-TRUCK_LENGTH * 0.14, 0, TRUCK_TURRET_WOBBLE, rollCarTurretType()),
+        createTurret(-TRUCK_LENGTH * 0.32, 0, TRUCK_TURRET_WOBBLE, rollCarTurretType())
       ],
       swayPhase: Math.random() * TWO_PI,
       swaySpeed: randomRange(0.9, 1.4),
@@ -1095,8 +1418,10 @@
       hitFlash: 0,
       dead: false,
       isWreck: false,
-      wreckFireTime: 0
+      wreckFireTime: 0,
+      lastAttackerUnitId: -1
     };
+    initFriendlyStarUnitFields(unit);
     initTruckScreenDestinationFields(unit);
     nextUnitId += 1;
     return unit;
@@ -1130,7 +1455,9 @@
       hitFlash: 0,
       dead: false,
       isWreck: false,
-      wreckFireTime: 0
+      wreckFireTime: 0,
+      lastAttackerUnitId: -1,
+      starCount: 0
     };
     nextUnitId += 1;
     return unit;
@@ -1172,9 +1499,12 @@
       hitFlash: 0,
       dead: false,
       isWreck: false,
-      wreckFireTime: 0
+      wreckFireTime: 0,
+      lastAttackerUnitId: -1,
+      starCount: 0
     };
     if (kind === UNIT_ESCORT) {
+      initFriendlyStarUnitFields(unit);
       initTruckScreenDestinationFields(unit);
       unit.combatMode = rollEscortCombatMode();
       setEscortCombatModeFromTurrets(unit);
@@ -1188,6 +1518,216 @@
       return COMBAT_MODE_ATTACK;
     }
     return COMBAT_MODE_DEFENSE;
+  }
+
+  function getEscortCombatModeDamageTakenFactor(unit) {
+    if (!unit || unit.dead || unit.kind !== UNIT_ESCORT) {
+      return 1;
+    }
+    if (unit.combatMode === COMBAT_MODE_DEFENSE) {
+      return ESCORT_DEFENSE_DAMAGE_TAKEN_FACTOR;
+    }
+    return 1;
+  }
+
+  function getEscortCombatModeDamageDealtFactor(unit) {
+    if (!unit || unit.dead || unit.kind !== UNIT_ESCORT) {
+      return 1;
+    }
+    if (unit.combatMode === COMBAT_MODE_ATTACK) {
+      return ESCORT_ATTACK_DAMAGE_DEALT_FACTOR;
+    }
+    return 1;
+  }
+
+  function initFriendlyStarUnitFields(unit) {
+    unit.killCount = 0;
+    unit.totalHealDone = 0;
+    unit.starCount = 0;
+  }
+
+  function isFriendlyStarUnit(unit) {
+    if (!unit || unit.dead || unit.team !== "friendly") {
+      return false;
+    }
+    if (isUnitTruckKind(unit)) {
+      return true;
+    }
+    if (unit.kind === UNIT_ESCORT) {
+      return true;
+    }
+    return false;
+  }
+
+  function isUnitStarBonusEligible(unit) {
+    if (!unit || unit.dead || unit.starCount <= 0) {
+      return false;
+    }
+    if (isFriendlyStarUnit(unit)) {
+      return true;
+    }
+    if (unit.team === "enemy") {
+      return true;
+    }
+    return false;
+  }
+
+  function shouldDrawUnitStarBadge(unit) {
+    if (!unit || unit.dead || unit.isWreck || unit.starCount <= 0) {
+      return false;
+    }
+    if (isFriendlyStarUnit(unit)) {
+      return true;
+    }
+    if (unit.team === "enemy") {
+      return true;
+    }
+    return false;
+  }
+
+  function getUnitStarDamageTakenFactor(unit) {
+    var reduction;
+    if (!isUnitStarBonusEligible(unit)) {
+      return 1;
+    }
+    reduction = UNIT_STAR_DAMAGE_TAKEN_REDUCTION * unit.starCount;
+    if (reduction > 0.99) {
+      reduction = 0.99;
+    }
+    return 1 - reduction;
+  }
+
+  function getUnitStarDamageDealtFactor(unit) {
+    if (!isUnitStarBonusEligible(unit)) {
+      return 1;
+    }
+    return 1 + UNIT_STAR_DAMAGE_DEALT_BONUS * unit.starCount;
+  }
+
+  function getUnitStarHealFactor(unit) {
+    if (!isFriendlyStarUnit(unit) || unit.starCount <= 0) {
+      return 1;
+    }
+    return 1 + UNIT_STAR_HEAL_BONUS * unit.starCount;
+  }
+
+  function getUnitDamageTakenFactor(unit) {
+    var factor = 1;
+    if (!unit) {
+      return 1;
+    }
+    factor *= getEscortCombatModeDamageTakenFactor(unit);
+    factor *= getUnitStarDamageTakenFactor(unit);
+    return factor;
+  }
+
+  function getUnitDamageDealtFactor(unit) {
+    var factor = 1;
+    if (!unit) {
+      return 1;
+    }
+    factor *= getEscortCombatModeDamageDealtFactor(unit);
+    factor *= getUnitStarDamageDealtFactor(unit);
+    return factor;
+  }
+
+  function tryAwardUnitStarFromProgress(unit) {
+    var killStars;
+    var healStars;
+    var nextStarCount;
+    if (!isFriendlyStarUnit(unit)) {
+      return;
+    }
+    killStars = Math.floor(unit.killCount / UNIT_STAR_KILLS_PER_STAR);
+    healStars = Math.floor(unit.totalHealDone / (unit.maxHealth * UNIT_STAR_HEAL_MAX_HEALTH_FACTOR));
+    nextStarCount = killStars + healStars;
+    if (nextStarCount > unit.starCount) {
+      unit.starCount = nextStarCount;
+      spawnUnitStarReveal(unit);
+    }
+  }
+
+  function recordFriendlyUnitKill(attackerUnit) {
+    if (!isFriendlyStarUnit(attackerUnit)) {
+      return;
+    }
+    attackerUnit.killCount += 1;
+    tryAwardUnitStarFromProgress(attackerUnit);
+  }
+
+  function recordFriendlyUnitHealDone(healerUnit, healAmount) {
+    if (!isFriendlyStarUnit(healerUnit) || healAmount <= 0) {
+      return;
+    }
+    healerUnit.totalHealDone += healAmount;
+    tryAwardUnitStarFromProgress(healerUnit);
+  }
+
+  function recordFriendlyUnitKillFromVictim(victim, attackerUnit) {
+    if (!victim || victim.team !== "enemy") {
+      return;
+    }
+    if (!attackerUnit || attackerUnit.dead) {
+      attackerUnit = getUnitById(victim.lastAttackerUnitId);
+    }
+    if (!attackerUnit || attackerUnit.dead || attackerUnit.team !== "friendly") {
+      return;
+    }
+    recordFriendlyUnitKill(attackerUnit);
+  }
+
+  function spawnUnitStarReveal(unit) {
+    visualEffects.push({
+      kind: "unitStar",
+      x: unit.x,
+      y: unit.y - 18,
+      life: 0.85,
+      maxLife: 0.85,
+      riseSpeed: 34
+    });
+  }
+
+  function getFriendlyTeamAverageStarCount() {
+    var index;
+    var unit;
+    var totalStars = 0;
+    var unitCount = 0;
+    for (index = 0; index < units.length; index += 1) {
+      unit = units[index];
+      if (unit.dead || unit.team !== "friendly") {
+        continue;
+      }
+      if (!isFriendlyStarUnit(unit)) {
+        continue;
+      }
+      totalStars += unit.starCount;
+      unitCount += 1;
+    }
+    if (unitCount <= 0) {
+      return 0;
+    }
+    return totalStars / unitCount;
+  }
+
+  function rollEnemySpawnStarCount() {
+    var averageStars;
+    var maxStars;
+    averageStars = getFriendlyTeamAverageStarCount();
+    maxStars = Math.floor(averageStars);
+    if (maxStars <= 0) {
+      return 0;
+    }
+    return Math.floor(Math.random() * (maxStars + 1));
+  }
+
+  function setUnitStarCount(unit, starCount) {
+    if (!unit) {
+      return;
+    }
+    if (starCount < 0) {
+      starCount = 0;
+    }
+    unit.starCount = starCount;
   }
 
   function toggleEscortCombatMode(unit) {
@@ -1319,7 +1859,7 @@
       if (unit.dead || unit.team !== "friendly") {
         continue;
       }
-      if (unit.id === selectedUnitId && isSelectedUnitKeyboardDriving()) {
+      if (unit.id === selectedUnitId && unit.kind === UNIT_ESCORT) {
         continue;
       }
       if (!unit.hasTruckScreenDestination) {
@@ -1387,12 +1927,38 @@
     return CRYSTAL_RARITY_COLORS[clamped];
   }
 
+  function clampCrystalScreenPositionToVisibleEdges(screenX, screenY) {
+    var margin;
+    var clampedX;
+    var clampedY;
+    if (width <= 0 || height <= 0) {
+      return { x: screenX, y: screenY };
+    }
+    margin = CRYSTAL_SPAWN_SCREEN_EDGE_MARGIN;
+    clampedX = screenX;
+    clampedY = screenY;
+    if (screenX < margin) {
+      clampedX = margin;
+    } else if (screenX > width - margin) {
+      clampedX = width - margin;
+    }
+    if (screenY < margin) {
+      clampedY = margin;
+    } else if (screenY > height - margin) {
+      clampedY = height - margin;
+    }
+    return { x: clampedX, y: clampedY };
+  }
+
   function createCrystalAtScreen(screenX, screenY, angle, dist, forceRarity) {
     var rarity = forceRarity != null ? forceRarity : pickCrystalRarity();
     var rgb = getCrystalColorRgb(rarity);
+    var spawnScreenX = screenX + Math.cos(angle) * dist;
+    var spawnScreenY = screenY + Math.sin(angle) * dist;
+    var clampedScreen = clampCrystalScreenPositionToVisibleEdges(spawnScreenX, spawnScreenY);
     return {
-      screenX: screenX + Math.cos(angle) * dist,
-      screenY: screenY + Math.sin(angle) * dist,
+      screenX: clampedScreen.x,
+      screenY: clampedScreen.y,
       value: CRYSTAL_RARITY_VALUE[rarity],
       pulse: Math.random() * TWO_PI,
       spin: randomRange(0.4, 1.1) * randomSign(),
@@ -2034,20 +2600,59 @@
     return closest;
   }
 
+  function isUnitDamagedForHeal(unit) {
+    if (!unit || unit.dead) {
+      return false;
+    }
+    return unit.health < unit.maxHealth - 0.5;
+  }
+
+  function isUnitInHealTurretRange(turretWorldX, turretWorldY, unit, maxRange) {
+    var fireRange;
+    fireRange = maxRange != null ? maxRange : HEAL_TURRET_FIRE_RANGE;
+    return distanceSquared(turretWorldX, turretWorldY, unit.x, unit.y) <= fireRange * fireRange;
+  }
+
   function findClosestDamagedFriendlyForHealTurret(turretWorldX, turretWorldY, maxRange, healerUnitId) {
     var friendlies = getFriendlyUnits();
+    var selectedUnit;
     var closest = null;
     var fireRange = maxRange != null ? maxRange : HEAL_TURRET_FIRE_RANGE;
     var closestDistSq = fireRange * fireRange;
     var index;
     var friendly;
     var distSq;
+    if (truckUnit
+      && !truckUnit.dead
+      && truckUnit.id !== healerUnitId
+      && isUnitDamagedForHeal(truckUnit)
+      && isUnitInHealTurretRange(turretWorldX, turretWorldY, truckUnit, maxRange)) {
+      return truckUnit;
+    }
+    if (selectedUnitId >= 0) {
+      selectedUnit = getUnitById(selectedUnitId);
+      if (selectedUnit
+        && !selectedUnit.dead
+        && selectedUnit.team === "friendly"
+        && selectedUnit.id !== healerUnitId
+        && (!truckUnit || selectedUnit.id !== truckUnit.id)
+        && isUnitDamagedForHeal(selectedUnit)
+        && isUnitInHealTurretRange(turretWorldX, turretWorldY, selectedUnit, maxRange)) {
+        return selectedUnit;
+      }
+    }
     for (index = 0; index < friendlies.length; index += 1) {
       friendly = friendlies[index];
       if (friendly.id === healerUnitId) {
         continue;
       }
-      if (friendly.health >= friendly.maxHealth - 0.5) {
+      if (truckUnit && friendly.id === truckUnit.id) {
+        continue;
+      }
+      if (selectedUnitId >= 0 && friendly.id === selectedUnitId) {
+        continue;
+      }
+      if (!isUnitDamagedForHeal(friendly)) {
         continue;
       }
       distSq = distanceSquared(turretWorldX, turretWorldY, friendly.x, friendly.y);
@@ -2111,6 +2716,17 @@
     return fireRange;
   }
 
+  function getUnitTurretTurnSpeed(unit) {
+    var turnSpeed;
+    turnSpeed = TURRET_TURN_SPEED;
+    if (unit.id === selectedUnitId && unit.team === "friendly") {
+      if (unit.kind === UNIT_ESCORT || unit.kind === UNIT_TRUCK) {
+        turnSpeed *= SELECTED_UNIT_TURRET_TURN_SPEED_FACTOR;
+      }
+    }
+    return turnSpeed;
+  }
+
   function getTurretFireCooldown(turret) {
     if (isBeamTurretType(turret)) {
       return 0;
@@ -2122,7 +2738,12 @@
     return Math.abs(angleDifference(aimAngle, targetAngle)) < 0.3;
   }
 
-  function fireProjectile(fromX, fromY, angle, team) {
+  function fireProjectile(fromX, fromY, angle, team, sourceUnit) {
+    var damage = PROJECTILE_DAMAGE * getUnitDamageDealtFactor(sourceUnit);
+    var sourceUnitId = -1;
+    if (sourceUnit) {
+      sourceUnitId = sourceUnit.id;
+    }
     projectiles.push({
       id: nextProjectileId,
       x: fromX,
@@ -2131,7 +2752,9 @@
       team: team,
       speed: PROJECTILE_SPEED,
       life: 1.4,
-      trailTimer: 0
+      trailTimer: 0,
+      damage: damage,
+      sourceUnitId: sourceUnitId
     });
     nextProjectileId += 1;
     spawnMuzzleFlash(fromX, fromY, angle, team, false);
@@ -2151,32 +2774,44 @@
   }
 
   function healUnit(unit, amount) {
+    var healthBefore;
+    var applied;
+    healthBefore = unit.health;
     unit.health += amount;
     if (unit.health > unit.maxHealth) {
       unit.health = unit.maxHealth;
     }
+    applied = unit.health - healthBefore;
+    if (applied < 0) {
+      applied = 0;
+    }
+    return applied;
   }
 
-  function fireHealBeam(fromX, fromY, targetUnit, deltaSeconds) {
+  function fireHealBeam(fromX, fromY, targetUnit, deltaSeconds, sourceUnit) {
     var targetX = targetUnit.x;
     var targetY = targetUnit.y;
     var healAmount = HEAL_TURRET_HPS * deltaSeconds;
+    var appliedHeal;
     if (healAmount < 0.5) {
       healAmount = 0.5;
     }
-    healUnit(targetUnit, healAmount);
+    healAmount *= getUnitStarHealFactor(sourceUnit);
+    appliedHeal = healUnit(targetUnit, healAmount);
+    recordFriendlyUnitHealDone(sourceUnit, appliedHeal);
     spawnHealBeam(fromX, fromY, targetX, targetY);
     playSynthHealBurst();
   }
 
-  function fireLaser(fromX, fromY, targetUnit, team, deltaSeconds) {
+  function fireLaser(fromX, fromY, targetUnit, team, deltaSeconds, sourceUnit) {
     var targetX = targetUnit.x;
     var targetY = targetUnit.y;
     var damage = LASER_TURRET_DPS * deltaSeconds;
     if (damage < 0.5) {
       damage = 0.5;
     }
-    damageUnit(targetUnit, damage, targetX, targetY);
+    damage *= getUnitDamageDealtFactor(sourceUnit);
+    damageUnit(targetUnit, damage, targetX, targetY, sourceUnit);
     spawnLaserBeam(fromX, fromY, targetX, targetY, team);
     spawnMuzzleFlash(fromX, fromY, Math.atan2(targetY - fromY, targetX - fromX), team, true);
     playSynthLaserBurst(team);
@@ -2370,6 +3005,8 @@
     var aimAngle;
     var fireRange;
     var fireCooldownDuration;
+    var turretTurnSpeed;
+    turretTurnSpeed = getUnitTurretTurnSpeed(unit);
     for (index = 0; index < unit.turrets.length; index += 1) {
       turret = unit.turrets[index];
       turret.angle += turret.wobbleSpeed * deltaSeconds;
@@ -2393,21 +3030,21 @@
         targetAngle = Math.atan2(target.y - worldPos.y, target.x - worldPos.x);
         aimAngle = unit.angle + turret.angle;
         deltaAngle = angleDifference(aimAngle, targetAngle);
-        turret.angle += clamp(deltaAngle, -TURRET_TURN_SPEED * deltaSeconds, TURRET_TURN_SPEED * deltaSeconds);
+        turret.angle += clamp(deltaAngle, -turretTurnSpeed * deltaSeconds, turretTurnSpeed * deltaSeconds);
         aimAngle = unit.angle + turret.angle;
         if (turret.type === TURRET_TYPE_LASER) {
           if (isBeamTurretOnTarget(aimAngle, targetAngle)) {
-            fireLaser(muzzlePos.x, muzzlePos.y, target, unit.team, deltaSeconds);
+            fireLaser(muzzlePos.x, muzzlePos.y, target, unit.team, deltaSeconds, unit);
           }
         } else if (turret.type === TURRET_TYPE_HEAL) {
           if (isBeamTurretOnTarget(aimAngle, targetAngle)) {
-            fireHealBeam(muzzlePos.x, muzzlePos.y, target, deltaSeconds);
+            fireHealBeam(muzzlePos.x, muzzlePos.y, target, deltaSeconds, unit);
           }
         } else if (Math.abs(angleDifference(aimAngle, targetAngle)) < 0.22) {
           turret.fireCooldown -= deltaSeconds;
           if (turret.fireCooldown <= 0) {
             turret.fireCooldown = fireCooldownDuration;
-            fireProjectile(muzzlePos.x, muzzlePos.y, aimAngle, unit.team);
+            fireProjectile(muzzlePos.x, muzzlePos.y, aimAngle, unit.team, unit);
           }
         }
       } else {
@@ -2469,6 +3106,9 @@
       if (other.dead || other.id === unit.id) {
         continue;
       }
+      if (shouldSkipUnitPairCarCollision(unit, other)) {
+        continue;
+      }
       if (unit.kind === UNIT_TRUCK && isUnitPushable(other) && !isUnitTruckKind(other)) {
         continue;
       }
@@ -2477,6 +3117,32 @@
       if (overlapTo > overlapFrom + UNIT_MOVE_OVERLAP_EPSILON) {
         return true;
       }
+    }
+    return false;
+  }
+
+  function isUnitOverlapSeparationAnchor(unit) {
+    if (!unit || unit.dead) {
+      return false;
+    }
+    if (isUnitTruckKind(unit)) {
+      return true;
+    }
+    if (isUnitPlayerSelected(unit)) {
+      return true;
+    }
+    return false;
+  }
+
+  function shouldUnitPushOthersDuringMove(unit) {
+    if (!unit || unit.dead) {
+      return false;
+    }
+    if (isFriendlyTruckPusher(unit)) {
+      return true;
+    }
+    if (unit.team === "friendly" && unit.kind === UNIT_ESCORT) {
+      return true;
     }
     return false;
   }
@@ -2531,13 +3197,7 @@
   }
 
   function isUnitPushable(unit) {
-    if (isUnitTruckKind(unit)) {
-      return false;
-    }
-    if (isUnitPlayerSelected(unit)) {
-      return false;
-    }
-    return true;
+    return !isUnitOverlapSeparationAnchor(unit);
   }
 
   function getUnitPushResistance(unit) {
@@ -2611,13 +3271,20 @@
     var otherShare;
     var fallbackAngle;
     var pairSmoothFactor;
+    var unitAnchored;
+    var otherAnchored;
     if (unit.dead || other.dead) {
       return;
     }
-    pairSmoothFactor = smoothFactor;
-    if (isFriendlyTruckPusher(unit) || isFriendlyTruckPusher(other)) {
-      pairSmoothFactor = 1;
+    if (shouldSkipUnitPairCarCollision(unit, other)) {
+      return;
     }
+    unitAnchored = isUnitOverlapSeparationAnchor(unit);
+    otherAnchored = isUnitOverlapSeparationAnchor(other);
+    if (unitAnchored && otherAnchored) {
+      return;
+    }
+    pairSmoothFactor = smoothFactor;
     unitRadius = getUnitCollisionRadius(unit);
     otherRadius = getUnitCollisionRadius(other);
     minDist = unitRadius + otherRadius + UNIT_COLLISION_PADDING;
@@ -2638,17 +3305,17 @@
       deltaY /= dist;
     }
     overlap = (minDist - dist) * pairSmoothFactor;
+    if (overlap > UNIT_SEPARATION_MAX_PER_STEP) {
+      overlap = UNIT_SEPARATION_MAX_PER_STEP;
+    }
     sepX = deltaX * overlap;
     sepY = deltaY * overlap;
     unitShare = 0.5;
     otherShare = 0.5;
-    if (!isUnitPushable(unit) && !isUnitPushable(other)) {
-      unitShare = 0;
-      otherShare = 0;
-    } else if (!isUnitPushable(unit)) {
+    if (unitAnchored) {
       unitShare = 0;
       otherShare = 1;
-    } else if (!isUnitPushable(other)) {
+    } else if (otherAnchored) {
       unitShare = 1;
       otherShare = 0;
     }
@@ -2768,6 +3435,9 @@
     var awayY;
     var didPush = false;
     var shouldPush;
+    if (!shouldUnitPushOthersDuringMove(unit)) {
+      return false;
+    }
     targetX = unit.x + dirX * pushAmount;
     targetY = unit.y + dirY * pushAmount;
     for (index = 0; index < units.length; index += 1) {
@@ -2829,6 +3499,9 @@
     var didPush = false;
     var shouldPush;
     var pushStrengthFactor;
+    if (!shouldUnitPushOthersDuringMove(unit)) {
+      return false;
+    }
     targetX = unit.x + dirX * pushAmount;
     targetY = unit.y + dirY * pushAmount;
     pushStrengthFactor = getUnitPushStrengthAsPusher(unit);
@@ -2916,7 +3589,7 @@
       }
     }
     angle = randomRange(0, TWO_PI);
-    radius = ESCORT_SPAWN_RADIUS_MAX + randomRange(0, 48);
+    radius = ESCORT_SPAWN_RADIUS_MAX + randomRange(0, 96);
     destinationX = truckUnit.x + Math.cos(angle) * radius;
     destinationY = truckUnit.y + Math.sin(angle) * radius;
     return { x: destinationX, y: destinationY };
@@ -3000,7 +3673,11 @@
       if (attemptIndex > 0) {
         pushAmount = step * (1 + attemptIndex * 0.08);
       }
-      tryPushBlockingUnitsForMove(unit, dirX, dirY, pushAmount);
+      if (isFriendlyTruckPusher(unit)) {
+        tryPushBlockingUnitsForMove(unit, dirX, dirY, pushAmount);
+      } else if (shouldUnitPushOthersDuringMove(unit)) {
+        deflectBlockingObstaclesForMove(unit, dirX, dirY, pushAmount);
+      }
       bestCandidate = null;
       bestScore = 999999999;
       for (candidateIndex = 0; candidateIndex < candidates.length; candidateIndex += 1) {
@@ -3019,7 +3696,9 @@
         return;
       }
     }
-    deflectBlockingObstaclesForMove(unit, dirX, dirY, step * 1.35);
+    if (shouldUnitPushOthersDuringMove(unit)) {
+      deflectBlockingObstaclesForMove(unit, dirX, dirY, step * 1.35);
+    }
     if (!isUnitMoveBlocked(unit, unit.x, unit.y, unit.x + dirX * step, unit.y + dirY * step)) {
       unit.x += dirX * step;
       unit.y += dirY * step;
@@ -3093,7 +3772,7 @@
       if (unit.dead || unit.team !== "friendly" || unit.kind !== UNIT_ESCORT) {
         continue;
       }
-      if (unit.id === selectedUnitId && isSelectedUnitKeyboardDriving()) {
+      if (unit.id === selectedUnitId && unit.kind === UNIT_ESCORT) {
         continue;
       }
       if (unit.combatMode === COMBAT_MODE_ATTACK) {
@@ -3238,6 +3917,7 @@
       return false;
     }
     enemyTruck = createBossTruckUnit(worldX, worldY);
+    setUnitStarCount(enemyTruck, rollEnemySpawnStarCount());
     enemyTruck.chaseTargetId = truckUnit.id;
     enemyTruck.destinationX = truckUnit.x;
     enemyTruck.destinationY = truckUnit.y;
@@ -3258,6 +3938,7 @@
       }
     }
     var enemy = createCarUnit(UNIT_ENEMY, worldX, worldY, "enemy");
+    setUnitStarCount(enemy, rollEnemySpawnStarCount());
     assignEnemyFollowTarget(enemy);
     units.push(enemy);
     return true;
@@ -3432,11 +4113,22 @@
     pendingRocketStrikeWarning = null;
   }
 
+  function getMinefieldDropScreenXThreshold() {
+    return width * (1 - MINEFIELD_DROP_SCREEN_INSET_FACTOR);
+  }
+
   function getMinefieldWarningScreenPosition() {
+    var screenPos;
+    var dropThresholdX;
     if (!pendingMinefieldWarning) {
       return worldToScreen(cameraX, cameraY);
     }
-    return worldToScreen(pendingMinefieldWarning.worldCenterX, pendingMinefieldWarning.worldCenterY);
+    dropThresholdX = getMinefieldDropScreenXThreshold();
+    screenPos = worldToScreen(pendingMinefieldWarning.worldCenterX, pendingMinefieldWarning.worldCenterY);
+    if (screenPos.x > dropThresholdX) {
+      screenPos.x = dropThresholdX;
+    }
+    return screenPos;
   }
 
   function getMinefieldSpawnWorldPosition() {
@@ -3448,25 +4140,53 @@
 
   function rollPendingMinefieldWarning() {
     var laneSpread;
+    var approachDistance;
     if (!truckUnit || truckUnit.dead) {
       pendingMinefieldWarning = null;
       return;
     }
     laneSpread = height * MINEFIELD_VERTICAL_SPREAD;
+    approachDistance = width * 0.5 + scrollSpeed * MINEFIELD_WARNING_DURATION + MINEFIELD_SPAWN_EXTRA_MARGIN;
     pendingMinefieldWarning = {
-      worldCenterX: truckUnit.x + width * 0.5 + MINEFIELD_SPAWN_OFFSCREEN_MARGIN + randomRange(24, MINEFIELD_CLUSTER_RADIUS),
+      worldCenterX: truckUnit.x + approachDistance + randomRange(32, 160),
       worldCenterY: truckUnit.y + randomRange(-laneSpread, laneSpread),
-      progress: 0
+      progress: 0,
+      dropStarted: false
     };
+  }
+
+  function isMinefieldReadyToDropAtScreenEdge() {
+    var screenPos;
+    if (!pendingMinefieldWarning || pendingMinefieldWarning.dropStarted) {
+      return false;
+    }
+    screenPos = worldToScreen(pendingMinefieldWarning.worldCenterX, pendingMinefieldWarning.worldCenterY);
+    return screenPos.x <= getMinefieldDropScreenXThreshold();
+  }
+
+  function dropMinefieldFromPending() {
+    var worldPos;
+    if (!pendingMinefieldWarning || pendingMinefieldWarning.dropStarted) {
+      return;
+    }
+    worldPos = getMinefieldSpawnWorldPosition();
+    spawnMinefieldCluster(worldPos.x, worldPos.y, true);
+    pendingMinefieldWarning.dropStarted = true;
+  }
+
+  function tryDropMinefieldFromPending() {
+    if (!isMinefieldReadyToDropAtScreenEdge()) {
+      return;
+    }
+    dropMinefieldFromPending();
   }
 
   function updatePendingMinefieldWarning() {
     var progress;
     if (minefieldSpawnTimer > MINEFIELD_WARNING_DURATION) {
-      pendingMinefieldWarning = null;
-      return;
-    }
-    if (minefieldSpawnTimer <= 0) {
+      if (!pendingMinefieldWarning || pendingMinefieldWarning.dropStarted) {
+        pendingMinefieldWarning = null;
+      }
       return;
     }
     if (!pendingMinefieldWarning) {
@@ -3475,25 +4195,38 @@
     if (!pendingMinefieldWarning) {
       return;
     }
-    progress = 1 - (minefieldSpawnTimer / MINEFIELD_WARNING_DURATION);
-    if (progress < 0) {
-      progress = 0;
+    if (minefieldSpawnTimer > 0) {
+      progress = 1 - (minefieldSpawnTimer / MINEFIELD_WARNING_DURATION);
+      if (progress < 0) {
+        progress = 0;
+      }
+      if (progress > 1) {
+        progress = 1;
+      }
+      pendingMinefieldWarning.progress = progress;
     }
-    if (progress > 1) {
-      progress = 1;
-    }
-    pendingMinefieldWarning.progress = progress;
+    tryDropMinefieldFromPending();
   }
 
-  function createMineAt(worldX, worldY) {
-    return {
+  function createMineAt(worldX, worldY, startFalling) {
+    var mine;
+    mine = {
       x: worldX,
       y: worldY,
-      active: true
+      groundY: worldY,
+      active: true,
+      falling: false,
+      fallProgress: 1
     };
+    if (startFalling) {
+      mine.falling = true;
+      mine.fallProgress = 0;
+      mine.y = worldY - MINEFIELD_DROP_FALL_HEIGHT;
+    }
+    return mine;
   }
 
-  function spawnMinefieldCluster(centerX, centerY) {
+  function spawnMinefieldCluster(centerX, centerY, startFalling) {
     var mineCount;
     var mineIndex;
     var angle;
@@ -3506,21 +4239,32 @@
       dist = Math.sqrt(Math.random()) * MINEFIELD_CLUSTER_RADIUS;
       mineX = centerX + Math.cos(angle) * dist;
       mineY = centerY + Math.sin(angle) * dist;
-      mines.push(createMineAt(mineX, mineY));
+      mines.push(createMineAt(mineX, mineY, startFalling));
     }
   }
 
-  function spawnMinefieldFromPending() {
-    var worldPos;
-    if (!pendingMinefieldWarning) {
-      rollPendingMinefieldWarning();
-    }
-    if (!pendingMinefieldWarning) {
+  function updateFallingMines(deltaSeconds) {
+    var mineIndex;
+    var mine;
+    var fallStep;
+    if (MINEFIELD_DROP_FALL_DURATION <= 0) {
       return;
     }
-    worldPos = getMinefieldSpawnWorldPosition();
-    spawnMinefieldCluster(worldPos.x, worldPos.y);
-    pendingMinefieldWarning = null;
+    fallStep = deltaSeconds / MINEFIELD_DROP_FALL_DURATION;
+    for (mineIndex = 0; mineIndex < mines.length; mineIndex += 1) {
+      mine = mines[mineIndex];
+      if (!mine.active || !mine.falling) {
+        continue;
+      }
+      mine.fallProgress += fallStep;
+      if (mine.fallProgress >= 1) {
+        mine.fallProgress = 1;
+        mine.falling = false;
+        mine.y = mine.groundY;
+      } else {
+        mine.y = mine.groundY - MINEFIELD_DROP_FALL_HEIGHT * (1 - mine.fallProgress);
+      }
+    }
   }
 
   function spawnMineDetonation(worldX, worldY) {
@@ -3551,6 +4295,9 @@
       mine = mines[mineIndex];
       if (!mine.active) {
         mines.splice(mineIndex, 1);
+        continue;
+      }
+      if (mine.falling) {
         continue;
       }
       for (unitIndex = 0; unitIndex < units.length; unitIndex += 1) {
@@ -3600,7 +4347,6 @@
     escort.destinationY = destinationPos.y;
     setEscortGuardOffset(escort, destinationPos.x, destinationPos.y);
     units.push(escort);
-    rollFriendlyLaserTurretUpgrades();
     syncPlayingHud();
     spawnFriendlyEscortArrival(spawnPos.x, spawnPos.y);
     spawnEscortModeReveal(escort);
@@ -3634,7 +4380,7 @@
     unit.destinationX = unit.x;
     unit.destinationY = unit.y;
     if (unit.id === selectedUnitId) {
-      selectedUnitId = -1;
+      selectDefaultFriendlyUnit();
     }
     var dropCount = 4;
     if (unit.kind === UNIT_TRUCK) {
@@ -3654,11 +4400,16 @@
     }
   }
 
-  function damageUnit(unit, amount, hitX, hitY) {
+  function damageUnit(unit, amount, hitX, hitY, attackerUnit) {
+    amount *= getUnitDamageTakenFactor(unit);
+    if (attackerUnit && !attackerUnit.dead && attackerUnit.team !== unit.team) {
+      unit.lastAttackerUnitId = attackerUnit.id;
+    }
     unit.health -= amount;
     unit.hitFlash = 0.18;
     spawnHitSparks(hitX != null ? hitX : unit.x, hitY != null ? hitY : unit.y);
     if (unit.health <= 0) {
+      recordFriendlyUnitKillFromVictim(unit, attackerUnit);
       killUnit(unit);
     }
   }
@@ -3692,7 +4443,7 @@
         }
         distSq = distanceSquared(projectile.x, projectile.y, unit.x, unit.y);
         if (distSq <= (unit.radius + PROJECTILE_RADIUS) * (unit.radius + PROJECTILE_RADIUS)) {
-          damageUnit(unit, PROJECTILE_DAMAGE, projectile.x, projectile.y);
+          damageUnit(unit, projectile.damage, projectile.x, projectile.y, getUnitById(projectile.sourceUnitId));
           playSynthImpact();
           projectiles.splice(index, 1);
           break;
@@ -3874,6 +4625,7 @@
     var index;
     var unit;
     updateSelectedUnitKeyboardMove(deltaSeconds);
+    updateSelectedEscortHoldPosition();
     updateTruckAutoEvade(deltaSeconds);
     updateTruckScreenRelativeDestinations();
     updateFriendlyEscortTargets();
@@ -3897,6 +4649,10 @@
     resolveUnitOverlaps();
     updateObstacleCollisions();
     applyTruckMovementOffsetToSelectedDriver();
+    unit = getSelectedEscortUnit();
+    if (unit) {
+      clampSelectedEscortWorldPosition(unit);
+    }
   }
 
   function updateCollectFlyEffect(effect, deltaSeconds) {
@@ -3952,6 +4708,8 @@
         effect.speed *= 0.92;
       } else if (effect.kind === "modeSymbol") {
         effect.y -= effect.riseSpeed * deltaSeconds;
+      } else if (effect.kind === "unitStar") {
+        effect.y -= effect.riseSpeed * deltaSeconds;
       } else if (effect.kind === "modeParticle") {
         effect.x += effect.velX * deltaSeconds;
         effect.y += effect.velY * deltaSeconds;
@@ -3975,7 +4733,7 @@
     var clampedTarget;
     var smoothFactorX;
     var smoothFactorY;
-    if (!truckUnit || truckUnit.dead) {
+    if (!getCameraFollowUnit()) {
       if (isGameOver()) {
         cameraX += scrollSpeed * deltaSeconds;
       }
@@ -4044,6 +4802,136 @@
     return unit.health < unit.maxHealth - 0.01;
   }
 
+  function getEscortSpawnProgressFraction() {
+    var spawnCost;
+    spawnCost = getEscortSpawnCost();
+    if (spawnCost <= 0) {
+      return 1;
+    }
+    if (crystalCount >= spawnCost) {
+      return 1;
+    }
+    return crystalCount / spawnCost;
+  }
+
+  function fillRectWithSubtleHazardStripes(rectX, rectY, rectW, rectH) {
+    var stripePeriod;
+    var stripeWidth;
+    var lineIndex;
+    var span;
+    stripePeriod = 10;
+    stripeWidth = 5;
+    span = rectW + rectH;
+    context.save();
+    context.beginPath();
+    context.rect(rectX, rectY, rectW, rectH);
+    context.clip();
+    context.fillStyle = "rgba(255, 128, 0, 0.1)";
+    context.fillRect(rectX, rectY, rectW, rectH);
+    for (lineIndex = -span; lineIndex < span; lineIndex += stripePeriod) {
+      context.fillStyle = "rgba(255, 128, 0, 0.16)";
+      context.beginPath();
+      context.moveTo(rectX + lineIndex, rectY);
+      context.lineTo(rectX + lineIndex + stripeWidth, rectY);
+      context.lineTo(rectX + lineIndex + stripeWidth + rectH, rectY + rectH);
+      context.lineTo(rectX + lineIndex + rectH, rectY + rectH);
+      context.closePath();
+      context.fill();
+    }
+    context.restore();
+  }
+
+  function drawTruckEscortSpawnProgressBar(unit) {
+    var barX;
+    var barY;
+    var barWidth;
+    var barHeight;
+    var spawnCost;
+    var progress;
+    var fillWidth;
+    var label;
+    if (!isPlaying() || unit.isWreck || unit.team !== "friendly" || unit.kind !== UNIT_TRUCK) {
+      return;
+    }
+    spawnCost = getEscortSpawnCost();
+    progress = getEscortSpawnProgressFraction();
+    barWidth = unit.length;
+    barHeight = 4;
+    barX = -barWidth * 0.5;
+    barY = unit.width * 0.5 + 6;
+    context.fillStyle = "rgba(0, 0, 0, 0.55)";
+    context.fillRect(barX, barY, barWidth, barHeight);
+    fillWidth = barWidth * progress;
+    if (fillWidth > 0.5) {
+      fillRectWithSubtleHazardStripes(barX, barY, fillWidth, barHeight);
+    }
+    context.strokeStyle = "rgba(255, 128, 0, 0.22)";
+    context.lineWidth = 0.8;
+    context.strokeRect(barX, barY, barWidth, barHeight);
+    label = crystalCount + "/" + spawnCost;
+    context.fillStyle = "rgba(255, 236, 200, 0.94)";
+    context.font = "bold 6px Courier New, monospace";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(label, 0, barY + barHeight * 0.5);
+  }
+
+  function drawUnitStarShape(centerX, centerY, outerRadius) {
+    var pointIndex;
+    var angle;
+    var innerRadius;
+    innerRadius = outerRadius * 0.45;
+    context.fillStyle = "#ffd830";
+    context.strokeStyle = "#c8a010";
+    context.lineWidth = 0.8;
+    context.beginPath();
+    for (pointIndex = 0; pointIndex < 10; pointIndex += 1) {
+      angle = -Math.PI * 0.5 + pointIndex * Math.PI / 5;
+      if (pointIndex % 2 === 0) {
+        context.lineTo(centerX + Math.cos(angle) * outerRadius, centerY + Math.sin(angle) * outerRadius);
+      } else {
+        context.lineTo(centerX + Math.cos(angle) * innerRadius, centerY + Math.sin(angle) * innerRadius);
+      }
+    }
+    context.closePath();
+    context.fill();
+    context.stroke();
+  }
+
+  function drawUnitStarsAboveHealthBar(unit, barTopY, barWidth) {
+    var starIndex;
+    var starCount;
+    var starSpacing;
+    var starRadius;
+    var startX;
+    var centerY;
+    if (!shouldDrawUnitStarBadge(unit)) {
+      return;
+    }
+    starCount = unit.starCount;
+    starSpacing = 7;
+    starRadius = 3.1;
+    centerY = barTopY - 6;
+    if (starCount > UNIT_STAR_DISPLAY_MAX_ICONS) {
+      drawUnitStarShape(-8, centerY, starRadius);
+      context.fillStyle = "#ffd830";
+      context.font = "bold 7px Arial";
+      context.textAlign = "left";
+      context.textBaseline = "middle";
+      context.fillText("x" + starCount, -2, centerY);
+      return;
+    }
+    if (starCount > 1) {
+      if ((starCount - 1) * starSpacing > barWidth - 4) {
+        starSpacing = (barWidth - 4) / (starCount - 1);
+      }
+    }
+    startX = -((starCount - 1) * starSpacing) * 0.5;
+    for (starIndex = 0; starIndex < starCount; starIndex += 1) {
+      drawUnitStarShape(startX + starIndex * starSpacing, centerY, starRadius);
+    }
+  }
+
   function updateWrecks(deltaSeconds) {
     var index;
     var unit;
@@ -4075,7 +4963,7 @@
       }
       if (unit.isWreck && isUnitOffScreenForDespawn(unit)) {
         if (unit.id === selectedUnitId) {
-          selectedUnitId = -1;
+          selectDefaultFriendlyUnit();
         }
         units.splice(index, 1);
       }
@@ -4098,6 +4986,9 @@
     var mine;
     for (mineIndex = mines.length - 1; mineIndex >= 0; mineIndex -= 1) {
       mine = mines[mineIndex];
+      if (mine.falling) {
+        continue;
+      }
       if (isWorldPositionOffScreenForDespawn(mine.x, mine.y)) {
         mines.splice(mineIndex, 1);
       }
@@ -4220,6 +5111,7 @@
     scrollMove = updateConvoyScroll(deltaSeconds);
     setTruckPositionAfterScroll();
     updateUnits(deltaSeconds);
+    updateFallingMines(deltaSeconds);
     updateMines();
     updateProjectiles(deltaSeconds);
     updateVisualEffects(deltaSeconds);
@@ -4241,13 +5133,19 @@
       enemySpawnTimer = randomRange(ENEMY_SPAWN_INTERVAL_MIN, ENEMY_SPAWN_INTERVAL_MAX);
     }
 
-    if (minefieldSpawnTimer > 0) {
+    if (minefieldSpawnTimer > MINEFIELD_WARNING_DURATION) {
+      if (pendingMinefieldWarning && pendingMinefieldWarning.dropStarted) {
+        pendingMinefieldWarning = null;
+      }
+    } else {
       updatePendingMinefieldWarning();
     }
     minefieldSpawnTimer -= deltaSeconds;
     if (minefieldSpawnTimer <= 0) {
-      spawnMinefieldFromPending();
-      minefieldSpawnTimer = getMinefieldSpawnInterval();
+      if (!pendingMinefieldWarning || pendingMinefieldWarning.dropStarted) {
+        pendingMinefieldWarning = null;
+        minefieldSpawnTimer = getMinefieldSpawnInterval();
+      }
     }
 
     if (rocketStrikeSpawnTimer > 0) {
@@ -4299,11 +5197,32 @@
     return best;
   }
 
-  function selectUnit(unit) {
-    if (!unit) {
-      selectedUnitId = -1;
-      selectionRing.classList.remove("is-visible");
+  function selectDefaultFriendlyUnit() {
+    if (truckUnit && !truckUnit.dead) {
+      selectUnit(truckUnit);
       return;
+    }
+    selectedUnitId = -1;
+    selectionRing.classList.remove("is-visible");
+  }
+
+  function selectUnit(unit) {
+    var previousSelectedId;
+    var previousUnit;
+    previousSelectedId = selectedUnitId;
+    previousUnit = getUnitById(previousSelectedId);
+    if (previousUnit && isUnitTruckKind(previousUnit) && (!unit || unit.id !== previousUnit.id)) {
+      clearTruckMoveCommand();
+    }
+    if (previousUnit && previousUnit.kind === UNIT_ESCORT && (!unit || unit.id !== previousUnit.id)) {
+      restoreEscortGuardFollow(previousUnit);
+    }
+    if (!unit) {
+      selectDefaultFriendlyUnit();
+      return;
+    }
+    if (unit.kind === UNIT_ESCORT) {
+      beginEscortPlayerControl(unit);
     }
     selectedUnitId = unit.id;
     focusGameRoot();
@@ -4313,6 +5232,10 @@
   function setDestinationForSelected(screenX, screenY) {
     var unit = getUnitById(selectedUnitId);
     if (!unit) {
+      return;
+    }
+    if (unit.kind === UNIT_ESCORT) {
+      setWorldDestinationForUnit(unit, screenX, screenY);
       return;
     }
     setTruckScreenDestinationForUnit(unit, screenX, screenY);
@@ -4660,6 +5583,10 @@
       context.fillRect(-unit.length * 0.5, -unit.width * 0.5 - 8, unit.length * healthFraction, 4);
     }
 
+    if (!isWreck && shouldDrawUnitStarBadge(unit)) {
+      drawUnitStarsAboveHealthBar(unit, -unit.width * 0.5 - 8, unit.length);
+    }
+
     if (hitFlashActive) {
       context.globalAlpha = 1;
       context.fillStyle = "rgba(255, 120, 60, 0.35)";
@@ -4743,6 +5670,14 @@
       context.fillRect(-unit.length * 0.5, -unit.width * 0.5 - 10, unit.length, 5);
       context.fillStyle = healthBarColor;
       context.fillRect(-unit.length * 0.5, -unit.width * 0.5 - 10, unit.length * healthFraction, 5);
+    }
+
+    if (!isWreck && shouldDrawUnitStarBadge(unit)) {
+      drawUnitStarsAboveHealthBar(unit, -unit.width * 0.5 - 10, unit.length);
+    }
+
+    if (!isWreck && !isEnemy && unit.kind === UNIT_TRUCK) {
+      drawTruckEscortSpawnProgressBar(unit);
     }
 
     if (hitFlashActive) {
@@ -5047,6 +5982,11 @@
           effect.combatMode,
           alpha
         );
+      } else if (effect.kind === "unitStar") {
+        var starRevealScale = 0.8 + progress * 0.45;
+        context.globalAlpha = alpha;
+        drawUnitStarShape(screenPos.x, screenPos.y, 8 * starRevealScale);
+        context.globalAlpha = 1;
       } else if (effect.kind === "modeParticle") {
         context.fillStyle = getCombatModeParticleFill(effect.combatMode, alpha);
         context.globalAlpha = alpha;
@@ -5526,7 +6466,7 @@
     var blinkOn;
     var previewRadius;
     var iconSize;
-    if (!pendingMinefieldWarning || !isPlaying()) {
+    if (!pendingMinefieldWarning || !isPlaying() || pendingMinefieldWarning.dropStarted) {
       return;
     }
     screenPos = getMinefieldWarningScreenPosition();
