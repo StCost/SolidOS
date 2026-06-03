@@ -22,11 +22,14 @@
   var COMBAT_MODE_DEFENSE_COLOR = "#5aa0f0";
   var ESCORT_DEFENSE_DAMAGE_TAKEN_FACTOR = 0.75;
   var ESCORT_ATTACK_DAMAGE_DEALT_FACTOR = 1.25;
-  var UNIT_STAR_KILLS_PER_STAR = 10;
+  var UNIT_STAR_KILLS_PER_STAR = 1;
+  var UNIT_STAR_KILL_COUNT_TRUCK = 3;
   var UNIT_STAR_HEAL_MAX_HEALTH_FACTOR = 10;
   var UNIT_STAR_DAMAGE_TAKEN_REDUCTION = 0.01;
   var UNIT_STAR_DAMAGE_DEALT_BONUS = 0.01;
   var UNIT_STAR_HEAL_BONUS = 0.01;
+  var UNIT_STAR_RANGE_BONUS = 0.01;
+  var UNIT_STAR_CRYSTAL_DROP_BONUS = 0.01;
   var UNIT_STAR_DISPLAY_MAX_ICONS = 20;
 
   var NPC_PATH_UPDATE_INTERVAL = 0.55;
@@ -39,6 +42,7 @@
 
   var TRUCK_LENGTH = 148;
   var TRUCK_WIDTH = 34;
+  var FRIENDLY_TRUCK_CAPSULE_RADIUS_FACTOR = 0.52;
   var TRUCK_HEALTH = 240;
   var TRUCK_MOVE_SPEED = 92;
 
@@ -57,6 +61,8 @@
   var TURRET_FIRE_COOLDOWN = 0.55;
   var TRUCK_TURRET_WOBBLE = 0.35;
   var TURRET_TURN_SPEED = 2.4;
+  var TURRET_TARGET_AIM_ROTATION_COST = 58;
+  var TURRET_TARGET_FORWARD_ROTATION_EXTRA_COST = 42;
   var PROJECTILE_SPEED = 540;
   var PROJECTILE_DAMAGE = 12;
   var PROJECTILE_RADIUS = 3;
@@ -65,7 +71,7 @@
   var TURRET_TYPE_LASER = "laser";
   var TURRET_TYPE_HEAL = "heal";
   var LASER_TURRET_SPAWN_CHANCE = 0.1;
-  var HEAL_TURRET_SPAWN_CHANCE = 0.01;
+  var HEAL_TURRET_SPAWN_CHANCE = 0.04;
   var LASER_TURRET_FIRE_RANGE = 380;
   var LASER_TURRET_DPS = 30;
   var HEAL_TURRET_FIRE_RANGE = 380;
@@ -80,6 +86,7 @@
 
   var CRYSTAL_PICKUP_RADIUS = 42;
   var CRYSTAL_HOVER_RADIUS = 52;
+  var CRYSTAL_AUTO_COLLECT_LAY_TIME = 10;
   var CRYSTAL_SPAWN_SCREEN_EDGE_MARGIN = 20;
   var TERRAIN_CELL_WIDTH = 640;
   var TERRAIN_CELL_HEIGHT = 320;
@@ -135,6 +142,8 @@
   var ENEMY_SPAWN_DISTANCE_KM_STEP = 3000;
   var ENEMY_SPAWN_DIRECTION_COUNT = 8;
   var ENEMY_SPAWN_WARNING_DURATION = 1.85;
+  var ENEMY_SPAWN_HAZARD_RADIUS = 48;
+  var ENEMY_SPAWN_WAVE_CLUSTER_RADIUS = 88;
   var ENEMY_SPAWN_SCREEN_EDGE_MARGIN = 12;
   var SPAWN_WARNING_EDGE_MARGIN = 28;
   var SPAWN_WARNING_EDGE_BRIGHTNESS_RANGE = 0.12;
@@ -195,6 +204,7 @@
 
   var UNIT_COLLISION_PADDING = 4;
   var UNIT_FOLLOW_STANDOFF_PADDING = 6;
+  var COMBAT_FOLLOW_RANGE_FACTOR = 0.5;
   var UNIT_SEPARATION_SMOOTH = 0.38;
   var UNIT_SEPARATION_PASS_COUNT = 4;
   var UNIT_SEPARATION_MAX_PER_STEP = 12;
@@ -226,6 +236,7 @@
   var TRUCK_AUTO_EVADE_LOOKAHEAD = 88;
   var TRUCK_AUTO_EVADE_WORLD_MARGIN_Y_FACTOR = 0.38;
 
+  var ESCORT_DEFENSE_SPAWN_CHANCE = 0.75;
   var ESCORT_SPAWN_RADIUS_MIN = 120;
   var ESCORT_SPAWN_RADIUS_MAX = 280;
   var ESCORT_SPAWN_ATTEMPTS = 24;
@@ -296,6 +307,7 @@
   var visualEffects = [];
   var dustParticles = [];
   var pendingSpawnWarnings = [];
+  var pendingSpawnWaveAnchor = null;
   var mines = [];
   var pendingMinefieldWarning = null;
   var pendingRocketStrikeWarning = null;
@@ -646,15 +658,18 @@
     truckPositionAfterScrollY = truckUnit.y;
   }
 
-  function applyTruckMovementOffsetToSelectedDriver() {
-    var unit;
+  function applyTruckMovementOffsetToSelectedEscort() {
     var truckDeltaX;
     var truckDeltaY;
-    if (!truckUnit || truckUnit.dead || !isSelectedUnitKeyboardDriving()) {
+    var unit;
+    if (!truckUnit || truckUnit.dead) {
       return;
     }
-    unit = getUnitById(selectedUnitId);
-    if (!unit || unit.dead || unit.team !== "friendly" || unit.id === truckUnit.id) {
+    unit = getSelectedEscortUnit();
+    if (!unit) {
+      return;
+    }
+    if (shouldTruckFollowSelectedEscortNow()) {
       return;
     }
     truckDeltaX = truckUnit.x - truckPositionAfterScrollX;
@@ -822,25 +837,91 @@
     return getUnitCollisionRadius(truckUnit) + TRUCK_PATH_HALF_WIDTH_PADDING;
   }
 
+  function getFriendlyDefenseTeamWorldYBounds() {
+    var escort;
+    var escortCount = 0;
+    var escortIndex;
+    var maxY = 0;
+    var minY = 0;
+    for (escortIndex = 0; escortIndex < units.length; escortIndex += 1) {
+      escort = units[escortIndex];
+      if (escort.dead || escort.team !== "friendly" || escort.kind !== UNIT_ESCORT) {
+        continue;
+      }
+      if (escort.combatMode !== COMBAT_MODE_DEFENSE) {
+        continue;
+      }
+      if (escortCount === 0) {
+        minY = escort.y;
+        maxY = escort.y;
+      } else {
+        if (escort.y < minY) {
+          minY = escort.y;
+        }
+        if (escort.y > maxY) {
+          maxY = escort.y;
+        }
+      }
+      escortCount += 1;
+    }
+    return {
+      minY: minY,
+      maxY: maxY,
+      count: escortCount
+    };
+  }
+
+  function getTruckPathCorridorYBounds() {
+    var teamBounds;
+    var maxY;
+    var minY;
+    if (!truckUnit || truckUnit.dead) {
+      return null;
+    }
+    minY = truckUnit.y;
+    maxY = truckUnit.y;
+    teamBounds = getFriendlyDefenseTeamWorldYBounds();
+    if (teamBounds.count > 0) {
+      if (teamBounds.minY < minY) {
+        minY = teamBounds.minY;
+      }
+      if (teamBounds.maxY > maxY) {
+        maxY = teamBounds.maxY;
+      }
+    }
+    return {
+      minY: minY,
+      maxY: maxY
+    };
+  }
+
   function isHazardOnTruckPath(hazardX, hazardY, hazardRadius) {
-    var pathHalfWidth;
+    var corridor;
     var deltaX;
-    var deltaY;
-    var combinedRadius;
+    var hazardMaxY;
+    var hazardMinY;
+    var pathHalfWidth;
     if (!truckUnit || truckUnit.dead) {
       return false;
     }
     pathHalfWidth = getTruckPathHalfWidth();
     deltaX = hazardX - truckUnit.x;
-    deltaY = hazardY - truckUnit.y;
     if (deltaX < -pathHalfWidth - hazardRadius) {
       return false;
     }
     if (deltaX > TRUCK_PATH_FORWARD_RANGE + hazardRadius) {
       return false;
     }
-    combinedRadius = pathHalfWidth + hazardRadius;
-    if (Math.abs(deltaY) > combinedRadius) {
+    corridor = getTruckPathCorridorYBounds();
+    if (!corridor) {
+      return false;
+    }
+    hazardMinY = hazardY - hazardRadius;
+    hazardMaxY = hazardY + hazardRadius;
+    if (hazardMaxY < corridor.minY - pathHalfWidth) {
+      return false;
+    }
+    if (hazardMinY > corridor.maxY + pathHalfWidth) {
       return false;
     }
     return true;
@@ -876,55 +957,99 @@
     return sumY / count;
   }
 
-  function getActiveTruckHazardWorldY() {
-    var bestY;
-    var bestDistSq;
-    var rocketActive;
-    var mineWarningActive;
-    var impactPos;
-    var mineSpawnPos;
-    var mineAverageY;
+  function trySetNearestTruckHazardWorldY(hazardX, hazardY, hazardRadius, bestDistSqRef) {
     var distSq;
-    var detectRangeSq;
+    if (!isHazardOnTruckPath(hazardX, hazardY, hazardRadius)) {
+      return bestDistSqRef;
+    }
+    distSq = distanceSquared(truckUnit.x, truckUnit.y, hazardX, hazardY);
+    if (distSq < bestDistSqRef.value) {
+      bestDistSqRef.value = distSq;
+      bestDistSqRef.hazardY = hazardY;
+    }
+    return bestDistSqRef;
+  }
+
+  function getActiveTruckHazardWorldY() {
+    var bestDistSqRef;
+    var impactPos;
+    var mineAverageY;
+    var mineSpawnPos;
+    var mineWarningActive;
+    var rocketActive;
+    var spawnIndex;
+    var spawnPos;
+    var spawnWarning;
+    var spawnWarningActive;
     if (!truckUnit || truckUnit.dead) {
       return null;
     }
-    bestY = null;
-    bestDistSq = 999999999;
-    detectRangeSq = TRUCK_MINE_EVADE_DETECT_RANGE * TRUCK_MINE_EVADE_DETECT_RANGE;
+    bestDistSqRef = {
+      value: 999999999,
+      hazardY: null
+    };
     rocketActive = pendingRocketStrikeWarning
       && rocketStrikeSpawnTimer > 0
       && rocketStrikeSpawnTimer <= ROCKET_STRIKE_WARNING_DURATION;
     mineWarningActive = pendingMinefieldWarning && !pendingMinefieldWarning.dropStarted;
+    spawnWarningActive = enemySpawnTimer > 0 && enemySpawnTimer <= ENEMY_SPAWN_WARNING_DURATION;
     if (rocketActive) {
       impactPos = getRocketStrikeImpactWorldPosition();
-      if (isHazardOnTruckPath(impactPos.x, impactPos.y, ROCKET_STRIKE_RADIUS)) {
-        distSq = distanceSquared(truckUnit.x, truckUnit.y, impactPos.x, impactPos.y);
-        if (distSq < bestDistSq) {
-          bestDistSq = distSq;
-          bestY = impactPos.y;
-        }
-      }
+      trySetNearestTruckHazardWorldY(impactPos.x, impactPos.y, ROCKET_STRIKE_RADIUS, bestDistSqRef);
     }
     if (mineWarningActive) {
       mineSpawnPos = getMinefieldSpawnWorldPosition();
-      if (isHazardOnTruckPath(mineSpawnPos.x, mineSpawnPos.y, MINEFIELD_CLUSTER_RADIUS)) {
-        distSq = distanceSquared(truckUnit.x, truckUnit.y, mineSpawnPos.x, mineSpawnPos.y);
-        if (distSq < bestDistSq) {
-          bestDistSq = distSq;
-          bestY = pendingMinefieldWarning.worldCenterY;
-        }
+      trySetNearestTruckHazardWorldY(
+        mineSpawnPos.x,
+        pendingMinefieldWarning.worldCenterY,
+        MINEFIELD_CLUSTER_RADIUS,
+        bestDistSqRef
+      );
+    }
+    if (spawnWarningActive) {
+      for (spawnIndex = 0; spawnIndex < pendingSpawnWarnings.length; spawnIndex += 1) {
+        spawnWarning = pendingSpawnWarnings[spawnIndex];
+        spawnPos = getPendingWarningWorldPosition(spawnWarning);
+        trySetNearestTruckHazardWorldY(spawnPos.x, spawnPos.y, ENEMY_SPAWN_HAZARD_RADIUS, bestDistSqRef);
       }
     }
     mineAverageY = getAverageOnScreenMineHazardWorldY();
     if (mineAverageY != null) {
-      distSq = distanceSquared(truckUnit.x, truckUnit.y, truckUnit.x, mineAverageY);
-      if (distSq <= detectRangeSq && distSq < bestDistSq) {
-        bestDistSq = distSq;
-        bestY = mineAverageY;
-      }
+      trySetNearestTruckHazardWorldY(truckUnit.x, mineAverageY, MINE_TRIGGER_RADIUS, bestDistSqRef);
     }
-    return bestY;
+    return bestDistSqRef.hazardY;
+  }
+
+  function getTruckEvadeSteerDirection(hazardY, teamBounds) {
+    var steerDirection;
+    var targetY;
+    var teamCenterY;
+    if (truckUnit.y > hazardY) {
+      steerDirection = 1;
+    } else if (truckUnit.y < hazardY) {
+      steerDirection = -1;
+    } else {
+      steerDirection = truckUnit.y >= cameraY ? 1 : -1;
+    }
+    if (teamBounds.count <= 0) {
+      return steerDirection;
+    }
+    teamCenterY = (teamBounds.minY + teamBounds.maxY) * 0.5;
+    if (hazardY >= teamBounds.minY && hazardY <= teamBounds.maxY) {
+      if (teamCenterY >= hazardY) {
+        steerDirection = 1;
+      } else {
+        steerDirection = -1;
+      }
+      return steerDirection;
+    }
+    targetY = truckUnit.y + steerDirection * TRUCK_AUTO_EVADE_LOOKAHEAD;
+    if (targetY < teamBounds.minY) {
+      steerDirection = 1;
+    } else if (targetY > teamBounds.maxY) {
+      steerDirection = -1;
+    }
+    return steerDirection;
   }
 
   function setTruckHoldLaneDestination() {
@@ -934,10 +1059,6 @@
     truckUnit.hasTruckScreenDestination = false;
     truckUnit.destinationX = truckUnit.x;
     truckUnit.destinationY = truckUnit.y;
-  }
-
-  function clearTruckMoveCommand() {
-    setTruckHoldLaneDestination();
   }
 
   function restoreEscortGuardFollow(unit) {
@@ -980,7 +1101,7 @@
     return false;
   }
 
-  function updateTruckFollowSelectedEscort() {
+  function shouldTruckFollowSelectedEscortNow() {
     var escort;
     if (!truckUnit || truckUnit.dead || !isPlaying() || isTruckSelected()) {
       return false;
@@ -989,10 +1110,15 @@
     if (!escort) {
       return false;
     }
-    if (!shouldTruckFollowSelectedEscort(escort)) {
+    return shouldTruckFollowSelectedEscort(escort);
+  }
+
+  function updateTruckFollowSelectedEscort() {
+    var escort;
+    if (!shouldTruckFollowSelectedEscortNow()) {
       return false;
     }
-    truckUnit.hasTruckScreenDestination = false;
+    escort = getSelectedEscortUnit();
     truckUnit.destinationX = escort.x;
     truckUnit.destinationY = escort.y;
     return true;
@@ -1001,6 +1127,7 @@
   function updateTruckAutoEvade(deltaSeconds) {
     var hazardY;
     var steerDirection;
+    var teamBounds;
     var worldMarginY;
     if (!truckUnit || truckUnit.dead || !isPlaying()) {
       return;
@@ -1010,21 +1137,26 @@
     }
     hazardY = getActiveTruckHazardWorldY();
     if (hazardY != null) {
-      truckUnit.hasTruckScreenDestination = false;
-      if (truckUnit.y > hazardY) {
-        steerDirection = 1;
-      } else if (truckUnit.y < hazardY) {
-        steerDirection = -1;
-      } else {
-        steerDirection = truckUnit.y >= cameraY ? 1 : -1;
-      }
+      teamBounds = getFriendlyDefenseTeamWorldYBounds();
+      steerDirection = getTruckEvadeSteerDirection(hazardY, teamBounds);
       truckUnit.destinationX = truckUnit.x;
       truckUnit.destinationY = truckUnit.y + steerDirection * TRUCK_AUTO_EVADE_LOOKAHEAD;
       worldMarginY = height * TRUCK_AUTO_EVADE_WORLD_MARGIN_Y_FACTOR;
       truckUnit.destinationY = clamp(truckUnit.destinationY, cameraY - worldMarginY, cameraY + worldMarginY);
+      if (teamBounds.count > 0) {
+        if (truckUnit.destinationY < teamBounds.minY) {
+          truckUnit.destinationY = teamBounds.minY;
+        } else if (truckUnit.destinationY > teamBounds.maxY) {
+          truckUnit.destinationY = teamBounds.maxY;
+        }
+      }
       return;
     }
     if (updateTruckFollowSelectedEscort()) {
+      return;
+    }
+    if (shouldTruckApplyPlayerMoveDestination()) {
+      applyTruckScreenDestinationToUnit(truckUnit);
       return;
     }
     setTruckHoldLaneDestination();
@@ -1294,26 +1426,31 @@
     );
   }
 
-  function getBossCrystalDropCount() {
-    var spreadRoll;
+  function getUnitStarCrystalDropFactor(unit) {
+    if (!isUnitStarProgressUnit(unit) || unit.starCount <= 0) {
+      return 1;
+    }
+    return 1 + UNIT_STAR_CRYSTAL_DROP_BONUS * unit.starCount;
+  }
+
+  function getScaledCrystalDropCount(baseDrop, spread, unit) {
     var dropCount;
-    spreadRoll = Math.floor(Math.random() * (BOSS_CRYSTAL_DROP_SPREAD * 2 + 1)) - BOSS_CRYSTAL_DROP_SPREAD;
-    dropCount = BOSS_CRYSTAL_DROP_BASE + spreadRoll;
+    var spreadRoll;
+    spreadRoll = Math.floor(Math.random() * (spread * 2 + 1)) - spread;
+    dropCount = baseDrop + spreadRoll;
+    dropCount = Math.floor(dropCount * getUnitStarCrystalDropFactor(unit));
     if (dropCount < 1) {
       dropCount = 1;
     }
     return dropCount;
   }
 
-  function getEnemyCrystalDropCount() {
-    var spreadRoll;
-    var dropCount;
-    spreadRoll = Math.floor(Math.random() * (ENEMY_CRYSTAL_DROP_SPREAD * 2 + 1)) - ENEMY_CRYSTAL_DROP_SPREAD;
-    dropCount = ENEMY_CRYSTAL_DROP_BASE + spreadRoll;
-    if (dropCount < 1) {
-      dropCount = 1;
-    }
-    return dropCount;
+  function getBossCrystalDropCount(unit) {
+    return getScaledCrystalDropCount(BOSS_CRYSTAL_DROP_BASE, BOSS_CRYSTAL_DROP_SPREAD, unit);
+  }
+
+  function getEnemyCrystalDropCount(unit) {
+    return getScaledCrystalDropCount(ENEMY_CRYSTAL_DROP_BASE, ENEMY_CRYSTAL_DROP_SPREAD, unit);
   }
 
   function createTurret(localX, localY, wobbleAmount, turretType) {
@@ -1421,7 +1558,7 @@
       wreckFireTime: 0,
       lastAttackerUnitId: -1
     };
-    initFriendlyStarUnitFields(unit);
+    initUnitStarProgressFields(unit);
     initTruckScreenDestinationFields(unit);
     nextUnitId += 1;
     return unit;
@@ -1457,6 +1594,9 @@
       isWreck: false,
       wreckFireTime: 0,
       lastAttackerUnitId: -1,
+      spawnBonusStars: 0,
+      killCount: 0,
+      totalHealDone: 0,
       starCount: 0
     };
     nextUnitId += 1;
@@ -1501,10 +1641,12 @@
       isWreck: false,
       wreckFireTime: 0,
       lastAttackerUnitId: -1,
+      spawnBonusStars: 0,
+      killCount: 0,
+      totalHealDone: 0,
       starCount: 0
     };
     if (kind === UNIT_ESCORT) {
-      initFriendlyStarUnitFields(unit);
       initTruckScreenDestinationFields(unit);
       unit.combatMode = rollEscortCombatMode();
       setEscortCombatModeFromTurrets(unit);
@@ -1514,10 +1656,10 @@
   }
 
   function rollEscortCombatMode() {
-    if (Math.random() < 0.5) {
-      return COMBAT_MODE_ATTACK;
+    if (Math.random() < ESCORT_DEFENSE_SPAWN_CHANCE) {
+      return COMBAT_MODE_DEFENSE;
     }
-    return COMBAT_MODE_DEFENSE;
+    return COMBAT_MODE_ATTACK;
   }
 
   function getEscortCombatModeDamageTakenFactor(unit) {
@@ -1540,10 +1682,24 @@
     return 1;
   }
 
-  function initFriendlyStarUnitFields(unit) {
+  function initUnitStarProgressFields(unit) {
+    unit.spawnBonusStars = 0;
     unit.killCount = 0;
     unit.totalHealDone = 0;
     unit.starCount = 0;
+  }
+
+  function isUnitStarProgressUnit(unit) {
+    if (!unit || unit.dead) {
+      return false;
+    }
+    if (isUnitTruckKind(unit)) {
+      return true;
+    }
+    if (unit.kind === UNIT_ESCORT || unit.kind === UNIT_ENEMY || unit.kind === UNIT_BOSS_TRUCK) {
+      return true;
+    }
+    return false;
   }
 
   function isFriendlyStarUnit(unit) {
@@ -1560,29 +1716,17 @@
   }
 
   function isUnitStarBonusEligible(unit) {
-    if (!unit || unit.dead || unit.starCount <= 0) {
+    if (!isUnitStarProgressUnit(unit) || unit.starCount <= 0) {
       return false;
     }
-    if (isFriendlyStarUnit(unit)) {
-      return true;
-    }
-    if (unit.team === "enemy") {
-      return true;
-    }
-    return false;
+    return true;
   }
 
   function shouldDrawUnitStarBadge(unit) {
-    if (!unit || unit.dead || unit.isWreck || unit.starCount <= 0) {
+    if (!isUnitStarProgressUnit(unit) || unit.isWreck || unit.starCount <= 0) {
       return false;
     }
-    if (isFriendlyStarUnit(unit)) {
-      return true;
-    }
-    if (unit.team === "enemy") {
-      return true;
-    }
-    return false;
+    return true;
   }
 
   function getUnitStarDamageTakenFactor(unit) {
@@ -1605,10 +1749,17 @@
   }
 
   function getUnitStarHealFactor(unit) {
-    if (!isFriendlyStarUnit(unit) || unit.starCount <= 0) {
+    if (!isUnitStarBonusEligible(unit) || !unitHasHealTurret(unit)) {
       return 1;
     }
     return 1 + UNIT_STAR_HEAL_BONUS * unit.starCount;
+  }
+
+  function getUnitStarRangeFactor(unit) {
+    if (!isUnitStarBonusEligible(unit)) {
+      return 1;
+    }
+    return 1 + UNIT_STAR_RANGE_BONUS * unit.starCount;
   }
 
   function getUnitDamageTakenFactor(unit) {
@@ -1631,49 +1782,66 @@
     return factor;
   }
 
-  function tryAwardUnitStarFromProgress(unit) {
+  function getUnitEarnedStarCount(unit) {
     var killStars;
     var healStars;
-    var nextStarCount;
-    if (!isFriendlyStarUnit(unit)) {
-      return;
-    }
     killStars = Math.floor(unit.killCount / UNIT_STAR_KILLS_PER_STAR);
     healStars = Math.floor(unit.totalHealDone / (unit.maxHealth * UNIT_STAR_HEAL_MAX_HEALTH_FACTOR));
-    nextStarCount = killStars + healStars;
+    return unit.spawnBonusStars + killStars + healStars;
+  }
+
+  function tryAwardUnitStarFromProgress(unit) {
+    var nextStarCount;
+    if (!isUnitStarProgressUnit(unit)) {
+      return;
+    }
+    nextStarCount = getUnitEarnedStarCount(unit);
     if (nextStarCount > unit.starCount) {
       unit.starCount = nextStarCount;
       spawnUnitStarReveal(unit);
     }
   }
 
-  function recordFriendlyUnitKill(attackerUnit) {
-    if (!isFriendlyStarUnit(attackerUnit)) {
+  function recordUnitKill(killerUnit, killCredit) {
+    if (!isUnitStarProgressUnit(killerUnit)) {
       return;
     }
-    attackerUnit.killCount += 1;
-    tryAwardUnitStarFromProgress(attackerUnit);
+    if (killCredit == null) {
+      killCredit = UNIT_STAR_KILLS_PER_STAR;
+    }
+    killerUnit.killCount += killCredit;
+    tryAwardUnitStarFromProgress(killerUnit);
   }
 
-  function recordFriendlyUnitHealDone(healerUnit, healAmount) {
-    if (!isFriendlyStarUnit(healerUnit) || healAmount <= 0) {
+  function recordUnitHealDone(healerUnit, healAmount) {
+    if (!isUnitStarProgressUnit(healerUnit) || healAmount <= 0) {
       return;
     }
     healerUnit.totalHealDone += healAmount;
     tryAwardUnitStarFromProgress(healerUnit);
   }
 
-  function recordFriendlyUnitKillFromVictim(victim, attackerUnit) {
-    if (!victim || victim.team !== "enemy") {
+  function recordUnitKillFromVictim(victim, attackerUnit) {
+    if (!victim || victim.dead) {
       return;
     }
     if (!attackerUnit || attackerUnit.dead) {
       attackerUnit = getUnitById(victim.lastAttackerUnitId);
     }
-    if (!attackerUnit || attackerUnit.dead || attackerUnit.team !== "friendly") {
+    if (!attackerUnit || attackerUnit.dead) {
       return;
     }
-    recordFriendlyUnitKill(attackerUnit);
+    if (attackerUnit.team === victim.team) {
+      return;
+    }
+    if (!isUnitStarProgressUnit(attackerUnit)) {
+      return;
+    }
+    if (isUnitTruckKind(victim)) {
+      recordUnitKill(attackerUnit, UNIT_STAR_KILL_COUNT_TRUCK);
+      return;
+    }
+    recordUnitKill(attackerUnit, UNIT_STAR_KILLS_PER_STAR);
   }
 
   function spawnUnitStarReveal(unit) {
@@ -1687,11 +1855,27 @@
     });
   }
 
-  function getFriendlyTeamAverageStarCount() {
+  function sortStarValuesAscending(starValues) {
     var index;
+    var swapIndex;
+    var temp;
+    for (index = 1; index < starValues.length; index += 1) {
+      swapIndex = index;
+      while (swapIndex > 0 && starValues[swapIndex - 1] > starValues[swapIndex]) {
+        temp = starValues[swapIndex - 1];
+        starValues[swapIndex - 1] = starValues[swapIndex];
+        starValues[swapIndex] = temp;
+        swapIndex -= 1;
+      }
+    }
+  }
+
+  function getFriendlyTeamMedianStarCount() {
+    var index;
+    var middleIndex;
+    var starValues = [];
     var unit;
-    var totalStars = 0;
-    var unitCount = 0;
+    var unitCount;
     for (index = 0; index < units.length; index += 1) {
       unit = units[index];
       if (unit.dead || unit.team !== "friendly") {
@@ -1700,34 +1884,40 @@
       if (!isFriendlyStarUnit(unit)) {
         continue;
       }
-      totalStars += unit.starCount;
-      unitCount += 1;
+      starValues.push(unit.starCount);
     }
+    unitCount = starValues.length;
     if (unitCount <= 0) {
       return 0;
     }
-    return totalStars / unitCount;
+    sortStarValuesAscending(starValues);
+    middleIndex = Math.floor(unitCount / 2);
+    if (unitCount % 2 === 1) {
+      return starValues[middleIndex];
+    }
+    return (starValues[middleIndex - 1] + starValues[middleIndex]) / 2;
   }
 
   function rollEnemySpawnStarCount() {
-    var averageStars;
     var maxStars;
-    averageStars = getFriendlyTeamAverageStarCount();
-    maxStars = Math.floor(averageStars);
+    var medianStars;
+    medianStars = getFriendlyTeamMedianStarCount();
+    maxStars = Math.floor(medianStars);
     if (maxStars <= 0) {
       return 0;
     }
     return Math.floor(Math.random() * (maxStars + 1));
   }
 
-  function setUnitStarCount(unit, starCount) {
+  function setUnitSpawnBonusStars(unit, starCount) {
     if (!unit) {
       return;
     }
     if (starCount < 0) {
       starCount = 0;
     }
-    unit.starCount = starCount;
+    unit.spawnBonusStars = starCount;
+    tryAwardUnitStarFromProgress(unit);
   }
 
   function toggleEscortCombatMode(unit) {
@@ -1816,6 +2006,34 @@
     unit.destinationY = worldDestination.y;
   }
 
+  function hasOnScreenEnemyForEscort(unit) {
+    return findClosestOnScreenEnemyFrom(unit.x, unit.y) != null;
+  }
+
+  function shouldEscortFollowTruckGuardSlot(unit) {
+    if (!unit || unit.dead || unit.kind !== UNIT_ESCORT) {
+      return false;
+    }
+    if (unit.combatMode === COMBAT_MODE_DEFENSE) {
+      return unit.hasTruckScreenDestination;
+    }
+    if (unit.combatMode === COMBAT_MODE_ATTACK) {
+      return !hasOnScreenEnemyForEscort(unit);
+    }
+    return false;
+  }
+
+  function ensureEscortTruckGuardOffset(unit) {
+    if (!unit.hasTruckScreenDestination) {
+      setEscortGuardOffset(unit, unit.x, unit.y);
+    }
+  }
+
+  function applyTruckGuardDestinationToUnit(unit) {
+    ensureEscortTruckGuardOffset(unit);
+    applyTruckScreenDestinationToUnit(unit);
+  }
+
   function setTruckScreenDestinationForUnit(unit, screenX, screenY) {
     var truckScreen;
     if (!unit || !truckUnit || truckUnit.dead) {
@@ -1848,6 +2066,22 @@
     applyTruckScreenDestinationToUnit(unit);
   }
 
+  function shouldTruckApplyPlayerMoveDestination() {
+    if (!truckUnit || truckUnit.dead || !truckUnit.hasTruckScreenDestination) {
+      return false;
+    }
+    if (isTruckSelected()) {
+      return true;
+    }
+    if (getActiveTruckHazardWorldY() != null) {
+      return false;
+    }
+    if (shouldTruckFollowSelectedEscortNow()) {
+      return false;
+    }
+    return true;
+  }
+
   function updateTruckScreenRelativeDestinations() {
     var index;
     var unit;
@@ -1865,7 +2099,15 @@
       if (!unit.hasTruckScreenDestination) {
         continue;
       }
-      applyTruckScreenDestinationToUnit(unit);
+      if (unit === truckUnit) {
+        if (shouldTruckApplyPlayerMoveDestination()) {
+          applyTruckScreenDestinationToUnit(unit);
+        }
+        continue;
+      }
+      if (shouldEscortFollowTruckGuardSlot(unit)) {
+        applyTruckGuardDestinationToUnit(unit);
+      }
     }
   }
 
@@ -1881,7 +2123,33 @@
     return getUnitCollisionRadius(follower) + getUnitCollisionRadius(target) + UNIT_COLLISION_PADDING + UNIT_FOLLOW_STANDOFF_PADDING;
   }
 
+  function getUnitMaxCombatTurretFireRange(unit) {
+    var maxRange = TURRET_FIRE_RANGE;
+    var range;
+    var turret;
+    var turretIndex;
+    if (!unit || !unit.turrets) {
+      return TURRET_FIRE_RANGE;
+    }
+    for (turretIndex = 0; turretIndex < unit.turrets.length; turretIndex += 1) {
+      turret = unit.turrets[turretIndex];
+      if (turret.type === TURRET_TYPE_HEAL) {
+        continue;
+      }
+      range = getUnitTurretFireRange(unit, turret);
+      if (range > maxRange) {
+        maxRange = range;
+      }
+    }
+    return maxRange;
+  }
+
+  function getUnitCombatFollowStandoffDistance(follower) {
+    return getUnitMaxCombatTurretFireRange(follower) * COMBAT_FOLLOW_RANGE_FACTOR;
+  }
+
   function getFollowDestinationNearTarget(follower, target) {
+    var combatStandoff;
     var deltaX = follower.x - target.x;
     var deltaY = follower.y - target.y;
     var distSq = deltaX * deltaX + deltaY * deltaY;
@@ -1889,6 +2157,10 @@
     var dist;
     var dirX;
     var dirY;
+    combatStandoff = getUnitCombatFollowStandoffDistance(follower);
+    if (combatStandoff > standoff) {
+      standoff = combatStandoff;
+    }
     if (distSq < 0.001) {
       dirX = 1;
       dirY = 0;
@@ -1967,7 +2239,8 @@
       rarity: rarity,
       red: rgb[0],
       green: rgb[1],
-      blue: rgb[2]
+      blue: rgb[2],
+      layAge: 0
     };
   }
 
@@ -2148,6 +2421,7 @@
     visualEffects.length = 0;
     dustParticles.length = 0;
     pendingSpawnWarnings.length = 0;
+    pendingSpawnWaveAnchor = null;
     mines.length = 0;
     pendingMinefieldWarning = null;
     pendingRocketStrikeWarning = null;
@@ -2476,6 +2750,21 @@
     return isWorldPositionOnScreen(unit.x, unit.y);
   }
 
+  function isUnitVisibleOnScreen(unit) {
+    var screenPos;
+    if (!unit || unit.dead) {
+      return false;
+    }
+    screenPos = worldToScreen(unit.x, unit.y);
+    if (width <= 0 || height <= 0) {
+      return false;
+    }
+    return screenPos.x >= 0
+      && screenPos.x <= width
+      && screenPos.y >= 0
+      && screenPos.y <= height;
+  }
+
   function isWorldPositionOffScreenForDespawn(worldX, worldY) {
     var screenPos = worldToScreen(worldX, worldY);
     return screenPos.x < -UNIT_DESPAWN_SCREEN_MARGIN
@@ -2559,41 +2848,75 @@
     return speed;
   }
 
-  function findClosestEnemyForTurret(turretWorldX, turretWorldY, maxRange) {
+  function getTurretTargetPickScore(unit, turret, turretWorldX, turretWorldY, candidate) {
+    var distSq;
+    var targetAngle;
+    var aimAngle;
+    var aimTurnAngle;
+    var forwardTurnAngle;
+    var behindForwardAngle;
+    var aimRotationCost;
+    var forwardExtraCost;
+    var score;
+    distSq = distanceSquared(turretWorldX, turretWorldY, candidate.x, candidate.y);
+    targetAngle = Math.atan2(candidate.y - turretWorldY, candidate.x - turretWorldX);
+    aimAngle = unit.angle + turret.angle;
+    aimTurnAngle = Math.abs(angleDifference(aimAngle, targetAngle));
+    forwardTurnAngle = Math.abs(angleDifference(unit.angle, targetAngle));
+    aimRotationCost = aimTurnAngle * TURRET_TARGET_AIM_ROTATION_COST;
+    score = distSq + aimRotationCost * aimRotationCost;
+    if (aimTurnAngle > forwardTurnAngle) {
+      behindForwardAngle = aimTurnAngle - forwardTurnAngle;
+      forwardExtraCost = behindForwardAngle * TURRET_TARGET_FORWARD_ROTATION_EXTRA_COST;
+      score += forwardExtraCost * forwardExtraCost;
+    }
+    return score;
+  }
+
+  function findClosestEnemyForTurret(unit, turret, turretWorldX, turretWorldY, maxRange) {
     var enemies = getEnemyUnits();
     var closest = null;
     var fireRange = maxRange != null ? maxRange : TURRET_FIRE_RANGE;
-    var closestDistSq = fireRange * fireRange;
+    var maxRangeSq = fireRange * fireRange;
+    var bestScore = maxRangeSq + 999999999;
     var index;
     var enemy;
     var distSq;
+    var score;
     for (index = 0; index < enemies.length; index += 1) {
       enemy = enemies[index];
-      if (!isUnitOnScreen(enemy)) {
+      distSq = distanceSquared(turretWorldX, turretWorldY, enemy.x, enemy.y);
+      if (distSq > maxRangeSq) {
         continue;
       }
-      distSq = distanceSquared(turretWorldX, turretWorldY, enemy.x, enemy.y);
-      if (distSq < closestDistSq) {
-        closestDistSq = distSq;
+      score = getTurretTargetPickScore(unit, turret, turretWorldX, turretWorldY, enemy);
+      if (score < bestScore) {
+        bestScore = score;
         closest = enemy;
       }
     }
     return closest;
   }
 
-  function findClosestFriendlyForTurret(turretWorldX, turretWorldY, maxRange) {
+  function findClosestFriendlyForTurret(unit, turret, turretWorldX, turretWorldY, maxRange) {
     var friendlies = getFriendlyUnits();
     var closest = null;
     var fireRange = maxRange != null ? maxRange : TURRET_FIRE_RANGE;
-    var closestDistSq = fireRange * fireRange;
+    var maxRangeSq = fireRange * fireRange;
+    var bestScore = maxRangeSq + 999999999;
     var index;
     var friendly;
     var distSq;
+    var score;
     for (index = 0; index < friendlies.length; index += 1) {
       friendly = friendlies[index];
       distSq = distanceSquared(turretWorldX, turretWorldY, friendly.x, friendly.y);
-      if (distSq < closestDistSq) {
-        closestDistSq = distSq;
+      if (distSq > maxRangeSq) {
+        continue;
+      }
+      score = getTurretTargetPickScore(unit, turret, turretWorldX, turretWorldY, friendly);
+      if (score < bestScore) {
+        bestScore = score;
         closest = friendly;
       }
     }
@@ -2604,7 +2927,7 @@
     if (!unit || unit.dead) {
       return false;
     }
-    return unit.health < unit.maxHealth - 0.5;
+    return unit.health < unit.maxHealth - 0.01;
   }
 
   function isUnitInHealTurretRange(turretWorldX, turretWorldY, unit, maxRange) {
@@ -2613,15 +2936,16 @@
     return distanceSquared(turretWorldX, turretWorldY, unit.x, unit.y) <= fireRange * fireRange;
   }
 
-  function findClosestDamagedFriendlyForHealTurret(turretWorldX, turretWorldY, maxRange, healerUnitId) {
+  function findClosestDamagedFriendlyForHealTurret(unit, turret, turretWorldX, turretWorldY, maxRange, healerUnitId) {
     var friendlies = getFriendlyUnits();
     var selectedUnit;
     var closest = null;
     var fireRange = maxRange != null ? maxRange : HEAL_TURRET_FIRE_RANGE;
-    var closestDistSq = fireRange * fireRange;
+    var maxRangeSq = fireRange * fireRange;
+    var bestScore = maxRangeSq + 999999999;
     var index;
     var friendly;
-    var distSq;
+    var score;
     if (truckUnit
       && !truckUnit.dead
       && truckUnit.id !== healerUnitId
@@ -2655,16 +2979,64 @@
       if (!isUnitDamagedForHeal(friendly)) {
         continue;
       }
-      distSq = distanceSquared(turretWorldX, turretWorldY, friendly.x, friendly.y);
-      if (distSq < closestDistSq) {
-        closestDistSq = distSq;
+      if (!isUnitInHealTurretRange(turretWorldX, turretWorldY, friendly, maxRange)) {
+        continue;
+      }
+      score = getTurretTargetPickScore(unit, turret, turretWorldX, turretWorldY, friendly);
+      if (score < bestScore) {
+        bestScore = score;
         closest = friendly;
       }
     }
     return closest;
   }
 
-  function findClosestEnemyFrom(worldX, worldY) {
+  function findClosestDamagedEnemyForHealTurret(unit, turret, turretWorldX, turretWorldY, maxRange, healerUnitId) {
+    var bossTruck;
+    var closest = null;
+    var enemy;
+    var enemies;
+    var fireRange;
+    var index;
+    var maxRangeSq;
+    var bestScore;
+    var score;
+    fireRange = maxRange != null ? maxRange : HEAL_TURRET_FIRE_RANGE;
+    maxRangeSq = fireRange * fireRange;
+    bestScore = maxRangeSq + 999999999;
+    bossTruck = getBossTruckOnField();
+    if (bossTruck
+      && !bossTruck.dead
+      && bossTruck.id !== healerUnitId
+      && isUnitDamagedForHeal(bossTruck)
+      && isUnitInHealTurretRange(turretWorldX, turretWorldY, bossTruck, maxRange)) {
+      return bossTruck;
+    }
+    enemies = getEnemyUnits();
+    for (index = 0; index < enemies.length; index += 1) {
+      enemy = enemies[index];
+      if (enemy.id === healerUnitId) {
+        continue;
+      }
+      if (bossTruck && enemy.id === bossTruck.id) {
+        continue;
+      }
+      if (!isUnitDamagedForHeal(enemy)) {
+        continue;
+      }
+      if (!isUnitInHealTurretRange(turretWorldX, turretWorldY, enemy, maxRange)) {
+        continue;
+      }
+      score = getTurretTargetPickScore(unit, turret, turretWorldX, turretWorldY, enemy);
+      if (score < bestScore) {
+        bestScore = score;
+        closest = enemy;
+      }
+    }
+    return closest;
+  }
+
+  function findClosestOnScreenEnemyFrom(worldX, worldY) {
     var enemies = getEnemyUnits();
     var closest = null;
     var closestDistSq = 999999999;
@@ -2673,7 +3045,7 @@
     var distSq;
     for (index = 0; index < enemies.length; index += 1) {
       enemy = enemies[index];
-      if (!isUnitOnScreen(enemy)) {
+      if (!isUnitVisibleOnScreen(enemy)) {
         continue;
       }
       distSq = distanceSquared(worldX, worldY, enemy.x, enemy.y);
@@ -2708,6 +3080,7 @@
   function getUnitTurretFireRange(unit, turret) {
     var fireRange;
     fireRange = getTurretFireRange(turret);
+    fireRange *= getUnitStarRangeFactor(unit);
     if (unit.id === selectedUnitId && unit.team === "friendly") {
       if (unit.kind === UNIT_ESCORT || unit.kind === UNIT_TRUCK) {
         fireRange *= SELECTED_ESCORT_FIRE_RANGE_FACTOR;
@@ -2798,7 +3171,7 @@
     }
     healAmount *= getUnitStarHealFactor(sourceUnit);
     appliedHeal = healUnit(targetUnit, healAmount);
-    recordFriendlyUnitHealDone(sourceUnit, appliedHeal);
+    recordUnitHealDone(sourceUnit, appliedHeal);
     spawnHealBeam(fromX, fromY, targetX, targetY);
     playSynthHealBurst();
   }
@@ -3018,12 +3391,14 @@
 
       if (turret.type === TURRET_TYPE_HEAL) {
         if (unit.team === "friendly") {
-          target = findClosestDamagedFriendlyForHealTurret(worldPos.x, worldPos.y, fireRange, unit.id);
+          target = findClosestDamagedFriendlyForHealTurret(unit, turret, worldPos.x, worldPos.y, fireRange, unit.id);
+        } else {
+          target = findClosestDamagedEnemyForHealTurret(unit, turret, worldPos.x, worldPos.y, fireRange, unit.id);
         }
       } else if (unit.team === "friendly") {
-        target = findClosestEnemyForTurret(worldPos.x, worldPos.y, fireRange);
+        target = findClosestEnemyForTurret(unit, turret, worldPos.x, worldPos.y, fireRange);
       } else {
-        target = findClosestFriendlyForTurret(worldPos.x, worldPos.y, fireRange);
+        target = findClosestFriendlyForTurret(unit, turret, worldPos.x, worldPos.y, fireRange);
       }
 
       if (target) {
@@ -3053,33 +3428,197 @@
     }
   }
 
+  function usesFriendlyTruckCapsuleCollider(unit) {
+    return unit && !unit.dead && unit.kind === UNIT_TRUCK;
+  }
+
+  function getFriendlyTruckCapsuleRadius(unit) {
+    return unit.width * FRIENDLY_TRUCK_CAPSULE_RADIUS_FACTOR;
+  }
+
+  function getFriendlyTruckCapsuleAt(unit, centerX, centerY) {
+    var angle;
+    var capsuleRadius;
+    var cosAngle;
+    var halfLine;
+    var sinAngle;
+    angle = unit.angle;
+    capsuleRadius = getFriendlyTruckCapsuleRadius(unit);
+    halfLine = unit.length * 0.5 - capsuleRadius;
+    if (halfLine < 0) {
+      halfLine = 0;
+    }
+    cosAngle = Math.cos(angle);
+    sinAngle = Math.sin(angle);
+    return {
+      radius: capsuleRadius,
+      end1X: centerX - cosAngle * halfLine,
+      end1Y: centerY - sinAngle * halfLine,
+      end2X: centerX + cosAngle * halfLine,
+      end2Y: centerY + sinAngle * halfLine
+    };
+  }
+
+  function getDistanceSquaredPointToSegment(pointX, pointY, segStartX, segStartY, segEndX, segEndY) {
+    var closestX;
+    var closestY;
+    var segDx;
+    var segDy;
+    var segLenSq;
+    var t;
+    segDx = segEndX - segStartX;
+    segDy = segEndY - segStartY;
+    segLenSq = segDx * segDx + segDy * segDy;
+    if (segLenSq < 0.001) {
+      return distanceSquared(pointX, pointY, segStartX, segStartY);
+    }
+    t = ((pointX - segStartX) * segDx + (pointY - segStartY) * segDy) / segLenSq;
+    if (t < 0) {
+      t = 0;
+    } else if (t > 1) {
+      t = 1;
+    }
+    closestX = segStartX + segDx * t;
+    closestY = segStartY + segDy * t;
+    return distanceSquared(pointX, pointY, closestX, closestY);
+  }
+
+  function getCircleCapsuleSeparation(circleX, circleY, circleRadius, capsule) {
+    var dist;
+    var distSq;
+    var minDist;
+    minDist = circleRadius + capsule.radius + UNIT_COLLISION_PADDING;
+    distSq = getDistanceSquaredPointToSegment(circleX, circleY, capsule.end1X, capsule.end1Y, capsule.end2X, capsule.end2Y);
+    if (distSq < 0.001) {
+      return -minDist;
+    }
+    dist = Math.sqrt(distSq);
+    return dist - minDist;
+  }
+
+  function getCircleCapsuleOverlapAmount(circleX, circleY, circleRadius, capsule) {
+    var separation;
+    separation = getCircleCapsuleSeparation(circleX, circleY, circleRadius, capsule);
+    if (separation >= 0) {
+      return 0;
+    }
+    return -separation;
+  }
+
+  function getCapsuleCircleOverlapPush(circleX, circleY, circleRadius, capsule) {
+    var closestX;
+    var closestY;
+    var dist;
+    var distSq;
+    var minDist;
+    var overlap;
+    var pushX;
+    var pushY;
+    var segDx;
+    var segDy;
+    var segLenSq;
+    var t;
+    minDist = circleRadius + capsule.radius + UNIT_COLLISION_PADDING;
+    segDx = capsule.end2X - capsule.end1X;
+    segDy = capsule.end2Y - capsule.end1Y;
+    segLenSq = segDx * segDx + segDy * segDy;
+    if (segLenSq < 0.001) {
+      closestX = capsule.end1X;
+      closestY = capsule.end1Y;
+      distSq = distanceSquared(circleX, circleY, closestX, closestY);
+    } else {
+      t = ((circleX - capsule.end1X) * segDx + (circleY - capsule.end1Y) * segDy) / segLenSq;
+      if (t < 0) {
+        t = 0;
+      } else if (t > 1) {
+        t = 1;
+      }
+      closestX = capsule.end1X + segDx * t;
+      closestY = capsule.end1Y + segDy * t;
+      distSq = distanceSquared(circleX, circleY, closestX, closestY);
+    }
+    if (distSq < 0.001) {
+      return {
+        overlap: minDist,
+        pushX: minDist,
+        pushY: 0
+      };
+    }
+    dist = Math.sqrt(distSq);
+    if (dist >= minDist) {
+      return {
+        overlap: 0,
+        pushX: 0,
+        pushY: 0
+      };
+    }
+    overlap = minDist - dist;
+    pushX = (circleX - closestX) / dist * overlap;
+    pushY = (circleY - closestY) / dist * overlap;
+    return {
+      overlap: overlap,
+      pushX: pushX,
+      pushY: pushY
+    };
+  }
+
   function getUnitCollisionRadius(unit) {
-    if (isUnitTruckKind(unit)) {
+    if (unit.kind === UNIT_TRUCK) {
+      return getFriendlyTruckCapsuleRadius(unit);
+    }
+    if (unit.kind === UNIT_BOSS_TRUCK) {
       return unit.length * 0.36;
     }
     return unit.radius + 1.5;
   }
 
-  function getUnitSeparationAt(unit, testX, testY, other) {
-    var unitRadius = getUnitCollisionRadius(unit);
-    var otherRadius = getUnitCollisionRadius(other);
-    var minDist = unitRadius + otherRadius + UNIT_COLLISION_PADDING;
-    var distSq = distanceSquared(testX, testY, other.x, other.y);
+  function getCircleCircleSeparation(ax, ay, radiusA, bx, by, radiusB) {
+    var distSq;
+    var minDist;
+    minDist = radiusA + radiusB + UNIT_COLLISION_PADDING;
+    distSq = distanceSquared(ax, ay, bx, by);
     if (distSq < 0.001) {
       return -minDist;
     }
     return Math.sqrt(distSq) - minDist;
   }
 
+  function getUnitSeparationAt(unit, testX, testY, other) {
+    var capsule;
+    if (usesFriendlyTruckCapsuleCollider(unit)) {
+      capsule = getFriendlyTruckCapsuleAt(unit, testX, testY);
+      return getCircleCapsuleSeparation(other.x, other.y, getUnitCollisionRadius(other), capsule);
+    }
+    if (usesFriendlyTruckCapsuleCollider(other)) {
+      capsule = getFriendlyTruckCapsuleAt(other, other.x, other.y);
+      return getCircleCapsuleSeparation(testX, testY, getUnitCollisionRadius(unit), capsule);
+    }
+    return getCircleCircleSeparation(
+      testX,
+      testY,
+      getUnitCollisionRadius(unit),
+      other.x,
+      other.y,
+      getUnitCollisionRadius(other)
+    );
+  }
+
   function getUnitOverlapAmountAt(unit, testX, testY, other) {
-    var unitRadius = getUnitCollisionRadius(unit);
-    var otherRadius = getUnitCollisionRadius(other);
-    var minDist = unitRadius + otherRadius + UNIT_COLLISION_PADDING;
-    var distSq = distanceSquared(testX, testY, other.x, other.y);
-    if (distSq >= minDist * minDist) {
+    var capsule;
+    var separation;
+    if (usesFriendlyTruckCapsuleCollider(unit)) {
+      capsule = getFriendlyTruckCapsuleAt(unit, testX, testY);
+      return getCircleCapsuleOverlapAmount(other.x, other.y, getUnitCollisionRadius(other), capsule);
+    }
+    if (usesFriendlyTruckCapsuleCollider(other)) {
+      capsule = getFriendlyTruckCapsuleAt(other, other.x, other.y);
+      return getCircleCapsuleOverlapAmount(testX, testY, getUnitCollisionRadius(unit), capsule);
+    }
+    separation = getUnitSeparationAt(unit, testX, testY, other);
+    if (separation >= 0) {
       return 0;
     }
-    return minDist - Math.sqrt(distSq);
+    return -separation;
   }
 
   function getTotalUnitOverlapAt(unit, testX, testY) {
@@ -3257,22 +3796,24 @@
   }
 
   function resolvePairUnitSeparation(unit, other, smoothFactor) {
-    var unitRadius;
-    var otherRadius;
-    var minDist;
+    var capsule;
     var deltaX;
     var deltaY;
-    var distSq;
     var dist;
+    var distSq;
+    var fallbackAngle;
+    var minDist;
+    var otherAnchored;
+    var otherRadius;
     var overlap;
+    var pairSmoothFactor;
+    var push;
     var sepX;
     var sepY;
+    var unitAnchored;
+    var unitRadius;
     var unitShare;
     var otherShare;
-    var fallbackAngle;
-    var pairSmoothFactor;
-    var unitAnchored;
-    var otherAnchored;
     if (unit.dead || other.dead) {
       return;
     }
@@ -3287,6 +3828,70 @@
     pairSmoothFactor = smoothFactor;
     unitRadius = getUnitCollisionRadius(unit);
     otherRadius = getUnitCollisionRadius(other);
+    if (usesFriendlyTruckCapsuleCollider(unit)) {
+      capsule = getFriendlyTruckCapsuleAt(unit, unit.x, unit.y);
+      push = getCapsuleCircleOverlapPush(other.x, other.y, otherRadius, capsule);
+      if (push.overlap <= 0) {
+        return;
+      }
+      sepX = push.pushX * pairSmoothFactor;
+      sepY = push.pushY * pairSmoothFactor;
+      if (Math.abs(sepX) + Math.abs(sepY) > UNIT_SEPARATION_MAX_PER_STEP) {
+        dist = Math.sqrt(sepX * sepX + sepY * sepY);
+        sepX = sepX / dist * UNIT_SEPARATION_MAX_PER_STEP;
+        sepY = sepY / dist * UNIT_SEPARATION_MAX_PER_STEP;
+      }
+      unitShare = 0.5;
+      otherShare = 0.5;
+      if (unitAnchored) {
+        unitShare = 0;
+        otherShare = 1;
+      } else if (otherAnchored) {
+        unitShare = 1;
+        otherShare = 0;
+      }
+      if (unitShare > 0) {
+        unit.x -= sepX * unitShare;
+        unit.y -= sepY * unitShare;
+      }
+      if (otherShare > 0) {
+        other.x += sepX * otherShare;
+        other.y += sepY * otherShare;
+      }
+      return;
+    }
+    if (usesFriendlyTruckCapsuleCollider(other)) {
+      capsule = getFriendlyTruckCapsuleAt(other, other.x, other.y);
+      push = getCapsuleCircleOverlapPush(unit.x, unit.y, unitRadius, capsule);
+      if (push.overlap <= 0) {
+        return;
+      }
+      sepX = push.pushX * pairSmoothFactor;
+      sepY = push.pushY * pairSmoothFactor;
+      if (Math.abs(sepX) + Math.abs(sepY) > UNIT_SEPARATION_MAX_PER_STEP) {
+        dist = Math.sqrt(sepX * sepX + sepY * sepY);
+        sepX = sepX / dist * UNIT_SEPARATION_MAX_PER_STEP;
+        sepY = sepY / dist * UNIT_SEPARATION_MAX_PER_STEP;
+      }
+      unitShare = 0.5;
+      otherShare = 0.5;
+      if (otherAnchored) {
+        unitShare = 1;
+        otherShare = 0;
+      } else if (unitAnchored) {
+        unitShare = 0;
+        otherShare = 1;
+      }
+      if (unitShare > 0) {
+        unit.x -= sepX * unitShare;
+        unit.y -= sepY * unitShare;
+      }
+      if (otherShare > 0) {
+        other.x += sepX * otherShare;
+        other.y += sepY * otherShare;
+      }
+      return;
+    }
     minDist = unitRadius + otherRadius + UNIT_COLLISION_PADDING;
     deltaX = unit.x - other.x;
     deltaY = unit.y - other.y;
@@ -3547,6 +4152,7 @@
   }
 
   function isSpawnPositionBlocked(worldX, worldY, spawnRadius) {
+    var capsule;
     var index;
     var other;
     var otherRadius;
@@ -3554,6 +4160,13 @@
     for (index = 0; index < units.length; index += 1) {
       other = units[index];
       if (other.dead) {
+        continue;
+      }
+      if (usesFriendlyTruckCapsuleCollider(other)) {
+        capsule = getFriendlyTruckCapsuleAt(other, other.x, other.y);
+        if (getCircleCapsuleOverlapAmount(worldX, worldY, spawnRadius, capsule) > 0) {
+          return true;
+        }
         continue;
       }
       otherRadius = getUnitCollisionRadius(other);
@@ -3776,16 +4389,15 @@
         continue;
       }
       if (unit.combatMode === COMBAT_MODE_ATTACK) {
-        closestEnemy = findClosestEnemyFrom(unit.x, unit.y);
+        closestEnemy = findClosestOnScreenEnemyFrom(unit.x, unit.y);
         if (closestEnemy) {
           followDestination = getFollowDestinationNearTarget(unit, closestEnemy);
           unit.destinationX = followDestination.x;
           unit.destinationY = followDestination.y;
           continue;
         }
-      }
-      if (unit.hasTruckScreenDestination) {
-        applyTruckScreenDestinationToUnit(unit);
+        applyTruckGuardDestinationToUnit(unit);
+        continue;
       }
     }
   }
@@ -3839,36 +4451,83 @@
     };
   }
 
-  function getEnemySpawnScreenPosition(directionIndex) {
-    var direction;
-    var edgeMargin;
-    var edge;
-    var laneSpread;
-    var jitterX;
-    var jitterY;
-    direction = getEnemySpawnDirectionVector(directionIndex);
-    edgeMargin = ENEMY_SPAWN_SCREEN_EDGE_MARGIN + randomRange(0, 36);
-    edge = getScreenEdgePointFromCenter(direction.x, direction.y, edgeMargin);
-    laneSpread = height * 0.28;
-    jitterX = 0;
-    jitterY = 0;
-    if (Math.abs(direction.x) > Math.abs(direction.y)) {
-      jitterY = randomRange(-laneSpread, laneSpread);
-    } else if (Math.abs(direction.y) > Math.abs(direction.x)) {
-      jitterX = randomRange(-width * 0.28, width * 0.28);
-    } else {
-      jitterX = randomRange(-laneSpread * 0.6, laneSpread * 0.6);
-      jitterY = randomRange(-laneSpread * 0.6, laneSpread * 0.6);
+  function clampEnemySpawnScreenPosition(screenX, screenY) {
+    var margin = ENEMY_SPAWN_SCREEN_EDGE_MARGIN;
+    var clampedX = screenX;
+    var clampedY = screenY;
+    if (clampedX < margin) {
+      clampedX = margin;
+    } else if (clampedX > width - margin) {
+      clampedX = width - margin;
+    }
+    if (clampedY < margin) {
+      clampedY = margin;
+    } else if (clampedY > height - margin) {
+      clampedY = height - margin;
     }
     return {
-      x: edge.x + jitterX,
-      y: edge.y + jitterY
+      x: clampedX,
+      y: clampedY
     };
   }
 
-  function getEnemySpawnPosition(directionIndex) {
-    var screenPos = getEnemySpawnScreenPosition(directionIndex);
-    return screenToWorld(screenPos.x, screenPos.y);
+  function getEnemySpawnWaveAnchorScreenPosition(directionIndex) {
+    var direction;
+    var edge;
+    var edgeMargin;
+    direction = getEnemySpawnDirectionVector(directionIndex);
+    edgeMargin = ENEMY_SPAWN_SCREEN_EDGE_MARGIN + randomRange(0, 36);
+    edge = getScreenEdgePointFromCenter(direction.x, direction.y, edgeMargin);
+    return {
+      x: edge.x,
+      y: edge.y
+    };
+  }
+
+  function getEnemySpawnClusterScreenPosition(anchorScreenX, anchorScreenY) {
+    var angle;
+    var clamped;
+    var dist;
+    var screenX;
+    var screenY;
+    angle = randomRange(0, TWO_PI);
+    dist = randomRange(0, ENEMY_SPAWN_WAVE_CLUSTER_RADIUS);
+    screenX = anchorScreenX + Math.cos(angle) * dist;
+    screenY = anchorScreenY + Math.sin(angle) * dist;
+    clamped = clampEnemySpawnScreenPosition(screenX, screenY);
+    return {
+      x: clamped.x,
+      y: clamped.y
+    };
+  }
+
+  function rollEnemySpawnWaveCluster() {
+    var anchorScreen;
+    var directionIndex;
+    var screenPos;
+    var spawnCount;
+    var spawnIndex;
+    var spawns = [];
+    directionIndex = Math.floor(Math.random() * ENEMY_SPAWN_DIRECTION_COUNT);
+    anchorScreen = getEnemySpawnWaveAnchorScreenPosition(directionIndex);
+    spawnCount = getEnemySpawnWaveCount();
+    for (spawnIndex = 0; spawnIndex < spawnCount; spawnIndex += 1) {
+      screenPos = getEnemySpawnClusterScreenPosition(anchorScreen.x, anchorScreen.y);
+      spawns.push({
+        screenX: screenPos.x,
+        screenY: screenPos.y
+      });
+    }
+    return {
+      anchorScreenX: anchorScreen.x,
+      anchorScreenY: anchorScreen.y,
+      directionIndex: directionIndex,
+      spawns: spawns
+    };
+  }
+
+  function getEnemySpawnPositionFromScreen(screenX, screenY) {
+    return screenToWorld(screenX, screenY);
   }
 
   function getBossTruckOnField() {
@@ -3917,7 +4576,7 @@
       return false;
     }
     enemyTruck = createBossTruckUnit(worldX, worldY);
-    setUnitStarCount(enemyTruck, rollEnemySpawnStarCount());
+    setUnitSpawnBonusStars(enemyTruck, rollEnemySpawnStarCount());
     enemyTruck.chaseTargetId = truckUnit.id;
     enemyTruck.destinationX = truckUnit.x;
     enemyTruck.destinationY = truckUnit.y;
@@ -3938,15 +4597,24 @@
       }
     }
     var enemy = createCarUnit(UNIT_ENEMY, worldX, worldY, "enemy");
-    setUnitStarCount(enemy, rollEnemySpawnStarCount());
+    setUnitSpawnBonusStars(enemy, rollEnemySpawnStarCount());
     assignEnemyFollowTarget(enemy);
     units.push(enemy);
     return true;
   }
 
-  function spawnEnemyFromDirection(directionIndex) {
-    var spawnPos = getEnemySpawnPosition(directionIndex);
-    return spawnEnemyAtPosition(spawnPos.x, spawnPos.y);
+  function spawnEnemyWaveCluster(cluster) {
+    var spawnIndex;
+    var spawnPos;
+    var spawnScreen;
+    for (spawnIndex = 0; spawnIndex < cluster.spawns.length; spawnIndex += 1) {
+      spawnScreen = cluster.spawns[spawnIndex];
+      spawnPos = getEnemySpawnPositionFromScreen(spawnScreen.screenX, spawnScreen.screenY);
+      if (!spawnEnemyAtPosition(spawnPos.x, spawnPos.y)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   function getPendingWarningWorldPosition(warning) {
@@ -3954,18 +4622,23 @@
   }
 
   function rollPendingSpawnWave() {
-    pendingSpawnWarnings.length = 0;
-    var spawnCount = getEnemySpawnWaveCount();
+    var cluster;
     var spawnIndex;
-    var directionIndex;
-    var screenPos;
-    for (spawnIndex = 0; spawnIndex < spawnCount; spawnIndex += 1) {
-      directionIndex = Math.floor(Math.random() * ENEMY_SPAWN_DIRECTION_COUNT);
-      screenPos = getEnemySpawnScreenPosition(directionIndex);
+    var spawnScreen;
+    pendingSpawnWarnings.length = 0;
+    pendingSpawnWaveAnchor = null;
+    cluster = rollEnemySpawnWaveCluster();
+    pendingSpawnWaveAnchor = {
+      screenX: cluster.anchorScreenX,
+      screenY: cluster.anchorScreenY,
+      directionIndex: cluster.directionIndex,
+      progress: 0
+    };
+    for (spawnIndex = 0; spawnIndex < cluster.spawns.length; spawnIndex += 1) {
+      spawnScreen = cluster.spawns[spawnIndex];
       pendingSpawnWarnings.push({
-        directionIndex: directionIndex,
-        screenX: screenPos.x,
-        screenY: screenPos.y,
+        screenX: spawnScreen.screenX,
+        screenY: spawnScreen.screenY,
         progress: 0
       });
     }
@@ -3978,6 +4651,7 @@
       if (pendingSpawnWarnings.length > 0) {
         pendingSpawnWarnings.length = 0;
       }
+      pendingSpawnWaveAnchor = null;
       return;
     }
     if (enemySpawnTimer <= 0) {
@@ -3996,6 +4670,9 @@
     for (index = 0; index < pendingSpawnWarnings.length; index += 1) {
       pendingSpawnWarnings[index].progress = progress;
     }
+    if (pendingSpawnWaveAnchor) {
+      pendingSpawnWaveAnchor.progress = progress;
+    }
   }
 
   function spawnEnemyWaveFromPending() {
@@ -4013,6 +4690,7 @@
       }
     }
     pendingSpawnWarnings.length = 0;
+    pendingSpawnWaveAnchor = null;
   }
 
   function getRocketStrikeImpactWorldPosition() {
@@ -4318,15 +4996,9 @@
   }
 
   function spawnEnemyWave() {
-    var spawnCount = getEnemySpawnWaveCount();
-    var spawnIndex;
-    var directionIndex;
-    for (spawnIndex = 0; spawnIndex < spawnCount; spawnIndex += 1) {
-      directionIndex = Math.floor(Math.random() * ENEMY_SPAWN_DIRECTION_COUNT);
-      if (!spawnEnemyFromDirection(directionIndex)) {
-        break;
-      }
-    }
+    var cluster;
+    cluster = rollEnemySpawnWaveCluster();
+    spawnEnemyWaveCluster(cluster);
   }
 
   function spawnEscortBehindTruck() {
@@ -4386,9 +5058,9 @@
     if (unit.kind === UNIT_TRUCK) {
       dropCount = 8;
     } else if (unit.kind === UNIT_BOSS_TRUCK) {
-      dropCount = getBossCrystalDropCount();
+      dropCount = getBossCrystalDropCount(unit);
     } else if (unit.team === "enemy") {
-      dropCount = getEnemyCrystalDropCount();
+      dropCount = getEnemyCrystalDropCount(unit);
     }
     dropCrystalsAt(unit.x, unit.y, dropCount, unit.team === "enemy" ? 1 : null);
     spawnDeathExplosion(unit.x, unit.y, isUnitTruckKind(unit));
@@ -4409,7 +5081,7 @@
     unit.hitFlash = 0.18;
     spawnHitSparks(hitX != null ? hitX : unit.x, hitY != null ? hitY : unit.y);
     if (unit.health <= 0) {
-      recordFriendlyUnitKillFromVictim(unit, attackerUnit);
+      recordUnitKillFromVictim(unit, attackerUnit);
       killUnit(unit);
     }
   }
@@ -4507,6 +5179,24 @@
 
   function updateCrystalCollection() {
     tryCollectCrystalsAtScreen(mouseScreenX, mouseScreenY, CRYSTAL_HOVER_RADIUS);
+  }
+
+  function updateCrystalAutoCollect(deltaSeconds) {
+    var crystal;
+    var index;
+    if (!isPlaying()) {
+      return;
+    }
+    for (index = crystals.length - 1; index >= 0; index -= 1) {
+      crystal = crystals[index];
+      if (crystal.layAge == null) {
+        crystal.layAge = 0;
+      }
+      crystal.layAge += deltaSeconds;
+      if (crystal.layAge >= CRYSTAL_AUTO_COLLECT_LAY_TIME) {
+        collectCrystalAt(index);
+      }
+    }
   }
 
   function spawnDecorationBurst(worldX, worldY, decorationKind) {
@@ -4626,8 +5316,8 @@
     var unit;
     updateSelectedUnitKeyboardMove(deltaSeconds);
     updateSelectedEscortHoldPosition();
-    updateTruckAutoEvade(deltaSeconds);
     updateTruckScreenRelativeDestinations();
+    updateTruckAutoEvade(deltaSeconds);
     updateFriendlyEscortTargets();
     enemyPathUpdateTimer -= deltaSeconds;
     if (enemyPathUpdateTimer <= 0) {
@@ -4648,7 +5338,7 @@
     }
     resolveUnitOverlaps();
     updateObstacleCollisions();
-    applyTruckMovementOffsetToSelectedDriver();
+    applyTruckMovementOffsetToSelectedEscort();
     unit = getSelectedEscortUnit();
     if (unit) {
       clampSelectedEscortWorldPosition(unit);
@@ -5116,6 +5806,7 @@
     updateProjectiles(deltaSeconds);
     updateVisualEffects(deltaSeconds);
     updateDustParticles(deltaSeconds);
+    updateCrystalAutoCollect(deltaSeconds);
     updateCrystalCollection();
     updateUnitCrystalCollection();
     updateCamera(deltaSeconds);
@@ -5164,10 +5855,25 @@
     updateTruckDamageVignette();
   }
 
-  function hitTestTruck(unit, worldX, worldY) {
+  function hitTestFriendlyTruckCapsule(unit, worldX, worldY) {
+    var capsule;
+    var capsuleRadius;
+    capsule = getFriendlyTruckCapsuleAt(unit, unit.x, unit.y);
+    capsuleRadius = capsule.radius + 10;
+    return getDistanceSquaredPointToSegment(worldX, worldY, capsule.end1X, capsule.end1Y, capsule.end2X, capsule.end2Y) <= capsuleRadius * capsuleRadius;
+  }
+
+  function hitTestEnemyTruck(unit, worldX, worldY) {
     var localX = worldX - unit.x;
     var localY = worldY - unit.y;
     return Math.abs(localX) <= unit.length * 0.52 && Math.abs(localY) <= unit.width * 0.58;
+  }
+
+  function hitTestTruck(unit, worldX, worldY) {
+    if (unit.kind === UNIT_TRUCK) {
+      return hitTestFriendlyTruckCapsule(unit, worldX, worldY);
+    }
+    return hitTestEnemyTruck(unit, worldX, worldY);
   }
 
   function hitTestUnit(screenX, screenY) {
@@ -5211,9 +5917,6 @@
     var previousUnit;
     previousSelectedId = selectedUnitId;
     previousUnit = getUnitById(previousSelectedId);
-    if (previousUnit && isUnitTruckKind(previousUnit) && (!unit || unit.id !== previousUnit.id)) {
-      clearTruckMoveCommand();
-    }
     if (previousUnit && previousUnit.kind === UNIT_ESCORT && (!unit || unit.id !== previousUnit.id)) {
       restoreEscortGuardFollow(previousUnit);
     }
@@ -5267,6 +5970,10 @@
     if (hitUnit) {
       if (hitUnit.id === selectedUnitId && hitUnit.kind === UNIT_ESCORT) {
         toggleEscortCombatMode(hitUnit);
+        return;
+      }
+      if (isUnitTruckKind(hitUnit) && hitUnit.id === selectedUnitId) {
+        setDestinationForSelected(point.x, point.y);
         return;
       }
       selectUnit(hitUnit);
@@ -6279,55 +6986,51 @@
   }
 
   function drawSpawnWarnings() {
-    var index;
-    var warning;
-    var spawnScreen;
+    var anchorScreen;
+    var angle;
+    var baseAlpha;
     var centerX = width * 0.5;
     var centerY = height * 0.5;
+    var dirLen;
     var dirX;
     var dirY;
-    var dirLen;
-    var anchor;
-    var angle;
+    var edgeAnchor;
+    var edgeBrightness;
     var progress;
     var size;
-    var baseAlpha;
-    var edgeBrightness;
     var alpha;
-    if (pendingSpawnWarnings.length === 0 || !isPlaying()) {
+    if (!pendingSpawnWaveAnchor || !isPlaying()) {
       return;
     }
-    for (index = 0; index < pendingSpawnWarnings.length; index += 1) {
-      warning = pendingSpawnWarnings[index];
-      spawnScreen = {
-        x: warning.screenX,
-        y: warning.screenY
-      };
-      dirX = spawnScreen.x - centerX;
-      dirY = spawnScreen.y - centerY;
-      dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
-      if (dirLen < 1) {
-        dirX = 1;
-        dirY = 0;
-        dirLen = 1;
-      }
-      dirX /= dirLen;
-      dirY /= dirLen;
-      anchor = getScreenEdgePointFromCenter(dirX, dirY, SPAWN_WARNING_EDGE_MARGIN);
-      angle = Math.atan2(dirY, dirX);
-      progress = warning.progress;
-      if (progress < 0) {
-        progress = 0;
-      }
-      if (progress > 1) {
-        progress = 1;
-      }
-      size = 10 + progress * 34;
-      edgeBrightness = getSpawnWarningEdgeBrightness(anchor.x, anchor.y);
-      baseAlpha = 0.28 + progress * 0.62;
-      alpha = baseAlpha * edgeBrightness;
-      drawSpawnWarningArrow(anchor.x, anchor.y, angle, size, alpha, progress);
+    anchorScreen = {
+      x: pendingSpawnWaveAnchor.screenX,
+      y: pendingSpawnWaveAnchor.screenY
+    };
+    dirX = anchorScreen.x - centerX;
+    dirY = anchorScreen.y - centerY;
+    dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
+    if (dirLen < 1) {
+      dirX = 1;
+      dirY = 0;
+      dirLen = 1;
     }
+    angle = Math.atan2(dirY / dirLen, dirX / dirLen);
+    edgeAnchor = {
+      x: anchorScreen.x,
+      y: anchorScreen.y
+    };
+    progress = pendingSpawnWaveAnchor.progress;
+    if (progress < 0) {
+      progress = 0;
+    }
+    if (progress > 1) {
+      progress = 1;
+    }
+    size = 10 + progress * 34;
+    edgeBrightness = getSpawnWarningEdgeBrightness(edgeAnchor.x, edgeAnchor.y);
+    baseAlpha = 0.28 + progress * 0.62;
+    alpha = baseAlpha * edgeBrightness;
+    drawSpawnWarningArrow(edgeAnchor.x, edgeAnchor.y, angle, size, alpha, progress);
   }
 
   function drawMineWarningSign(screenX, screenY, size, alpha, blinkOn) {
