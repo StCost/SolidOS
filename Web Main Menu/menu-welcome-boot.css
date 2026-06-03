@@ -16,6 +16,11 @@
   pointer-events: none;
 }
 
+html.menu-layouts-pending #device {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 #menuWelcomeBoot:not(.menu-welcome-boot--loading-mode) .os-statusbar {
   display: none;
 }
@@ -28,10 +33,12 @@
   min-height: 100%;
 }
 
-#menuWelcomeBoot.menu-welcome-boot--loading-mode .menu-welcome-loading-panel {
-  display: flex !important;
-}
-
 #menuWelcomeBoot:not(.menu-welcome-boot--loading-mode) .menu-welcome-loading-panel {
   display: none !important;
+}
+
+#menuWelcomeBoot.menu-welcome-boot--loading-mode .menu-welcome-loading-panel {
+  flex-shrink: 0;
+  width: min(42rem, 100%);
+  max-width: calc(100% - 2 * clamp(12px, 2.5vmin, 24px));
 }

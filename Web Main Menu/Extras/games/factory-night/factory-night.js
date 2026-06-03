@@ -10,7 +10,7 @@
   var HOUR_REAL_SECONDS = 45;
   var POWER_REPORT_GAIN = 22;
   var POWER_OUT_DRAIN_MULT = 0.08;
-  var POWER_DRAIN_USAGE_MULT = 1.75;
+  var POWER_DRAIN_USAGE_MULT = 2.65;
   var FIXED_POWER_USAGE = 1;
   var MONSTER_VIEW_DRAIN_DELAY_MS = 1000;
   var MONSTER_VIEW_DRAIN_MULT = 2.35;
@@ -1266,11 +1266,11 @@
     }
   }
 
-  function showReportedEffect() {
+  function showReportedEffect(showReportedText) {
     if (cameraViewportEl) {
       cameraViewportEl.classList.add("is-reported");
     }
-    if (cameraReportedEl) {
+    if (showReportedText && cameraReportedEl) {
       cameraReportedEl.classList.remove("is-hidden");
     }
     playReportNoise();
@@ -1296,7 +1296,7 @@
       trySaveBestCorrectReports(state.correctReports);
     }
     forceRefreshAllCameraFeeds();
-    showReportedEffect();
+    showReportedEffect(isMonster);
     updateHud();
     setMonitorVisual();
   }

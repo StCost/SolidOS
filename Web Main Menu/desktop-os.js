@@ -487,11 +487,11 @@ var WebDesktop = (function () {
   }
 
   function openLinksDesktop() {
-    openWindow("extras-links", true);
+    return openWindow("extras-links", true);
   }
 
   function openCreditsDesktop() {
-    openWindow("credits-content", true);
+    return openWindow("credits-content", true);
   }
 
   function openExtrasDesktop() {
@@ -1232,16 +1232,6 @@ var WebDesktop = (function () {
     // This makes desktop-icon-layouts-bootstrap.js able to place icons correctly on first paint.
     window.__cmIconLayoutsPayload = payload;
     writeIconLayoutsToStorage(payload);
-
-    if (!isUnityHost()) {
-      return;
-    }
-    window.vuplex.postMessage(
-      JSON.stringify({
-        eventName: "web-icon-layout-save",
-        layoutsJson: payloadJson || JSON.stringify(payload)
-      })
-    );
   }
 
   function scheduleIconLayoutsSave() {
@@ -2636,13 +2626,8 @@ var WebDesktop = (function () {
 
     loadGameDesktopLinksFromStorage();
     populateDefaultIconLayoutTable();
-    if (!isUnityHost()) {
-      mergePersistedIconLayoutPayload(readIconLayoutsFromStorage());
-      clearIconLayoutBootstrap();
-    } else {
-      mergePersistedIconLayoutPayload(getPersistedIconLayoutsPayload());
-      clearIconLayoutBootstrap();
-    }
+    mergePersistedIconLayoutPayload(getPersistedIconLayoutsPayload());
+    clearIconLayoutBootstrap();
     syncGameDesktopLinkIdsFromIconLayoutTable();
 
     var icons = desktopIconsRoot.querySelectorAll(".os-desktop-icon[data-desktop-icon]");
@@ -2725,11 +2710,16 @@ var WebDesktop = (function () {
       window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
       return;
     }
-    closeAllAppWindowsVisualOnly();
     if (routePreset && windowManager && windowManager.isDesktopWindowPreset(routePreset)) {
+      if (menuLayoutPhoneVertical) {
+        hideWindowElementVisualOnly(getWindowByPreset(WINDOW_PRESET_TITLE));
+      } else if (shouldOpenTitleWindowFromSaved()) {
+        openWindow(WINDOW_PRESET_TITLE, false);
+      }
       window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
       return;
     }
+    closeAllAppWindowsVisualOnly();
     if (menuLayoutPhoneVertical) {
       hideWindowElementVisualOnly(getWindowByPreset(WINDOW_PRESET_TITLE));
       window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));

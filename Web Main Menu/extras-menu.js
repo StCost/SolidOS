@@ -18,6 +18,7 @@
   var NAV_GAMES_FALLBACK = "Games";
   var NAV_ART_FALLBACK = "Art";
   var NAV_LINKS_FALLBACK = "Links";
+  var GAMES_WINDOW_TITLE_SEPARATOR = " - ";
 
   var currentView = VIEW_GAMES;
   var activeExtrasWindow = null;
@@ -399,6 +400,9 @@
     setNavTabActive(getTabForView(viewId));
 
     refreshScrollbars();
+    if (viewId === VIEW_GAMES || viewId === VIEW_GAME) {
+      updateAllGamesWindowTitles();
+    }
     if (playContentOpen !== false && viewChanged && activeExtrasWindow) {
       playExtrasContentBodyOpen(activeExtrasWindow);
     }
@@ -434,7 +438,7 @@
     var index;
     for (index = 0; index < games.length; index++) {
       var game = games[index];
-      var title = getLocalized(game.titleKey, game.title || game.titleFallback || game.id);
+      var title = getGameDisplayTitle(game);
       var imageSrc = game.image || "";
       var difficulty = game.difficulty || 0;
       html +=
@@ -473,6 +477,43 @@
       if (games[index].id === gameId) return games[index];
     }
     return null;
+  }
+
+  function getGamesNavLabel() {
+    return getLocalized(LOCALE_KEY_NAV_GAMES, NAV_GAMES_FALLBACK);
+  }
+
+  function getGameDisplayTitle(game) {
+    if (!game) return "";
+    return getLocalized(game.titleKey, game.title || game.titleFallback || game.id);
+  }
+
+  function buildGamesWindowTitle(gameId) {
+    var gamesLabel = getGamesNavLabel();
+    if (!gameId || currentView !== VIEW_GAME) {
+      return gamesLabel;
+    }
+    var game = findGameById(gameId);
+    if (!game) return gamesLabel;
+    var gameTitle = getGameDisplayTitle(game);
+    if (!gameTitle) return gamesLabel;
+    return gamesLabel + GAMES_WINDOW_TITLE_SEPARATOR + gameTitle;
+  }
+
+  function updateGamesWindowTitle(windowElement) {
+    var titleElement;
+    if (!windowElement) return;
+    titleElement = windowElement.querySelector("#extrasGamesTitle");
+    if (!titleElement) return;
+    titleElement.textContent = buildGamesWindowTitle(activeGameId);
+  }
+
+  function updateAllGamesWindowTitles() {
+    var windows = document.querySelectorAll('.os-window[data-wm-preset="extras-games"]');
+    var index;
+    for (index = 0; index < windows.length; index++) {
+      updateGamesWindowTitle(windows[index]);
+    }
   }
 
   function stopExtrasGameStartMusic() {
@@ -636,22 +677,16 @@
     if (game && game.inputMode === "movement") {
       return "movement";
     }
-    if (gameId === "trouble-drivers" || gameId === "sector-vector") {
+    if (gameId === "trouble-drivers" || gameId === "sector-vector" || gameId === "cargo-convoy") {
       return "movement";
     }
     return "cursor";
   }
 
   function setGameInputProfile(gameId) {
-    var inputMode = getGameInputMode(gameId);
     if (window.WebGameFrameInputHost) {
-      window.WebGameFrameInputHost.setInputMode(inputMode);
+      window.WebGameFrameInputHost.setInputMode(getGameInputMode(gameId));
     }
-    window.dispatchEvent(
-      new CustomEvent("web-extras-game-profile", {
-        detail: { gameId: gameId, inputMode: inputMode, name: gameId }
-      })
-    );
   }
 
   function syncFrameGameInputMode() {
@@ -664,9 +699,6 @@
     if (window.WebGameFrameInputHost) {
       window.WebGameFrameInputHost.setForwardingEnabled(enabled);
     }
-    window.dispatchEvent(
-      new CustomEvent("web-extras-game-input", { detail: { active: enabled } })
-    );
   }
 
   function focusGameKeyboardTarget() {
@@ -1025,9 +1057,6 @@
     activeGameId = "";
     suppressGamePickerClickUntil = Date.now() + 350;
     setGameInputForwarding(false);
-    if (window.WebGameFrameInputHost) {
-      window.WebGameFrameInputHost.setInputMode("cursor");
-    }
     if (gameFrame) gameFrame.src = "about:blank";
     showView(VIEW_GAMES);
   }

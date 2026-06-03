@@ -267,6 +267,7 @@ button {
   height: 100%;
   object-fit: cover;
   background: #050403;
+  pointer-events: none;
   transform: translate(var(--camera-pan-x), var(--camera-pan-y)) scale(var(--camera-zoom));
   transform-origin: 50% 50%;
   will-change: transform;

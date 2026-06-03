@@ -51,15 +51,6 @@
         difficulty: 4
       },
       {
-        id: "trouble-drivers",
-        title: "Trouble Drivers",
-        path: "Extras/games/trouble-drivers/index.html",
-        image: "Extras/games/trouble-drivers/trouble-drivers-preview.png",
-        desktopIcon: "Extras/games/trouble-drivers/trouble-drivers-desktop-icon.png",
-        difficulty: 5,
-        inputMode: "movement"
-      },
-      {
         id: "sector-vector",
         title: "Sector Vector",
         path: "Extras/games/sector-vector/index.html",
@@ -70,6 +61,24 @@
         startMusicPath: "ui-sector-vector-start-music.wav",
         gameplayMusicPath: "ui-sector-vector-game-music.wav",
         gameOverMusicPath: "ui-sector-vector-gameover-music.wav"
+      },
+      {
+        id: "trouble-drivers",
+        title: "Trouble Drivers",
+        path: "Extras/games/trouble-drivers/index.html",
+        image: "Extras/games/trouble-drivers/trouble-drivers-preview.png",
+        desktopIcon: "Extras/games/trouble-drivers/trouble-drivers-desktop-icon.png",
+        difficulty: 5,
+        inputMode: "movement"
+      },
+      {
+        id: "cargo-convoy",
+        title: "Cargo Convoy",
+        path: "Extras/games/cargo-convoy/index.html",
+        image: "Extras/games/cargo-convoy/cargo-convoy-preview.png",
+        desktopIcon: "Extras/games/cargo-convoy/cargo-convoy-desktop-icon.png",
+        difficulty: 5,
+        inputMode: "cursor"
       },
       {
         id: "factory-night",

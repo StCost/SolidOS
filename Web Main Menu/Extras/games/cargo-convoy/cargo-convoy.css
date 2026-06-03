@@ -1,0 +1,194 @@
+* {
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+*:focus,
+*:focus-visible,
+*:active {
+  outline: none;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #4a3828;
+  color: #fff2d8;
+  font-family: "Courier New", Courier, monospace;
+  cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+}
+
+#gameRoot {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+#gameRoot:focus {
+  outline: none;
+}
+
+#gameCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 1;
+}
+
+#truckDamageVignette {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(40, 8, 8, 0) 38%,
+    rgba(120, 16, 12, 0.55) 72%,
+    rgba(180, 24, 16, 0.78) 100%
+  );
+}
+
+#truckDamageVignette.hidden {
+  opacity: 0;
+}
+
+#hudTop {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  pointer-events: none;
+  letter-spacing: 0.12em;
+  text-shadow: 0 1px 4px rgba(40, 28, 12, 0.55);
+}
+
+#hudTop.hidden {
+  display: none;
+}
+
+.hud-stat {
+  text-align: center;
+}
+
+.hud-stat-label {
+  font-size: 0.62rem;
+  color: #d8c098;
+  letter-spacing: 0.18em;
+}
+
+.hud-stat-value {
+  font-size: 1.15rem;
+  color: #fff6e0;
+  font-weight: bold;
+}
+
+#hudBest {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  z-index: 6;
+  pointer-events: none;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  color: #c8b088;
+  text-shadow: 0 1px 4px rgba(40, 28, 12, 0.55);
+}
+
+#hudBest.is-record {
+  color: #ffe898;
+}
+
+#gameScreen {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  background: rgba(58, 44, 28, 0.38);
+  pointer-events: auto;
+}
+
+#gameScreen.hidden {
+  display: none;
+}
+
+#screenTitle {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #fff6e0;
+  text-shadow: 0 0 18px rgba(255, 210, 120, 0.55);
+}
+
+#controlHint {
+  margin: 0;
+  max-width: 88%;
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  line-height: 1.5;
+  text-align: center;
+  color: #e8d4a8;
+}
+
+#gameScreen.is-record #screenTitle {
+  color: #ffe898;
+}
+
+#gameOverScore {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.2em;
+  color: #fff6e0;
+  text-shadow: 0 0 12px rgba(255, 210, 120, 0.45);
+}
+
+#gameOverScore.hidden {
+  display: none;
+}
+
+#gameScreen.is-record #gameOverScore {
+  color: #ffe898;
+}
+
+#selectionRing {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  margin-left: -24px;
+  margin-top: -24px;
+  border: 2px dashed rgba(100, 170, 255, 0.92);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 0.12s ease, border-color 0.15s ease;
+  transform-origin: center center;
+}
+
+#selectionRing.is-truck,
+#selectionRing.is-defense {
+  border-color: rgba(100, 170, 255, 0.92);
+}
+
+#selectionRing.is-attack {
+  border-color: rgba(255, 100, 90, 0.92);
+}
+
+#selectionRing.is-visible {
+  opacity: 1;
+}
