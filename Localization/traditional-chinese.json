@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "工廠之夜",
   "web.game.factory-night.win-text": "值班結束。工廠在你離開後緩緩呼氣。",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "嘗試記錄",
+  "web.game.hackout.attempts": "嘗試次數",
+  "web.game.hackout.best": "最佳",
+  "web.game.hackout.hint": "選擇密碼。括號可移除一個干擾詞。符號為雜訊。",
+  "web.game.hackout.lose": "鎖定",
+  "web.game.hackout.lose-sub": "點擊重試",
+  "web.game.hackout.match": "符合",
+  "web.game.hackout.score": "分數",
+  "web.game.hackout.win": "存取已授權",
+  "web.game.hackout.win-sub": "點擊重試",
   "web.game.game-over": "遊戲結束",
   "web.game.game-over-menu": "開始選單",
   "web.game.game-over-retry": "再玩一次",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "製作人員",
   "web.window.extras-data": "extras.dat",
-  "yes": "是"
+  "yes": "是",
+  "web.game.notepad.brand": "工業現場日誌",
+  "web.game.notepad.placeholder": "記錄現場筆記...",
+  "web.game.notepad.title": "記事本"
 }

@@ -26,6 +26,14 @@
         difficulty: 2
       },
       {
+        id: "hackout",
+        title: "Hackout",
+        path: "Extras/games/hackout/index.html",
+        image: "Extras/games/hackout/hackout-preview.png",
+        desktopIcon: "Extras/games/hackout/hackout-desktop-icon.png",
+        difficulty: 2
+      },
+      {
         id: "last-run",
         title: "Last Run",
         path: "Extras/games/last-run/index.html",
@@ -99,6 +107,14 @@
         path: "Extras/games/calculator/index.html",
         image: "Extras/games/calculator/calculator-preview.png",
         desktopIcon: "Extras/games/calculator/calculator-desktop-icon.png",
+        difficulty: 0
+      },
+      {
+        id: "notepad",
+        title: "Notepad",
+        path: "Extras/games/notepad/index.html",
+        image: "Extras/games/notepad/notepad-preview.png",
+        desktopIcon: "Extras/games/notepad/notepad-desktop-icon.png",
         difficulty: 0
       },
     ],

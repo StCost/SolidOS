@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "공장의 밤",
   "web.game.factory-night.win-text": "근무 종료. 공장은 당신 없이 숨 쉰다.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "시도 기록",
+  "web.game.hackout.attempts": "시도",
+  "web.game.hackout.best": "최고",
+  "web.game.hackout.hint": "비밀번호를 고르세요. 괄호는 거짓 단어를 제거합니다. 기호는 잡음입니다.",
+  "web.game.hackout.lose": "잠금",
+  "web.game.hackout.lose-sub": "클릭 — 다시 시도",
+  "web.game.hackout.match": "일치",
+  "web.game.hackout.score": "점수",
+  "web.game.hackout.win": "접근 허용",
+  "web.game.hackout.win-sub": "클릭 — 다시 시도",
   "web.game.game-over": "게임 오버",
   "web.game.game-over-menu": "시작 메뉴",
   "web.game.game-over-retry": "다시 하기",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "크레딧",
   "web.window.extras-data": "extras.dat",
-  "yes": "예"
+  "yes": "예",
+  "web.game.notepad.brand": "산업 현장 로그",
+  "web.game.notepad.placeholder": "현장 메모 기록...",
+  "web.game.notepad.title": "메모장"
 }

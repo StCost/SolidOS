@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Notte in fabbrica",
   "web.game.factory-night.win-text": "Turno completato. La fabbrica espira senza di te.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "REGISTRO TENTATIVI",
+  "web.game.hackout.attempts": "TENTATIVI",
+  "web.game.hackout.best": "MIGLIORE",
+  "web.game.hackout.hint": "Scegli la password. Le parentesi rimuovono una parola falsa. I simboli sono rumore.",
+  "web.game.hackout.lose": "BLOCCO",
+  "web.game.hackout.lose-sub": "CLIC — RIPROVA",
+  "web.game.hackout.match": "CORRISPONDENZA",
+  "web.game.hackout.score": "PUNTEGGIO",
+  "web.game.hackout.win": "ACCESSO CONCESSO",
+  "web.game.hackout.win-sub": "CLIC — RIPROVA",
   "web.game.game-over": "Game over",
   "web.game.game-over-menu": "Menu iniziale",
   "web.game.game-over-retry": "Gioca di nuovo",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Crediti",
   "web.window.extras-data": "extras.dat",
-  "yes": "Sì"
+  "yes": "Sì",
+  "web.game.notepad.brand": "DIARIO DI CAMPO INDUSTRIALE",
+  "web.game.notepad.placeholder": "Registra note di campo...",
+  "web.game.notepad.title": "BLOCCHETTO"
 }

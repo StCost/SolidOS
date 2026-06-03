@@ -100,8 +100,13 @@
 
   window.addEventListener("message", onMessage);
 
+  function getStrings() {
+    return strings;
+  }
+
   window.WebLocale = {
-    get: get
+    get: get,
+    getStrings: getStrings
   };
 
   requestLocaleFromHost();

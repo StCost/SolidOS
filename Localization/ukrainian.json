@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Ніч на заводі",
   "web.game.factory-night.win-text": "Зміну завершено. Завод видихає без вас.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "ЖУРНАЛ СПРОБ",
+  "web.game.hackout.attempts": "СПРОБИ",
+  "web.game.hackout.best": "НАЙКРАЩИЙ",
+  "web.game.hackout.hint": "Оберіть пароль. Дужки прибирають зайве слово. Символи — шум.",
+  "web.game.hackout.lose": "БЛОКУВАННЯ",
+  "web.game.hackout.lose-sub": "КЛІК — ЩЕ РАЗ",
+  "web.game.hackout.match": "ЗБІГ",
+  "web.game.hackout.score": "РАХУНОК",
+  "web.game.hackout.win": "ДОСТУП ДОЗВОЛЕНО",
+  "web.game.hackout.win-sub": "КЛІК — ЩЕ РАЗ",
   "web.game.game-over": "Гра закінчена",
   "web.game.game-over-menu": "До меню",
   "web.game.game-over-retry": "Ще раз",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Автори",
   "web.window.extras-data": "extras.dat",
-  "yes": "Так"
+  "yes": "Так",
+  "web.game.notepad.brand": "ПРОМИСЛОВИЙ ПОЛЬОВИЙ ЖУРНАЛ",
+  "web.game.notepad.placeholder": "Записуйте польові нотатки...",
+  "web.game.notepad.title": "БЛОКНОТ"
 }
