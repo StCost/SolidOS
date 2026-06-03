@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Tehtaan yö",
   "web.game.factory-night.win-text": "Vuoro ohi. Tehdas hengittää ilman sinua.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "YRITYSLOKI",
+  "web.game.hackout.attempts": "YRITYKSET",
+  "web.game.hackout.best": "PARAS",
+  "web.game.hackout.hint": "Valitse salasana. Sulkeet poistavat turhan sanan. Symbolit ovat kohinaa.",
+  "web.game.hackout.lose": "LUKITTU",
+  "web.game.hackout.lose-sub": "KLIKKAA — UUDELLEEN",
+  "web.game.hackout.match": "OSUMA",
+  "web.game.hackout.score": "PISTEET",
+  "web.game.hackout.win": "PÄÄSY SALLITTU",
+  "web.game.hackout.win-sub": "KLIKKAA — UUDELLEEN",
   "web.game.game-over": "Peli ohi",
   "web.game.game-over-menu": "Aloitusvalikko",
   "web.game.game-over-retry": "Pelaa uudelleen",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Tekijät",
   "web.window.extras-data": "extras.dat",
-  "yes": "Kyllä"
+  "yes": "Kyllä",
+  "web.game.notepad.brand": "TEOLLINEN KENTTÄLOKI",
+  "web.game.notepad.placeholder": "Kirjaa kenttämuistiinpanot...",
+  "web.game.notepad.title": "MUISTIO"
 }

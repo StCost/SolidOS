@@ -1,0 +1,170 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #12161b;
+  color: #b8c4d0;
+  font-family: "Courier New", Courier, monospace;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  padding: 0.35rem;
+}
+
+.notepad-shell {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 2px solid rgba(120, 140, 160, 0.45);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 18%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0%, transparent 40%, rgba(0, 0, 0, 0.12) 100%),
+    #1a2028;
+  box-shadow:
+    inset 0 0 32px rgba(0, 0, 0, 0.45),
+    0 0 20px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.notepad-shell::before,
+.notepad-shell::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #8a96a4 0%, #3a424c 55%, #1a2028 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.notepad-shell::before {
+  top: 0.45rem;
+  left: 0.45rem;
+}
+
+.notepad-shell::after {
+  top: 0.45rem;
+  right: 0.45rem;
+}
+
+.notepad-header {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid rgba(120, 150, 180, 0.28);
+  background: rgba(16, 20, 26, 0.96);
+  flex-shrink: 0;
+}
+
+.notepad-header-brand {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  color: rgba(140, 170, 200, 0.55);
+}
+
+.notepad-header-title {
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  color: #dce8f2;
+  text-align: right;
+}
+
+.notepad-scroll {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0.65rem 0.55rem 0.85rem;
+  background:
+    radial-gradient(ellipse at top, rgba(70, 110, 150, 0.08) 0%, transparent 55%),
+    #141920;
+}
+
+.notepad-sheet {
+  position: relative;
+  width: 100%;
+  max-width: 52rem;
+  min-height: 100%;
+  margin: 0 auto;
+  border: 1px solid rgba(90, 110, 130, 0.35);
+  background:
+    linear-gradient(90deg, rgba(190, 70, 70, 0.42) 56px, transparent 57px),
+    linear-gradient(180deg, #d4dbe4 0%, #c8d0db 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.notepad-sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0,
+    transparent calc(var(--notepad-line-height, 24px) - 1px),
+    rgba(70, 110, 165, 0.34) calc(var(--notepad-line-height, 24px) - 1px),
+    rgba(70, 110, 165, 0.34) var(--notepad-line-height, 24px)
+  );
+  z-index: 0;
+}
+
+.notepad-body-input {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 0.85rem 0.55rem calc(56px + 0.85rem);
+  border: 0;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  color: #1a2430;
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: var(--notepad-line-height, 24px);
+  letter-spacing: 0.02em;
+  caret-color: #2a4560;
+  cursor: text;
+}
+
+.notepad-body-input:focus {
+  outline: none;
+}
+
+.notepad-body-input::placeholder {
+  color: rgba(70, 95, 120, 0.45);
+}
+
+.notepad-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.notepad-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.notepad-scroll::-webkit-scrollbar-thumb {
+  background: rgba(100, 130, 160, 0.45);
+  border: 2px solid rgba(0, 0, 0, 0.15);
+}

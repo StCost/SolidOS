@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Нощ във фабриката",
   "web.game.factory-night.win-text": "Смяната приключи. Фабриката издиша без теб.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "ДНЕВНИК ОПИТИ",
+  "web.game.hackout.attempts": "ОПИТИ",
+  "web.game.hackout.best": "НАЙ-ДОБЪР",
+  "web.game.hackout.hint": "Изберете парола. Скобите премахват излишна дума. Символите са шум.",
+  "web.game.hackout.lose": "БЛОКИРАНЕ",
+  "web.game.hackout.lose-sub": "КЛИК — ОТНОВО",
+  "web.game.hackout.match": "СЪВПАДЕНИЕ",
+  "web.game.hackout.score": "РЕЗУЛТАТ",
+  "web.game.hackout.win": "ДОСТЪП РАЗРЕШЕН",
+  "web.game.hackout.win-sub": "КЛИК — ОТНОВО",
   "web.game.game-over": "Край на играта",
   "web.game.game-over-menu": "Начално меню",
   "web.game.game-over-retry": "Играй отново",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Екип",
   "web.window.extras-data": "extras.dat",
-  "yes": "Да"
+  "yes": "Да",
+  "web.game.notepad.brand": "ИНДУСТРИАЛЕН ПОЛЕВИ ЖУРНАЛ",
+  "web.game.notepad.placeholder": "Записвайте полеви бележки...",
+  "web.game.notepad.title": "БЕЛЕЖНИК"
 }

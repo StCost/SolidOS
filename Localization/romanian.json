@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Noapte la fabrică",
   "web.game.factory-night.win-text": "Tura s-a terminat. Fabrica expiră fără tine.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "JURNAL ÎNCERCĂRI",
+  "web.game.hackout.attempts": "ÎNCERCĂRI",
+  "web.game.hackout.best": "CEL MAI BUN",
+  "web.game.hackout.hint": "Alege parola. Parantezele elimină un cuvânt fals. Simbolurile sunt zgomot.",
+  "web.game.hackout.lose": "BLOCAT",
+  "web.game.hackout.lose-sub": "CLIC — DIN NOU",
+  "web.game.hackout.match": "POTRIVIRE",
+  "web.game.hackout.score": "SCOR",
+  "web.game.hackout.win": "ACCES ACORDAT",
+  "web.game.hackout.win-sub": "CLIC — DIN NOU",
   "web.game.game-over": "Joc terminat",
   "web.game.game-over-menu": "Meniu start",
   "web.game.game-over-retry": "Joacă din nou",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Credite",
   "web.window.extras-data": "extras.dat",
-  "yes": "Da"
+  "yes": "Da",
+  "web.game.notepad.brand": "JURNAL DE TEREN INDUSTRIAL",
+  "web.game.notepad.placeholder": "Înregistrați notițe de teren...",
+  "web.game.notepad.title": "NOTIȚE"
 }

@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "工場の夜",
   "web.game.factory-night.win-text": "シフト完了。工場はあなたなしで息をする。",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "試行ログ",
+  "web.game.hackout.attempts": "試行回数",
+  "web.game.hackout.best": "ベスト",
+  "web.game.hackout.hint": "パスワードを選ぶ。括弧はダミーを除去。記号はノイズ。",
+  "web.game.hackout.lose": "ロックアウト",
+  "web.game.hackout.lose-sub": "クリックで再試行",
+  "web.game.hackout.match": "一致",
+  "web.game.hackout.score": "スコア",
+  "web.game.hackout.win": "アクセス許可",
+  "web.game.hackout.win-sub": "クリックで再試行",
   "web.game.game-over": "ゲームオーバー",
   "web.game.game-over-menu": "スタートメニュー",
   "web.game.game-over-retry": "もう一度",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "クレジット",
   "web.window.extras-data": "extras.dat",
-  "yes": "はい"
+  "yes": "はい",
+  "web.game.notepad.brand": "工業現場ログ",
+  "web.game.notepad.placeholder": "現場メモを記録...",
+  "web.game.notepad.title": "メモ帳"
 }

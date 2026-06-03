@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "คืนที่โรงงาน",
   "web.game.factory-night.win-text": "จบกะแล้ว โรงงานหายใจโดยไม่มีคุณ",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "บันทึกความพยายาม",
+  "web.game.hackout.attempts": "ความพยายาม",
+  "web.game.hackout.best": "ดีที่สุด",
+  "web.game.hackout.hint": "เลือกรหัสผ่าน วงเล็บลบคำหลอก สัญลักษณ์คือสัญญาณรบกวน",
+  "web.game.hackout.lose": "ล็อก",
+  "web.game.hackout.lose-sub": "คลิก — ลองอีกครั้ง",
+  "web.game.hackout.match": "ตรงกัน",
+  "web.game.hackout.score": "คะแนน",
+  "web.game.hackout.win": "อนุญาตการเข้าถึง",
+  "web.game.hackout.win-sub": "คลิก — ลองอีกครั้ง",
   "web.game.game-over": "จบเกม",
   "web.game.game-over-menu": "เมนูเริ่มต้น",
   "web.game.game-over-retry": "เล่นอีกครั้ง",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "เครดิต",
   "web.window.extras-data": "extras.dat",
-  "yes": "ใช่"
+  "yes": "ใช่",
+  "web.game.notepad.brand": "บันทึกภาคสนามอุตสาหกรรม",
+  "web.game.notepad.placeholder": "บันทึกโน้ตภาคสนาม...",
+  "web.game.notepad.title": "สมุดบันทึก"
 }

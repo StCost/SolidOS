@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Fabriksnat",
   "web.game.factory-night.win-text": "Vagten er slut. Fabrikken ånder uden dig.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "FORSØGSLOG",
+  "web.game.hackout.attempts": "FORSØG",
+  "web.game.hackout.best": "BEDSTE",
+  "web.game.hackout.hint": "Vælg en adgangskode. Klammer fjerner et falsk ord. Symboler er støj.",
+  "web.game.hackout.lose": "LÅST UDE",
+  "web.game.hackout.lose-sub": "KLIK — PRØV IGEN",
+  "web.game.hackout.match": "MATCH",
+  "web.game.hackout.score": "SCORE",
+  "web.game.hackout.win": "ADGANG GODKENDT",
+  "web.game.hackout.win-sub": "KLIK — PRØV IGEN",
   "web.game.game-over": "Spillet er slut",
   "web.game.game-over-menu": "Startmenu",
   "web.game.game-over-retry": "Spil igen",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Credits",
   "web.window.extras-data": "extras.dat",
-  "yes": "Ja"
+  "yes": "Ja",
+  "web.game.notepad.brand": "INDUSTRIELT FELTLOG",
+  "web.game.notepad.placeholder": "Optag feltnotater...",
+  "web.game.notepad.title": "NOTATBLOK"
 }

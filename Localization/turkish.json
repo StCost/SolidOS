@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Fabrika gecesi",
   "web.game.factory-night.win-text": "Vardiya bitti. Fabrika sensiz nefes veriyor.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "DENEME GÜNLÜĞÜ",
+  "web.game.hackout.attempts": "DENEMELER",
+  "web.game.hackout.best": "EN İYİ",
+  "web.game.hackout.hint": "Parolayı seç. Parantezler sahte kelimeyi kaldırır. Semboller gürültüdür.",
+  "web.game.hackout.lose": "KİLİT",
+  "web.game.hackout.lose-sub": "TIKLA — TEKRAR",
+  "web.game.hackout.match": "EŞLEŞME",
+  "web.game.hackout.score": "SKOR",
+  "web.game.hackout.win": "ERİŞİM VERİLDİ",
+  "web.game.hackout.win-sub": "TIKLA — TEKRAR",
   "web.game.game-over": "Oyun bitti",
   "web.game.game-over-menu": "Başlangıç menüsü",
   "web.game.game-over-retry": "Tekrar oyna",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Jenerik",
   "web.window.extras-data": "extras.dat",
-  "yes": "Evet"
+  "yes": "Evet",
+  "web.game.notepad.brand": "ENDÜSTRİYEL SAHA GÜNLÜĞÜ",
+  "web.game.notepad.placeholder": "Saha notlarını kaydedin...",
+  "web.game.notepad.title": "NOT DEFTERİ"
 }
