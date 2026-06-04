@@ -510,9 +510,13 @@
     return window.WebMenuMode === "game";
   }
 
+  function isWebFakeConnectHud() {
+    return document.documentElement.classList.contains("web-fake-connect-active");
+  }
+
   function setGameplayHudLayerActive(active) {
     var hudRoot = gameHudRootElement || document.getElementById("gameHudRoot");
-    var layerActive = active === true && isGameMenuMode();
+    var layerActive = active === true && (isGameMenuMode() || isWebFakeConnectHud());
     if (hudRoot) {
       hudRoot.classList.toggle("game-hud--layer-active", layerActive);
       hudRoot.setAttribute("aria-hidden", layerActive ? "false" : "true");
@@ -736,9 +740,23 @@
     chatIdleHideTimer = null;
   }
 
+  function setChatOpenUnfocusedInWeb() {
+    if (!chatOpen) {
+      chatOpen = true;
+      applyChatOpenState();
+    }
+    if (chatFocused) {
+      setChatFocused(false);
+    }
+  }
+
   function scheduleChatIdleHide() {
     if (chatInputSession) return;
     clearChatIdleHideTimer();
+    if (!isUnityHost()) {
+      setChatOpenUnfocusedInWeb();
+      return;
+    }
     chatIdleHideTimer = setTimeout(function () {
       chatIdleHideTimer = null;
       if (chatInputSession) return;
@@ -921,7 +939,7 @@
         chatInputElement.blur();
       }
       applyChatOpenState();
-      if (!chatInputSession && chatOpen) {
+      if (isUnityHost() && !chatInputSession && chatOpen) {
         scheduleChatIdleHide();
       }
     } else {
@@ -1058,11 +1076,6 @@
     }
     if (targetTag === "input" || targetTag === "textarea") return;
 
-    if (event.key === "t" || event.key === "T") {
-      event.preventDefault();
-      setChatInputSession(true);
-      return;
-    }
     if (event.key === "/") {
       event.preventDefault();
       setChatInputSession(true);
@@ -1100,7 +1113,7 @@
     document.documentElement.classList.add("web-standalone");
     document.addEventListener("keydown", onStandaloneDocumentKeyDown);
     openChatByDefault();
-    addChatMessage("<color=yellow>[Web preview]</color> Press T or Enter to type. / for commands.");
+    addChatMessage("<color=yellow>[Web preview]</color> Press Enter to type. / for commands.");
   }
 
   function bindDom() {

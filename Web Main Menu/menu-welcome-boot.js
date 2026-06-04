@@ -48,6 +48,8 @@
 
   var contentReady = false;
 
+  var loadingDestinationHeader = "";
+
 
 
   function isUnityHost() {
@@ -321,12 +323,15 @@
     if (!titleElement) {
       bindLoadingElements();
     }
-    if (payload.header != null && payload.header !== "") {
-      if (titleElement) {
-        titleElement.textContent = payload.header;
+    if (Object.prototype.hasOwnProperty.call(payload, "header")) {
+      loadingDestinationHeader = payload.header || "";
+    }
+    if (titleElement) {
+      if (loadingDestinationHeader) {
+        titleElement.textContent = loadingDestinationHeader;
+      } else {
+        titleElement.textContent = "loading.sys";
       }
-    } else if (titleElement) {
-      titleElement.textContent = "loading.sys";
     }
     if (payload.text != null) {
 
@@ -388,7 +393,9 @@
 
       text: getBootText(clampedIndex),
 
-      progress: getProgressForStep(clampedIndex)
+      progress: getProgressForStep(clampedIndex),
+
+      header: loadingDestinationHeader
 
     });
 
@@ -657,6 +664,10 @@
 
     setDeviceBootPending(true);
 
+    if (!isUnityHost() && window.WebMenuLayers && window.WebMenuLayers.setActiveLayer) {
+      window.WebMenuLayers.setActiveLayer(window.WebMenuLayers.LAYER_LOADING);
+    }
+
 
 
     var stepIndex = 0;
@@ -665,25 +676,31 @@
 
 
 
+    function finishFakeConnect() {
+
+      unityControlledLoading = false;
+
+      dismiss();
+
+      if (!isUnityHost() && window.WebFakeConnectDemo && window.WebFakeConnectDemo.onLoadingComplete) {
+        window.WebFakeConnectDemo.onLoadingComplete();
+      } else {
+        openLinksAfterFakeConnect();
+      }
+
+      if (onComplete) {
+        onComplete();
+      }
+
+    }
+
+
+
     function advanceStep() {
 
       if (stepIndex >= BOOT_STEP_COUNT - 1) {
 
-        window.setTimeout(function () {
-
-          unityControlledLoading = false;
-
-          dismiss();
-
-          openLinksAfterFakeConnect();
-
-          if (onComplete) {
-
-            onComplete();
-
-          }
-
-        }, FAKE_CONNECT_STEP_MS);
+        window.setTimeout(finishFakeConnect, FAKE_CONNECT_STEP_MS);
 
         return;
 
