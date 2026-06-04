@@ -6,6 +6,7 @@
   <title>Citrus Slice</title>
   <script src="../iframe-game-locale.js"></script>
   <script src="../iframe-game-input.js"></script>
+  <script src="../iframe-game-audio-volume.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -601,6 +602,23 @@
       }
     }
 
+    function getArcadeAudioVolume() {
+      if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume) {
+        return window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume();
+      }
+      return 0.5;
+    }
+
+    function updateArcadeMasterGain() {
+      var arcadeVolume;
+      if (!audioContext || !audioSliceGain || !audioBombGain) {
+        return;
+      }
+      arcadeVolume = getArcadeAudioVolume();
+      audioSliceGain.gain.value = arcadeVolume;
+      audioBombGain.gain.value = arcadeVolume;
+    }
+
     function initAudio() {
       if (audioContext) return;
       try {
@@ -609,10 +627,12 @@
           audioContext = new AudioCtx();
           audioSliceGain = audioContext.createGain();
           audioBombGain = audioContext.createGain();
-          audioSliceGain.gain.value = 1;
-          audioBombGain.gain.value = 1;
           audioSliceGain.connect(audioContext.destination);
           audioBombGain.connect(audioContext.destination);
+          updateArcadeMasterGain();
+          if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.bindArcadeVolumeChangeListener) {
+            window.WebExtrasGameAudioVolume.bindArcadeVolumeChangeListener(updateArcadeMasterGain);
+          }
         }
       } catch (ignored) {}
     }
@@ -683,11 +703,12 @@
         audioContext.resume();
       }
       var now = audioContext.currentTime;
+      var arcadeVolume = getArcadeAudioVolume();
       bombSoundLockUntil = now + BOMB_SOUND_LOCK_SEC;
       audioSliceGain.gain.cancelScheduledValues(now);
       audioSliceGain.gain.setValueAtTime(audioSliceGain.gain.value, now);
-      audioSliceGain.gain.linearRampToValueAtTime(0.04, now + 0.03);
-      audioSliceGain.gain.linearRampToValueAtTime(1, now + BOMB_SOUND_LOCK_SEC);
+      audioSliceGain.gain.linearRampToValueAtTime(0.04 * arcadeVolume, now + 0.03);
+      audioSliceGain.gain.linearRampToValueAtTime(arcadeVolume, now + BOMB_SOUND_LOCK_SEC);
       var oscillator = audioContext.createOscillator();
       var gainNode = audioContext.createGain();
       oscillator.type = "sawtooth";

@@ -330,6 +330,15 @@
   var SYNTH_HEAL_INTERVAL = 0.07;
   var SYNTH_DEATH_INTERVAL = 0.06;
   var SYNTH_TEAM_FRIENDLY = "friendly";
+  var SYNTH_QUIETER_DECIBELS = 5;
+  var SYNTH_QUIETER_GAIN = Math.pow(10, -SYNTH_QUIETER_DECIBELS / 20);
+
+  function scaleSynthPeakGain(peakGain) {
+    if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.scalePeakGain) {
+      return window.WebExtrasGameAudioVolume.scalePeakGain(peakGain);
+    }
+    return peakGain * 0.5;
+  }
 
   function ensureSynthAudioContext() {
     try {
@@ -373,7 +382,7 @@
     if (Math.abs(endFreq - startFrequency) > 0.5) {
       oscillator.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
     }
-    scheduleSynthGainEnvelope(gainNode, peakGain, now, 0.008, duration);
+    scheduleSynthGainEnvelope(gainNode, scaleSynthPeakGain(peakGain), now, 0.008, duration);
     oscillator.connect(gainNode);
     gainNode.connect(context.destination);
     oscillator.start(now);
@@ -401,7 +410,7 @@
     noiseSource = context.createBufferSource();
     noiseSource.buffer = noiseBuffer;
     noiseGain = context.createGain();
-    scheduleSynthGainEnvelope(noiseGain, peakGain, now, 0.004, duration);
+    scheduleSynthGainEnvelope(noiseGain, scaleSynthPeakGain(peakGain), now, 0.004, duration);
     noiseSource.connect(noiseGain);
     noiseGain.connect(context.destination);
     noiseSource.start(now);
@@ -420,7 +429,7 @@
       peakGain = 0.06;
       startFrequency = 880;
     }
-    playSynthOscillatorBurst("square", startFrequency, 220, peakGain, 0.08);
+    playSynthOscillatorBurst("square", startFrequency, 220, peakGain * SYNTH_QUIETER_GAIN, 0.08);
   }
 
   function playSynthLaserBurst(team) {
@@ -433,7 +442,7 @@
     if (team === SYNTH_TEAM_FRIENDLY) {
       peakGain = 0.062;
     }
-    playSynthOscillatorBurst("sawtooth", 640, 420, peakGain, 0.1);
+    playSynthOscillatorBurst("sawtooth", 640, 420, peakGain * SYNTH_QUIETER_GAIN, 0.1);
   }
 
   function playSynthHealBurst() {
@@ -466,7 +475,7 @@
   }
 
   function playSynthCollect() {
-    playSynthOscillatorBurst("sine", 520, 980, 0.07, 0.14);
+    playSynthOscillatorBurst("sine", 520, 980, 0.07 * SYNTH_QUIETER_GAIN, 0.14);
   }
 
   function playSynthEscortSpawnSecondBlip() {

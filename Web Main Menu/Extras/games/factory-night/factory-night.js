@@ -1244,7 +1244,12 @@
     var oscillator;
     var gainNode;
     var now;
+    var arcadeVolume;
     try {
+      arcadeVolume = 0.5;
+      if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume) {
+        arcadeVolume = window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume();
+      }
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
       }
@@ -1255,7 +1260,7 @@
       gainNode = audioContext.createGain();
       oscillator.type = "sawtooth";
       oscillator.frequency.value = 90 + Math.random() * 40;
-      gainNode.gain.value = 0.08;
+      gainNode.gain.value = 0.08 * arcadeVolume;
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       now = audioContext.currentTime;
@@ -1353,7 +1358,12 @@
     var noiseBuffer;
     var noiseSource;
     var now;
+    var arcadeVolume;
     try {
+      arcadeVolume = 0.5;
+      if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume) {
+        arcadeVolume = window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume();
+      }
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
       }
@@ -1366,7 +1376,7 @@
       oscillator.type = "sawtooth";
       oscillator.frequency.setValueAtTime(220, now);
       oscillator.frequency.exponentialRampToValueAtTime(55, now + 0.45);
-      gainNode.gain.setValueAtTime(0.2, now);
+      gainNode.gain.setValueAtTime(0.2 * arcadeVolume, now);
       gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
@@ -1381,7 +1391,7 @@
       noiseSource = audioContext.createBufferSource();
       noiseSource.buffer = noiseBuffer;
       var noiseGain = audioContext.createGain();
-      noiseGain.gain.setValueAtTime(0.12, now);
+      noiseGain.gain.setValueAtTime(0.12 * arcadeVolume, now);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
       noiseSource.connect(noiseGain);
       noiseGain.connect(audioContext.destination);
