@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Noc w fabryce",
   "web.game.factory-night.win-text": "Zmiana zakończona. Fabryka oddycha bez ciebie.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "DZIENNIK PRÓB",
+  "web.game.hackout.attempts": "PRÓBY",
+  "web.game.hackout.best": "NAJLEPSZY",
+  "web.game.hackout.hint": "Wybierz hasło. Nawiasy usuwają fałszywe słowo. Symbole to szum.",
+  "web.game.hackout.lose": "BLOKADA",
+  "web.game.hackout.lose-sub": "KLIK — PONÓW",
+  "web.game.hackout.match": "ZGODNOŚĆ",
+  "web.game.hackout.score": "WYNIK",
+  "web.game.hackout.win": "DOSTĘP PRZYZNANY",
+  "web.game.hackout.win-sub": "KLIK — PONÓW",
   "web.game.game-over": "Koniec gry",
   "web.game.game-over-menu": "Menu startowe",
   "web.game.game-over-retry": "Zagraj ponownie",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Autorzy",
   "web.window.extras-data": "extras.dat",
-  "yes": "Tak"
+  "yes": "Tak",
+  "web.game.notepad.brand": "PRZEMYSŁOWY DZIENNIK POLOWY",
+  "web.game.notepad.placeholder": "Zapisuj notatki terenowe...",
+  "web.game.notepad.title": "NOTATNIK"
 }

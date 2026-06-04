@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Noche en la fábrica",
   "web.game.factory-night.win-text": "Turno completado. La fábrica exhala sin ti.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "REGISTRO DE INTENTOS",
+  "web.game.hackout.attempts": "INTENTOS",
+  "web.game.hackout.best": "MEJOR",
+  "web.game.hackout.hint": "Elige la contraseña. Los corchetes eliminan una palabra falsa. Los símbolos son ruido.",
+  "web.game.hackout.lose": "BLOQUEO",
+  "web.game.hackout.lose-sub": "CLIC — REINTENTAR",
+  "web.game.hackout.match": "COINCIDENCIA",
+  "web.game.hackout.score": "PUNTAJE",
+  "web.game.hackout.win": "ACCESO CONCEDIDO",
+  "web.game.hackout.win-sub": "CLIC — REINTENTAR",
   "web.game.game-over": "Fin del juego",
   "web.game.game-over-menu": "Menú inicial",
   "web.game.game-over-retry": "Jugar de nuevo",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Créditos",
   "web.window.extras-data": "extras.dat",
-  "yes": "Sí"
+  "yes": "Sí",
+  "web.game.notepad.brand": "REGISTRO DE CAMPO INDUSTRIAL",
+  "web.game.notepad.placeholder": "Registra notas de campo...",
+  "web.game.notepad.title": "BLOC DE NOTAS"
 }

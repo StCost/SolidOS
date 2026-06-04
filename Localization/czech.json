@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Tovární noc",
   "web.game.factory-night.win-text": "Směna dokončena. Fabrika vydechuje bez vás.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "PROTOKOL POKUSŮ",
+  "web.game.hackout.attempts": "POKUSY",
+  "web.game.hackout.best": "NEJLEPŠÍ",
+  "web.game.hackout.hint": "Vyberte heslo. Závorky odstraní falešné slovo. Symboly jsou šum.",
+  "web.game.hackout.lose": "UZAMČENO",
+  "web.game.hackout.lose-sub": "KLIKNĚTE — ZNOVU",
+  "web.game.hackout.match": "SHODA",
+  "web.game.hackout.score": "SKÓRE",
+  "web.game.hackout.win": "PŘÍSTUP POVOLEN",
+  "web.game.hackout.win-sub": "KLIKNĚTE — ZNOVU",
   "web.game.game-over": "Konec hry",
   "web.game.game-over-menu": "Startovní menu",
   "web.game.game-over-retry": "Hrát znovu",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Titulky",
   "web.window.extras-data": "extras.dat",
-  "yes": "Ano"
+  "yes": "Ano",
+  "web.game.notepad.brand": "PRŮMYSLÝ POLNÍ DENÍK",
+  "web.game.notepad.placeholder": "Zapisujte polní poznámky...",
+  "web.game.notepad.title": "POZNÁMKOVÝ BLOK"
 }

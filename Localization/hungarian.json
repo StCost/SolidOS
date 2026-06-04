@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Gyári éjszaka",
   "web.game.factory-night.win-text": "Műszak vége. A gyár nélküled lélegzik.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "KÍSÉRLETNAPLÓ",
+  "web.game.hackout.attempts": "KÍSÉRLETEK",
+  "web.game.hackout.best": "LEGJOBB",
+  "web.game.hackout.hint": "Válaszd ki a jelszót. A zárójelek eltávolítanak egy hamis szót. A szimbólumok zajok.",
+  "web.game.hackout.lose": "ZÁROLVA",
+  "web.game.hackout.lose-sub": "KATT — ÚJRA",
+  "web.game.hackout.match": "EGYEZÉS",
+  "web.game.hackout.score": "PONTSZÁM",
+  "web.game.hackout.win": "HOZZÁFÉRÉS ENGEDÉLYEZVE",
+  "web.game.hackout.win-sub": "KATT — ÚJRA",
   "web.game.game-over": "Játék vége",
   "web.game.game-over-menu": "Kezdőmenü",
   "web.game.game-over-retry": "Újra",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Stáblista",
   "web.window.extras-data": "extras.dat",
-  "yes": "Igen"
+  "yes": "Igen",
+  "web.game.notepad.brand": "IPARI TEREPI NAPLÓ",
+  "web.game.notepad.placeholder": "Jegyezze fel a terepi jegyzeteket...",
+  "web.game.notepad.title": "JEGYZETFÜZET"
 }

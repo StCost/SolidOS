@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Fabrieksnacht",
   "web.game.factory-night.win-text": "Dienst voorbij. De fabriek ademt zonder jou.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "POGINGENLOG",
+  "web.game.hackout.attempts": "POGINGEN",
+  "web.game.hackout.best": "BESTE",
+  "web.game.hackout.hint": "Kies een wachtwoord. Haken verwijderen een fout woord. Symbolen zijn ruis.",
+  "web.game.hackout.lose": "VERGRENDELD",
+  "web.game.hackout.lose-sub": "KLIK — OPNIEUW",
+  "web.game.hackout.match": "MATCH",
+  "web.game.hackout.score": "SCORE",
+  "web.game.hackout.win": "TOEGANG VERLEEND",
+  "web.game.hackout.win-sub": "KLIK — OPNIEUW",
   "web.game.game-over": "Game over",
   "web.game.game-over-menu": "Startmenu",
   "web.game.game-over-retry": "Opnieuw spelen",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Credits",
   "web.window.extras-data": "extras.dat",
-  "yes": "Ja"
+  "yes": "Ja",
+  "web.game.notepad.brand": "INDUSTRIEEL VELDLOGBOEK",
+  "web.game.notepad.placeholder": "Noteer veldobservaties...",
+  "web.game.notepad.title": "NOTITIEBLOK"
 }
