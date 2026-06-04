@@ -10,6 +10,7 @@
   padding-top: 0;
   padding-bottom: 0;
   padding-right: 0;
+  overflow: visible;
 }
 
 .os-shell--desktop .os-statusbar--bottom .os-statusbar-segment {
@@ -48,17 +49,20 @@
 }
 
 .os-shell--desktop .os-statusbar-windows-toggle.os-window-control {
+  box-sizing: content-box;
   width: 8px;
   min-width: 8px;
   height: auto;
   align-self: stretch;
   flex-shrink: 0;
-  margin: 0;
-  padding: 0;
+  margin: 0 -8px -8px 0;
+  padding: 0 8px 8px 0;
   border: none;
   border-left: 1px solid rgba(255, 128, 0, 0.35);
   border-radius: 0;
   background: transparent;
+  position: relative;
+  z-index: 1;
 }
 
 .os-shell--desktop .os-statusbar-windows-toggle.os-window-control:hover,
@@ -71,9 +75,6 @@
   background: rgba(255, 128, 0, 0.34);
 }
 
-.os-shell--desktop .os-statusbar--bottom .os-statusbar-windows-toggle.os-window-control {
-  margin-left: 0;
-}
 
 .os-shell--desktop .os-statusbar-windows-toggle.os-window-control[data-wm-windows-toggle="restore"] {
   background: rgba(255, 128, 0, 0.14);
