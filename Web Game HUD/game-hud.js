@@ -875,6 +875,9 @@
     if (payload.inputText != null && chatInputElement) {
       chatInputElement.value = String(payload.inputText);
     }
+    if (payload.flash) {
+      showChatPanelTransient();
+    }
     if (chatInputSession && chatInputElement && document.activeElement !== chatInputElement) {
       refocusChatInputIfSession();
     }
@@ -967,6 +970,7 @@
         return;
       }
       setChatInputSession(false);
+      setChatState({ open: true, focused: false, clearInput: true });
     }
   }
 
@@ -978,6 +982,13 @@
       return;
     }
     setChatInputSession(true);
+  }
+
+  function onChatInputFocused() {
+    if (!window.WebGameHudCursorBridge || !window.WebGameHudCursorBridge.notifyChatInputFocused) {
+      return;
+    }
+    window.WebGameHudCursorBridge.notifyChatInputFocused();
   }
 
   function onStandaloneDocumentKeyDown(event) {
@@ -1018,6 +1029,7 @@
     chatBindingsReady = true;
     chatInputElement.addEventListener("keydown", onChatInputKeyDown);
     chatInputElement.addEventListener("mousedown", onChatInputMouseDown);
+    chatInputElement.addEventListener("focus", onChatInputFocused);
     chatInputElement.addEventListener("blur", refocusChatInputIfSession);
     if (chatInputRowElement) {
       chatInputRowElement.addEventListener("mousedown", onChatInputMouseDown);
@@ -1042,6 +1054,9 @@
     document.documentElement.classList.add("web-standalone");
     document.addEventListener("keydown", onStandaloneDocumentKeyDown);
     openChatByDefault();
+    if (gameHudRootElement) {
+      gameHudRootElement.classList.add("game-hud--chat-interactive");
+    }
     addChatMessage("<color=yellow>[Web preview]</color> Press T or Enter to type. / for commands.");
   }
 

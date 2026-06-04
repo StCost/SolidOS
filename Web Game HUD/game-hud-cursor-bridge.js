@@ -296,13 +296,29 @@
 
 
 
+  function notifyChatInputFocused() {
+
+    if (!unityCursorEnabled) {
+
+      return;
+
+    }
+
+    postCursorToken("text");
+
+  }
+
+
+
   window.WebGameHudCursorBridge = {
 
     setUnityCursorEnabled: setUnityCursorEnabled,
 
     getTokenAtPoint: getTokenAtPoint,
 
-    updateFromPoint: updateFromPoint
+    updateFromPoint: updateFromPoint,
+
+    notifyChatInputFocused: notifyChatInputFocused
 
   };
 
