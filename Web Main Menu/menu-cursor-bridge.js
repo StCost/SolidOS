@@ -144,7 +144,7 @@
       if (element.classList) {
         if (element.classList.contains("os-window-control")) {
           if (element.disabled) {
-            return "default";
+            return "forbidden";
           }
           return "pointer";
         }

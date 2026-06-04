@@ -5,10 +5,9 @@
 
   var DEMO_PRESET = "web-fake-connect-demo";
   var DEMO_CLOSE_EVENT = "web-wm-no-save-close";
-  var DEMO_WINDOW_WIDTH_PX = 704;
-  var DEMO_WINDOW_HEIGHT_FALLBACK_PX = 640;
+  var DEMO_WINDOW_WIDTH_FALLBACK_PX = 704;
+  var DEMO_WINDOW_HEIGHT_FALLBACK_PX = 600;
   var DEMO_WINDOW_INSET_PX = 24;
-  var DEMO_WINDOW_MEASURE_CLASS = "web-fake-connect-demo-panel--measure";
   var DEMO_HOTBAR_SLOT_COUNT = 12;
 
   var demoHostElement = null;
@@ -125,44 +124,43 @@
     return { width: rect.width, height: rect.height };
   }
 
-  function measureDemoWindowHeight(targetWidth) {
-    if (!demoPanelElement) return DEMO_WINDOW_HEIGHT_FALLBACK_PX;
-
-    var previousLeft = demoPanelElement.style.left;
-    var previousTop = demoPanelElement.style.top;
-    var previousWidth = demoPanelElement.style.width;
-    var previousHeight = demoPanelElement.style.height;
-    var previousMaxHeight = demoPanelElement.style.maxHeight;
-    var previousVisibility = demoPanelElement.style.visibility;
-
-    demoPanelElement.classList.add(DEMO_WINDOW_MEASURE_CLASS);
-    demoPanelElement.style.visibility = "hidden";
-    demoPanelElement.style.left = "-10000px";
-    demoPanelElement.style.top = "0";
-    demoPanelElement.style.width = String(targetWidth) + "px";
-    demoPanelElement.style.height = "auto";
-    demoPanelElement.style.maxHeight = "none";
-
-    var measuredHeight = demoPanelElement.offsetHeight;
-
-    demoPanelElement.classList.remove(DEMO_WINDOW_MEASURE_CLASS);
-    demoPanelElement.style.left = previousLeft;
-    demoPanelElement.style.top = previousTop;
-    demoPanelElement.style.width = previousWidth;
-    demoPanelElement.style.height = previousHeight;
-    demoPanelElement.style.maxHeight = previousMaxHeight;
-    demoPanelElement.style.visibility = previousVisibility;
-
-    if (!measuredHeight || measuredHeight < 240) {
-      return DEMO_WINDOW_HEIGHT_FALLBACK_PX;
+  function parseCssLengthPx(valueText, fallbackPx) {
+    if (!valueText) {
+      return fallbackPx;
     }
-    return measuredHeight;
+    var parsed = parseFloat(valueText);
+    if (!parsed || parsed <= 0) {
+      return fallbackPx;
+    }
+    return parsed;
+  }
+
+  function getDemoWindowDefaultSizePx() {
+    bindDemoElements();
+    if (!demoPanelElement) {
+      return {
+        width: DEMO_WINDOW_WIDTH_FALLBACK_PX,
+        height: DEMO_WINDOW_HEIGHT_FALLBACK_PX
+      };
+    }
+    var styles = window.getComputedStyle(demoPanelElement);
+    return {
+      width: parseCssLengthPx(
+        styles.getPropertyValue("--web-fake-connect-demo-width"),
+        DEMO_WINDOW_WIDTH_FALLBACK_PX
+      ),
+      height: parseCssLengthPx(
+        styles.getPropertyValue("--web-fake-connect-demo-height"),
+        DEMO_WINDOW_HEIGHT_FALLBACK_PX
+      )
+    };
   }
 
   function setDemoWindowGeometry() {
     var bounds = getDemoWorkspaceBounds();
-    var windowWidth = DEMO_WINDOW_WIDTH_PX;
-    var windowHeight = measureDemoWindowHeight(windowWidth);
+    var defaultSize = getDemoWindowDefaultSizePx();
+    var windowWidth = defaultSize.width;
+    var windowHeight = defaultSize.height;
     var maxWidth = bounds.width - DEMO_WINDOW_INSET_PX * 2;
     var maxHeight = bounds.height - DEMO_WINDOW_INSET_PX * 2;
 

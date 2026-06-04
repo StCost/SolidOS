@@ -214,6 +214,30 @@
 
 
 
+  function setLoadingPanelControlsDisabled(disabled) {
+    if (!loadingPanelElement) {
+      loadingPanelElement = document.getElementById("menuWelcomeLoadingPanel");
+    }
+    if (!loadingPanelElement) return;
+
+    var controlsElement = loadingPanelElement.querySelector(".os-window-controls");
+    if (!controlsElement) return;
+
+    var buttons = controlsElement.querySelectorAll(".os-window-control");
+    var index = 0;
+    for (index = 0; index < buttons.length; index += 1) {
+      var buttonElement = buttons[index];
+      buttonElement.disabled = disabled === true;
+      if (disabled === true) {
+        buttonElement.setAttribute("tabindex", "-1");
+      } else {
+        buttonElement.removeAttribute("tabindex");
+      }
+    }
+  }
+
+
+
   function bindElements() {
 
     rootElement = document.getElementById("menuWelcomeBoot");
@@ -269,6 +293,8 @@
     }
 
     bindLoadingElements();
+
+    setLoadingPanelControlsDisabled(true);
 
     if (pendingState) {
 
