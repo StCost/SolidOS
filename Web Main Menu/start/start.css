@@ -137,7 +137,7 @@
 .worlds-entry:disabled:focus-visible {
   filter: saturate(0.22) brightness(0.92);
   opacity: 0.62;
-  cursor: var(--cursor-forbidden);
+  cursor: url("../cursor-forbidden.svg") 11.2 11.2, not-allowed;
   background: transparent;
   border-left-color: transparent;
   box-shadow: none;

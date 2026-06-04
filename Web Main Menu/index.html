@@ -29,6 +29,7 @@
   <link rel="stylesheet" href="menu-welcome-boot.css" />
   <link rel="stylesheet" href="menu-game-hud.css" />
   <link rel="stylesheet" href="menu-web-layers.css" />
+  <link rel="stylesheet" href="menu-web-fake-connect-demo.css" />
   <script src="menu-background.js"></script>
   <script src="menu-layout-coords.js"></script>
   <script src="menu-window-layouts-bootstrap.js"></script>
@@ -37,6 +38,7 @@
   <script src="menu-locale-loader.js"></script>
   <script src="menu-welcome-boot.js"></script>
   <script src="menu-web-layers.js"></script>
+  <script src="menu-web-fake-connect-demo.js"></script>
   <script src="menu-block-context-menu.js"></script>
   <script src="menu-game-records-bridge.js" defer></script>
   <script src="unity-menu-bridge.js" defer></script>
@@ -577,6 +579,39 @@
           </div>
         </div>
       </section>
+    </div>
+
+    <div class="web-fake-connect-demo-host" id="webFakeConnectDemoHost" hidden>
+      <div class="web-fake-connect-demo-workspace os-workspace os-workspace--wm" id="webFakeConnectDemoWorkspace">
+        <section class="os-window os-window--focused web-fake-connect-demo-panel" id="webFakeConnectDemoPanel"
+          data-wm-preset="web-fake-connect-demo" data-wm-no-save="true" aria-labelledby="webFakeConnectDemoTitle">
+          <header class="os-window-chrome">
+            <div class="os-window-controls">
+              <button type="button" class="os-window-dot os-window-control" data-wm-action="close"
+                data-locale-aria-label="web.aria.window-close" aria-label="Close window"></button>
+            </div>
+            <p class="os-window-title terminal-text--dim" id="webFakeConnectDemoTitle"
+              data-locale-key="web.fake-connect.demo.title">Interface Demo</p>
+          </header>
+          <div class="os-window-body os-window-body--terminal">
+            <div class="extras-scroll menu-v-scroll-view web-fake-connect-demo-scroll">
+              <p class="web-fake-connect-demo-message terminal-text" data-locale-key="web.fake-connect.demo.message">Thanks
+                for exploring this standalone COLLAPSE MACHINE interface demo. This preview is menus and HUD only, not the
+                open-world adventure. Try the chat and inventory hotbar below. Wishlist the game on
+                Steam to follow development and play the full experience on Emporia. Join Discord and our other channels
+                below.</p>
+              <p class="extras-links-intro" data-locale-key="web.extras.links.intro">Community and project links open in
+                your system browser after confirmation.</p>
+              <div class="extras-links-list" id="webFakeConnectDemoLinks"></div>
+              <button type="button" class="term-row web-fake-connect-demo-back" id="btnWebFakeConnectBack">
+                <span class="term-row-prefix terminal-text--dim">[ ]</span>
+                <span class="term-row-label terminal-text" data-locale-key="web.fake-connect.demo.back">Return to main
+                  menu</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
 
     <main class="game-hud" id="gameHudRoot" aria-hidden="true">

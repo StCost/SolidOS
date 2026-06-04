@@ -110,9 +110,24 @@ html.menu-web-layer-hud #device > .screen-hazard .screen-hazard-track {
   animation: none !important;
 }
 
-html.menu-web-layer-hud #device.menu-mode--game > .screen-backdrop,
-html.menu-web-layer-hud #device.menu-mode--game > .screen-backdrop::before {
+html.menu-web-layer-hud #device.menu-mode--game:not(.menu-mode--web-fake-connect) > .screen-backdrop,
+html.menu-web-layer-hud #device.menu-mode--game:not(.menu-mode--web-fake-connect) > .screen-backdrop::before {
   opacity: 0 !important;
   visibility: hidden !important;
   display: none !important;
+}
+
+html.menu-web-layer-hud #device.menu-mode--web-fake-connect > .screen-backdrop {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+html.menu-web-layer-hud #device.menu-mode--web-fake-connect > .screen-backdrop::before {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  animation:
+    backdrop-fade-in var(--backdrop-fade-duration, 0.55s) ease-out forwards,
+    backdrop-pan 56s linear var(--backdrop-fade-duration, 0.55s) infinite backwards !important;
 }
