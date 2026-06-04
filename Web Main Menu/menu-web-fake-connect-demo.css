@@ -36,22 +36,15 @@ html.terminal-animations-off .web-fake-connect-demo-host {
 }
 
 .web-fake-connect-demo-panel.os-window--managed {
+  --web-fake-connect-demo-width: 704px;
+  --web-fake-connect-demo-height: 600px;
+  width: var(--web-fake-connect-demo-width);
+  height: var(--web-fake-connect-demo-height);
   min-width: 280px;
   min-height: 240px;
-}
-
-.web-fake-connect-demo-panel.web-fake-connect-demo-panel--measure {
-  height: auto !important;
-  max-height: none !important;
-}
-
-.web-fake-connect-demo-panel.web-fake-connect-demo-panel--measure .os-window-body-shell,
-.web-fake-connect-demo-panel.web-fake-connect-demo-panel--measure .os-window-body--terminal,
-.web-fake-connect-demo-panel.web-fake-connect-demo-panel--measure .web-fake-connect-demo-scroll {
-  flex: 0 0 auto;
-  min-height: 0;
-  max-height: none;
-  overflow: visible;
+  max-width: calc(100% - 48px);
+  max-height: calc(100% - 48px);
+  box-sizing: border-box;
 }
 
 .web-fake-connect-demo-panel .os-window-body-shell {
@@ -94,17 +87,17 @@ html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-conn
   background: var(--ink-screen, #06080c);
 }
 
-html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect > .screen-hazard,
-html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect > .screen-vignette,
-html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect > .screen-scanlines,
-html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect > .screen-phosphor {
+html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect>.screen-hazard,
+html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect>.screen-vignette,
+html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect>.screen-scanlines,
+html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect>.screen-phosphor {
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: none !important;
 }
 
-html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect > .screen-hazard .screen-hazard-track {
+html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect>.screen-hazard .screen-hazard-track {
   display: block !important;
   animation: stripe-scroll 5s linear infinite !important;
 }

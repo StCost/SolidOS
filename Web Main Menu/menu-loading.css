@@ -49,12 +49,29 @@
   pointer-events: none;
 }
 
-.os-window--loading .os-window-control {
-  cursor: default;
+.os-window--loading .os-window-control:disabled {
+  pointer-events: auto;
+  cursor: var(--cursor-forbidden);
+  opacity: 0.62;
+  filter: saturate(0.22) brightness(0.92);
 }
 
-.os-window--loading .os-window-control:disabled {
-  opacity: 1;
+.os-window--loading .os-window-control:disabled .os-window-control-glyph::before {
+  color: rgba(255, 160, 96, 0.42);
+  -webkit-text-fill-color: rgba(255, 160, 96, 0.42);
+}
+
+.os-window--loading .os-window-control:disabled:hover .os-window-control-glyph,
+.os-window--loading .os-window-control:disabled:focus-visible .os-window-control-glyph,
+.os-window--loading .os-window-control:disabled:active .os-window-control-glyph {
+  background: transparent;
+}
+
+.os-window--loading .os-window-control:disabled:hover .os-window-control-glyph::before,
+.os-window--loading .os-window-control:disabled:focus-visible .os-window-control-glyph::before,
+.os-window--loading .os-window-control:disabled:active .os-window-control-glyph::before {
+  color: rgba(255, 160, 96, 0.42);
+  -webkit-text-fill-color: rgba(255, 160, 96, 0.42);
 }
 
 .loading-destination {
