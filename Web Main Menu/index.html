@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="menu-layouts-pending">
+<html lang="en" class="menu-layouts-pending menu-has-integrated-hud">
 
 <head>
   <meta charset="UTF-8" />
@@ -27,6 +27,8 @@
   <link rel="stylesheet" href="desktop-os.css" />
   <link rel="stylesheet" href="menu-loading.css" />
   <link rel="stylesheet" href="menu-welcome-boot.css" />
+  <link rel="stylesheet" href="menu-game-hud.css" />
+  <link rel="stylesheet" href="menu-web-layers.css" />
   <script src="menu-background.js"></script>
   <script src="menu-layout-coords.js"></script>
   <script src="menu-window-layouts-bootstrap.js"></script>
@@ -34,6 +36,7 @@
   <script src="menu-locale.js"></script>
   <script src="menu-locale-loader.js"></script>
   <script src="menu-welcome-boot.js"></script>
+  <script src="menu-web-layers.js"></script>
   <script src="menu-block-context-menu.js"></script>
   <script src="menu-game-records-bridge.js" defer></script>
   <script src="unity-menu-bridge.js" defer></script>
@@ -63,6 +66,7 @@
   <script src="desktop-os.js" defer></script>
   <script src="menu.js" defer></script>
   <script src="start/start.js" defer></script>
+  <script src="menu-game-hud.js" defer></script>
 </head>
 
 <body>
@@ -93,12 +97,10 @@
                 <span class="os-window-control-glyph" aria-hidden="true"></span>
               </button>
             </div>
-            <p class="os-window-title terminal-text--dim" id="menuWelcomeLoadingTitle">load_status.lst</p>
+            <p class="os-window-title terminal-text--dim" id="menuWelcomeLoadingTitle">loading.sys</p>
           </header>
           <div class="os-window-body-shell">
             <div class="loading-panel-body os-window-body os-window-body--terminal">
-              <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\boot&gt;</span> type
-                load_status.lst</p>
               <p class="loading-text terminal-text" id="menuWelcomeLoadingText">1/4 Initializing...</p>
               <div class="loading-bar" id="menuWelcomeBar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
                 aria-valuenow="0">
@@ -576,6 +578,35 @@
         </div>
       </section>
     </div>
+
+    <main class="game-hud" id="gameHudRoot" aria-hidden="true">
+      <div class="game-hud-anchor">
+        <section class="game-hud-chat os-window os-window--focused os-window--chat-hud" id="gameHudChat" hidden
+          aria-label="Chat">
+          <div class="os-window-body-shell menu-scroll-host">
+            <div class="game-hud-chat-body os-window-body os-window-body--terminal">
+              <div class="game-hud-chat-log-host">
+                <div class="game-hud-chat-log menu-v-scroll-view" id="chatLog" role="log" aria-live="polite"
+                  aria-relevant="additions">
+                  <div class="game-hud-chat-log-inner" id="chatLogInner"></div>
+                </div>
+              </div>
+              <p class="term-prompt game-hud-chat-input-row">
+                <span class="term-prompt-path terminal-text--dim" aria-hidden="true">say&gt;</span>
+                <input type="text" id="chatInput" class="game-hud-chat-input worlds-compose-input"
+                  data-locale-placeholder="chat.placeholder" placeholder="Type a message..." autocomplete="off"
+                  spellcheck="false" maxlength="512" />
+              </p>
+            </div>
+          </div>
+        </section>
+        <div class="game-hud-panel" role="group" aria-label="Player status">
+          <div class="game-hud-health" id="healthBar" role="meter" aria-valuemin="0" aria-valuemax="0"
+            aria-valuenow="0"></div>
+          <ol class="game-hud-hotbar" id="hotbarSlots"></ol>
+        </div>
+      </div>
+    </main>
   </main>
 </body>
 

@@ -525,7 +525,7 @@
       menu.dispatchMenuEvent("web-select-server", detail);
       menu.dispatchMenuEvent("web-start", detail);
     } else if (kind === "steam-multiplayer") {
-      menu.dispatchMenuEvent("web-select-steam", detail);
+      menu.dispatchMenuEvent("web-start", detail);
     }
     });
   }

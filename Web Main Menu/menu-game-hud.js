@@ -15,6 +15,7 @@
 
   var CHAT_EVENT_SUBMIT = "web-hud-chat-submit";
   var CHAT_EVENT_FOCUS = "web-hud-chat-focus";
+  var CHAT_EVENT_SLOT_SELECT = "web-hud-slot-select";
   var CHAT_MAX_LINES = 200;
   var CHAT_IDLE_HIDE_MS = 12000;
 
@@ -38,6 +39,7 @@
   var commandHistory = [];
   var commandHistoryIndex = 0;
   var chatBindingsReady = false;
+  var hotbarBindingsReady = false;
   var standaloneWebBindingsReady = false;
   var slotElements = [];
   var slotIconCache = [];
@@ -83,9 +85,12 @@
 
     var index = 0;
     for (index = 0; index < SLOT_COUNT; index += 1) {
-      var item = document.createElement("li");
+      var listItem = document.createElement("li");
+      var item = document.createElement("button");
+      item.type = "button";
       item.className = "game-hud-slot";
       item.setAttribute("data-slot-index", String(index));
+      item.setAttribute("aria-label", "Inventory slot " + SLOT_LABELS[index]);
 
       var label = document.createElement("span");
       label.className = "game-hud-slot-index";
@@ -103,9 +108,43 @@
       stack.hidden = true;
       item.appendChild(stack);
 
-      hotbarElement.appendChild(item);
+      listItem.appendChild(item);
+      hotbarElement.appendChild(listItem);
       slotElements.push(item);
     }
+
+    bindHotbarClicks();
+  }
+
+  function postSlotSelect(slotIndex) {
+    if (!isUnityHost()) return;
+    window.vuplex.postMessage(
+      JSON.stringify({
+        eventName: CHAT_EVENT_SLOT_SELECT,
+        slotIndex: slotIndex
+      })
+    );
+  }
+
+  function onHotbarSlotClick(event) {
+    if (!event || !event.currentTarget) return;
+    var slotIndexValue = event.currentTarget.getAttribute("data-slot-index");
+    if (slotIndexValue == null || slotIndexValue === "") return;
+    var slotIndex = parseInt(slotIndexValue, 10);
+    if (isNaN(slotIndex)) return;
+    event.preventDefault();
+    postSlotSelect(slotIndex);
+  }
+
+  function bindHotbarClicks() {
+    if (hotbarBindingsReady) return;
+    var slots = getSlotElements();
+    var index = 0;
+    for (index = 0; index < slots.length; index += 1) {
+      if (!slots[index]) continue;
+      slots[index].addEventListener("click", onHotbarSlotClick);
+    }
+    hotbarBindingsReady = true;
   }
 
   function cancelIconClearTimer(slotIndex) {
@@ -465,6 +504,36 @@
 
   function isUnityHost() {
     return !!(window.vuplex && window.vuplex.postMessage);
+  }
+
+  function isGameMenuMode() {
+    return window.WebMenuMode === "game";
+  }
+
+  function setGameplayHudLayerActive(active) {
+    var hudRoot = gameHudRootElement || document.getElementById("gameHudRoot");
+    var layerActive = active === true && isGameMenuMode();
+    if (hudRoot) {
+      hudRoot.classList.toggle("game-hud--layer-active", layerActive);
+      hudRoot.setAttribute("aria-hidden", layerActive ? "false" : "true");
+    }
+  }
+
+  function onMenuModeChanged() {
+    if (!isGameMenuMode()) {
+      setGameplayHudLayerActive(false);
+      return;
+    }
+    if (window.WebMenuLayers && window.WebMenuLayers.getActiveLayer) {
+      var currentLayer = window.WebMenuLayers.getActiveLayer();
+      if (currentLayer === window.WebMenuLayers.LAYER_HUD) {
+        setGameplayHudLayerActive(true);
+      } else {
+        setGameplayHudLayerActive(false);
+      }
+      return;
+    }
+    setGameplayHudLayerActive(false);
   }
 
   function escapeHtml(text) {
@@ -1025,17 +1094,6 @@
     refreshChatScrollbar();
   }
 
-  function setHudUnityCursorEnabled(enabled) {
-    var unityCursorActive = enabled === true;
-    if (unityCursorActive) {
-      document.documentElement.classList.add("game-hud--unity-cursor");
-    } else {
-      document.documentElement.classList.remove("game-hud--unity-cursor");
-    }
-    if (!window.WebGameHudCursorBridge) return;
-    window.WebGameHudCursorBridge.setUnityCursorEnabled(unityCursorActive);
-  }
-
   function initStandaloneWebMode() {
     if (isUnityHost() || standaloneWebBindingsReady) return;
     standaloneWebBindingsReady = true;
@@ -1056,9 +1114,6 @@
     else applyDefaultHealthState();
     if (pendingIconUpdates) applyIconUpdates(pendingIconUpdates);
     initStandaloneWebMode();
-    if (isUnityHost()) {
-      setHudUnityCursorEnabled(true);
-    }
   }
 
   window.WebGameHud = {
@@ -1072,8 +1127,11 @@
     suppressOpenEnterKey: suppressOpenEnterKey,
     openChatByDefault: openChatByDefault,
     clearChatMessages: clearChatMessages,
-    setCommandHistory: setCommandHistory
+    setCommandHistory: setCommandHistory,
+    setGameplayHudLayerActive: setGameplayHudLayerActive
   };
+
+  window.addEventListener("web-menu-mode-changed", onMenuModeChanged);
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", bindDom);

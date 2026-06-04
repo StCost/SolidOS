@@ -40,11 +40,9 @@ StreamingAssets/Web UI/
   Web Loading/
     index.html
     loading.css
-  Web Game HUD/
-    index.html
-    game-hud.css
-    game-hud.js
 ```
+
+In-game HUD (hotbar, health, chat) is embedded in `Web Main Menu/index.html` (`menu-game-hud.js`, `menu-game-hud.css`, `menu-game-hud-layer.css`).
 
 ## Menu vs game mode
 

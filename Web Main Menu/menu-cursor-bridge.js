@@ -169,6 +169,9 @@
         if (element.classList.contains("os-statusbar-node-button")) {
           return "pointer";
         }
+        if (element.classList.contains("game-hud-slot")) {
+          return "pointer";
+        }
       }
       element = element.parentElement;
     }
@@ -232,6 +235,20 @@
     var interactiveToken = getInteractiveTokenFromElement(pointTarget);
     if (interactiveToken) {
       return interactiveToken;
+    }
+
+    if (pointTarget && pointTarget.classList && pointTarget.classList.contains("game-hud-panel")) {
+      return "default";
+    }
+
+    if (
+      pointTarget &&
+      pointTarget.classList &&
+      (pointTarget.classList.contains("game-hud-chat-line") ||
+        pointTarget.classList.contains("game-hud-chat-log") ||
+        pointTarget.classList.contains("game-hud-chat-log-inner"))
+    ) {
+      return "default";
     }
 
     var element = pointTarget;
