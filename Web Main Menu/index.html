@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="menu-layouts-pending">
+<html lang="en" class="menu-layouts-pending menu-has-integrated-hud">
 
 <head>
   <meta charset="UTF-8" />
@@ -27,6 +27,9 @@
   <link rel="stylesheet" href="desktop-os.css" />
   <link rel="stylesheet" href="menu-loading.css" />
   <link rel="stylesheet" href="menu-welcome-boot.css" />
+  <link rel="stylesheet" href="menu-game-hud.css" />
+  <link rel="stylesheet" href="menu-web-layers.css" />
+  <link rel="stylesheet" href="menu-web-fake-connect-demo.css" />
   <script src="menu-background.js"></script>
   <script src="menu-layout-coords.js"></script>
   <script src="menu-window-layouts-bootstrap.js"></script>
@@ -34,6 +37,8 @@
   <script src="menu-locale.js"></script>
   <script src="menu-locale-loader.js"></script>
   <script src="menu-welcome-boot.js"></script>
+  <script src="menu-web-layers.js"></script>
+  <script src="menu-web-fake-connect-demo.js"></script>
   <script src="menu-block-context-menu.js"></script>
   <script src="menu-game-records-bridge.js" defer></script>
   <script src="unity-menu-bridge.js" defer></script>
@@ -63,6 +68,7 @@
   <script src="desktop-os.js" defer></script>
   <script src="menu.js" defer></script>
   <script src="start/start.js" defer></script>
+  <script src="menu-game-hud.js" defer></script>
 </head>
 
 <body>
@@ -93,12 +99,10 @@
                 <span class="os-window-control-glyph" aria-hidden="true"></span>
               </button>
             </div>
-            <p class="os-window-title terminal-text--dim" id="menuWelcomeLoadingTitle">load_status.lst</p>
+            <p class="os-window-title terminal-text--dim" id="menuWelcomeLoadingTitle">loading.sys</p>
           </header>
           <div class="os-window-body-shell">
             <div class="loading-panel-body os-window-body os-window-body--terminal">
-              <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\boot&gt;</span> type
-                load_status.lst</p>
               <p class="loading-text terminal-text" id="menuWelcomeLoadingText">1/4 Initializing...</p>
               <div class="loading-bar" id="menuWelcomeBar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
                 aria-valuenow="0">
@@ -576,6 +580,68 @@
         </div>
       </section>
     </div>
+
+    <div class="web-fake-connect-demo-host" id="webFakeConnectDemoHost" hidden>
+      <div class="web-fake-connect-demo-workspace os-workspace os-workspace--wm" id="webFakeConnectDemoWorkspace">
+        <section class="os-window os-window--focused web-fake-connect-demo-panel" id="webFakeConnectDemoPanel"
+          data-wm-preset="web-fake-connect-demo" data-wm-no-save="true" aria-labelledby="webFakeConnectDemoTitle">
+          <header class="os-window-chrome">
+            <div class="os-window-controls">
+              <button type="button" class="os-window-dot os-window-control" data-wm-action="close"
+                data-locale-aria-label="web.aria.window-close" aria-label="Close window"></button>
+            </div>
+            <p class="os-window-title terminal-text--dim" id="webFakeConnectDemoTitle"
+              data-locale-key="web.fake-connect.demo.title">Interface Demo</p>
+          </header>
+          <div class="os-window-body os-window-body--terminal">
+            <div class="extras-scroll menu-v-scroll-view web-fake-connect-demo-scroll">
+              <p class="web-fake-connect-demo-message terminal-text" data-locale-key="web.fake-connect.demo.message">Thanks
+                for exploring this standalone COLLAPSE MACHINE interface demo. This preview is menus and HUD only, not the
+                open-world adventure. Try the chat and inventory hotbar below. Wishlist the game on
+                Steam to follow development and play the full experience on Emporia. Join Discord and our other channels
+                below.</p>
+              <p class="extras-links-intro" data-locale-key="web.extras.links.intro">Community and project links open in
+                your system browser after confirmation.</p>
+              <div class="extras-links-list" id="webFakeConnectDemoLinks"></div>
+              <button type="button" class="term-row web-fake-connect-demo-back" id="btnWebFakeConnectBack">
+                <span class="term-row-prefix terminal-text--dim">[ ]</span>
+                <span class="term-row-label terminal-text" data-locale-key="web.fake-connect.demo.back">Return to main
+                  menu</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <main class="game-hud" id="gameHudRoot" aria-hidden="true">
+      <div class="game-hud-anchor">
+        <section class="game-hud-chat os-window os-window--focused os-window--chat-hud" id="gameHudChat" hidden
+          aria-label="Chat">
+          <div class="os-window-body-shell menu-scroll-host">
+            <div class="game-hud-chat-body os-window-body os-window-body--terminal">
+              <div class="game-hud-chat-log-host">
+                <div class="game-hud-chat-log menu-v-scroll-view" id="chatLog" role="log" aria-live="polite"
+                  aria-relevant="additions">
+                  <div class="game-hud-chat-log-inner" id="chatLogInner"></div>
+                </div>
+              </div>
+              <p class="term-prompt game-hud-chat-input-row">
+                <span class="term-prompt-path terminal-text--dim" aria-hidden="true">say&gt;</span>
+                <input type="text" id="chatInput" class="game-hud-chat-input worlds-compose-input"
+                  data-locale-placeholder="chat.placeholder" placeholder="Type a message..." autocomplete="off"
+                  spellcheck="false" maxlength="512" />
+              </p>
+            </div>
+          </div>
+        </section>
+        <div class="game-hud-panel" role="group" aria-label="Player status">
+          <div class="game-hud-health" id="healthBar" role="meter" aria-valuemin="0" aria-valuemax="0"
+            aria-valuenow="0"></div>
+          <ol class="game-hud-hotbar" id="hotbarSlots"></ol>
+        </div>
+      </div>
+    </main>
   </main>
 </body>
 

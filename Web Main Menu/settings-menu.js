@@ -1347,10 +1347,15 @@
   }
 
   function applyTerminalAnimations(enabled) {
+    var html = document.documentElement;
     var device = document.getElementById("device");
-    if (!device) return;
-    if (enabled) device.classList.remove("terminal-animations-off");
-    else device.classList.add("terminal-animations-off");
+    if (enabled) {
+      if (html) html.classList.remove("terminal-animations-off");
+      if (device) device.classList.remove("terminal-animations-off");
+      return;
+    }
+    if (html) html.classList.add("terminal-animations-off");
+    if (device) device.classList.add("terminal-animations-off");
   }
 
   function applyMenuBackgroundAnimation(enabled) {
