@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Νύχτα στο εργοστάσιο",
   "web.game.factory-night.win-text": "Η βάρδια τελείωσε. Το εργοστάσιο εκπνέει χωρίς εσένα.",
   "web.game.factory-night.win-time": "6:00",
+  "web.game.hackout.attempt-log": "ΗΜΕΡΟΛΟΓΙΟ ΠΡΟΣΠΑΘΕΙΩΝ",
+  "web.game.hackout.attempts": "ΠΡΟΣΠΑΘΕΙΕΣ",
+  "web.game.hackout.best": "ΚΑΛΥΤΕΡΟ",
+  "web.game.hackout.hint": "Επίλεξε κωδικό. Οι αγκύλες αφαιρούν ψεύτικη λέξη. Τα σύμβολα είναι θόρυβος.",
+  "web.game.hackout.lose": "ΑΠΟΚΛΕΙΣΜΟΣ",
+  "web.game.hackout.lose-sub": "ΚΛΙΚ — ΞΑΝΑ",
+  "web.game.hackout.match": "ΤΑΥΜΑ",
+  "web.game.hackout.score": "ΣΚΟΡ",
+  "web.game.hackout.win": "ΠΡΟΣΒΑΣΗ ΕΠΙΤΡΑΠΗ",
+  "web.game.hackout.win-sub": "ΚΛΙΚ — ΞΑΝΑ",
   "web.game.game-over": "Τέλος παιχνιδιού",
   "web.game.game-over-menu": "Μενού έναρξης",
   "web.game.game-over-retry": "Παίξε ξανά",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Τίτλοι",
   "web.window.extras-data": "extras.dat",
-  "yes": "Ναι"
+  "yes": "Ναι",
+  "web.game.notepad.brand": "ΒΙΟΜΗΧΑΝΙΚΟ ΠΕΔΙΟΗΜΕΡΟΛΟΓΙΟ",
+  "web.game.notepad.placeholder": "Καταγράψτε σημειώσεις πεδίου...",
+  "web.game.notepad.title": "ΣΗΜΕΙΩΜΑΤΑΡΙΟ"
 }

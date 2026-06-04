@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Fabriknacht",
   "web.game.factory-night.win-text": "Schicht vorbei. Die Fabrik atmet ohne dich aus.",
   "web.game.factory-night.win-time": "6:00 Uhr",
+  "web.game.hackout.attempt-log": "VERSUCHSPROTOKOLL",
+  "web.game.hackout.attempts": "VERSUCHE",
+  "web.game.hackout.best": "BESTWERT",
+  "web.game.hackout.hint": "Wähle das Passwort. Klammern entfernen ein falsches Wort. Symbole sind Rauschen.",
+  "web.game.hackout.lose": "SPERRE",
+  "web.game.hackout.lose-sub": "KLICK — NOCHMAL",
+  "web.game.hackout.match": "TREFFER",
+  "web.game.hackout.score": "PUNKTE",
+  "web.game.hackout.win": "ZUGANG GEWÄHRT",
+  "web.game.hackout.win-sub": "KLICK — NOCHMAL",
   "web.game.game-over": "Spiel vorbei",
   "web.game.game-over-menu": "Startmenü",
   "web.game.game-over-retry": "Nochmal spielen",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Credits",
   "web.window.extras-data": "extras.dat",
-  "yes": "Ja"
+  "yes": "Ja",
+  "web.game.notepad.brand": "INDUSTRIELLES FELDLOG",
+  "web.game.notepad.placeholder": "Feldnotizen aufzeichnen...",
+  "web.game.notepad.title": "NOTIZBLOCK"
 }

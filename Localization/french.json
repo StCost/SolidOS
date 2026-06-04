@@ -295,6 +295,16 @@
   "web.game.factory-night.title": "Nuit à l'usine",
   "web.game.factory-night.win-text": "Quart terminé. L'usine expire sans vous.",
   "web.game.factory-night.win-time": "6 h",
+  "web.game.hackout.attempt-log": "JOURNAL DES TENTATIVES",
+  "web.game.hackout.attempts": "TENTATIVES",
+  "web.game.hackout.best": "RECORD",
+  "web.game.hackout.hint": "Choisissez le mot de passe. Les crochets retirent un faux mot. Les symboles sont du bruit.",
+  "web.game.hackout.lose": "VERROUILLAGE",
+  "web.game.hackout.lose-sub": "CLIQUEZ — RÉESSAYER",
+  "web.game.hackout.match": "CORRESPONDANCE",
+  "web.game.hackout.score": "SCORE",
+  "web.game.hackout.win": "ACCÈS AUTORISÉ",
+  "web.game.hackout.win-sub": "CLIQUEZ — RÉESSAYER",
   "web.game.game-over": "Partie terminée",
   "web.game.game-over-menu": "Menu de départ",
   "web.game.game-over-retry": "Rejouer",
@@ -353,5 +363,8 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Crédits",
   "web.window.extras-data": "extras.dat",
-  "yes": "Oui"
+  "yes": "Oui",
+  "web.game.notepad.brand": "JOURNAL DE TERRAIN INDUSTRIEL",
+  "web.game.notepad.placeholder": "Consigner les notes de terrain...",
+  "web.game.notepad.title": "BLOC-NOTES"
 }

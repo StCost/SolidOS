@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hackout</title>
+  <script src="../iframe-game-locale.js"></script>
+  <script src="../iframe-game-input.js"></script>
+  <link rel="stylesheet" href="hackout.css" />
+</head>
+<body>
+  <div class="hack-shell" id="hackShell">
+    <header class="hack-header">
+      <span class="hack-header-prompt">ROBCO INDUSTRIES (TM) TERMLINK</span>
+      <span class="hack-header-title" id="hackTitle">HACKOUT</span>
+      <span class="hack-header-spacer"></span>
+    </header>
+    <div class="hack-main">
+      <div class="hack-content">
+        <div class="hack-terminal-wrap" id="terminalWrap">
+          <span id="hackMeasureProbe" class="hack-measure-probe" aria-hidden="true">M</span>
+          <div class="hack-terminal" id="hackTerminal" aria-live="polite"></div>
+        </div>
+        <footer class="hack-footer">
+          <div class="hack-match-display" id="matchDisplay"></div>
+          <div class="hack-hint" id="hackHint"></div>
+        </footer>
+        <div class="hack-overlay hidden" id="hackOverlay">
+          <h2 class="hack-overlay-title" id="overlayTitle"></h2>
+          <p class="hack-overlay-sub" id="overlaySub"></p>
+        </div>
+      </div>
+      <aside class="hack-sidebar" id="hackSidebar">
+        <div class="hack-sidebar-attempts">
+          <span class="hack-sidebar-label" id="attemptsLabel">ATTEMPTS</span>
+          <span class="hack-sidebar-attempts-value" id="attemptsValue">5</span>
+          <div class="hack-lives" id="hackLives" aria-hidden="true"></div>
+        </div>
+        <div class="hack-sidebar-score">
+          <div class="hack-sidebar-score-row">
+            <span class="hack-sidebar-label" id="scoreLabel">SCORE</span>
+            <span class="hack-sidebar-score-value" id="scoreValue">0</span>
+          </div>
+          <div class="hack-sidebar-score-row">
+            <span class="hack-sidebar-label" id="bestLabel">BEST</span>
+            <span class="hack-sidebar-score-value" id="bestValue">0</span>
+          </div>
+        </div>
+        <h3 class="hack-sidebar-log-title" id="attemptLogTitle">ATTEMPT LOG</h3>
+        <div class="hack-sidebar-log" id="attemptLogList" aria-live="polite"></div>
+      </aside>
+    </div>
+  </div>
+  <script src="hackout.js"></script>
+</body>
+</html>
