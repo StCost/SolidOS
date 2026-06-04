@@ -3,13 +3,16 @@
   var KEY_MASTER = "masterVolume";
   var KEY_MUSIC = "musicVolume";
   var KEY_INTERFACE = "interfaceVolume";
+  var KEY_ARCADE_GAMES = "arcadeGamesVolume";
   var DEFAULT_MASTER = 0.5;
   var DEFAULT_MUSIC = 1;
   var DEFAULT_INTERFACE = 1;
+  var DEFAULT_ARCADE_GAMES = 1;
   var EVENT_AUDIO_VOLUME_CHANGED = "web-audio-volume-changed";
   var runtimeMasterVolume = null;
   var runtimeMusicVolume = null;
   var runtimeInterfaceVolume = null;
+  var runtimeArcadeGamesVolume = null;
 
   function clamp01(value) {
     if (value < 0) return 0;
@@ -39,6 +42,7 @@
     if (key === KEY_MASTER && runtimeMasterVolume != null) return runtimeMasterVolume;
     if (key === KEY_MUSIC && runtimeMusicVolume != null) return runtimeMusicVolume;
     if (key === KEY_INTERFACE && runtimeInterfaceVolume != null) return runtimeInterfaceVolume;
+    if (key === KEY_ARCADE_GAMES && runtimeArcadeGamesVolume != null) return runtimeArcadeGamesVolume;
     var settings = readSettingsObject();
     return getSettingValue(settings, key, defaultValue);
   }
@@ -54,12 +58,16 @@
     if (settingsState[KEY_INTERFACE] != null) {
       runtimeInterfaceVolume = getSettingValue(settingsState, KEY_INTERFACE, DEFAULT_INTERFACE);
     }
+    if (settingsState[KEY_ARCADE_GAMES] != null) {
+      runtimeArcadeGamesVolume = getSettingValue(settingsState, KEY_ARCADE_GAMES, DEFAULT_ARCADE_GAMES);
+    }
   }
 
   function clearRuntimeVolumes() {
     runtimeMasterVolume = null;
     runtimeMusicVolume = null;
     runtimeInterfaceVolume = null;
+    runtimeArcadeGamesVolume = null;
   }
 
   function getMusicOutputVolume() {
@@ -74,8 +82,19 @@
     return clamp01(master * interfaceVolume);
   }
 
+  function getArcadeGamesOutputVolume() {
+    var master = getRuntimeOrStoredVolume(KEY_MASTER, DEFAULT_MASTER);
+    var arcadeGamesVolume = getRuntimeOrStoredVolume(KEY_ARCADE_GAMES, DEFAULT_ARCADE_GAMES);
+    return clamp01(master * arcadeGamesVolume);
+  }
+
   function isAudioVolumeKey(key) {
-    return key === KEY_MASTER || key === KEY_MUSIC || key === KEY_INTERFACE;
+    return (
+      key === KEY_MASTER ||
+      key === KEY_MUSIC ||
+      key === KEY_INTERFACE ||
+      key === KEY_ARCADE_GAMES
+    );
   }
 
   function notifyAudioVolumeChanged() {
@@ -86,9 +105,11 @@
     KEY_MASTER: KEY_MASTER,
     KEY_MUSIC: KEY_MUSIC,
     KEY_INTERFACE: KEY_INTERFACE,
+    KEY_ARCADE_GAMES: KEY_ARCADE_GAMES,
     EVENT_AUDIO_VOLUME_CHANGED: EVENT_AUDIO_VOLUME_CHANGED,
     getMusicOutputVolume: getMusicOutputVolume,
     getInterfaceOutputVolume: getInterfaceOutputVolume,
+    getArcadeGamesOutputVolume: getArcadeGamesOutputVolume,
     isAudioVolumeKey: isAudioVolumeKey,
     setVolumesFromSettingsState: setVolumesFromSettingsState,
     clearRuntimeVolumes: clearRuntimeVolumes,
