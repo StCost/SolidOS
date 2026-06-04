@@ -1136,13 +1136,7 @@
     renderArtInWindow(null);
   }
 
-  function renderLinksInWindow(windowElement) {
-    var listRoot = null;
-    if (windowElement) {
-      listRoot = windowElement.querySelector(".extras-links-list");
-    } else if (linksListRoot) {
-      listRoot = linksListRoot;
-    }
+  function renderLinksIntoListRoot(listRoot) {
     if (!listRoot) return;
     var links = getLinks();
     var html = "";
@@ -1162,6 +1156,16 @@
         "</span></button>";
     }
     listRoot.innerHTML = html;
+  }
+
+  function renderLinksInWindow(windowElement) {
+    var listRoot = null;
+    if (windowElement) {
+      listRoot = windowElement.querySelector(".extras-links-list");
+    } else if (linksListRoot) {
+      listRoot = linksListRoot;
+    }
+    renderLinksIntoListRoot(listRoot);
   }
 
   function renderLinks() {
@@ -1755,6 +1759,8 @@
 
   window.WebExtras = {
     renderExtras: renderExtras,
+    renderLinksInto: renderLinksIntoListRoot,
+    requestLinkOpen: requestExternalUrl,
     openGame: openGame,
     openGamesPanel: openGamesPanel,
     openArtPanel: openArtPanel,

@@ -57,6 +57,19 @@
   opacity: 1;
 }
 
+.loading-destination {
+  margin: 0 0 0.65rem;
+  font-size: clamp(1rem, 2.2vmin, 1.35rem);
+  letter-spacing: 0.04em;
+  color: var(--orange, #ff8030);
+  -webkit-text-fill-color: var(--orange, #ff8030);
+  text-shadow: 0 0 12px rgba(255, 128, 48, 0.35);
+}
+
+.loading-destination[hidden] {
+  display: none !important;
+}
+
 .loading-panel-body {
   display: flex;
   flex-direction: column;

@@ -137,7 +137,14 @@
     setMusicVolumeImmediate(getMusicVolumeFromSettings());
   }
 
-  function stopMenuMusic() {
+  function stopMenuMusicImmediate() {
+    if (!musicAudio) return;
+    clearFadeTimer();
+    setMusicVolumeImmediate(0);
+    musicAudio.pause();
+  }
+
+  function stopMenuMusicFade() {
     if (!musicAudio) return;
     fadeMusicTo(0);
   }
@@ -149,14 +156,14 @@
 
   function syncMenuMusic() {
     if (isGameMode()) {
-      stopMenuMusic();
+      stopMenuMusicFade();
       return;
     }
     if (isExtrasGameGameplayMusicActive()) {
       return;
     }
     if (!isMenuMusicEnabled()) {
-      stopMenuMusic();
+      stopMenuMusicImmediate();
       return;
     }
     startMenuMusic();

@@ -1,0 +1,110 @@
+#extrasLinkOverlay.term-overlay.is-open {
+  z-index: 48;
+}
+
+.web-fake-connect-demo-host {
+  position: fixed;
+  inset: 0;
+  z-index: 32;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--menu-web-layer-fade-duration, 0.28s) ease,
+    visibility var(--menu-web-layer-fade-duration, 0.28s) ease;
+}
+
+.web-fake-connect-demo-workspace.os-workspace--wm {
+  position: absolute;
+  inset: 0;
+  --wm-inset: clamp(12px, 2.5vmin, 24px);
+  pointer-events: none;
+}
+
+.web-fake-connect-demo-host.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: none;
+}
+
+.web-fake-connect-demo-host.is-open .web-fake-connect-demo-panel {
+  pointer-events: auto;
+}
+
+html.terminal-animations-off .web-fake-connect-demo-host {
+  transition: none !important;
+}
+
+.web-fake-connect-demo-panel.os-window--managed {
+  min-width: 280px;
+  min-height: 240px;
+}
+
+.web-fake-connect-demo-panel.web-fake-connect-demo-panel--measure {
+  height: auto !important;
+  max-height: none !important;
+}
+
+.web-fake-connect-demo-panel.web-fake-connect-demo-panel--measure .os-window-body-shell,
+.web-fake-connect-demo-panel.web-fake-connect-demo-panel--measure .os-window-body--terminal,
+.web-fake-connect-demo-panel.web-fake-connect-demo-panel--measure .web-fake-connect-demo-scroll {
+  flex: 0 0 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+
+.web-fake-connect-demo-panel .os-window-body-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.web-fake-connect-demo-panel .os-window-body--terminal {
+  overflow: hidden;
+}
+
+.web-fake-connect-demo-scroll.extras-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.web-fake-connect-demo-message {
+  margin: 0;
+  font-size: clamp(0.92rem, 1.9vmin, 1.05rem);
+  line-height: 1.55;
+  letter-spacing: 0.05em;
+  white-space: pre-wrap;
+}
+
+.web-fake-connect-demo-back {
+  align-self: flex-start;
+  margin-top: 0.25em;
+}
+
+html.menu-web-layer-hud.web-fake-connect-active #device .game-hud.game-hud--layer-active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect {
+  background: var(--ink-screen, #06080c);
+}
+
+html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect > .screen-hazard,
+html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect > .screen-vignette,
+html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect > .screen-scanlines,
+html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect > .screen-phosphor {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+html.menu-web-layer-hud.web-fake-connect-active #device.menu-mode--web-fake-connect > .screen-hazard .screen-hazard-track {
+  display: block !important;
+  animation: stripe-scroll 5s linear infinite !important;
+}

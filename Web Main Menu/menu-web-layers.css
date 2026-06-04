@@ -1,0 +1,133 @@
+:root {
+  --menu-web-layer-fade-duration: 0.28s;
+}
+
+#menuWelcomeBoot,
+#device,
+#device .menu-page,
+#device .game-hud {
+  transition:
+    opacity var(--menu-web-layer-fade-duration) ease,
+    visibility var(--menu-web-layer-fade-duration) ease;
+}
+
+html.terminal-animations-off #menuWelcomeBoot,
+html.terminal-animations-off #device,
+html.terminal-animations-off #device .menu-page,
+html.terminal-animations-off #device .game-hud {
+  transition: none !important;
+}
+
+#menuWelcomeBoot.menu-web-layer-boot-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+html.menu-web-layer-loading #menuWelcomeBoot {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+html.menu-web-layer-loading #menuWelcomeBoot.menu-web-layer-boot-hidden {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+html.menu-web-layer-loading #device {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+html.menu-web-layer-menu #menuWelcomeBoot,
+html.menu-web-layer-menu #menuWelcomeBoot.menu-web-layer-boot-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+html.menu-web-layer-menu #device {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+html.menu-web-layer-menu #device .game-hud {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+html.menu-web-layer-menu #device .menu-page,
+html.menu-web-layer-menu #device .menu-desktop,
+html.menu-web-layer-menu.menu-mode--menu #device .os-workspace {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+html.menu-web-layer-hud #menuWelcomeBoot,
+html.menu-web-layer-hud #menuWelcomeBoot.menu-web-layer-boot-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+html.menu-web-layer-hud #device {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+html.menu-web-layer-hud #device .menu-page {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+html.menu-web-layer-hud #device .game-hud.game-hud--layer-active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+html.menu-web-layer-hud #device > .screen-hazard,
+html.menu-web-layer-hud #device > .screen-vignette,
+html.menu-web-layer-hud #device > .screen-scanlines,
+html.menu-web-layer-hud #device > .screen-phosphor {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+html.menu-web-layer-hud #device > .screen-hazard .screen-hazard-track {
+  display: none !important;
+  animation: none !important;
+}
+
+html.menu-web-layer-hud #device.menu-mode--game:not(.menu-mode--web-fake-connect) > .screen-backdrop,
+html.menu-web-layer-hud #device.menu-mode--game:not(.menu-mode--web-fake-connect) > .screen-backdrop::before {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  display: none !important;
+}
+
+html.menu-web-layer-hud #device.menu-mode--web-fake-connect > .screen-backdrop {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+html.menu-web-layer-hud #device.menu-mode--web-fake-connect > .screen-backdrop::before {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  animation:
+    backdrop-fade-in var(--backdrop-fade-duration, 0.55s) ease-out forwards,
+    backdrop-pan 56s linear var(--backdrop-fade-duration, 0.55s) infinite backwards !important;
+}

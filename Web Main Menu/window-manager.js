@@ -25,7 +25,8 @@ var WebWindowManager = (function () {
     "extras-games": { minWidth: MIN_WIDTH, minHeight: 0 },
     "extras-art": { minWidth: MIN_WIDTH, minHeight: 0 },
     "extras-links": { minWidth: MIN_WIDTH, minHeight: 0 },
-    "modal-center": { minWidth: MIN_WIDTH, minHeight: 0 }
+    "modal-center": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "web-fake-connect-demo": { minWidth: MIN_WIDTH, minHeight: 200 }
   };
 
   var MINIMIZE_BOTTOM_INSET_PX = 8;
@@ -163,6 +164,11 @@ var WebWindowManager = (function () {
   function getLayoutKey(windowElement) {
     if (!windowElement) return "";
     return windowElement.getAttribute("data-wm-preset") || "";
+  }
+
+  function shouldPersistWindowLayout(windowElement) {
+    if (!windowElement) return false;
+    return windowElement.getAttribute("data-wm-no-save") !== "true";
   }
 
   function isSavedLayoutOpen(entry) {
@@ -560,6 +566,7 @@ var WebWindowManager = (function () {
   }
 
   function syncSavedLayoutZIndex(windowElement) {
+    if (!shouldPersistWindowLayout(windowElement)) return;
     var layoutKey = getLayoutKey(windowElement);
     if (!layoutKey) return;
     var inlineZIndex = getWindowInlineZIndex(windowElement);
@@ -626,6 +633,7 @@ var WebWindowManager = (function () {
   }
 
   function syncSavedLayoutFromWindow(windowElement) {
+    if (!shouldPersistWindowLayout(windowElement)) return;
     var layoutKey = getLayoutKey(windowElement);
     var previous;
     var isMinimized;
@@ -1294,8 +1302,10 @@ var WebWindowManager = (function () {
       managed[index].classList.remove("os-window--focused");
     }
     windowElement.classList.add("os-window--focused");
-    syncSavedLayoutZIndex(windowElement);
-    scheduleWindowLayoutsSave();
+    if (shouldPersistWindowLayout(windowElement)) {
+      syncSavedLayoutZIndex(windowElement);
+      scheduleWindowLayoutsSave();
+    }
     if (isDesktopWindowElement(windowElement)) {
       dispatchDesktopWindowFocused(windowElement.getAttribute("data-wm-preset") || "");
     }
@@ -1979,11 +1989,13 @@ var WebWindowManager = (function () {
         if (finishedWindow.classList.contains("os-window--minimized")) {
           applyMinimizedUserAdjustToRestoreState(finishedWindow);
           layoutMinimizedWindowsInContainer(getLayoutContainer(finishedWindow), null);
-        } else {
+        } else if (shouldPersistWindowLayout(finishedWindow)) {
           syncSavedLayoutFromWindow(finishedWindow);
         }
       }
-      flushWindowLayoutsSave();
+      if (!finishedWindow || shouldPersistWindowLayout(finishedWindow)) {
+        flushWindowLayoutsSave();
+      }
     }
     if (wasDragging) {
       dispatchWindowDragEnd();
@@ -2404,6 +2416,17 @@ var WebWindowManager = (function () {
         event.preventDefault();
       }
       if (actionName === "close") {
+        if (!shouldPersistWindowLayout(windowElement)) {
+          window.dispatchEvent(
+            new CustomEvent("web-wm-no-save-close", {
+              detail: {
+                preset: windowElement.getAttribute("data-wm-preset") || "",
+                windowElement: windowElement
+              }
+            })
+          );
+          return;
+        }
         closeManagedWindow(windowElement);
         return;
       }
@@ -2474,7 +2497,9 @@ var WebWindowManager = (function () {
   function ensureWindowStructure(windowElement) {
     if (!windowElement.querySelector(".os-window-body-shell")) {
       wrapWindowBody(windowElement);
-      addResizeHandles(windowElement);
+      if (shouldPersistWindowLayout(windowElement)) {
+        addResizeHandles(windowElement);
+      }
       windowElement.classList.add("os-window--managed");
     }
 
@@ -2917,6 +2942,7 @@ var WebWindowManager = (function () {
     clampManagedWindowToContainer: clampManagedWindowToContainer,
     setSavedWindowOpen: setSavedWindowOpen,
     ensureWindowStructure: ensureWindowStructure,
+    centerWindowInContainer: centerOverlayWindow,
     applyWindowRect: applyWindowRect,
     removeSavedLayout: removeSavedLayout,
     applySavedLayouts: applySavedLayouts,
