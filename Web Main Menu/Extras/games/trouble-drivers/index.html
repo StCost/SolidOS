@@ -7,6 +7,8 @@
   <title>Trouble Drivers</title>
   <script src="../iframe-game-locale.js"></script>
   <script src="../iframe-game-input.js"></script>
+  <script src="../extras-game-ui-audio-paths.js"></script>
+  <script src="../iframe-game-audio-volume.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -789,6 +791,16 @@
     var ROCK_SPEED_PENALTY = 95;
     var ROCK_HIT_COOLDOWN = 0.55;
 
+    var VEHICLE_RUN_AUDIO_FILE = "ui-vehicle-run.wav";
+    var VEHICLE_RUN_AUDIO_PATH = "../../../../audio/ui-vehicle-run.wav";
+    var VEHICLE_BRAKES_AUDIO_FILE = "ui-vehicle-brakes.wav";
+    var VEHICLE_BRAKES_AUDIO_PATH = "../../../../audio/ui-vehicle-brakes.wav";
+    var VEHICLE_RUN_PITCH_MIN_SEMITONES = -1;
+    var VEHICLE_RUN_PITCH_MAX_SEMITONES = 6;
+    var VEHICLE_RUN_CENTS_PER_SEMITONE = 100;
+    var VEHICLE_RUN_OUTPUT_VOLUME = 0.42;
+    var VEHICLE_RUN_PITCH_SMOOTH_RATE = 12;
+
     var MAX_HEALTH = 10;
     var ENEMY_MAX_HEALTH = MAX_HEALTH;
     var CRYSTAL_HEAL_BASE = 0.1;
@@ -878,6 +890,13 @@
     var cameraWorldY = 0;
     var carAngle = -Math.PI / 2;
     var carSpeed = 0;
+
+    var vehicleRunAudioElement = null;
+    var vehicleBrakesAudioElement = null;
+    var vehicleRunSoundsUnlocked = false;
+    var vehicleRunPlaybackStarted = false;
+    var vehicleBrakesPlaybackStarted = false;
+    var vehicleRunSmoothedPlaybackRate = 1;
 
     var health = MAX_HEALTH;
     var crystalHealBuffer = 0;
@@ -2827,6 +2846,273 @@
       }
     }
 
+    function getVehicleRunSoundPath() {
+      if (window.WebExtrasGameUiAudioPaths && window.WebExtrasGameUiAudioPaths.getUiSoundPath) {
+        return window.WebExtrasGameUiAudioPaths.getUiSoundPath(VEHICLE_RUN_AUDIO_FILE);
+      }
+      return VEHICLE_RUN_AUDIO_PATH;
+    }
+
+    function getArcadeGamesOutputVolume() {
+      if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume) {
+        return window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume();
+      }
+      return 0.5;
+    }
+
+    function getVehicleRunOutputVolume() {
+      return getArcadeGamesOutputVolume() * VEHICLE_RUN_OUTPUT_VOLUME;
+    }
+
+    function getVehicleBrakeSpeedVolumeFactor(speed) {
+      var speedRange = MAX_SPEED - MIN_SPEED;
+      var speedFactor = 0;
+      if (speedRange > 0) {
+        speedFactor = (speed - MIN_SPEED) / speedRange;
+      }
+      if (speedFactor < 0) {
+        speedFactor = 0;
+      }
+      if (speedFactor > 1) {
+        speedFactor = 1;
+      }
+      return speedFactor;
+    }
+
+    function getVehicleBrakesOutputVolume(speed) {
+      return getArcadeGamesOutputVolume() * getVehicleBrakeSpeedVolumeFactor(speed);
+    }
+
+    function updateVehicleRunGain() {
+      if (!vehicleRunAudioElement) {
+        return;
+      }
+      vehicleRunAudioElement.volume = getVehicleRunOutputVolume();
+    }
+
+    function getVehicleBrakesSoundPath() {
+      if (window.WebExtrasGameUiAudioPaths && window.WebExtrasGameUiAudioPaths.getUiSoundPath) {
+        return window.WebExtrasGameUiAudioPaths.getUiSoundPath(VEHICLE_BRAKES_AUDIO_FILE);
+      }
+      return VEHICLE_BRAKES_AUDIO_PATH;
+    }
+
+    function ensureVehicleRunAudio() {
+      var path;
+      if (vehicleRunAudioElement) {
+        return true;
+      }
+      path = getVehicleRunSoundPath();
+      vehicleRunAudioElement = new Audio(path);
+      vehicleRunAudioElement.loop = true;
+      vehicleRunAudioElement.preload = "auto";
+      if (vehicleRunAudioElement.preservesPitch !== undefined) {
+        vehicleRunAudioElement.preservesPitch = false;
+      }
+      return true;
+    }
+
+    function ensureVehicleBrakesAudio() {
+      var path;
+      if (vehicleBrakesAudioElement) {
+        return true;
+      }
+      path = getVehicleBrakesSoundPath();
+      vehicleBrakesAudioElement = new Audio(path);
+      vehicleBrakesAudioElement.loop = true;
+      vehicleBrakesAudioElement.preload = "auto";
+      return true;
+    }
+
+    function getVehicleRunPlaybackRateForSpeed(speed) {
+      var cents = getVehicleRunPitchCentsForSpeed(speed);
+      return Math.pow(2, cents / 1200);
+    }
+
+    function setVehicleRunPlaybackRate(playbackRate) {
+      if (!vehicleRunAudioElement) {
+        return;
+      }
+      vehicleRunAudioElement.playbackRate = playbackRate;
+    }
+
+    function onVehicleRunUnlockPlayDone() {
+      if (!vehicleRunAudioElement) {
+        return;
+      }
+      vehicleRunSoundsUnlocked = true;
+      vehicleRunAudioElement.pause();
+      vehicleRunAudioElement.currentTime = 0;
+      updateVehicleRunGain();
+      if (isPlaying()) {
+        startVehicleRunAudio();
+      }
+    }
+
+    function onVehicleRunUnlockPlayFailed() {
+      vehicleRunSoundsUnlocked = false;
+    }
+
+    function onVehicleRunPlayFailed() {
+      vehicleRunPlaybackStarted = false;
+    }
+
+    function onVehicleRunPlayStarted() {
+      vehicleRunPlaybackStarted = true;
+    }
+
+    function onVehicleBrakesPlayFailed() {
+      vehicleBrakesPlaybackStarted = false;
+    }
+
+    function onVehicleBrakesPlayStarted() {
+      vehicleBrakesPlaybackStarted = true;
+    }
+
+    function unlockVehicleRunSound() {
+      var playPromise;
+      if (vehicleRunSoundsUnlocked) {
+        return;
+      }
+      ensureVehicleBrakesAudio();
+      if (!ensureVehicleRunAudio()) {
+        return;
+      }
+      if (!vehicleRunAudioElement) {
+        return;
+      }
+      vehicleRunAudioElement.volume = 0;
+      playPromise = vehicleRunAudioElement.play();
+      if (playPromise && playPromise.then) {
+        playPromise.then(onVehicleRunUnlockPlayDone).catch(onVehicleRunUnlockPlayFailed);
+      } else {
+        onVehicleRunUnlockPlayDone();
+      }
+    }
+
+    function getVehicleRunPitchCentsForSpeed(speed) {
+      var speedRange = MAX_SPEED - MIN_SPEED;
+      var speedFactor = 0;
+      var semitones;
+      if (speedRange > 0) {
+        speedFactor = (speed - MIN_SPEED) / speedRange;
+      }
+      if (speedFactor < 0) {
+        speedFactor = 0;
+      }
+      if (speedFactor > 1) {
+        speedFactor = 1;
+      }
+      semitones =
+        VEHICLE_RUN_PITCH_MIN_SEMITONES +
+        (VEHICLE_RUN_PITCH_MAX_SEMITONES - VEHICLE_RUN_PITCH_MIN_SEMITONES) * speedFactor;
+      return semitones * VEHICLE_RUN_CENTS_PER_SEMITONE;
+    }
+
+    function startVehicleRunAudio() {
+      var playPromise;
+      if (!vehicleRunSoundsUnlocked) {
+        return;
+      }
+      if (!ensureVehicleRunAudio()) {
+        return;
+      }
+      if (!vehicleRunAudioElement) {
+        return;
+      }
+      vehicleRunSmoothedPlaybackRate = getVehicleRunPlaybackRateForSpeed(carSpeed);
+      setVehicleRunPlaybackRate(vehicleRunSmoothedPlaybackRate);
+      updateVehicleRunGain();
+      if (vehicleRunPlaybackStarted) {
+        return;
+      }
+      playPromise = vehicleRunAudioElement.play();
+      if (playPromise && playPromise.then) {
+        playPromise.then(onVehicleRunPlayStarted).catch(onVehicleRunPlayFailed);
+      } else {
+        onVehicleRunPlayStarted();
+      }
+    }
+
+    function stopVehicleRunAudio() {
+      vehicleRunPlaybackStarted = false;
+      if (vehicleRunAudioElement) {
+        vehicleRunAudioElement.pause();
+      }
+    }
+
+    function stopVehicleBrakesAudio() {
+      vehicleBrakesPlaybackStarted = false;
+      if (vehicleBrakesAudioElement) {
+        vehicleBrakesAudioElement.pause();
+        vehicleBrakesAudioElement.currentTime = 0;
+      }
+    }
+
+    function stopVehicleAudio() {
+      stopVehicleRunAudio();
+      stopVehicleBrakesAudio();
+    }
+
+    function updateVehicleBrakesAudio(brakeSpeed) {
+      var volume;
+      var playPromise;
+      if (!vehicleRunSoundsUnlocked || !isPlaying()) {
+        stopVehicleBrakesAudio();
+        return;
+      }
+      if (!ensureVehicleBrakesAudio()) {
+        return;
+      }
+      if (!vehicleBrakesAudioElement) {
+        return;
+      }
+      volume = getVehicleBrakesOutputVolume(brakeSpeed);
+      if (volume <= 0.001) {
+        stopVehicleBrakesAudio();
+        return;
+      }
+      vehicleBrakesAudioElement.volume = volume;
+      if (vehicleBrakesPlaybackStarted) {
+        return;
+      }
+      playPromise = vehicleBrakesAudioElement.play();
+      if (playPromise && playPromise.then) {
+        playPromise.then(onVehicleBrakesPlayStarted).catch(onVehicleBrakesPlayFailed);
+      } else {
+        onVehicleBrakesPlayStarted();
+      }
+    }
+
+    function updateVehicleRunAudio(deltaSeconds) {
+      var targetPlaybackRate;
+      var pitchLerp;
+      if (!vehicleRunSoundsUnlocked || !isPlaying()) {
+        return;
+      }
+      if (!ensureVehicleRunAudio()) {
+        return;
+      }
+      if (!vehicleRunAudioElement) {
+        return;
+      }
+      targetPlaybackRate = getVehicleRunPlaybackRateForSpeed(carSpeed);
+      pitchLerp = 1 - Math.exp(-VEHICLE_RUN_PITCH_SMOOTH_RATE * deltaSeconds);
+      vehicleRunSmoothedPlaybackRate += (targetPlaybackRate - vehicleRunSmoothedPlaybackRate) * pitchLerp;
+      setVehicleRunPlaybackRate(vehicleRunSmoothedPlaybackRate);
+      updateVehicleRunGain();
+      if (!vehicleRunPlaybackStarted) {
+        startVehicleRunAudio();
+      }
+    }
+
+    function onVehicleRunArcadeVolumeChanged() {
+      updateVehicleRunGain();
+      if (vehicleBrakesPlaybackStarted && vehicleBrakesAudioElement) {
+        vehicleBrakesAudioElement.volume = getVehicleBrakesOutputVolume(carSpeed);
+      }
+    }
+
     function updateSpeedGauge() {
       var speedRange = MAX_SPEED - MIN_SPEED;
       var speedFactor = 0;
@@ -4677,6 +4963,7 @@
     }
 
     function triggerGameOver() {
+      stopVehicleAudio();
       gamePhase = PHASE_GAME_OVER;
       carSpeed = 0;
       carWrap.classList.add("is-dead");
@@ -4710,6 +4997,10 @@
         carSpeed = START_SPEED;
       }
       updateSpeedGauge();
+      unlockVehicleRunSound();
+      if (vehicleRunSoundsUnlocked) {
+        startVehicleRunAudio();
+      }
       updateCheckEngineHud();
       focusGameInput();
       if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
@@ -4745,6 +5036,7 @@
       event.preventDefault();
       focusGameInput();
       tryStartFromInput();
+      unlockVehicleRunSound();
       if (isPlaying()) {
         setPointerHeld(true, event.clientX, event.clientY);
         if (gameRoot.setPointerCapture) {
@@ -4774,6 +5066,7 @@
     }
 
     function resetGame() {
+      stopVehicleAudio();
       worldSeed = pickWorldSeed();
       gamePhase = PHASE_START;
       setPointerHeld(false);
@@ -4845,8 +5138,10 @@
         tryStartFromInput();
       }
       if (!isPlaying()) {
+        unlockVehicleRunSound();
         return;
       }
+      unlockVehicleRunSound();
       setKeyFromCode(code, true);
     }
 
@@ -4987,12 +5282,16 @@
       updateCarFrontWheelSteer(deltaSeconds);
 
       if (keysDown.w) {
+        stopVehicleBrakesAudio();
         carSpeed += ACCEL_RATE * deltaSeconds;
       } else if (keysDown.s) {
+        updateVehicleBrakesAudio(carSpeed);
         carSpeed -= BRAKE_RATE * deltaSeconds;
       } else if (pointerHeld && !pointerSteeringTurning) {
+        stopVehicleBrakesAudio();
         carSpeed += POINTER_HOLD_CRUISE_ACCEL * deltaSeconds;
       } else {
+        stopVehicleBrakesAudio();
         carSpeed -= COAST_DRAG * deltaSeconds;
       }
 
@@ -5632,6 +5931,7 @@
       simulationFrameIndex += 1;
       if (isPlaying()) {
         updateCar(deltaSeconds);
+        updateVehicleRunAudio(deltaSeconds);
         updateChunksAroundCar();
         updateCrystalAnimations(deltaSeconds);
         updateCrystalMagnet(deltaSeconds);
@@ -5647,6 +5947,9 @@
         updateParticles(deltaSeconds);
       }
       updateStartCrystalPreviews(deltaSeconds);
+      if (!isPlaying()) {
+        stopVehicleAudio();
+      }
     }
 
     function render() {
@@ -5701,6 +6004,9 @@
       gameRoot.addEventListener("pointercancel", onPointerUp);
       window.addEventListener("pointerup", onPointerUp);
       window.addEventListener("pointercancel", onPointerUp);
+      if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.bindArcadeVolumeChangeListener) {
+        window.WebExtrasGameAudioVolume.bindArcadeVolumeChangeListener(onVehicleRunArcadeVolumeChanged);
+      }
       window.requestAnimationFrame(frame);
     }
 
