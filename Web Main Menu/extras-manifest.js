@@ -86,7 +86,10 @@
         image: "Extras/games/cargo-convoy/cargo-convoy-preview.png",
         desktopIcon: "Extras/games/cargo-convoy/cargo-convoy-desktop-icon.png",
         difficulty: 5,
-        inputMode: "cursor"
+        inputMode: "cursor",
+        startMusicPath: "ui-cargo-convoy-start-music.wav",
+        gameplayMusicPath: "ui-cargo-convoy-game-music.wav",
+        gameOverMusicPath: "ui-cargo-convoy-gameover-music.wav"
       },
       {
         id: "factory-night",

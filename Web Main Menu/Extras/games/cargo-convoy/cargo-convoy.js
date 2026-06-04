@@ -2528,6 +2528,9 @@
     selectionRing.classList.remove("is-visible");
     resetMovementKeys();
     updateTruckDamageVignette();
+    if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
+      window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
+    }
   }
 
   function showGameOverScreen(isRecord) {
@@ -2547,6 +2550,9 @@
       gameScreen.classList.remove("is-record");
     }
     updateTruckDamageVignette();
+    if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameOver) {
+      window.WebExtrasGameStartMusicNotify.notifyGameOver();
+    }
   }
 
   function startPlaying() {
@@ -2559,6 +2565,9 @@
     setGameInputMovementMode();
     ensureSynthAudioContext();
     playSynthGameStart();
+    if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
+      window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
+    }
   }
 
   function getSharedConvoySwaySource() {
