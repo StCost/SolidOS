@@ -308,7 +308,7 @@
 
     pendingState = payload;
 
-    if (welcomeOnlyMode) return;
+    if (welcomeOnlyMode && !unityControlledLoading) return;
 
     if (!textElement) {
 
@@ -318,15 +318,16 @@
 
     if (!textElement) return;
 
-    if (payload.header != null) {
-      if (!titleElement) {
-        bindLoadingElements();
-      }
+    if (!titleElement) {
+      bindLoadingElements();
+    }
+    if (payload.header != null && payload.header !== "") {
       if (titleElement) {
         titleElement.textContent = payload.header;
       }
+    } else if (titleElement) {
+      titleElement.textContent = "loading.sys";
     }
-
     if (payload.text != null) {
 
       textElement.textContent = payload.text;
@@ -367,7 +368,7 @@
 
   function applyBootStep(stepIndex) {
 
-    if (welcomeOnlyMode) return;
+    if (welcomeOnlyMode && !unityControlledLoading) return;
 
     var clampedIndex = stepIndex;
 
