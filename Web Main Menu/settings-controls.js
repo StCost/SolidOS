@@ -219,10 +219,6 @@
         window.WebSettings.scheduleSliderValueLayoutRefresh();
       }
     }
-
-    if (window.WebScrollbarCursor && window.WebScrollbarCursor.refreshScrollElement) {
-      window.WebScrollbarCursor.refreshScrollElement(contentRoot);
-    }
   }
 
   function applyControlsState(payload) {

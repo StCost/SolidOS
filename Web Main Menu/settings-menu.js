@@ -1067,12 +1067,6 @@
     appendSettingsResetFooter();
     refreshAllSliderValuePositions();
     scheduleSliderValueLayoutRefresh();
-    if (window.WebScrollbarCursor) {
-      if (window.WebScrollbarCursor.initVerticalScrollViews) {
-        window.WebScrollbarCursor.initVerticalScrollViews(contentRoot);
-      }
-      window.WebScrollbarCursor.refreshAllScrollbars();
-    }
   }
 
   function appendFieldLabel(labelBox, field) {
@@ -1930,12 +1924,6 @@
       window.WebMenuHelpTooltip.init();
     }
     updateEmptyLoadingLabel();
-    if (window.WebScrollbarCursor && window.WebScrollbarCursor.initVerticalScrollViews) {
-      var settingsWorkspace = document.querySelector(".os-workspace--desktop");
-      if (settingsWorkspace) {
-        window.WebScrollbarCursor.initVerticalScrollViews(settingsWorkspace);
-      }
-    }
     updateNavLabels();
     applyTerminalAnimations(getTerminalAnimationsEnabled(state.terminalAnimationsEnabled));
     if (!isUnityMenuHost()) {

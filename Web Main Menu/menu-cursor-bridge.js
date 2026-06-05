@@ -187,13 +187,6 @@
   }
 
   function getTokenForTarget(target, clientX, clientY) {
-    if (window.WebScrollbarCursor) {
-      var scrollCursorToken = window.WebScrollbarCursor.getScrollCursorToken(clientX, clientY);
-      if (scrollCursorToken) {
-        return scrollCursorToken;
-      }
-    }
-
     var pointTarget = getHitTargetAtPoint(clientX, clientY);
     if (!pointTarget) {
       pointTarget = target;

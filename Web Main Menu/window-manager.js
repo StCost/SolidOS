@@ -1519,9 +1519,6 @@ var WebWindowManager = (function () {
     windowElement.classList.remove("os-window--open-done");
     setBodyMaxVar(windowElement);
     dispatchWorkspaceLayoutSettled(windowElement);
-    if (window.WebScrollbarCursor) {
-      window.WebScrollbarCursor.scheduleScrollViewScan();
-    }
   }
 
   function wrapWindowBody(windowElement) {
@@ -2184,9 +2181,6 @@ var WebWindowManager = (function () {
     if (settingsTabs) {
       settingsTabs.textContent = "";
     }
-    if (window.WebScrollbarCursor && window.WebScrollbarCursor.scheduleScrollViewScan) {
-      window.WebScrollbarCursor.scheduleScrollViewScan();
-    }
   }
 
   function closeManagedWindowInternal(windowElement, persistLayout) {
@@ -2554,16 +2548,6 @@ var WebWindowManager = (function () {
     windowElement.wmStructureReady = true;
   }
 
-  function refreshWorkspaceScrollbars(workspaceElement) {
-    if (!workspaceElement || !window.WebScrollbarCursor) {
-      return;
-    }
-    if (window.WebScrollbarCursor.initScrollViews) {
-      window.WebScrollbarCursor.initScrollViews(workspaceElement);
-    }
-    window.WebScrollbarCursor.refreshAllScrollbars();
-  }
-
   function syncWorkspaceWindows(workspaceElement) {
     if (!isWorkspaceVisible(workspaceElement)) return;
 
@@ -2614,9 +2598,6 @@ var WebWindowManager = (function () {
       windowElement.classList.remove("os-window--opening");
       setBodyMaxVar(windowElement);
       dispatchWorkspaceLayoutSettled(windowElement);
-      if (window.WebScrollbarCursor) {
-        window.WebScrollbarCursor.scheduleScrollViewScan();
-      }
       return;
     }
 
@@ -2657,9 +2638,6 @@ var WebWindowManager = (function () {
       windowElement.classList.remove("os-window--open-done");
       setBodyMaxVar(windowElement);
       dispatchWorkspaceLayoutSettled(windowElement);
-      if (window.WebScrollbarCursor) {
-        window.WebScrollbarCursor.scheduleScrollViewScan();
-      }
       return;
     }
 
@@ -2739,7 +2717,6 @@ var WebWindowManager = (function () {
     var menuWorkspace = pageMenu.querySelector(".os-workspace--wm");
     if (!menuWorkspace) return;
     syncWorkspaceWindows(menuWorkspace);
-    refreshWorkspaceScrollbars(menuWorkspace);
   }
 
   function initOverlayWindow() {

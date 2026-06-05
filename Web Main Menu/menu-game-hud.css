@@ -148,11 +148,6 @@ html.terminal-animations-off #gameHudRoot.game-hud--chat-focused .game-hud-chat.
   overflow: hidden;
 }
 
-.game-hud-chat-log-host > .menu-v-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
 .game-hud--chat-interactive .game-hud-chat.is-open {
   pointer-events: auto;
 }
