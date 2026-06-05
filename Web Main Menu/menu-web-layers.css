@@ -82,6 +82,10 @@ html.menu-web-layer-hud #device {
   pointer-events: auto;
 }
 
+html.menu-web-layer-hud #device.menu-screen::after {
+  content: none;
+}
+
 html.menu-web-layer-hud #device .menu-page {
   opacity: 0;
   visibility: hidden;

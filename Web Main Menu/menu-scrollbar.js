@@ -162,21 +162,6 @@
       { passive: false }
     );
 
-    if (window.ResizeObserver) {
-      instance.resizeObserver = new ResizeObserver(function () {
-        updateThumbLayout(instance);
-      });
-      instance.resizeObserver.observe(listElement);
-      instance.resizeObserver.observe(trackElement);
-    }
-
-    if (window.MutationObserver) {
-      instance.mutationObserver = new MutationObserver(function () {
-        updateThumbLayout(instance);
-      });
-      instance.mutationObserver.observe(listElement, { childList: true, subtree: true });
-    }
-
     updateThumbLayout(instance);
   }
 
@@ -356,21 +341,6 @@
       onHorizontalTrackPointerDown(instance, event);
     });
 
-    if (window.ResizeObserver) {
-      instance.resizeObserver = new ResizeObserver(function () {
-        updateHorizontalThumbLayout(instance);
-      });
-      instance.resizeObserver.observe(viewElement);
-      instance.resizeObserver.observe(trackElement);
-    }
-
-    if (window.MutationObserver) {
-      instance.mutationObserver = new MutationObserver(function () {
-        updateHorizontalThumbLayout(instance);
-      });
-      instance.mutationObserver.observe(viewElement, { childList: true, subtree: true });
-    }
-
     updateHorizontalThumbLayout(instance);
   }
 
@@ -466,6 +436,17 @@
     refreshAllHorizontalScrollbars();
   }
 
+  function refreshScrollElement(scrollElement) {
+    if (!scrollElement) return;
+    var index;
+    for (index = 0; index < verticalScrollbarInstances.length; index += 1) {
+      if (verticalScrollbarInstances[index].listElement === scrollElement) {
+        updateThumbLayout(verticalScrollbarInstances[index]);
+        return;
+      }
+    }
+  }
+
   function isScrollThumbElement(element) {
     if (!element || !element.classList) {
       return false;
@@ -559,6 +540,7 @@
     isOverScrollbar: isOverScrollbar,
     getScrollCursorToken: getScrollCursorToken,
     refreshAllScrollbars: refreshAllScrollbars,
+    refreshScrollElement: refreshScrollElement,
     initVerticalScrollViews: initVerticalScrollViews,
     initHorizontalScrollViews: initHorizontalScrollViews,
     scheduleScrollViewScan: scheduleScrollViewScan,
