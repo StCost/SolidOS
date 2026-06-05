@@ -715,14 +715,6 @@
     return '<span class="game-hud-chat-prefix terminal-text--dim">&gt; </span>' + formatUnityRichText(message);
   }
 
-  function refreshChatScrollbar() {
-    if (!window.WebScrollbarCursor) {
-      return;
-    }
-    window.WebScrollbarCursor.scheduleScrollViewScan();
-    window.WebScrollbarCursor.refreshAllScrollbars();
-  }
-
   function getChatLogContainer() {
     if (chatLogInnerElement) return chatLogInnerElement;
     return chatLogElement;
@@ -750,7 +742,6 @@
       lastLine.scrollIntoView({ block: "end", inline: "nearest" });
     }
     chatLogElement.scrollTop = chatLogElement.scrollHeight;
-    refreshChatScrollbar();
   }
 
   function scrollChatLogToEnd() {
@@ -888,7 +879,6 @@
       chatPanelElement.hidden = false;
       chatPanelElement.classList.add("is-open");
       chatPanelElement.setAttribute("aria-hidden", "false");
-      refreshChatScrollbar();
     } else {
       chatPanelElement.hidden = true;
       chatPanelElement.classList.remove("is-open");
@@ -1209,7 +1199,6 @@
     if (chatInputRowElement) {
       chatInputRowElement.addEventListener("mousedown", onChatInputMouseDown);
     }
-    refreshChatScrollbar();
   }
 
   function initStandaloneWebMode() {

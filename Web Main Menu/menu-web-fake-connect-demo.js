@@ -275,16 +275,6 @@
     window.WebMenuLayers.setActiveLayer(layerName);
   }
 
-  function refreshDemoScrollbars() {
-    if (!window.WebScrollbarCursor) return;
-    if (window.WebScrollbarCursor.scheduleScrollViewScan) {
-      window.WebScrollbarCursor.scheduleScrollViewScan();
-    }
-    if (window.WebScrollbarCursor.refreshAllScrollbars) {
-      window.WebScrollbarCursor.refreshAllScrollbars();
-    }
-  }
-
   function populateDemoLinks() {
     bindDemoElements();
     if (!demoLinksElement) return;
@@ -306,7 +296,6 @@
     prepareDemoWindowLayout();
     document.documentElement.classList.add("web-fake-connect-demo-open");
     demoVisible = true;
-    refreshDemoScrollbars();
   }
 
   function hideDemoTerminal() {

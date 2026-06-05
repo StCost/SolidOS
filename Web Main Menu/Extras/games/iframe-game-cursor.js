@@ -33,15 +33,7 @@
 
 
   function getScrollCursorToken(clientX, clientY) {
-
-    if (window.WebScrollbarCursor && window.WebScrollbarCursor.getScrollCursorToken) {
-
-      return window.WebScrollbarCursor.getScrollCursorToken(clientX, clientY);
-
-    }
-
     return null;
-
   }
 
 

@@ -334,33 +334,6 @@
   overflow: hidden;
 }
 
-.os-window--managed.os-window--opening .menu-v-scroll > .menu-v-scrollbar,
-.os-window--managed.os-window--opening-body-only .menu-v-scroll > .menu-v-scrollbar,
-.os-window--managed.os-window--opening .worlds-list-scrollbar,
-.os-window--managed.os-window--opening-body-only .worlds-list-scrollbar {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.os-window--managed.os-window--opening .menu-v-scroll-view::-webkit-scrollbar,
-.os-window--managed.os-window--opening .menu-v-scroll-view::-webkit-scrollbar-thumb,
-.os-window--managed.os-window--opening-body-only .menu-v-scroll-view::-webkit-scrollbar,
-.os-window--managed.os-window--opening-body-only .menu-v-scroll-view::-webkit-scrollbar-thumb,
-.os-window--managed.os-window--opening .settings-scroll::-webkit-scrollbar,
-.os-window--managed.os-window--opening .settings-scroll::-webkit-scrollbar-thumb,
-.os-window--managed.os-window--opening-body-only .settings-scroll::-webkit-scrollbar,
-.os-window--managed.os-window--opening-body-only .settings-scroll::-webkit-scrollbar-thumb,
-.os-window--managed.os-window--opening .extras-scroll::-webkit-scrollbar,
-.os-window--managed.os-window--opening .extras-scroll::-webkit-scrollbar-thumb,
-.os-window--managed.os-window--opening-body-only .extras-scroll::-webkit-scrollbar,
-.os-window--managed.os-window--opening-body-only .extras-scroll::-webkit-scrollbar-thumb,
-.os-window--managed.os-window--opening .credits-scroll::-webkit-scrollbar,
-.os-window--managed.os-window--opening .credits-scroll::-webkit-scrollbar-thumb,
-.os-window--managed.os-window--opening-body-only .credits-scroll::-webkit-scrollbar,
-.os-window--managed.os-window--opening-body-only .credits-scroll::-webkit-scrollbar-thumb {
-  opacity: 0;
-}
-
 @keyframes wm-chrome-open {
   to {
     transform: scaleX(1);

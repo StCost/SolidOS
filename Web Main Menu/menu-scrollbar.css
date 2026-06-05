@@ -1,17 +1,39 @@
-.menu-scroll-host,
-.menu-scroll-host * {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+.menu-v-scroll-view,
+.menu-h-scroll-view {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
-.menu-scroll-host *::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
+.menu-v-scroll-view,
+.worlds-list.menu-v-scroll-view,
+.worlds-list,
+.worlds-column .worlds-list,
+#singleplayerList,
+#ipMultiplayerList,
+#steamMultiplayerList,
+.settings-scroll,
+.extras-scroll,
+.credits-scroll,
+.settings-tabs,
+.game-hud-chat-log {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: auto;
+  scrollbar-gutter: stable;
+}
+
+.menu-h-scroll-view {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: auto;
+  scrollbar-gutter: stable;
 }
 
 .menu-v-scroll,
-.worlds-list-scroll {
+.worlds-list-scroll,
+.menu-h-scroll {
   position: relative;
   display: flex;
   flex-direction: row;
@@ -30,131 +52,186 @@
   height: 100%;
   margin-bottom: 0;
   box-sizing: border-box;
-  scrollbar-width: none;
-  scrollbar-gutter: auto;
-  -ms-overflow-style: none;
-}
-
-.menu-v-scroll > .menu-v-scroll-view::-webkit-scrollbar,
-.worlds-list-scroll > .worlds-list::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
-}
-
-.menu-v-scrollbar,
-.worlds-list-scrollbar {
-  position: relative;
-  flex: 0 0 var(--scrollbar-size, 8px);
-  align-self: stretch;
-  width: var(--scrollbar-size, 8px);
-  height: auto;
-  background: var(--scrollbar-track, rgba(4, 6, 9, 0.5));
-  cursor: default;
-  touch-action: none;
-  z-index: 4;
-  pointer-events: auto;
-  opacity: 1;
-}
-
-.worlds-list-scrollbar {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  flex: none;
-}
-
-.menu-v-scrollbar.is-hidden,
-.worlds-list-scrollbar.is-hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.worlds-list-scrollbar.is-hidden {
-  display: none;
-}
-
-.menu-v-scrollbar-thumb,
-.worlds-list-scrollbar-thumb {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  min-height: 24px;
-  background-color: rgba(255, 128, 0, 0.06);
-  background-image: var(--scrollbar-thumb-stripe), url("hazard-tile.png");
-  background-size: auto, 16px 16px;
-  background-blend-mode: screen, normal;
-  border: 1px solid var(--scrollbar-thumb-border, rgba(255, 128, 0, 0.1));
-  cursor: var(--cursor-scroll, url("cursor-scroll.svg?v=1") 11.2 11.2, default);
-  touch-action: none;
-}
-
-.menu-v-scrollbar-thumb:hover,
-.menu-v-scrollbar-thumb.is-dragging,
-.worlds-list-scrollbar-thumb:hover,
-.worlds-list-scrollbar-thumb.is-dragging {
-  background-color: var(--scrollbar-thumb-hover, rgba(255, 128, 0, 0.22));
-  border-color: rgba(255, 128, 0, 0.22);
 }
 
 .menu-h-scroll {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 0;
-  box-sizing: border-box;
+  flex-direction: column;
 }
 
 .menu-h-scroll > .menu-h-scroll-view {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
 }
 
-.menu-h-scroll > .menu-h-scroll-view::-webkit-scrollbar {
+.menu-v-scroll-view::-webkit-scrollbar,
+.worlds-list::-webkit-scrollbar,
+.worlds-column .worlds-list::-webkit-scrollbar,
+#singleplayerList::-webkit-scrollbar,
+#ipMultiplayerList::-webkit-scrollbar,
+#steamMultiplayerList::-webkit-scrollbar,
+.settings-scroll::-webkit-scrollbar,
+.extras-scroll::-webkit-scrollbar,
+.credits-scroll::-webkit-scrollbar,
+.settings-tabs::-webkit-scrollbar,
+.game-hud-chat-log::-webkit-scrollbar,
+.menu-h-scroll-view::-webkit-scrollbar {
+  width: var(--scrollbar-size, 8px);
+  height: var(--scrollbar-size, 8px);
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--scrollbar-track, rgba(4, 6, 9, 0.5));
+}
+
+.menu-v-scroll-view::-webkit-scrollbar-track,
+.worlds-list::-webkit-scrollbar-track,
+.worlds-column .worlds-list::-webkit-scrollbar-track,
+#singleplayerList::-webkit-scrollbar-track,
+#ipMultiplayerList::-webkit-scrollbar-track,
+#steamMultiplayerList::-webkit-scrollbar-track,
+.settings-scroll::-webkit-scrollbar-track,
+.extras-scroll::-webkit-scrollbar-track,
+.credits-scroll::-webkit-scrollbar-track,
+.settings-tabs::-webkit-scrollbar-track,
+.game-hud-chat-log::-webkit-scrollbar-track,
+.menu-h-scroll-view::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, rgba(4, 6, 9, 0.5));
+  border-radius: 0;
+}
+
+.menu-v-scroll-view::-webkit-scrollbar-thumb,
+.worlds-list::-webkit-scrollbar-thumb,
+.worlds-column .worlds-list::-webkit-scrollbar-thumb,
+#singleplayerList::-webkit-scrollbar-thumb,
+#ipMultiplayerList::-webkit-scrollbar-thumb,
+#steamMultiplayerList::-webkit-scrollbar-thumb,
+.settings-scroll::-webkit-scrollbar-thumb,
+.extras-scroll::-webkit-scrollbar-thumb,
+.credits-scroll::-webkit-scrollbar-thumb,
+.settings-tabs::-webkit-scrollbar-thumb,
+.game-hud-chat-log::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb-base, rgb(18, 10, 4));
+  background-image: var(--scrollbar-thumb-stripe), url("hazard-tile.png");
+  background-size: auto, 16px 16px;
+  background-repeat: repeat, repeat;
+  background-blend-mode: normal, soft-light;
+  border: 1px solid var(--scrollbar-thumb-border, rgba(255, 128, 0, 0.35));
+  border-radius: 0;
+  min-height: 24px;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: var(--cursor-scroll, url("cursor-scroll.svg?v=1") 11.2 11.2, default);
+}
+
+.menu-h-scroll-view::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb-base, rgb(18, 10, 4));
+  background-image: var(--scrollbar-thumb-stripe), url("hazard-tile.png");
+  background-size: auto, 16px 16px;
+  background-repeat: repeat, repeat;
+  background-blend-mode: normal, soft-light;
+  border: 1px solid var(--scrollbar-thumb-border, rgba(255, 128, 0, 0.35));
+  border-radius: 0;
+  min-width: 24px;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: var(--cursor-scroll-h, url("cursor-scroll-h.svg?v=1") 11.2 11.2, ew-resize);
+}
+
+.menu-v-scroll-view::-webkit-scrollbar-thumb:hover,
+.menu-v-scroll-view::-webkit-scrollbar-thumb:active,
+.worlds-list::-webkit-scrollbar-thumb:hover,
+.worlds-list::-webkit-scrollbar-thumb:active,
+.worlds-column .worlds-list::-webkit-scrollbar-thumb:hover,
+.worlds-column .worlds-list::-webkit-scrollbar-thumb:active,
+#singleplayerList::-webkit-scrollbar-thumb:hover,
+#singleplayerList::-webkit-scrollbar-thumb:active,
+#ipMultiplayerList::-webkit-scrollbar-thumb:hover,
+#ipMultiplayerList::-webkit-scrollbar-thumb:active,
+#steamMultiplayerList::-webkit-scrollbar-thumb:hover,
+#steamMultiplayerList::-webkit-scrollbar-thumb:active,
+.settings-scroll::-webkit-scrollbar-thumb:hover,
+.settings-scroll::-webkit-scrollbar-thumb:active,
+.extras-scroll::-webkit-scrollbar-thumb:hover,
+.extras-scroll::-webkit-scrollbar-thumb:active,
+.credits-scroll::-webkit-scrollbar-thumb:hover,
+.credits-scroll::-webkit-scrollbar-thumb:active,
+.settings-tabs::-webkit-scrollbar-thumb:hover,
+.settings-tabs::-webkit-scrollbar-thumb:active,
+.game-hud-chat-log::-webkit-scrollbar-thumb:hover,
+.game-hud-chat-log::-webkit-scrollbar-thumb:active,
+.menu-h-scroll-view::-webkit-scrollbar-thumb:hover,
+.menu-h-scroll-view::-webkit-scrollbar-thumb:active {
+  background-color: var(--scrollbar-thumb-hover, rgb(210, 108, 32));
+  border-color: rgba(255, 128, 0, 0.45);
+}
+
+.menu-v-scroll-view::-webkit-scrollbar-corner,
+.worlds-list::-webkit-scrollbar-corner,
+.worlds-column .worlds-list::-webkit-scrollbar-corner,
+#singleplayerList::-webkit-scrollbar-corner,
+#ipMultiplayerList::-webkit-scrollbar-corner,
+#steamMultiplayerList::-webkit-scrollbar-corner,
+.settings-scroll::-webkit-scrollbar-corner,
+.extras-scroll::-webkit-scrollbar-corner,
+.credits-scroll::-webkit-scrollbar-corner,
+.settings-tabs::-webkit-scrollbar-corner,
+.game-hud-chat-log::-webkit-scrollbar-corner,
+.menu-h-scroll-view::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track, rgba(4, 6, 9, 0.5));
+}
+
+.os-window--opening .menu-v-scroll-view,
+.os-window--opening .worlds-list,
+.os-window--opening .settings-scroll,
+.os-window--opening .extras-scroll,
+.os-window--opening .credits-scroll,
+.os-window--opening .settings-tabs,
+.os-window--opening .game-hud-chat-log,
+.os-window--opening-body-only .menu-v-scroll-view,
+.os-window--opening-body-only .worlds-list,
+.os-window--opening-body-only .settings-scroll,
+.os-window--opening-body-only .extras-scroll,
+.os-window--opening-body-only .credits-scroll,
+.os-window--opening-body-only .settings-tabs,
+.os-window--opening-body-only .game-hud-chat-log {
+  scrollbar-width: none;
+}
+
+.os-window--opening .menu-v-scroll-view::-webkit-scrollbar,
+.os-window--opening .menu-v-scroll-view::-webkit-scrollbar-track,
+.os-window--opening .menu-v-scroll-view::-webkit-scrollbar-thumb,
+.os-window--opening .worlds-list::-webkit-scrollbar,
+.os-window--opening .worlds-list::-webkit-scrollbar-track,
+.os-window--opening .worlds-list::-webkit-scrollbar-thumb,
+.os-window--opening .settings-scroll::-webkit-scrollbar,
+.os-window--opening .settings-scroll::-webkit-scrollbar-thumb,
+.os-window--opening .extras-scroll::-webkit-scrollbar,
+.os-window--opening .extras-scroll::-webkit-scrollbar-thumb,
+.os-window--opening .credits-scroll::-webkit-scrollbar,
+.os-window--opening .credits-scroll::-webkit-scrollbar-thumb,
+.os-window--opening .settings-tabs::-webkit-scrollbar,
+.os-window--opening .settings-tabs::-webkit-scrollbar-thumb,
+.os-window--opening .game-hud-chat-log::-webkit-scrollbar,
+.os-window--opening .game-hud-chat-log::-webkit-scrollbar-thumb,
+.os-window--opening-body-only .menu-v-scroll-view::-webkit-scrollbar,
+.os-window--opening-body-only .menu-v-scroll-view::-webkit-scrollbar-track,
+.os-window--opening-body-only .menu-v-scroll-view::-webkit-scrollbar-thumb,
+.os-window--opening-body-only .worlds-list::-webkit-scrollbar,
+.os-window--opening-body-only .worlds-list::-webkit-scrollbar-track,
+.os-window--opening-body-only .worlds-list::-webkit-scrollbar-thumb,
+.os-window--opening-body-only .settings-scroll::-webkit-scrollbar,
+.os-window--opening-body-only .settings-scroll::-webkit-scrollbar-thumb,
+.os-window--opening-body-only .extras-scroll::-webkit-scrollbar,
+.os-window--opening-body-only .extras-scroll::-webkit-scrollbar-thumb,
+.os-window--opening-body-only .credits-scroll::-webkit-scrollbar,
+.os-window--opening-body-only .credits-scroll::-webkit-scrollbar-thumb,
+.os-window--opening-body-only .settings-tabs::-webkit-scrollbar,
+.os-window--opening-body-only .settings-tabs::-webkit-scrollbar-thumb,
+.os-window--opening-body-only .game-hud-chat-log::-webkit-scrollbar,
+.os-window--opening-body-only .game-hud-chat-log::-webkit-scrollbar-thumb {
   display: none;
   width: 0;
   height: 0;
-}
-
-.menu-h-scrollbar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: var(--scrollbar-size, 8px);
-  background: var(--scrollbar-track, rgba(4, 6, 9, 0.5));
-  cursor: default;
-  touch-action: none;
-  z-index: 4;
-  pointer-events: auto;
-}
-
-.menu-h-scrollbar.is-hidden {
-  display: none;
-}
-
-.menu-h-scrollbar-thumb {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  min-width: 24px;
-  background-color: rgba(255, 128, 0, 0.06);
-  background-image: var(--scrollbar-thumb-stripe), url("hazard-tile.png");
-  background-size: auto, 16px 16px;
-  background-blend-mode: screen, normal;
-  border: 1px solid var(--scrollbar-thumb-border, rgba(255, 128, 0, 0.1));
-  cursor: var(--cursor-scroll-h, url("cursor-scroll-h.svg?v=1") 11.2 11.2, ew-resize);
-  touch-action: none;
-}
-
-.menu-h-scrollbar-thumb:hover,
-.menu-h-scrollbar-thumb.is-dragging {
-  background-color: var(--scrollbar-thumb-hover, rgba(255, 128, 0, 0.22));
-  border-color: rgba(255, 128, 0, 0.22);
+  opacity: 0;
+  pointer-events: none;
 }
