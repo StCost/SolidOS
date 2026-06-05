@@ -220,11 +220,8 @@
       }
     }
 
-    if (window.WebScrollbarCursor) {
-      if (window.WebScrollbarCursor.initVerticalScrollViews) {
-        window.WebScrollbarCursor.initVerticalScrollViews(contentRoot);
-      }
-      window.WebScrollbarCursor.refreshAllScrollbars();
+    if (window.WebScrollbarCursor && window.WebScrollbarCursor.refreshScrollElement) {
+      window.WebScrollbarCursor.refreshScrollElement(contentRoot);
     }
   }
 

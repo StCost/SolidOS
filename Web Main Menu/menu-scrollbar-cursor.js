@@ -162,27 +162,43 @@
       onVerticalScrollbarWheel(instance, event);
     }, { passive: false });
 
-    if (typeof ResizeObserver !== "undefined") {
-      instance.resizeObserver = new ResizeObserver(function () {
-        updateThumbLayout(instance);
-      });
-      instance.resizeObserver.observe(listElement);
-      instance.resizeObserver.observe(trackElement);
-    }
-
-    if (typeof MutationObserver !== "undefined") {
-      instance.mutationObserver = new MutationObserver(function () {
-        updateThumbLayout(instance);
-      });
-      instance.mutationObserver.observe(listElement, { childList: true, subtree: true });
-    }
-
     updateThumbLayout(instance);
   }
 
   var SCROLL_VIEW_CLASS = "menu-v-scroll-view";
   var HORIZONTAL_SCROLL_VIEW_CLASS = "menu-h-scroll-view";
   var scrollViewScanTimer = 0;
+  var scrollViewWrapScanTimer = 0;
+  var scrollViewScanDebounceMs = 200;
+
+  function isScrollbarInstanceConnected(instance) {
+    if (!instance || !instance.listElement) {
+      return false;
+    }
+    if (!instance.listElement.isConnected) {
+      return false;
+    }
+    return true;
+  }
+
+  function pruneDisconnectedScrollbarInstances() {
+    var nextInstances = [];
+    var index;
+    for (index = 0; index < scrollbarInstances.length; index += 1) {
+      var instance = scrollbarInstances[index];
+      if (!isScrollbarInstanceConnected(instance)) {
+        if (instance.resizeObserver) {
+          instance.resizeObserver.disconnect();
+        }
+        if (instance.mutationObserver) {
+          instance.mutationObserver.disconnect();
+        }
+        continue;
+      }
+      nextInstances.push(instance);
+    }
+    scrollbarInstances = nextInstances;
+  }
 
   function getMenuScreenRoot(rootElement) {
     if (rootElement && rootElement.classList && rootElement.classList.contains("menu-screen")) {
@@ -375,20 +391,21 @@
     }
     scrollViewScanTimer = window.setTimeout(function () {
       scrollViewScanTimer = 0;
-      initVerticalScrollViews(document);
       refreshAllScrollbars();
-    }, 0);
+    }, scrollViewScanDebounceMs);
   }
 
-  function observeScrollViewChanges() {
-    var menuScreen = document.querySelector(".menu-screen");
-    if (!menuScreen || typeof MutationObserver === "undefined") {
-      return;
+  function scheduleScrollViewWrapScan() {
+    if (scrollViewWrapScanTimer) {
+      window.clearTimeout(scrollViewWrapScanTimer);
     }
-    var observer = new MutationObserver(function () {
-      scheduleScrollViewScan();
-    });
-    observer.observe(menuScreen, { childList: true, subtree: true });
+    scrollViewWrapScanTimer = window.setTimeout(function () {
+      scrollViewWrapScanTimer = 0;
+      pruneDisconnectedScrollbarInstances();
+      initVerticalScrollViews(document);
+      initHorizontalScrollViews(document);
+      refreshAllScrollbars();
+    }, scrollViewScanDebounceMs);
   }
 
   function initVerticalScrollViews(rootElement) {
@@ -568,21 +585,6 @@
       onHorizontalScrollbarWheel(instance, event);
     }, { passive: false });
 
-    if (typeof ResizeObserver !== "undefined") {
-      instance.resizeObserver = new ResizeObserver(function () {
-        updateHorizontalThumbLayout(instance);
-      });
-      instance.resizeObserver.observe(viewElement);
-      instance.resizeObserver.observe(trackElement);
-    }
-
-    if (typeof MutationObserver !== "undefined") {
-      instance.mutationObserver = new MutationObserver(function () {
-        updateHorizontalThumbLayout(instance);
-      });
-      instance.mutationObserver.observe(viewElement, { childList: true, subtree: true });
-    }
-
     updateHorizontalThumbLayout(instance);
   }
 
@@ -665,7 +667,19 @@
     return getScrollCursorToken(clientX, clientY) != null;
   }
 
+  function refreshScrollElement(scrollElement) {
+    if (!scrollElement) return;
+    var index = 0;
+    for (index = 0; index < scrollbarInstances.length; index += 1) {
+      if (scrollbarInstances[index].listElement === scrollElement) {
+        updateThumbLayout(scrollbarInstances[index]);
+        return;
+      }
+    }
+  }
+
   function refreshAllScrollbars() {
+    pruneDisconnectedScrollbarInstances();
     var index = 0;
     for (index = 0; index < scrollbarInstances.length; index++) {
       updateThumbLayout(scrollbarInstances[index]);
@@ -677,20 +691,21 @@
 
   function onDomReady() {
     initScrollViews(document);
-    observeScrollViewChanges();
   }
 
-  window.addEventListener("web-page-changed", scheduleScrollViewScan);
+  window.addEventListener("web-page-changed", scheduleScrollViewWrapScan);
   window.addEventListener("web-locale-applied", refreshAllScrollbars);
 
   window.WebScrollbarCursor = {
     isOverScrollbar: isOverScrollbar,
     getScrollCursorToken: getScrollCursorToken,
     refreshAllScrollbars: refreshAllScrollbars,
+    refreshScrollElement: refreshScrollElement,
     initVerticalScrollViews: initVerticalScrollViews,
     initHorizontalScrollViews: initHorizontalScrollViews,
     initScrollViews: initScrollViews,
-    scheduleScrollViewScan: scheduleScrollViewScan
+    scheduleScrollViewScan: scheduleScrollViewScan,
+    scheduleScrollViewWrapScan: scheduleScrollViewWrapScan
   };
 
   if (document.readyState === "loading") {

@@ -2163,11 +2163,38 @@ var WebWindowManager = (function () {
     buttonElement.appendChild(glyphElement);
   }
 
+  function clearClosedWindowDynamicContent(windowElement) {
+    if (!windowElement) return;
+    var presetName = windowElement.getAttribute("data-wm-preset") || "";
+    if (presetName === "settings-content" && window.WebSettings && window.WebSettings.releaseContent) {
+      window.WebSettings.releaseContent();
+      return;
+    }
+    var scrollSelector = ".menu-v-scroll-view, .settings-scroll, .extras-scroll, .credits-scroll, .worlds-list";
+    var scrollNodes = windowElement.querySelectorAll(scrollSelector);
+    var index;
+    for (index = 0; index < scrollNodes.length; index += 1) {
+      var scrollNode = scrollNodes[index];
+      scrollNode.textContent = "";
+      if (scrollNode.classList.contains("settings-scroll")) {
+        scrollNode.classList.add("is-empty");
+      }
+    }
+    var settingsTabs = windowElement.querySelector(".settings-tabs");
+    if (settingsTabs) {
+      settingsTabs.textContent = "";
+    }
+    if (window.WebScrollbarCursor && window.WebScrollbarCursor.scheduleScrollViewScan) {
+      window.WebScrollbarCursor.scheduleScrollViewScan();
+    }
+  }
+
   function closeManagedWindowInternal(windowElement, persistLayout) {
     var containerElement = getLayoutContainer(windowElement);
     var presetName = windowElement.getAttribute("data-wm-preset") || "";
     var wasDesktopWindow = isDesktopWindowElement(windowElement);
     clearWindowChromeStates(windowElement);
+    clearClosedWindowDynamicContent(windowElement);
     windowElement.classList.add("os-window--closed");
     if (windowElement.classList.contains("os-window--focused")) {
       windowElement.classList.remove("os-window--focused");
