@@ -63,7 +63,6 @@
     language: "english",
     useCustomCursor: true,
     terminalAnimationsEnabled: true,
-    menuIconSnapToGrid: true,
     menuBackgroundAnimationEnabled: true,
     menuMusicEnabled: true,
     masterVolume: 0.5,
@@ -330,7 +329,6 @@
         { type: "toggle", key: "useCustomCursor", labelKey: "settings.custom-cursor" },
         { type: "toggle", key: "terminalAnimationsEnabled", labelKey: "settings.terminal-animations" },
         { type: "toggle", key: "menuBackgroundAnimationEnabled", labelKey: "settings.menu-background-animation" },
-        { type: "toggle", key: "menuIconSnapToGrid", labelKey: "settings.menu-icon-snap-to-grid" },
         {
           type: "action",
           actionId: "reset-window-layouts",
@@ -1455,10 +1453,6 @@
     }
   }
 
-  function isMenuIconSnapToGridEnabled() {
-    return state.menuIconSnapToGrid !== false;
-  }
-
   function isMenuMusicEnabled() {
     return state.menuMusicEnabled !== false;
   }
@@ -1858,7 +1852,10 @@
     }
     var addButtons = document.querySelectorAll("#btnAddWorld .term-row-label, #btnAddServer .term-row-label");
     for (index = 0; index < addButtons.length; index++) {
-      addButtons[index].textContent = getLocalized("web.connect.compose.add", "Add");
+      var addButtonLabel = addButtons[index];
+      var addButtonKey = addButtonLabel.getAttribute("data-locale-key");
+      if (!addButtonKey) continue;
+      addButtonLabel.textContent = getLocalized(addButtonKey, addButtonLabel.textContent);
     }
     var nameInputs = document.querySelectorAll('[data-locale-placeholder="web.connect.placeholder.name"]');
     for (index = 0; index < nameInputs.length; index++) {
@@ -1956,7 +1953,6 @@
     applyTerminalAnimations: applyTerminalAnimations,
     applyMenuBackgroundAnimation: applyMenuBackgroundAnimation,
     applyMenuMusicEnabled: applyMenuMusicEnabled,
-    isMenuIconSnapToGridEnabled: isMenuIconSnapToGridEnabled,
     isMenuMusicEnabled: isMenuMusicEnabled,
     applyCustomCursorMode: applyCustomCursorMode,
     onLocaleUpdated: onLocaleUpdated,

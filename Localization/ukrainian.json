@@ -129,7 +129,6 @@
   "settings.language": "Мова",
   "settings.master-volume": "Загальна",
   "settings.menu-background-animation": "Анімація тла меню",
-  "settings.menu-icon-snap-to-grid": "Прив’язка іконок робочого столу до сітки",
   "settings.menu-music-enabled": "Музика в меню",
   "settings.music-volume": "Музика",
   "settings.object-volume": "Об'єкти",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Сервери",
   "web.connect.col.single": "Світи",
   "web.connect.col.steam": "Друзі Steam",
-  "web.connect.compose.add": "Додати",
+  "web.connect.compose.add": "Додати",
+  "web.connect.compose.create": "Створити",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Ім'я=",
   "web.connect.label.seed": "Сід=",

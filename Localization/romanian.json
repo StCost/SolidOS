@@ -129,7 +129,6 @@
   "settings.language": "Limbă",
   "settings.master-volume": "Principal",
   "settings.menu-background-animation": "Animație fundal meniu",
-  "settings.menu-icon-snap-to-grid": "Aliniază pictogramele desktop la grilă",
   "settings.menu-music-enabled": "Muzică meniu",
   "settings.music-volume": "Muzică",
   "settings.object-volume": "Obiecte",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Servere",
   "web.connect.col.single": "Lumi",
   "web.connect.col.steam": "Prieteni Steam",
-  "web.connect.compose.add": "Adaugă",
+  "web.connect.compose.add": "Adaugă",
+  "web.connect.compose.create": "Creează",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Nume=",
   "web.connect.label.seed": "Semință=",

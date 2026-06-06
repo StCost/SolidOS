@@ -129,7 +129,6 @@
   "settings.language": "Språk",
   "settings.master-volume": "Master",
   "settings.menu-background-animation": "Menybakgrundsanimation",
-  "settings.menu-icon-snap-to-grid": "Fäst skrivbordsikoner till rutnät",
   "settings.menu-music-enabled": "Menymusik",
   "settings.music-volume": "Musik",
   "settings.object-volume": "Objekt",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Servrar",
   "web.connect.col.single": "Världar",
   "web.connect.col.steam": "Steam-vänner",
-  "web.connect.compose.add": "Lägg till",
+  "web.connect.compose.add": "Lägg till",
+  "web.connect.compose.create": "Skapa",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Namn=",
   "web.connect.label.seed": "Frö=",

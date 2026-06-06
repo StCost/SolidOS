@@ -129,7 +129,6 @@
   "settings.language": "Bahasa",
   "settings.master-volume": "Master",
   "settings.menu-background-animation": "Animasi latar menu",
-  "settings.menu-icon-snap-to-grid": "Ratakan ikon desktop ke kisi",
   "settings.menu-music-enabled": "Musik menu",
   "settings.music-volume": "Musik",
   "settings.object-volume": "Objek",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Server",
   "web.connect.col.single": "Dunia",
   "web.connect.col.steam": "Teman Steam",
-  "web.connect.compose.add": "Tambah",
+  "web.connect.compose.add": "Tambah",
+  "web.connect.compose.create": "Buat",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Nama=",
   "web.connect.label.seed": "Benih=",

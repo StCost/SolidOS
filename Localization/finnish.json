@@ -129,7 +129,6 @@
   "settings.language": "Kieli",
   "settings.master-volume": "Pää-ääni",
   "settings.menu-background-animation": "Valikon taustaanimaatio",
-  "settings.menu-icon-snap-to-grid": "Kiinnitä työpöytäkuvakkeet ruudukkoon",
   "settings.menu-music-enabled": "Valikkomusiikki",
   "settings.music-volume": "Musiikki",
   "settings.object-volume": "Objektit",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Palvelimet",
   "web.connect.col.single": "Maailmat",
   "web.connect.col.steam": "Steam-kaverit",
-  "web.connect.compose.add": "Lisää",
+  "web.connect.compose.add": "Lisää",
+  "web.connect.compose.create": "Luo",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Nimi=",
   "web.connect.label.seed": "Siemen=",

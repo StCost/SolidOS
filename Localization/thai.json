@@ -129,7 +129,6 @@
   "settings.language": "ภาษา",
   "settings.master-volume": "ระดับเสียงหลัก",
   "settings.menu-background-animation": "แอนิเมชันพื้นหลังเมนู",
-  "settings.menu-icon-snap-to-grid": "จัดไอคอนเดสก์ท็อปให้ตรงกริด",
   "settings.menu-music-enabled": "เพลงในเมนู",
   "settings.music-volume": "เพลง",
   "settings.object-volume": "วัตถุ",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "เซิร์ฟเวอร์",
   "web.connect.col.single": "โลก",
   "web.connect.col.steam": "เพื่อน Steam",
-  "web.connect.compose.add": "เพิ่ม",
+  "web.connect.compose.add": "เพิ่ม",
+  "web.connect.compose.create": "สร้าง",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "ชื่อ=",
   "web.connect.label.seed": "ซีด=",

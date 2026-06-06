@@ -129,7 +129,6 @@
   "settings.language": "Lingua",
   "settings.master-volume": "Master",
   "settings.menu-background-animation": "Animazione sfondo menu",
-  "settings.menu-icon-snap-to-grid": "Allinea le icone del desktop alla griglia",
   "settings.menu-music-enabled": "Musica del menu",
   "settings.music-volume": "Musica",
   "settings.object-volume": "Oggetti",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Server",
   "web.connect.col.single": "Mondi",
   "web.connect.col.steam": "Amici Steam",
-  "web.connect.compose.add": "Aggiungi",
+  "web.connect.compose.add": "Aggiungi",
+  "web.connect.compose.create": "Crea",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Nome=",
   "web.connect.label.seed": "Seme=",

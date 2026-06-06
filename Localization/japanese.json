@@ -129,7 +129,6 @@
   "settings.language": "言語",
   "settings.master-volume": "マスター",
   "settings.menu-background-animation": "メニュー背景アニメーション",
-  "settings.menu-icon-snap-to-grid": "デスクトップアイコンをグリッドに揃える",
   "settings.menu-music-enabled": "メニュー音楽",
   "settings.music-volume": "音楽",
   "settings.object-volume": "オブジェクト",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "サーバー",
   "web.connect.col.single": "ワールド",
   "web.connect.col.steam": "Steam フレンド",
-  "web.connect.compose.add": "追加",
+  "web.connect.compose.add": "追加",
+  "web.connect.compose.create": "作成",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "名前=",
   "web.connect.label.seed": "シード=",

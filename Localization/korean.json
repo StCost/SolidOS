@@ -129,7 +129,6 @@
   "settings.language": "언어",
   "settings.master-volume": "마스터",
   "settings.menu-background-animation": "메뉴 배경 애니메이션",
-  "settings.menu-icon-snap-to-grid": "바탕화면 아이콘을 격자에 맞춤",
   "settings.menu-music-enabled": "메뉴 음악",
   "settings.music-volume": "음악",
   "settings.object-volume": "객체",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "서버",
   "web.connect.col.single": "월드",
   "web.connect.col.steam": "Steam 친구",
-  "web.connect.compose.add": "추가",
+  "web.connect.compose.add": "추가",
+  "web.connect.compose.create": "만들기",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "이름=",
   "web.connect.label.seed": "시드=",

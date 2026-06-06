@@ -129,7 +129,6 @@
   "settings.language": "اللغة",
   "settings.master-volume": "الرئيسي",
   "settings.menu-background-animation": "حركة خلفية القائمة",
-  "settings.menu-icon-snap-to-grid": "محاذاة أيقونات سطح المكتب للشبكة",
   "settings.menu-music-enabled": "موسيقى القائمة",
   "settings.music-volume": "الموسيقى",
   "settings.object-volume": "الأشياء",
@@ -179,7 +178,9 @@
   "web.connect.col.ip": "الخوادم",
   "web.connect.col.single": "العوالم",
   "web.connect.col.steam": "أصدقاء Steam",
-  "web.connect.compose.add": "إضافة",
+  "web.connect.compose.add": "إضافة"
+,
+  "web.connect.compose.create": "إنشاء",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "الاسم=",
   "web.connect.label.seed": "البذرة=",

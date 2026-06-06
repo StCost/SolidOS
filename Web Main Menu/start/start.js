@@ -55,15 +55,6 @@
     return !!device && device.classList.contains("menu-mode--game");
   }
 
-  function updateConnectGameModeState() {
-    var connectDisabled = isGameMode();
-    var entries = document.querySelectorAll(".worlds-entry");
-    var index;
-    for (index = 0; index < entries.length; index++) {
-      entries[index].disabled = connectDisabled;
-    }
-  }
-
   function postToUnity(payload) {
     if (!isUnityHost()) return;
     window.vuplex.postMessage(JSON.stringify(payload));
@@ -424,7 +415,6 @@
       }
     });
 
-    updateConnectGameModeState();
   }
 
   function collectListsPayload() {
@@ -553,12 +543,9 @@
     window.dispatchEvent(new CustomEvent("web-start-page-open"));
   });
 
-  window.addEventListener("web-menu-mode-changed", updateConnectGameModeState);
-
   window.WebStartMenu = {
     applyLists: applyLists,
-    renderAllLists: renderAllLists,
-    updateConnectGameModeState: updateConnectGameModeState
+    renderAllLists: renderAllLists
   };
 
   if (window.__webPendingStartLists) {

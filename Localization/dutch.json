@@ -129,7 +129,6 @@
   "settings.language": "Taal",
   "settings.master-volume": "Hoofd",
   "settings.menu-background-animation": "Menu-achtergrondanimatie",
-  "settings.menu-icon-snap-to-grid": "Bureaubladpictogrammen aan raster",
   "settings.menu-music-enabled": "Menumuziek",
   "settings.music-volume": "Muziek",
   "settings.object-volume": "Objecten",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Servers",
   "web.connect.col.single": "Werelden",
   "web.connect.col.steam": "Steam-vrienden",
-  "web.connect.compose.add": "Toevoegen",
+  "web.connect.compose.add": "Toevoegen",
+  "web.connect.compose.create": "Maken",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Naam=",
   "web.connect.label.seed": "Zaad=",

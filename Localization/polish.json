@@ -129,7 +129,6 @@
   "settings.language": "Język",
   "settings.master-volume": "Główna",
   "settings.menu-background-animation": "Animacja tła menu",
-  "settings.menu-icon-snap-to-grid": "Przyciągaj ikony pulpitu do siatki",
   "settings.menu-music-enabled": "Muzyka w menu",
   "settings.music-volume": "Muzyka",
   "settings.object-volume": "Obiekty",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Serwery",
   "web.connect.col.single": "Światy",
   "web.connect.col.steam": "Znajomi Steam",
-  "web.connect.compose.add": "Dodaj",
+  "web.connect.compose.add": "Dodaj",
+  "web.connect.compose.create": "Utwórz",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Nazwa=",
   "web.connect.label.seed": "Ziarno=",

@@ -129,7 +129,6 @@
   "settings.language": "Sprog",
   "settings.master-volume": "Hoved",
   "settings.menu-background-animation": "Baggrundsanimation i menu",
-  "settings.menu-icon-snap-to-grid": "Snærr skrivebordsikoner til gitter",
   "settings.menu-music-enabled": "Musik i menu",
   "settings.music-volume": "Musik",
   "settings.object-volume": "Objekter",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Servere",
   "web.connect.col.single": "Verdener",
   "web.connect.col.steam": "Steam-venner",
-  "web.connect.compose.add": "Tilføj",
+  "web.connect.compose.add": "Tilføj",
+  "web.connect.compose.create": "Opret",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Navn=",
   "web.connect.label.seed": "Frø=",
