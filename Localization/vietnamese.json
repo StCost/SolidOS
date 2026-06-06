@@ -129,7 +129,6 @@
   "settings.language": "Ngôn ngữ",
   "settings.master-volume": "Chính",
   "settings.menu-background-animation": "Hoạt ảnh nền menu",
-  "settings.menu-icon-snap-to-grid": "Căn biểu tượng màn hình nền vào lưới",
   "settings.menu-music-enabled": "Nhạc menu",
   "settings.music-volume": "Nhạc",
   "settings.object-volume": "Đối tượng",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Máy chủ",
   "web.connect.col.single": "Thế giới",
   "web.connect.col.steam": "Bạn bè Steam",
-  "web.connect.compose.add": "Thêm",
+  "web.connect.compose.add": "Thêm",
+  "web.connect.compose.create": "Tạo",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Tên=",
   "web.connect.label.seed": "Hạt giống=",

@@ -129,7 +129,6 @@
   "settings.language": "Γλώσσα",
   "settings.master-volume": "Κύρια ένταση",
   "settings.menu-background-animation": "Κινούμενο φόντο μενού",
-  "settings.menu-icon-snap-to-grid": "Ευθυγράμμιση εικονιδίων στο πλέγμα",
   "settings.menu-music-enabled": "Μουσική μενού",
   "settings.music-volume": "Μουσική",
   "settings.object-volume": "Αντικείμενα",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Διακομιστές",
   "web.connect.col.single": "Κόσμοι",
   "web.connect.col.steam": "Φίλοι Steam",
-  "web.connect.compose.add": "Προσθήκη",
+  "web.connect.compose.add": "Προσθήκη",
+  "web.connect.compose.create": "Δημιουργία",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Όνομα=",
   "web.connect.label.seed": "Σπόρος=",

@@ -632,7 +632,6 @@
 
 
   function requestUnityDismiss() {
-    if (unityControlledLoading) return;
     dismiss();
   }
 

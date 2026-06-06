@@ -129,7 +129,6 @@
   "settings.language": "Jazyk",
   "settings.master-volume": "Hlavní",
   "settings.menu-background-animation": "Animace pozadí menu",
-  "settings.menu-icon-snap-to-grid": "Přichytit ikony na mřížku",
   "settings.menu-music-enabled": "Hudba v menu",
   "settings.music-volume": "Hudba",
   "settings.object-volume": "Objekty",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Servery",
   "web.connect.col.single": "Světy",
   "web.connect.col.steam": "Přátelé na Steamu",
-  "web.connect.compose.add": "Přidat",
+  "web.connect.compose.add": "Přidat",
+  "web.connect.compose.create": "Vytvořit",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Jméno=",
   "web.connect.label.seed": "Semeno=",

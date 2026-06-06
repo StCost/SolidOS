@@ -129,7 +129,6 @@
   "settings.language": "Dil",
   "settings.master-volume": "Ana",
   "settings.menu-background-animation": "Menü arka plan animasyonu",
-  "settings.menu-icon-snap-to-grid": "Masaüstü simgelerini ızgaraya hizala",
   "settings.menu-music-enabled": "Menü müziği",
   "settings.music-volume": "Müzik",
   "settings.object-volume": "Nesneler",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Sunucular",
   "web.connect.col.single": "Dünyalar",
   "web.connect.col.steam": "Steam arkadaşları",
-  "web.connect.compose.add": "Ekle",
+  "web.connect.compose.add": "Ekle",
+  "web.connect.compose.create": "Oluştur",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Ad=",
   "web.connect.label.seed": "Tohum=",

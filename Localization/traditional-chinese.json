@@ -129,7 +129,6 @@
   "settings.language": "語言",
   "settings.master-volume": "主聲道",
   "settings.menu-background-animation": "選單背景動畫",
-  "settings.menu-icon-snap-to-grid": "桌面圖示對齊格線",
   "settings.menu-music-enabled": "選單音樂",
   "settings.music-volume": "音樂",
   "settings.object-volume": "物體",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "伺服器",
   "web.connect.col.single": "世界",
   "web.connect.col.steam": "Steam 好友",
-  "web.connect.compose.add": "新增",
+  "web.connect.compose.add": "新增",
+  "web.connect.compose.create": "建立",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "名稱=",
   "web.connect.label.seed": "種子=",

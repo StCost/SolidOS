@@ -129,7 +129,6 @@
   "settings.language": "Nyelv",
   "settings.master-volume": "Fő",
   "settings.menu-background-animation": "Menü háttéranimáció",
-  "settings.menu-icon-snap-to-grid": "Asztali ikonok rácshoz igazítása",
   "settings.menu-music-enabled": "Menüzene",
   "settings.music-volume": "Zene",
   "settings.object-volume": "Objektumok",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Szerverek",
   "web.connect.col.single": "Világok",
   "web.connect.col.steam": "Steam barátok",
-  "web.connect.compose.add": "Hozzáadás",
+  "web.connect.compose.add": "Hozzáadás",
+  "web.connect.compose.create": "Létrehozás",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Név=",
   "web.connect.label.seed": "Mag=",

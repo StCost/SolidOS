@@ -129,7 +129,6 @@
   "settings.language": "Sprache",
   "settings.master-volume": "Gesamt",
   "settings.menu-background-animation": "Menü-Hintergrundanimation",
-  "settings.menu-icon-snap-to-grid": "Desktop-Symbole am Raster ausrichten",
   "settings.menu-music-enabled": "Menümusik",
   "settings.music-volume": "Musik",
   "settings.object-volume": "Objekte",
@@ -179,7 +178,8 @@
   "web.connect.col.ip": "Server",
   "web.connect.col.single": "Welten",
   "web.connect.col.steam": "Steam-Freunde",
-  "web.connect.compose.add": "Hinzufügen",
+  "web.connect.compose.add": "Hinzufügen",
+  "web.connect.compose.create": "Erstellen",
   "web.connect.label.addr": "Addr=",
   "web.connect.label.name": "Name=",
   "web.connect.label.seed": "Samen=",
