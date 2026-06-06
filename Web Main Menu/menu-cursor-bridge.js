@@ -186,11 +186,44 @@
     return document.documentElement;
   }
 
+  function getOverlayScrollbarCursorToken(element) {
+    while (element && element !== document.documentElement) {
+      if (!element.classList) {
+        element = element.parentElement;
+        continue;
+      }
+      if (element.classList.contains("menu-v-scroll-bar-thumb")) {
+        return "scroll";
+      }
+      if (element.classList.contains("menu-v-scroll-bar-track")) {
+        return "scroll";
+      }
+      if (element.classList.contains("menu-h-scroll-bar-thumb")) {
+        return "scroll-h";
+      }
+      element = element.parentElement;
+    }
+    return null;
+  }
+
   function getTokenForTarget(target, clientX, clientY) {
     var pointTarget = getHitTargetAtPoint(clientX, clientY);
     if (!pointTarget) {
       pointTarget = target;
     }
+
+    var overlayScrollbarToken = getOverlayScrollbarCursorToken(pointTarget);
+    if (overlayScrollbarToken) {
+      return overlayScrollbarToken;
+    }
+
+    if (window.WebScrollbarCursor) {
+      var scrollCursorToken = window.WebScrollbarCursor.getScrollCursorToken(clientX, clientY);
+      if (scrollCursorToken) {
+        return scrollCursorToken;
+      }
+    }
+
     var settingsSliderToken = getSettingsSliderCursorToken(pointTarget);
     if (settingsSliderToken) {
       return settingsSliderToken;

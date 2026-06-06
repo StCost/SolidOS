@@ -280,12 +280,7 @@
 .os-window--managed .os-window-body--terminal {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.os-window--managed .os-window-body--terminal.menu-v-scroll-view {
-  scrollbar-gutter: auto;
+  overflow: hidden;
 }
 
 .os-window--opening .os-window-chrome,
