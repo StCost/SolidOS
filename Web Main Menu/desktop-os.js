@@ -9,8 +9,7 @@ var WebDesktop = (function () {
   var ICON_CLICK_SUPPRESS_MS = 400;
   var ICON_GRID_CELL_WIDTH = 88;
   var ICON_GRID_CELL_HEIGHT = 104;
-  var ICON_GRID_SNAP_FOOTPRINT = 88;
-  var ICON_GRID_POINTER_EDGE_INSET = 12;
+  var ICON_MIN_FOOTPRINT = 88;
   var cachedIconGridLayout = null;
 
   var WINDOW_PRESET_TITLE = "menu-splash";
@@ -163,6 +162,9 @@ var WebDesktop = (function () {
     iconId = iconElement.getAttribute("data-desktop-icon");
     if (iconId === ICON_ACTION_DISCONNECT) {
       return isGameMode();
+    }
+    if (iconId === "worlds" || iconId === "servers" || iconId === "steam") {
+      return !isGameMode();
     }
     return true;
   }
@@ -744,7 +746,7 @@ var WebDesktop = (function () {
     }
 
     absolutePosition = coords.resolveAbsolutePosition(savedLayout, layoutRoot);
-    applyIconPosition(iconElement, absolutePosition.left, absolutePosition.top, false);
+    applyIconPosition(iconElement, absolutePosition.left, absolutePosition.top);
   }
 
   function getDesktopTabSortRoot() {
@@ -1002,7 +1004,7 @@ var WebDesktop = (function () {
         clampedPosition.top,
         placedIcons
       );
-      applyIconPosition(iconElement, freePosition.left, freePosition.top, false);
+      applyIconPosition(iconElement, freePosition.left, freePosition.top);
       syncIconLayoutFromElement(iconElement);
       placedIcons.push(iconElement);
       return;
@@ -1025,7 +1027,7 @@ var WebDesktop = (function () {
         freePosition.left !== layoutPosition.left ||
         freePosition.top !== layoutPosition.top
       ) {
-        applyIconPosition(iconElement, freePosition.left, freePosition.top, false);
+        applyIconPosition(iconElement, freePosition.left, freePosition.top);
         syncIconLayoutFromElement(iconElement);
       }
     }
@@ -1256,13 +1258,6 @@ var WebDesktop = (function () {
     applyAllSavedIconLayoutsAndResolve();
   }
 
-  function isIconSnapToGridEnabled() {
-    if (window.WebSettings && window.WebSettings.isMenuIconSnapToGridEnabled) {
-      return window.WebSettings.isMenuIconSnapToGridEnabled();
-    }
-    return true;
-  }
-
   function getIconLayoutRoot() {
     if (!desktopIconsRoot) {
       desktopIconsRoot = document.getElementById("desktopIcons");
@@ -1334,31 +1329,31 @@ var WebDesktop = (function () {
     height = placementSize.height;
     columnCount = Math.max(
       1,
-      Math.floor((width - ICON_GRID_SNAP_FOOTPRINT) / ICON_GRID_CELL_WIDTH) + 1
+      Math.floor((width - ICON_MIN_FOOTPRINT) / ICON_GRID_CELL_WIDTH) + 1
     );
     rowCount = Math.max(
       1,
-      Math.floor((height - ICON_GRID_SNAP_FOOTPRINT) / ICON_GRID_CELL_HEIGHT) + 1
+      Math.floor((height - ICON_MIN_FOOTPRINT) / ICON_GRID_CELL_HEIGHT) + 1
     );
     while (
       columnCount > 1 &&
-      (columnCount - 1) * ICON_GRID_CELL_WIDTH + ICON_GRID_SNAP_FOOTPRINT > width
+      (columnCount - 1) * ICON_GRID_CELL_WIDTH + ICON_MIN_FOOTPRINT > width
     ) {
       columnCount = columnCount - 1;
     }
     while (
       rowCount > 1 &&
-      (rowCount - 1) * ICON_GRID_CELL_HEIGHT + ICON_GRID_SNAP_FOOTPRINT > height
+      (rowCount - 1) * ICON_GRID_CELL_HEIGHT + ICON_MIN_FOOTPRINT > height
     ) {
       rowCount = rowCount - 1;
     }
     if (columnCount > 1) {
-      columnStep = (width - ICON_GRID_SNAP_FOOTPRINT) / (columnCount - 1);
+      columnStep = (width - ICON_MIN_FOOTPRINT) / (columnCount - 1);
     } else {
       columnStep = 0;
     }
     if (rowCount > 1) {
-      rowStep = (height - ICON_GRID_SNAP_FOOTPRINT) / (rowCount - 1);
+      rowStep = (height - ICON_MIN_FOOTPRINT) / (rowCount - 1);
     } else {
       rowStep = 0;
     }
@@ -1382,11 +1377,6 @@ var WebDesktop = (function () {
     return { maxColumn: layout.maxColumn, maxRow: layout.maxRow };
   }
 
-  function getIconGridMaxAnchorPosition() {
-    var bounds = getIconGridBounds();
-    return getIconGridPosition(bounds.maxColumn, bounds.maxRow);
-  }
-
   function getIconGridCellFromLayoutPoint(left, top) {
     var layout = getIconGridLayout();
     var column = 0;
@@ -1400,52 +1390,6 @@ var WebDesktop = (function () {
       row = Math.floor((top - layout.startTop + layout.rowStep * 0.5) / layout.rowStep);
     }
     return clampIconGridCell(column, row);
-  }
-
-  function getIconGridCellFromDropLayout(left, top, clientX, clientY, iconElement) {
-    var bounds = getIconGridBounds();
-    var maxGridAnchor = getIconGridMaxAnchorPosition();
-    var cell = getIconGridCellFromLayoutPoint(left, top);
-    var layoutRoot;
-    var layoutRect;
-    var pointerLeft;
-    var pointerTop;
-    if (left >= maxGridAnchor.left) {
-      cell.column = bounds.maxColumn;
-    }
-    if (top >= maxGridAnchor.top) {
-      cell.row = bounds.maxRow;
-    }
-    if (clientX == null || clientY == null) {
-      return clampIconGridCell(cell.column, cell.row);
-    }
-    layoutRoot = getIconLayoutRoot();
-    if (!layoutRoot) {
-      return clampIconGridCell(cell.column, cell.row);
-    }
-    layoutRect = layoutRoot.getBoundingClientRect();
-    pointerLeft = clientX - layoutRect.left;
-    pointerTop = clientY - layoutRect.top;
-    if (pointerLeft >= maxGridAnchor.left) {
-      cell.column = bounds.maxColumn;
-    }
-    if (pointerTop >= maxGridAnchor.top) {
-      cell.row = bounds.maxRow;
-    }
-    return clampIconGridCell(cell.column, cell.row);
-  }
-
-  function snapIconPosition(left, top, iconElement) {
-    var cell = getIconGridCellFromLayoutPoint(left, top);
-    return getIconGridPosition(cell.column, cell.row);
-  }
-
-  function getIconGridCell(left, top) {
-    return getIconGridCellFromLayoutPoint(left, top);
-  }
-
-  function getIconGridCellFromPointer(left, top, iconElement) {
-    return getIconGridCellFromLayoutPoint(left, top);
   }
 
   function clampIconGridCell(column, row) {
@@ -1465,10 +1409,6 @@ var WebDesktop = (function () {
     };
   }
 
-  function getIconOccupiedCellKey(column, row) {
-    return String(column) + "," + String(row);
-  }
-
   function getIconLayoutPosition(iconElement) {
     var left = parseFloat(iconElement.style.left);
     var top = parseFloat(iconElement.style.top);
@@ -1483,21 +1423,6 @@ var WebDesktop = (function () {
       left: iconRect.left - layoutRect.left,
       top: iconRect.top - layoutRect.top
     };
-  }
-
-  function isIconGridCellWithinBounds(column, row) {
-    var bounds = getIconGridBounds();
-    if (column < 0 || row < 0) return false;
-    if (column > bounds.maxColumn) return false;
-    if (row > bounds.maxRow) return false;
-    return true;
-  }
-
-  function getOccupiedGridCell(iconElement) {
-    var layoutPosition = getIconLayoutPosition(iconElement);
-    var cell = getIconGridCellFromLayoutPoint(layoutPosition.left, layoutPosition.top);
-    if (!isIconGridCellWithinBounds(cell.column, cell.row)) return null;
-    return { column: cell.column, row: cell.row };
   }
 
   function buildIconExcludeLookup(excludeIcons) {
@@ -1546,101 +1471,16 @@ var WebDesktop = (function () {
     pixelDeltaTop,
     occupancyExcludeIcons
   ) {
-    var targetLeft;
-    var targetTop;
-    var targetCell;
-    if (isIconSnapToGridEnabled()) {
-      targetCell = getIconGridCellFromLayoutPoint(startLeft, startTop);
-      targetCell = clampIconGridCell(
-        targetCell.column + gridDeltaColumn,
-        targetCell.row + gridDeltaRow
-      );
-      return findClosestFreeGridSlot(targetCell.column, targetCell.row, occupancyExcludeIcons);
-    }
-    targetLeft = startLeft + pixelDeltaLeft;
-    targetTop = startTop + pixelDeltaTop;
-    return findClosestFreeIconPosition(iconElement, targetLeft, targetTop, occupancyExcludeIcons);
-  }
-
-  function buildOccupiedIconCells(excludeIcons) {
-    var occupied = {};
-    var excludeLookup = buildIconExcludeLookup(excludeIcons);
-    var icons;
-    var index;
-    if (!desktopIconsRoot) return occupied;
-    icons = desktopIconsRoot.querySelectorAll(".os-desktop-icon[data-desktop-icon]");
-    for (index = 0; index < icons.length; index++) {
-      var iconElement = icons[index];
-      var cell;
-      var cellKey;
-      if (isIconExcludedFromOccupancy(iconElement, excludeLookup)) continue;
-      if (iconElement.hidden) continue;
-      cell = getOccupiedGridCell(iconElement);
-      if (!cell) continue;
-      cellKey = getIconOccupiedCellKey(cell.column, cell.row);
-      occupied[cellKey] = true;
-    }
-    return occupied;
-  }
-
-  function findClosestFreeGridSlot(targetColumn, targetRow, excludeIcons) {
-    var occupied = buildOccupiedIconCells(excludeIcons);
-    var targetKey = getIconOccupiedCellKey(targetColumn, targetRow);
-    var bounds = getIconGridBounds();
-    var maxSearchRadius = bounds.maxColumn + bounds.maxRow + 8;
-    var radius;
-    if (!occupied[targetKey] && isIconGridCellWithinBounds(targetColumn, targetRow)) {
-      return getIconGridPosition(targetColumn, targetRow);
-    }
-    for (radius = 1; radius <= maxSearchRadius; radius++) {
-      var bestColumn = -1;
-      var bestRow = -1;
-      var bestDistanceSquared = -1;
-      var deltaColumn;
-      for (deltaColumn = -radius; deltaColumn <= radius; deltaColumn++) {
-        var deltaRow;
-        for (deltaRow = -radius; deltaRow <= radius; deltaRow++) {
-          var column;
-          var row;
-          var cellKey;
-          var distanceSquared;
-          if (Math.abs(deltaColumn) !== radius && Math.abs(deltaRow) !== radius) {
-            continue;
-          }
-          column = targetColumn + deltaColumn;
-          row = targetRow + deltaRow;
-          if (!isIconGridCellWithinBounds(column, row)) continue;
-          cellKey = getIconOccupiedCellKey(column, row);
-          if (occupied[cellKey]) continue;
-          distanceSquared = deltaColumn * deltaColumn + deltaRow * deltaRow;
-          if (bestDistanceSquared < 0 || distanceSquared < bestDistanceSquared) {
-            bestDistanceSquared = distanceSquared;
-            bestColumn = column;
-            bestRow = row;
-            continue;
-          }
-          if (distanceSquared === bestDistanceSquared) {
-            if (row > bestRow || (row === bestRow && column > bestColumn)) {
-              bestColumn = column;
-              bestRow = row;
-            }
-          }
-        }
-      }
-      if (bestDistanceSquared >= 0) {
-        return getIconGridPosition(bestColumn, bestRow);
-      }
-    }
-    var fallbackCell = clampIconGridCell(targetColumn, targetRow);
-    return getIconGridPosition(fallbackCell.column, fallbackCell.row);
+    return findClosestFreeIconPosition(
+      iconElement,
+      startLeft + pixelDeltaLeft,
+      startTop + pixelDeltaTop,
+      occupancyExcludeIcons
+    );
   }
 
   function resolveIconDropPosition(iconElement, left, top, clientX, clientY, excludeIcons) {
     var excludeTarget = excludeIcons || iconElement;
-    if (isIconSnapToGridEnabled()) {
-      var cell = getIconGridCellFromDropLayout(left, top, clientX, clientY, iconElement);
-      return findClosestFreeGridSlot(cell.column, cell.row, excludeTarget);
-    }
     return findClosestFreeIconPosition(iconElement, left, top, excludeTarget);
   }
 
@@ -1650,8 +1490,8 @@ var WebDesktop = (function () {
     if (metrics.height < minSide) {
       minSide = metrics.height;
     }
-    if (minSide < ICON_GRID_SNAP_FOOTPRINT) {
-      return ICON_GRID_SNAP_FOOTPRINT * 0.5;
+    if (minSide < ICON_MIN_FOOTPRINT) {
+      return ICON_MIN_FOOTPRINT * 0.5;
     }
     return minSide * 0.5;
   }
@@ -1781,18 +1621,10 @@ var WebDesktop = (function () {
   function clampIconPosition(iconElement, left, top) {
     var layoutRoot = getIconLayoutRoot();
     if (!layoutRoot) return { left: left, top: top };
-    var maxLeft;
-    var maxTop;
-    if (isIconSnapToGridEnabled()) {
-      var gridMaxPosition = getIconGridMaxAnchorPosition();
-      maxLeft = gridMaxPosition.left;
-      maxTop = gridMaxPosition.top;
-    } else {
-      var placementSize = getDesktopPlacementSize();
-      var metrics = getIconMetrics(iconElement);
-      maxLeft = Math.max(0, placementSize.width - metrics.width);
-      maxTop = Math.max(0, placementSize.height - metrics.height);
-    }
+    var placementSize = getDesktopPlacementSize();
+    var metrics = getIconMetrics(iconElement);
+    var maxLeft = Math.max(0, placementSize.width - metrics.width);
+    var maxTop = Math.max(0, placementSize.height - metrics.height);
     if (left < 0) left = 0;
     if (top < 0) top = 0;
     if (left > maxLeft) left = maxLeft;
@@ -1800,16 +1632,10 @@ var WebDesktop = (function () {
     return { left: left, top: top };
   }
 
-  function applyIconPosition(iconElement, left, top, snapToGrid) {
-    if (snapToGrid && isIconSnapToGridEnabled()) {
-      var snapped = snapIconPosition(left, top, iconElement);
-      left = snapped.left;
-      top = snapped.top;
-    } else {
-      var clamped = clampIconPosition(iconElement, left, top);
-      left = clamped.left;
-      top = clamped.top;
-    }
+  function applyIconPosition(iconElement, left, top) {
+    var clamped = clampIconPosition(iconElement, left, top);
+    left = clamped.left;
+    top = clamped.top;
     iconElement.classList.remove("os-desktop-icon--center-anchor");
     iconElement.style.right = "auto";
     iconElement.style.bottom = "auto";
@@ -2390,10 +2216,6 @@ var WebDesktop = (function () {
     var resolvedDropPosition;
     var deltaLeft;
     var deltaTop;
-    var primaryStartCell;
-    var primaryDropCell;
-    var gridDeltaColumn = 0;
-    var gridDeltaRow = 0;
     var isGroupDrag = drag.iconElements.length > 1;
 
     removeIconDragGhosts(drag);
@@ -2412,17 +2234,8 @@ var WebDesktop = (function () {
     );
     deltaLeft = resolvedDropPosition.left - primaryStart.left;
     deltaTop = resolvedDropPosition.top - primaryStart.top;
-    if (isGroupDrag && isIconSnapToGridEnabled()) {
-      primaryStartCell = getIconGridCellFromLayoutPoint(primaryStart.left, primaryStart.top);
-      primaryDropCell = getIconGridCellFromLayoutPoint(
-        resolvedDropPosition.left,
-        resolvedDropPosition.top
-      );
-      gridDeltaColumn = primaryDropCell.column - primaryStartCell.column;
-      gridDeltaRow = primaryDropCell.row - primaryStartCell.row;
-    }
 
-    applyIconPosition(primaryIconElement, resolvedDropPosition.left, resolvedDropPosition.top, false);
+    applyIconPosition(primaryIconElement, resolvedDropPosition.left, resolvedDropPosition.top);
     syncIconLayoutFromElement(primaryIconElement);
     placedGroupIcons.push(primaryIconElement);
 
@@ -2452,7 +2265,7 @@ var WebDesktop = (function () {
           occupancyExcludeIcons
         );
       }
-      applyIconPosition(iconElement, resolvedDropPosition.left, resolvedDropPosition.top, false);
+      applyIconPosition(iconElement, resolvedDropPosition.left, resolvedDropPosition.top);
       syncIconLayoutFromElement(iconElement);
       placedGroupIcons.push(iconElement);
     }
@@ -2572,23 +2385,86 @@ var WebDesktop = (function () {
     }
   }
 
+  function updateConnectWindowsGameModeVisibility() {
+    var connectPresets = ["connect-col-0", "connect-col-1", "connect-col-2"];
+    var windowManager = getWindowManager();
+    var index;
+    var presetName;
+    var windowElement;
+    if (isGameMode()) {
+      for (index = 0; index < connectPresets.length; index++) {
+        presetName = connectPresets[index];
+        windowElement = getWindowByPreset(presetName);
+        if (windowElement && isWindowVisible(windowElement)) {
+          closeWindowVisualOnly(presetName);
+        }
+      }
+      return;
+    }
+    if (!windowManager || !windowManager.shouldDesktopWindowBeOpen) return;
+    for (index = 0; index < connectPresets.length; index++) {
+      presetName = connectPresets[index];
+      windowElement = getWindowByPreset(presetName);
+      if (!windowElement) continue;
+      if (windowManager.shouldDesktopWindowBeOpen(presetName)) {
+        if (!isWindowVisible(windowElement)) {
+          windowElement.classList.remove("os-window--closed");
+          windowElement.style.visibility = "visible";
+          if (windowManager.ensureWindowStructure) {
+            windowManager.ensureWindowStructure(windowElement);
+          }
+          if (windowManager.syncWindowLayout) {
+            windowManager.syncWindowLayout(windowElement);
+          }
+          if (windowManager.clampManagedWindowToContainer) {
+            windowManager.clampManagedWindowToContainer(windowElement);
+          }
+          runWindowOpenHooks(windowElement, presetName);
+        }
+      } else if (isWindowVisible(windowElement)) {
+        closeWindowVisualOnly(presetName);
+      }
+    }
+  }
+
   function updateActionIconsState() {
     if (!desktopIconsRoot) return;
     var disconnectIcon = desktopIconsRoot.querySelector(
       '.os-desktop-icon[data-desktop-icon="' + ICON_ACTION_DISCONNECT + '"]'
     );
-    if (!disconnectIcon) return;
-    var disconnectEnabled = isGameMode();
-    disconnectIcon.hidden = false;
-    disconnectIcon.removeAttribute("hidden");
-    disconnectIcon.setAttribute("aria-hidden", "false");
-    if (disconnectEnabled) {
-      disconnectIcon.classList.remove(ICON_DISABLED_CLASS);
-      disconnectIcon.removeAttribute("aria-disabled");
-    } else {
-      disconnectIcon.classList.add(ICON_DISABLED_CLASS);
-      disconnectIcon.setAttribute("aria-disabled", "true");
+    var connectIconIds = ["worlds", "servers", "steam"];
+    var connectEnabled = !isGameMode();
+    var index;
+    var iconElement;
+    if (disconnectIcon) {
+      disconnectIcon.hidden = false;
+      disconnectIcon.removeAttribute("hidden");
+      disconnectIcon.setAttribute("aria-hidden", "false");
+      if (isGameMode()) {
+        disconnectIcon.classList.remove(ICON_DISABLED_CLASS);
+        disconnectIcon.removeAttribute("aria-disabled");
+      } else {
+        disconnectIcon.classList.add(ICON_DISABLED_CLASS);
+        disconnectIcon.setAttribute("aria-disabled", "true");
+      }
     }
+    for (index = 0; index < connectIconIds.length; index++) {
+      iconElement = desktopIconsRoot.querySelector(
+        '.os-desktop-icon[data-desktop-icon="' + connectIconIds[index] + '"]'
+      );
+      if (!iconElement) continue;
+      iconElement.hidden = false;
+      iconElement.removeAttribute("hidden");
+      iconElement.setAttribute("aria-hidden", "false");
+      if (connectEnabled) {
+        iconElement.classList.remove(ICON_DISABLED_CLASS);
+        iconElement.removeAttribute("aria-disabled");
+      } else {
+        iconElement.classList.add(ICON_DISABLED_CLASS);
+        iconElement.setAttribute("aria-disabled", "true");
+      }
+    }
+    updateConnectWindowsGameModeVisibility();
     updateDesktopTabOrder();
   }
 
@@ -3084,7 +2960,7 @@ var WebDesktop = (function () {
       null,
       excludeIcons
     );
-    applyIconPosition(iconElement, resolvedPosition.left, resolvedPosition.top, false);
+    applyIconPosition(iconElement, resolvedPosition.left, resolvedPosition.top);
     syncIconLayoutFromElement(iconElement);
   }
 

@@ -90,59 +90,18 @@
   --cursor-scroll: url("cursor-scroll.svg?v=1") 11.2 11.2, default;
   --cursor-scroll-h: url("cursor-scroll-h.svg?v=1") 11.2 11.2, default;
   --scrollbar-size: 8px;
+  --scrollbar-gap: 6px;
   --scrollbar-track: rgba(4, 6, 9, 0.5);
+  --scrollbar-thumb: rgba(255, 128, 0, 0.35);
+  --scrollbar-thumb-hover: rgba(255, 128, 0, 0.55);
   --scrollbar-thumb-stripe: repeating-linear-gradient(-45deg,
-      rgba(255, 128, 0, 0.14) 0,
-      rgba(255, 128, 0, 0.14) 5px,
-      rgba(255, 128, 0, 0.04) 5px,
-      rgba(255, 128, 0, 0.04) 10px);
-  --scrollbar-thumb-border: rgba(255, 128, 0, 0.1);
-  --scrollbar-thumb-hover: rgba(255, 128, 0, 0.22);
+      rgb(196, 98, 28) 0,
+      rgb(196, 98, 28) 5px,
+      rgb(132, 62, 14) 5px,
+      rgb(132, 62, 14) 10px);
   --term-list-row-stripe: rgba(255, 128, 0, 0.05);
 }
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 128, 0, 0.2) var(--scrollbar-track);
-  scrollbar-gutter: auto;
-}
-
-*::-webkit-scrollbar {
-  width: var(--scrollbar-size);
-  height: var(--scrollbar-size);
-  cursor: url("cursor-scroll.svg?v=1") 11.2 11.2, default;
-}
-
-*::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-  border-radius: 0;
-  cursor: url("cursor-scroll.svg?v=1") 11.2 11.2, default;
-}
-
-*::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 128, 0, 0.06);
-  background-image: var(--scrollbar-thumb-stripe), url("hazard-tile.png");
-  background-size: auto, 16px 16px;
-  background-repeat: repeat, repeat;
-  background-blend-mode: screen, normal;
-  border: 1px solid var(--scrollbar-thumb-border);
-  border-radius: 0;
-  cursor: url("cursor-scroll.svg?v=1") 11.2 11.2, default !important;
-  min-height: 24px;
-  min-width: 24px;
-}
-
-*::-webkit-scrollbar-thumb:hover,
-*::-webkit-scrollbar-thumb:active {
-  background-color: var(--scrollbar-thumb-hover);
-  border-color: rgba(255, 128, 0, 0.22);
-  cursor: url("cursor-scroll.svg?v=1") 11.2 11.2, default !important;
-}
-
-*::-webkit-scrollbar-corner {
-  background: var(--scrollbar-track);
-  cursor: url("cursor-scroll.svg?v=1") 11.2 11.2, default;
-}
 
 *,
 *::before,
@@ -319,15 +278,19 @@ html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-track,
 html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-thumb,
 html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-thumb:hover,
 html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-thumb:active,
-html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-corner,
-html:has(.menu-screen.menu-screen--system-cursor) .menu-v-scrollbar,
-html:has(.menu-screen.menu-screen--system-cursor) .menu-v-scrollbar-thumb,
-html:has(.menu-screen.menu-screen--system-cursor) .worlds-list-scrollbar,
-html:has(.menu-screen.menu-screen--system-cursor) .worlds-list-scrollbar-thumb,
-html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .os-window--managed .os-window-body--terminal::-webkit-scrollbar-thumb,
-html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .settings-scroll::-webkit-scrollbar-thumb,
-html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .settings-tabs::-webkit-scrollbar-thumb,
-html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .worlds-column .worlds-list::-webkit-scrollbar-thumb {
+html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-corner {
+  cursor: default !important;
+}
+
+html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-thumb:horizontal,
+html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-track:horizontal {
+  cursor: ew-resize !important;
+}
+
+html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .os-window--managed .os-window-body--terminal::-webkit-scrollbar-thumb:vertical,
+html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .settings-scroll::-webkit-scrollbar-thumb:vertical,
+html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .settings-tabs:not(.settings-tabs--toolbar)::-webkit-scrollbar-thumb:vertical,
+html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .worlds-column .worlds-list::-webkit-scrollbar-thumb:vertical {
   cursor: default !important;
 }
 

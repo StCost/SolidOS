@@ -5714,8 +5714,6 @@
     var flameTipY;
     var flameMidY;
     var flameGlowY;
-    var isCarWreck;
-    isCarWreck = !isUnitTruckKind(unit);
     fireCount = isUnitTruckKind(unit) ? 4 : 2;
     for (fireIndex = 0; fireIndex < fireCount; fireIndex += 1) {
       if (isUnitTruckKind(unit)) {
@@ -5728,15 +5726,9 @@
       flicker = Math.sin(unit.wreckFireTime * 9 + fireIndex * 1.9) * 0.5 + 0.5;
       flameHeight = (8 + flicker * 10) * (isUnitTruckKind(unit) ? 1.15 : 1);
       flameWidth = 4 + flicker * 4;
-      if (isCarWreck) {
-        flameTipY = localY - flameHeight;
-        flameMidY = localY - flameHeight * 0.55;
-        flameGlowY = localY - flameHeight * 0.42;
-      } else {
-        flameTipY = localY + flameHeight;
-        flameMidY = localY + flameHeight * 0.55;
-        flameGlowY = localY + flameHeight * 0.42;
-      }
+      flameTipY = localY - flameHeight;
+      flameMidY = localY - flameHeight * 0.55;
+      flameGlowY = localY - flameHeight * 0.42;
       context.fillStyle = "rgba(255, " + Math.floor(70 + flicker * 110) + ", 18, " + (0.45 + flicker * 0.4) + ")";
       context.beginPath();
       context.moveTo(localX, localY);

@@ -18,23 +18,29 @@
   overflow: hidden;
 }
 
+.os-window--managed.worlds-column .os-window-body--terminal {
+  overflow: hidden;
+}
+
 .worlds-column .term-prompt--list,
 .worlds-column .worlds-column-bottom {
   flex-shrink: 0;
 }
 
-.worlds-column .menu-v-scroll,
-.worlds-column .worlds-list-scroll {
+.worlds-column .menu-v-scroll-clip {
   flex: 1 1 auto;
   min-height: 0;
 }
 
+.worlds-column .worlds-list {
+  flex: none;
+  height: 100%;
+}
+
 .worlds-list {
   list-style: none;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  flex: none;
+  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -137,7 +143,7 @@
 .worlds-entry:disabled:focus-visible {
   filter: saturate(0.22) brightness(0.92);
   opacity: 0.62;
-  cursor: var(--cursor-forbidden);
+  cursor: url("../cursor-forbidden.svg") 11.2 11.2, not-allowed;
   background: transparent;
   border-left-color: transparent;
   box-shadow: none;

@@ -48,6 +48,8 @@
 
   var contentReady = false;
 
+  var loadingDestinationHeader = "";
+
 
 
   function isUnityHost() {
@@ -212,6 +214,30 @@
 
 
 
+  function setLoadingPanelControlsDisabled(disabled) {
+    if (!loadingPanelElement) {
+      loadingPanelElement = document.getElementById("menuWelcomeLoadingPanel");
+    }
+    if (!loadingPanelElement) return;
+
+    var controlsElement = loadingPanelElement.querySelector(".os-window-controls");
+    if (!controlsElement) return;
+
+    var buttons = controlsElement.querySelectorAll(".os-window-control");
+    var index = 0;
+    for (index = 0; index < buttons.length; index += 1) {
+      var buttonElement = buttons[index];
+      buttonElement.disabled = disabled === true;
+      if (disabled === true) {
+        buttonElement.setAttribute("tabindex", "-1");
+      } else {
+        buttonElement.removeAttribute("tabindex");
+      }
+    }
+  }
+
+
+
   function bindElements() {
 
     rootElement = document.getElementById("menuWelcomeBoot");
@@ -268,6 +294,8 @@
 
     bindLoadingElements();
 
+    setLoadingPanelControlsDisabled(true);
+
     if (pendingState) {
 
       applyState(pendingState);
@@ -308,7 +336,7 @@
 
     pendingState = payload;
 
-    if (welcomeOnlyMode) return;
+    if (welcomeOnlyMode && !unityControlledLoading) return;
 
     if (!textElement) {
 
@@ -318,15 +346,19 @@
 
     if (!textElement) return;
 
-    if (payload.header != null) {
-      if (!titleElement) {
-        bindLoadingElements();
-      }
-      if (titleElement) {
-        titleElement.textContent = payload.header;
+    if (!titleElement) {
+      bindLoadingElements();
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "header")) {
+      loadingDestinationHeader = payload.header || "";
+    }
+    if (titleElement) {
+      if (loadingDestinationHeader) {
+        titleElement.textContent = loadingDestinationHeader;
+      } else {
+        titleElement.textContent = "loading.sys";
       }
     }
-
     if (payload.text != null) {
 
       textElement.textContent = payload.text;
@@ -367,7 +399,7 @@
 
   function applyBootStep(stepIndex) {
 
-    if (welcomeOnlyMode) return;
+    if (welcomeOnlyMode && !unityControlledLoading) return;
 
     var clampedIndex = stepIndex;
 
@@ -387,7 +419,9 @@
 
       text: getBootText(clampedIndex),
 
-      progress: getProgressForStep(clampedIndex)
+      progress: getProgressForStep(clampedIndex),
+
+      header: loadingDestinationHeader
 
     });
 
@@ -598,7 +632,6 @@
 
 
   function requestUnityDismiss() {
-    if (unityControlledLoading) return;
     dismiss();
   }
 
@@ -656,6 +689,10 @@
 
     setDeviceBootPending(true);
 
+    if (!isUnityHost() && window.WebMenuLayers && window.WebMenuLayers.setActiveLayer) {
+      window.WebMenuLayers.setActiveLayer(window.WebMenuLayers.LAYER_LOADING);
+    }
+
 
 
     var stepIndex = 0;
@@ -664,25 +701,31 @@
 
 
 
+    function finishFakeConnect() {
+
+      unityControlledLoading = false;
+
+      dismiss();
+
+      if (!isUnityHost() && window.WebFakeConnectDemo && window.WebFakeConnectDemo.onLoadingComplete) {
+        window.WebFakeConnectDemo.onLoadingComplete();
+      } else {
+        openLinksAfterFakeConnect();
+      }
+
+      if (onComplete) {
+        onComplete();
+      }
+
+    }
+
+
+
     function advanceStep() {
 
       if (stepIndex >= BOOT_STEP_COUNT - 1) {
 
-        window.setTimeout(function () {
-
-          unityControlledLoading = false;
-
-          dismiss();
-
-          openLinksAfterFakeConnect();
-
-          if (onComplete) {
-
-            onComplete();
-
-          }
-
-        }, FAKE_CONNECT_STEP_MS);
+        window.setTimeout(finishFakeConnect, FAKE_CONNECT_STEP_MS);
 
         return;
 

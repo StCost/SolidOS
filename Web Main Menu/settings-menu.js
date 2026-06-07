@@ -63,7 +63,6 @@
     language: "english",
     useCustomCursor: true,
     terminalAnimationsEnabled: true,
-    menuIconSnapToGrid: true,
     menuBackgroundAnimationEnabled: true,
     menuMusicEnabled: true,
     masterVolume: 0.5,
@@ -89,6 +88,8 @@
     graphicsLodBiasPercent: 100,
     graphicsFieldOfView: 60,
     graphicsFpsCapFps: 60,
+    graphicsWebPixelDensityPercent: 100,
+    showFpsCounter: false,
     languageOptions: []
   };
 
@@ -98,6 +99,7 @@
   var settingsHostStateReady = false;
   var contentRoot;
   var tabsRoot;
+  var settingsResetFooterElement;
   var successToastEl;
   var successToastTimer = 0;
 
@@ -151,6 +153,40 @@
     if (!contentRoot || !tabsRoot) return false;
     ensureSettingsScrollBound();
     return true;
+  }
+
+  function cancelSliderLayoutWork() {
+    if (sliderLayoutRefreshFrame) {
+      window.cancelAnimationFrame(sliderLayoutRefreshFrame);
+      sliderLayoutRefreshFrame = 0;
+    }
+    if (sliderLayoutRefreshTimer) {
+      window.clearTimeout(sliderLayoutRefreshTimer);
+      sliderLayoutRefreshTimer = 0;
+    }
+  }
+
+  function releaseSettingsScrollBound() {
+    if (!contentRoot) return;
+    if (!contentRoot.getAttribute("data-settings-scroll-bound")) return;
+    contentRoot.removeEventListener("scroll", onSettingsContentScroll, true);
+    contentRoot.removeAttribute("data-settings-scroll-bound");
+  }
+
+  function releaseSettingsContent() {
+    cancelSliderLayoutWork();
+    if (window.WebMenuHelpTooltip) {
+      window.WebMenuHelpTooltip.hide();
+    }
+    settingsResetFooterElement = null;
+    releaseSettingsScrollBound();
+    if (tabsRoot) {
+      tabsRoot.textContent = "";
+    }
+    if (contentRoot) {
+      contentRoot.textContent = "";
+      contentRoot.classList.add("is-empty");
+    }
   }
 
   function setSettingsLoadingVisible(visible) {
@@ -295,7 +331,6 @@
         { type: "toggle", key: "useCustomCursor", labelKey: "settings.custom-cursor" },
         { type: "toggle", key: "terminalAnimationsEnabled", labelKey: "settings.terminal-animations" },
         { type: "toggle", key: "menuBackgroundAnimationEnabled", labelKey: "settings.menu-background-animation" },
-        { type: "toggle", key: "menuIconSnapToGrid", labelKey: "settings.menu-icon-snap-to-grid" },
         {
           type: "action",
           actionId: "reset-window-layouts",
@@ -321,6 +356,16 @@
         },
         { type: "slider", key: "graphicsFieldOfView", labelKey: "settings.graphics.field-of-view", min: 20, max: 140, step: 1, format: intFormat },
         { type: "slider", key: "graphicsFpsCapFps", labelKey: "settings.graphics.fps-cap", min: 0, max: 480, step: 1, format: fpsCapFormat },
+        {
+          type: "slider",
+          key: "graphicsWebPixelDensityPercent",
+          labelKey: "settings.graphics.web-pixel-density",
+          min: 50,
+          max: 300,
+          step: 5,
+          format: percentFormat
+        },
+        { type: "toggle", key: "showFpsCounter", labelKey: "settings.graphics.fps-counter" },
         { type: "toggle", key: "graphicsDecals", labelKey: "settings.graphics.decals" },
         { type: "toggle", key: "graphicsBloom", labelKey: "settings.graphics.bloom" },
         { type: "toggle", key: "graphicsColorGrading", labelKey: "settings.graphics.color-grading" },
@@ -431,6 +476,14 @@
     return 0;
   }
 
+  function getActiveOptionLabel(options, wireValue) {
+    var index = findOptionIndex(options, wireValue);
+    if (index < 0 || index >= options.length) {
+      return wireValue == null ? "" : String(wireValue);
+    }
+    return getOptionLabel(options[index]);
+  }
+
   function cycleChoice(field, direction) {
     var options = resolveOptions(field);
     var wireValue = field.format(state[field.key]);
@@ -470,22 +523,30 @@
     if (field.format === boolChoiceFormat) {
       state[field.key] = wireValue === "true";
       postChange(field.key, wireValue);
-      if (refreshChoiceRow) refreshChoiceRowUi(field);
+      if (refreshChoiceRow) {
+        refreshChoiceRowUi(field);
+      }
       return;
     }
 
     if (field.format === intChoiceFormat || field.format === intFormat || field.format === percentFormat || field.format === fpsCapFormat) {
       state[field.key] = parseInt(wireValue, 10);
       postChange(field.key, getSliderPostValue(field, wireValue));
-      if (refreshChoiceRow) refreshChoiceRowUi(field);
+      if (refreshChoiceRow) {
+        refreshChoiceRowUi(field);
+      }
       return;
     }
 
     state[field.key] = wireValue;
     postChange(field.key, wireValue);
-    if (refreshChoiceRow) refreshChoiceRowUi(field);
     if (field.key === "language") {
+      if (refreshChoiceRow) refreshChoiceRowUi(field);
       notifyLanguageChanged();
+      return;
+    }
+    if (refreshChoiceRow) {
+      refreshChoiceRowUi(field);
     }
   }
 
@@ -816,6 +877,14 @@
 
   function appendSettingsResetFooter() {
     if (!contentRoot) return;
+    if (settingsResetFooterElement && contentRoot.contains(settingsResetFooterElement)) {
+      return;
+    }
+    var existingFooter = contentRoot.querySelector(".settings-tab-reset-footer");
+    if (existingFooter) {
+      settingsResetFooterElement = existingFooter;
+      return;
+    }
     var footer = document.createElement("div");
     footer.className = "settings-tab-reset-footer";
     var resetButton = document.createElement("button");
@@ -836,6 +905,7 @@
     resetButton.addEventListener("click", onSettingsResetClicked);
     footer.appendChild(resetButton);
     contentRoot.appendChild(footer);
+    settingsResetFooterElement = footer;
   }
 
   function updateSettingsTabButtonsInPlace(existingTabs) {
@@ -893,7 +963,6 @@
   }
 
   function playSettingsContentBodyOpen() {
-    if (!getTerminalAnimationsEnabled(state.terminalAnimationsEnabled)) return;
     var contentWindow = document.querySelector(".settings-content-window[data-wm-preset=\"settings-content\"]");
     if (!contentWindow || !window.WebWindowManager) return;
     if (!window.WebWindowManager.playWindowBodyOpen) return;
@@ -952,11 +1021,23 @@
     appendSettingsResetFooter();
   }
 
+  function updateActiveSettingsTabs() {
+    if (!tabsRoot) return;
+    var existingTabs = tabsRoot.querySelectorAll(".settings-tab");
+    if (existingTabs.length === TABS.length) {
+      updateSettingsTabButtonsInPlace(existingTabs);
+      return;
+    }
+    renderTabs();
+  }
+
   function renderFields() {
     if (!contentRoot) return;
     if (window.WebMenuHelpTooltip) {
       window.WebMenuHelpTooltip.hide();
     }
+    cancelSliderLayoutWork();
+    settingsResetFooterElement = null;
     contentRoot.textContent = "";
     contentRoot.classList.remove("is-empty");
 
@@ -967,24 +1048,25 @@
 
     var fields = getFieldsForTab(activeTabId);
     var index;
-    for (index = 0; index < fields.length; index++) {
+    for (index = 0; index < fields.length; index += 1) {
       var field = fields[index];
-      if (field.type === "toggle") contentRoot.appendChild(buildToggleRow(field));
-      else if (field.type === "choice") contentRoot.appendChild(buildChoiceRow(field));
-      else if (field.type === "slider") contentRoot.appendChild(buildSliderRow(field));
-      else if (field.type === "action") contentRoot.appendChild(buildActionRow(field));
+      if (field.type === "toggle") {
+        contentRoot.appendChild(buildToggleRow(field));
+      } else if (field.type === "choice") {
+        contentRoot.appendChild(buildChoiceRow(field));
+      } else if (field.type === "slider") {
+        contentRoot.appendChild(buildSliderRow(field));
+      } else if (field.type === "action") {
+        contentRoot.appendChild(buildActionRow(field));
+      }
     }
 
-    if (!fields.length) contentRoot.classList.add("is-empty");
+    if (!fields.length) {
+      contentRoot.classList.add("is-empty");
+    }
     appendSettingsResetFooter();
     refreshAllSliderValuePositions();
     scheduleSliderValueLayoutRefresh();
-    if (window.WebScrollbarCursor) {
-      if (window.WebScrollbarCursor.initVerticalScrollViews) {
-        window.WebScrollbarCursor.initVerticalScrollViews(contentRoot);
-      }
-      window.WebScrollbarCursor.refreshAllScrollbars();
-    }
   }
 
   function appendFieldLabel(labelBox, field) {
@@ -1349,10 +1431,15 @@
   }
 
   function applyTerminalAnimations(enabled) {
+    var html = document.documentElement;
     var device = document.getElementById("device");
-    if (!device) return;
-    if (enabled) device.classList.remove("terminal-animations-off");
-    else device.classList.add("terminal-animations-off");
+    if (enabled) {
+      if (html) html.classList.remove("terminal-animations-off");
+      if (device) device.classList.remove("terminal-animations-off");
+      return;
+    }
+    if (html) html.classList.add("terminal-animations-off");
+    if (device) device.classList.add("terminal-animations-off");
   }
 
   function applyMenuBackgroundAnimation(enabled) {
@@ -1366,10 +1453,6 @@
     if (window.WebMenuMusic && window.WebMenuMusic.sync) {
       window.WebMenuMusic.sync();
     }
-  }
-
-  function isMenuIconSnapToGridEnabled() {
-    return state.menuIconSnapToGrid !== false;
   }
 
   function isMenuMusicEnabled() {
@@ -1500,6 +1583,16 @@
     stepSliderByDirection(field, slider, valueDisplay, direction);
     event.preventDefault();
     event.stopPropagation();
+  }
+
+  function refreshSliderRowUi(field) {
+    if (!contentRoot) return;
+    var row = contentRoot.querySelector('.settings-row--slider[data-setting-key="' + field.key + '"]');
+    if (!row) return;
+    var slider = row.querySelector(".settings-slider");
+    var valueDisplay = row.querySelector(".settings-slider-value");
+    if (!slider || !valueDisplay) return;
+    updateSliderDisplay(field, slider, valueDisplay);
   }
 
   function updateSliderDisplay(field, slider, valueDisplay) {
@@ -1729,6 +1822,7 @@
     if (Object.prototype.hasOwnProperty.call(payload, "language") && state.language !== previousLanguage) {
       applyMenuLanguage(state.language);
     }
+    setSettingsLoadingVisible(false);
     renderAll();
     updateNavLabels();
   }
@@ -1761,7 +1855,10 @@
     }
     var addButtons = document.querySelectorAll("#btnAddWorld .term-row-label, #btnAddServer .term-row-label");
     for (index = 0; index < addButtons.length; index++) {
-      addButtons[index].textContent = getLocalized("web.connect.compose.add", "Add");
+      var addButtonLabel = addButtons[index];
+      var addButtonKey = addButtonLabel.getAttribute("data-locale-key");
+      if (!addButtonKey) continue;
+      addButtonLabel.textContent = getLocalized(addButtonKey, addButtonLabel.textContent);
     }
     var nameInputs = document.querySelectorAll('[data-locale-placeholder="web.connect.placeholder.name"]');
     for (index = 0; index < nameInputs.length; index++) {
@@ -1794,6 +1891,13 @@
     }
   }
 
+  function onSettingsWindowClosed(event) {
+    var detail = event && event.detail;
+    if (!detail || detail.preset !== "settings-content") return;
+    activeTabId = "interface";
+    releaseSettingsContent();
+  }
+
   function bindToWindow(windowElement) {
     if (!windowElement) return;
     contentRoot = windowElement.querySelector(".settings-scroll");
@@ -1809,17 +1913,17 @@
     renderAll();
   }
 
+  function onWindowResizeForSliders() {
+    if (sliderResizeTimer) window.clearTimeout(sliderResizeTimer);
+    sliderResizeTimer = window.setTimeout(refreshAllSliderValuePositions, 100);
+  }
+
+
   function init() {
     if (window.WebMenuHelpTooltip) {
       window.WebMenuHelpTooltip.init();
     }
     updateEmptyLoadingLabel();
-    if (window.WebScrollbarCursor && window.WebScrollbarCursor.initVerticalScrollViews) {
-      var settingsWorkspace = document.querySelector(".os-workspace--desktop");
-      if (settingsWorkspace) {
-        window.WebScrollbarCursor.initVerticalScrollViews(settingsWorkspace);
-      }
-    }
     updateNavLabels();
     applyTerminalAnimations(getTerminalAnimationsEnabled(state.terminalAnimationsEnabled));
     if (!isUnityMenuHost()) {
@@ -1833,11 +1937,12 @@
       }
     }
 
+    window.addEventListener("web-settings-open", onSettingsMenuOpen);
+    window.addEventListener("web-desktop-windows-restored", onDesktopWindowsRestored);
+    window.addEventListener("web-desktop-window-closed", onSettingsWindowClosed);
     ensureSliderLayoutObserver();
 
     window.addEventListener("resize", onWindowResizeForSliders);
-    window.addEventListener("web-settings-open", onSettingsMenuOpen);
-    window.addEventListener("web-desktop-windows-restored", onDesktopWindowsRestored);
     window.addEventListener("web-wm-layout-settled", onWorkspaceLayoutSettled);
     if (isSettingsWindowVisible()) {
       if (isUnityMenuHost() && !settingsHostStateReady && window.WebSettingsBridge) {
@@ -1846,17 +1951,11 @@
     }
   }
 
-  function onWindowResizeForSliders() {
-    if (sliderResizeTimer) window.clearTimeout(sliderResizeTimer);
-    sliderResizeTimer = window.setTimeout(refreshAllSliderValuePositions, 100);
-  }
-
   window.WebSettings = {
     applyState: applyState,
     applyTerminalAnimations: applyTerminalAnimations,
     applyMenuBackgroundAnimation: applyMenuBackgroundAnimation,
     applyMenuMusicEnabled: applyMenuMusicEnabled,
-    isMenuIconSnapToGridEnabled: isMenuIconSnapToGridEnabled,
     isMenuMusicEnabled: isMenuMusicEnabled,
     applyCustomCursorMode: applyCustomCursorMode,
     onLocaleUpdated: onLocaleUpdated,
@@ -1875,7 +1974,8 @@
     renderControlsOnly: renderControlsOnly,
     refreshAllSliderValuePositions: refreshAllSliderValuePositions,
     scheduleSliderValueLayoutRefresh: scheduleSliderValueLayoutRefresh,
-    refreshOnOpen: onSettingsMenuOpen
+    refreshOnOpen: onSettingsMenuOpen,
+    releaseContent: releaseSettingsContent
   };
 
   if (document.readyState === "loading") {

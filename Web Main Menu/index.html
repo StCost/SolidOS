@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="menu-layouts-pending">
+<html lang="en" class="menu-layouts-pending menu-has-integrated-hud">
 
 <head>
   <meta charset="UTF-8" />
@@ -27,6 +27,9 @@
   <link rel="stylesheet" href="desktop-os.css" />
   <link rel="stylesheet" href="menu-loading.css" />
   <link rel="stylesheet" href="menu-welcome-boot.css" />
+  <link rel="stylesheet" href="menu-game-hud.css" />
+  <link rel="stylesheet" href="menu-web-layers.css" />
+  <link rel="stylesheet" href="menu-web-fake-connect-demo.css" />
   <script src="menu-background.js"></script>
   <script src="menu-layout-coords.js"></script>
   <script src="menu-window-layouts-bootstrap.js"></script>
@@ -34,6 +37,8 @@
   <script src="menu-locale.js"></script>
   <script src="menu-locale-loader.js"></script>
   <script src="menu-welcome-boot.js"></script>
+  <script src="menu-web-layers.js"></script>
+  <script src="menu-web-fake-connect-demo.js"></script>
   <script src="menu-block-context-menu.js"></script>
   <script src="menu-game-records-bridge.js" defer></script>
   <script src="unity-menu-bridge.js" defer></script>
@@ -46,6 +51,7 @@
   <script src="extras-manifest.js" defer></script>
   <script src="extras-links-data.js" defer></script>
   <script src="menu-scrollbar.js" defer></script>
+  <script src="menu-scrollbar-cursor.js" defer></script>
   <script src="menu-cursor-bridge.js" defer></script>
   <script src="menu-audio-volume.js"></script>
   <script src="menu-audio-paths.js"></script>
@@ -63,6 +69,7 @@
   <script src="desktop-os.js" defer></script>
   <script src="menu.js" defer></script>
   <script src="start/start.js" defer></script>
+  <script src="menu-game-hud.js" defer></script>
 </head>
 
 <body>
@@ -93,12 +100,10 @@
                 <span class="os-window-control-glyph" aria-hidden="true"></span>
               </button>
             </div>
-            <p class="os-window-title terminal-text--dim" id="menuWelcomeLoadingTitle">load_status.lst</p>
+            <p class="os-window-title terminal-text--dim" id="menuWelcomeLoadingTitle">loading.sys</p>
           </header>
           <div class="os-window-body-shell">
             <div class="loading-panel-body os-window-body os-window-body--terminal">
-              <p class="term-prompt terminal-text--dim"><span class="term-prompt-path">C:\CM\boot&gt;</span> type
-                load_status.lst</p>
               <p class="loading-text terminal-text" id="menuWelcomeLoadingText">1/4 Initializing...</p>
               <div class="loading-bar" id="menuWelcomeBar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
                 aria-valuenow="0">
@@ -231,7 +236,9 @@
                   data-locale-key="web.connect.col.single">Worlds</h2>
               </div>
               <div class="os-window-body os-window-body--terminal">
-                <ul class="worlds-list worlds-list--singleplayer menu-v-scroll-view" id="singleplayerList"></ul>
+                <div class="menu-v-scroll-clip">
+                  <ul class="worlds-list worlds-list--singleplayer menu-v-scroll-view" id="singleplayerList"></ul>
+                </div>
                 <div class="worlds-column-bottom">
                   <form class="worlds-compose worlds-compose-dock" id="formNewWorld" data-compose-kind="singleplayer">
                     <div class="worlds-compose-fields">
@@ -254,7 +261,7 @@
                       <button type="submit" class="term-row term-row--primary worlds-compose-add" id="btnAddWorld"
                         disabled>
                         <span class="term-row-prefix terminal-text--dim">&gt;&gt;</span>
-                        <span class="term-row-label terminal-text" data-locale-key="web.connect.compose.add">Add</span>
+                        <span class="term-row-label terminal-text" data-locale-key="web.connect.compose.create">Create</span>
                       </button>
                     </div>
                   </form>
@@ -277,7 +284,9 @@
                   Servers</h2>
               </div>
               <div class="os-window-body os-window-body--terminal">
-                <ul class="worlds-list worlds-list--ip menu-v-scroll-view" id="ipMultiplayerList"></ul>
+                <div class="menu-v-scroll-clip">
+                  <ul class="worlds-list worlds-list--ip menu-v-scroll-view" id="ipMultiplayerList"></ul>
+                </div>
                 <div class="worlds-column-bottom">
                   <form class="worlds-compose worlds-compose-dock" id="formNewServer"
                     data-compose-kind="ip-multiplayer">
@@ -324,7 +333,9 @@
                   data-locale-key="web.connect.col.steam">Steam Friends</h2>
               </div>
               <div class="os-window-body os-window-body--terminal">
-                <ul class="worlds-list worlds-list--steam menu-v-scroll-view" id="steamMultiplayerList"></ul>
+                <div class="menu-v-scroll-clip">
+                  <ul class="worlds-list worlds-list--steam menu-v-scroll-view" id="steamMultiplayerList"></ul>
+                </div>
               </div>
             </section>
 
@@ -345,9 +356,11 @@
               <div class="os-window-body os-window-body--terminal">
                 <nav class="settings-tabs settings-tabs--toolbar" id="settingsTabs"
                   data-locale-aria-label="web.aria.settings-categories" aria-label="Settings categories"></nav>
-                <div class="settings-scroll is-empty menu-v-scroll-view" id="settingsContent" role="region"
-                  aria-live="polite" data-locale-aria-label="web.aria.settings-options" aria-label="Settings options"
-                  data-locale-empty-label="web.settings.loading" data-empty-label="Loading config…"></div>
+                <div class="menu-v-scroll-clip">
+                  <div class="settings-scroll is-empty menu-v-scroll-view" id="settingsContent" role="region"
+                    aria-live="polite" data-locale-aria-label="web.aria.settings-options" aria-label="Settings options"
+                    data-locale-empty-label="web.settings.loading" data-empty-label="Loading config…"></div>
+                </div>
               </div>
             </section>
 
@@ -366,29 +379,31 @@
                   data-locale-key="web.extras.nav.games">Games</p>
               </div>
               <div class="os-window-body os-window-body--terminal">
-                <div class="extras-scroll menu-v-scroll-view" role="region"
-                  data-locale-aria-label="web.aria.extras-panel" aria-label="Games">
-                  <div class="extras-view" id="extrasViewGames">
-                    <ul class="extras-list" id="extrasGamesList"></ul>
-                  </div>
-                  <div class="extras-view" id="extrasViewGame" hidden>
-                    <div class="extras-game-toolbar">
-                      <button type="button" class="term-row extras-game-back" id="btnExtrasGameBack">
-                        <span class="term-row-label terminal-text" data-locale-key="web.extras.game.back">Back to
-                          games</span>
-                      </button>
-                      <button type="button" class="extras-game-desktop-link-option" id="btnExtrasGameDesktopLinkSwitch"
-                        aria-pressed="false">
-                        <span class="settings-switch extras-game-desktop-link-switch-visual" aria-hidden="true">
-                          <span class="settings-switch-track"><span class="settings-switch-thumb"></span></span>
-                        </span>
-                        <span class="extras-game-desktop-link-label terminal-text"
-                          data-locale-key="web.extras.game.link-on-desktop">Link on Desktop</span>
-                      </button>
+                <div class="menu-v-scroll-clip">
+                  <div class="extras-scroll menu-v-scroll-view" role="region"
+                    data-locale-aria-label="web.aria.extras-panel" aria-label="Games">
+                    <div class="extras-view" id="extrasViewGames">
+                      <ul class="extras-list" id="extrasGamesList"></ul>
                     </div>
-                    <div id="extrasGameKeyboardFocus" tabindex="0" aria-hidden="true"
-                      class="extras-game-keyboard-focus"></div>
-                    <iframe class="extras-game-frame" id="extrasGameFrame" title="Extras game"></iframe>
+                    <div class="extras-view" id="extrasViewGame" hidden>
+                      <div class="extras-game-toolbar">
+                        <button type="button" class="term-row extras-game-back" id="btnExtrasGameBack">
+                          <span class="term-row-label terminal-text" data-locale-key="web.extras.game.back">Back to
+                            games</span>
+                        </button>
+                        <button type="button" class="extras-game-desktop-link-option" id="btnExtrasGameDesktopLinkSwitch"
+                          aria-pressed="false">
+                          <span class="settings-switch extras-game-desktop-link-switch-visual" aria-hidden="true">
+                            <span class="settings-switch-track"><span class="settings-switch-thumb"></span></span>
+                          </span>
+                          <span class="extras-game-desktop-link-label terminal-text"
+                            data-locale-key="web.extras.game.link-on-desktop">Link on Desktop</span>
+                        </button>
+                      </div>
+                      <div id="extrasGameKeyboardFocus" tabindex="0" aria-hidden="true"
+                        class="extras-game-keyboard-focus"></div>
+                      <iframe class="extras-game-frame" id="extrasGameFrame" title="Extras game"></iframe>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -409,9 +424,11 @@
                   Art</p>
               </div>
               <div class="os-window-body os-window-body--terminal">
-                <div class="extras-scroll menu-v-scroll-view" role="region" aria-label="Art">
-                  <div class="extras-view" id="extrasViewArt">
-                    <div class="extras-art-grid" id="extrasArtGrid"></div>
+                <div class="menu-v-scroll-clip">
+                  <div class="extras-scroll menu-v-scroll-view" role="region" aria-label="Art">
+                    <div class="extras-view" id="extrasViewArt">
+                      <div class="extras-art-grid" id="extrasArtGrid"></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -432,11 +449,13 @@
                   data-locale-key="web.extras.nav.links">Links</p>
               </div>
               <div class="os-window-body os-window-body--terminal">
-                <div class="extras-scroll menu-v-scroll-view" role="region" aria-label="Links">
-                  <div class="extras-view" id="extrasViewLinks">
-                    <p class="extras-links-intro" data-locale-key="web.extras.links.intro">Community and project links
-                      open in your system browser after confirmation.</p>
-                    <div class="extras-links-list" id="extrasLinksList"></div>
+                <div class="menu-v-scroll-clip">
+                  <div class="extras-scroll menu-v-scroll-view" role="region" aria-label="Links">
+                    <div class="extras-view" id="extrasViewLinks">
+                      <p class="extras-links-intro" data-locale-key="web.extras.links.intro">Community and project links
+                        open in your system browser after confirmation.</p>
+                      <div class="extras-links-list" id="extrasLinksList"></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -457,15 +476,17 @@
                   data-locale-key="web.desktop.icon.credits">Credits</p>
               </div>
               <div class="os-window-body os-window-body--terminal">
-                <div class="credits-scroll menu-v-scroll-view" role="region"
-                  data-locale-aria-label="web.aria.credits-content" aria-label="Credits">
-                  <div class="credits-intro">
-                    <p class="credits-intro-title terminal-text" data-locale-key="web.credits.intro-line">COLLAPSE
-                      MACHINE by Dreaming Saints</p>
-                    <p data-locale-key="web.credits.game-description">co-op tesla-punk open-world fps game</p>
+                <div class="menu-v-scroll-clip">
+                  <div class="credits-scroll menu-v-scroll-view" role="region"
+                    data-locale-aria-label="web.aria.credits-content" aria-label="Credits">
+                    <div class="credits-intro">
+                      <p class="credits-intro-title terminal-text" data-locale-key="web.credits.intro-line">COLLAPSE
+                        MACHINE by Dreaming Saints</p>
+                      <p data-locale-key="web.credits.game-description">co-op tesla-punk open-world fps game</p>
+                    </div>
+                    <div id="creditsContent" role="region" data-locale-aria-label="web.aria.credits-list"
+                      aria-label="Credits list"></div>
                   </div>
-                  <div id="creditsContent" role="region" data-locale-aria-label="web.aria.credits-list"
-                    aria-label="Credits list"></div>
                 </div>
               </div>
             </section>
@@ -576,6 +597,75 @@
         </div>
       </section>
     </div>
+
+    <div class="web-fake-connect-demo-host" id="webFakeConnectDemoHost" hidden>
+      <div class="web-fake-connect-demo-workspace os-workspace os-workspace--wm" id="webFakeConnectDemoWorkspace">
+        <section class="os-window os-window--focused web-fake-connect-demo-panel" id="webFakeConnectDemoPanel"
+          data-wm-preset="web-fake-connect-demo" data-wm-no-save="true" aria-labelledby="webFakeConnectDemoTitle">
+          <header class="os-window-chrome">
+            <div class="os-window-controls">
+              <button type="button" class="os-window-dot os-window-control" data-wm-action="close"
+                data-locale-aria-label="web.aria.window-close" aria-label="Close window"></button>
+            </div>
+            <p class="os-window-title terminal-text--dim" id="webFakeConnectDemoTitle"
+              data-locale-key="web.fake-connect.demo.title">Interface Demo</p>
+          </header>
+          <div class="os-window-body os-window-body--terminal">
+            <div class="menu-v-scroll-clip">
+              <div class="extras-scroll menu-v-scroll-view web-fake-connect-demo-scroll">
+                <p class="web-fake-connect-demo-message terminal-text" data-locale-key="web.fake-connect.demo.message">Thanks
+                  for exploring this standalone COLLAPSE MACHINE interface demo. This preview is menus and HUD only, not the
+                  open-world adventure. Try the chat and inventory hotbar below. Wishlist the game on
+                  Steam to follow development and play the full experience on Emporia. Join Discord and our other channels
+                  below.</p>
+                <p class="extras-links-intro" data-locale-key="web.extras.links.intro">Community and project links open in
+                  your system browser after confirmation.</p>
+                <div class="extras-links-list" id="webFakeConnectDemoLinks"></div>
+                <button type="button" class="term-row web-fake-connect-demo-back" id="btnWebFakeConnectBack">
+                  <span class="term-row-prefix terminal-text--dim">[ ]</span>
+                  <span class="term-row-label terminal-text" data-locale-key="web.fake-connect.demo.back">Return to main
+                    menu</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="game-hud-fps-cluster" id="gameHudFpsCluster" hidden aria-hidden="true">
+      <div class="game-hud-fps-counter terminal-text" id="gameHudUiFpsCounter">0 UI FPS</div>
+      <div class="game-hud-fps-counter terminal-text" id="gameHudGameFpsCounter" hidden>0 GAME FPS</div>
+    </div>
+
+    <main class="game-hud" id="gameHudRoot" aria-hidden="true">
+      <div class="game-hud-anchor">
+        <section class="game-hud-chat os-window os-window--focused os-window--chat-hud" id="gameHudChat" hidden
+          aria-label="Chat">
+          <div class="os-window-body-shell menu-scroll-host">
+            <div class="game-hud-chat-body os-window-body os-window-body--terminal">
+              <div class="game-hud-chat-log-host menu-v-scroll-clip">
+                <div class="game-hud-chat-log menu-v-scroll-view" id="chatLog" role="log" aria-live="polite"
+                  aria-relevant="additions">
+                  <div class="game-hud-chat-log-inner" id="chatLogInner"></div>
+                </div>
+              </div>
+              <p class="term-prompt game-hud-chat-input-row">
+                <span class="term-prompt-path terminal-text--dim" aria-hidden="true">say&gt;</span>
+                <input type="text" id="chatInput" class="game-hud-chat-input worlds-compose-input"
+                  data-locale-placeholder="chat.placeholder" placeholder="Type a message..." autocomplete="off"
+                  spellcheck="false" maxlength="512" />
+              </p>
+            </div>
+          </div>
+        </section>
+        <div class="game-hud-panel" role="group" aria-label="Player status">
+          <div class="game-hud-health" id="healthBar" role="meter" aria-valuemin="0" aria-valuemax="0"
+            aria-valuenow="0"></div>
+          <ol class="game-hud-hotbar" id="hotbarSlots"></ol>
+        </div>
+      </div>
+    </main>
   </main>
 </body>
 
