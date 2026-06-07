@@ -332,19 +332,6 @@
     return [];
   }
 
-  function refreshScrollbars() {
-    if (window.WebScrollbarCursor) {
-      if (window.WebScrollbarCursor.scheduleScrollViewScan) {
-        window.WebScrollbarCursor.scheduleScrollViewScan();
-        return;
-      }
-      if (window.WebScrollbarCursor.initVerticalScrollViews) {
-        window.WebScrollbarCursor.initVerticalScrollViews(document);
-      }
-      window.WebScrollbarCursor.refreshAllScrollbars();
-    }
-  }
-
   function getTabForView(viewId) {
     if (viewId === VIEW_GAME) return VIEW_GAMES;
     return viewId;
@@ -399,7 +386,6 @@
 
     setNavTabActive(getTabForView(viewId));
 
-    refreshScrollbars();
     if (viewId === VIEW_GAMES || viewId === VIEW_GAME) {
       updateAllGamesWindowTitles();
     }
@@ -1148,13 +1134,7 @@
     renderArtInWindow(null);
   }
 
-  function renderLinksInWindow(windowElement) {
-    var listRoot = null;
-    if (windowElement) {
-      listRoot = windowElement.querySelector(".extras-links-list");
-    } else if (linksListRoot) {
-      listRoot = linksListRoot;
-    }
+  function renderLinksIntoListRoot(listRoot) {
     if (!listRoot) return;
     var links = getLinks();
     var html = "";
@@ -1174,6 +1154,16 @@
         "</span></button>";
     }
     listRoot.innerHTML = html;
+  }
+
+  function renderLinksInWindow(windowElement) {
+    var listRoot = null;
+    if (windowElement) {
+      listRoot = windowElement.querySelector(".extras-links-list");
+    } else if (linksListRoot) {
+      listRoot = linksListRoot;
+    }
+    renderLinksIntoListRoot(listRoot);
   }
 
   function renderLinks() {
@@ -1222,15 +1212,12 @@
     if (pendingExtrasRouteTab) {
       applyTabForRoute("extras-games", pendingExtrasRouteTab);
       pendingExtrasRouteTab = "";
-      refreshScrollbars();
       return;
     }
     if (currentView === VIEW_GAME && activeGameId) {
-      refreshScrollbars();
       return;
     }
     showView(VIEW_GAMES);
-    refreshScrollbars();
   }
 
   function openArtPanel(windowElement) {
@@ -1240,7 +1227,6 @@
     if (!windowElement) return;
     artGridRoot = windowElement.querySelector(".extras-art-grid");
     renderArtInWindow(windowElement);
-    refreshScrollbars();
   }
 
   function openLinksPanel(windowElement) {
@@ -1250,7 +1236,6 @@
     if (!windowElement) return;
     linksListRoot = windowElement.querySelector(".extras-links-list");
     renderLinksInWindow(windowElement);
-    refreshScrollbars();
   }
 
   function renderExtras() {
@@ -1267,7 +1252,6 @@
     } else if (currentView) {
       showView(currentView, false);
     }
-    refreshScrollbars();
   }
 
   function getSkipExternalLinkConfirm() {
@@ -1767,6 +1751,8 @@
 
   window.WebExtras = {
     renderExtras: renderExtras,
+    renderLinksInto: renderLinksIntoListRoot,
+    requestLinkOpen: requestExternalUrl,
     openGame: openGame,
     openGamesPanel: openGamesPanel,
     openArtPanel: openArtPanel,

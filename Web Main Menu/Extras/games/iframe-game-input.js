@@ -33,6 +33,53 @@
   }
   window[boundFlag] = true;
 
+  function canVerticalListScroll(container) {
+    return container.scrollHeight > container.clientHeight + 1;
+  }
+
+  function findVerticalScrollContainer(element) {
+    var node = element;
+    while (node) {
+      if (node.classList) {
+        if (node.classList.contains("menu-v-scroll-view") && canVerticalListScroll(node)) {
+          return node;
+        }
+        if (node.classList.contains("worlds-list") && canVerticalListScroll(node)) {
+          return node;
+        }
+      }
+      if (node === document.body || node === document.documentElement) {
+        break;
+      }
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  function scrollVerticalContainer(container, directionY, stepSize) {
+    var beforeScrollTop;
+    var step = stepSize || 56;
+    if (!container || directionY === 0) {
+      return false;
+    }
+    beforeScrollTop = container.scrollTop;
+    container.scrollTop = beforeScrollTop + directionY * step;
+    return container.scrollTop !== beforeScrollTop;
+  }
+
+  function scrollFromActiveElement(directionY, stepSize) {
+    var activeElement = document.activeElement;
+    var container;
+    if (!activeElement) {
+      return false;
+    }
+    container = findVerticalScrollContainer(activeElement);
+    if (!container) {
+      return false;
+    }
+    return scrollVerticalContainer(container, directionY, stepSize);
+  }
+
   function getCodeFromKey(key) {
     if (!key) {
       return "";
@@ -135,11 +182,6 @@
     if (element.getAttribute && element.getAttribute("aria-hidden") === "true") {
       return false;
     }
-    if (window.WebScrollbarCursor && window.WebScrollbarCursor.isScrollThumbElement) {
-      if (window.WebScrollbarCursor.isScrollThumbElement(element)) {
-        return true;
-      }
-    }
     tagName = element.tagName;
     if (tagName === "BUTTON" || tagName === "A" || tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT") {
       return true;
@@ -161,7 +203,7 @@
 
   function collectFocusableElements() {
     var nodes = document.querySelectorAll(
-      "button, a[href], input, textarea, select, canvas, .calc-key, .click-tap, .menu-v-scrollbar-thumb, .worlds-list-scrollbar-thumb, [tabindex]"
+      "button, a[href], input, textarea, select, canvas, .calc-key, .click-tap, [tabindex]"
     );
     var results = [];
     var index;
@@ -270,12 +312,12 @@
       syncPointerDragAt(cursorX, cursorY);
       return true;
     }
-    if (direction.y !== 0 && window.WebScrollbarCursor) {
-      if (window.WebScrollbarCursor.scrollFromActiveElement(direction.y, CURSOR_STEP * 2)) {
+    if (direction.y !== 0) {
+      if (scrollFromActiveElement(direction.y, CURSOR_STEP * 2)) {
         return true;
       }
-      scrollContainer = window.WebScrollbarCursor.findVerticalScrollContainer(getTargetAtCursor());
-      if (scrollContainer && window.WebScrollbarCursor.scrollVerticalContainer(scrollContainer, direction.y, CURSOR_STEP * 2)) {
+      scrollContainer = findVerticalScrollContainer(getTargetAtCursor());
+      if (scrollContainer && scrollVerticalContainer(scrollContainer, direction.y, CURSOR_STEP * 2)) {
         return true;
       }
     }
@@ -346,11 +388,6 @@
     }
     if (element.tagName === "CANVAS") {
       return true;
-    }
-    if (window.WebScrollbarCursor && window.WebScrollbarCursor.isScrollThumbElement) {
-      if (window.WebScrollbarCursor.isScrollThumbElement(element)) {
-        return true;
-      }
     }
     return false;
   }

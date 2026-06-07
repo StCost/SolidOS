@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="../../../screen-shared.css" />
   <link rel="stylesheet" href="../../../menu-scrollbar.css" />
   <script src="../iframe-game-input.js"></script>
-  <script src="../../../menu-scrollbar.js"></script>
   <script src="../iframe-game-cursor.js"></script>
   <style>
     * {
@@ -208,11 +207,6 @@
       overflow-y: auto;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
-    }
-
-    .calc-shell > .menu-v-scroll {
-      flex: 1 1 auto;
-      min-height: 0;
     }
 
     .calc-keypad {
@@ -1308,9 +1302,6 @@
         angleModeButton.addEventListener("click", toggleAngleMode);
       }
       buildKeypads();
-      if (window.WebScrollbarCursor && window.WebScrollbarCursor.refreshAllScrollbars) {
-        window.WebScrollbarCursor.refreshAllScrollbars();
-      }
       if (keypadWrap) {
         keypadWrap.addEventListener("mouseover", onKeypadMouseOver);
         keypadWrap.addEventListener("mouseout", onKeypadMouseOut);

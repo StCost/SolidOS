@@ -15,6 +15,7 @@
 
   var CHAT_EVENT_SUBMIT = "web-hud-chat-submit";
   var CHAT_EVENT_FOCUS = "web-hud-chat-focus";
+  var CHAT_EVENT_SLOT_SELECT = "web-hud-slot-select";
   var CHAT_MAX_LINES = 200;
   var CHAT_IDLE_HIDE_MS = 12000;
 
@@ -24,6 +25,17 @@
   var hotbarElement = null;
   var healthBarElement = null;
   var gameHudRootElement = null;
+  var fpsClusterElement = null;
+  var fpsUiCounterElement = null;
+  var fpsGameCounterElement = null;
+  var fpsCountersEnabled = false;
+  var fpsGameCounterEnabled = false;
+  var fpsCounterRafId = 0;
+  var fpsCounterLastTimestamp = 0;
+  var fpsCounterSmoothed = 0;
+  var fpsCounterLabelTimer = 0;
+  var fpsCounterLabelIntervalMs = 250;
+  var fpsCounterPendingLabelValue = -1;
   var chatPanelElement = null;
   var chatLogElement = null;
   var chatLogInnerElement = null;
@@ -38,6 +50,7 @@
   var commandHistory = [];
   var commandHistoryIndex = 0;
   var chatBindingsReady = false;
+  var hotbarBindingsReady = false;
   var standaloneWebBindingsReady = false;
   var slotElements = [];
   var slotIconCache = [];
@@ -83,9 +96,12 @@
 
     var index = 0;
     for (index = 0; index < SLOT_COUNT; index += 1) {
-      var item = document.createElement("li");
+      var listItem = document.createElement("li");
+      var item = document.createElement("button");
+      item.type = "button";
       item.className = "game-hud-slot";
       item.setAttribute("data-slot-index", String(index));
+      item.setAttribute("aria-label", "Inventory slot " + SLOT_LABELS[index]);
 
       var label = document.createElement("span");
       label.className = "game-hud-slot-index";
@@ -103,9 +119,43 @@
       stack.hidden = true;
       item.appendChild(stack);
 
-      hotbarElement.appendChild(item);
+      listItem.appendChild(item);
+      hotbarElement.appendChild(listItem);
       slotElements.push(item);
     }
+
+    bindHotbarClicks();
+  }
+
+  function postSlotSelect(slotIndex) {
+    if (!isUnityHost()) return;
+    window.vuplex.postMessage(
+      JSON.stringify({
+        eventName: CHAT_EVENT_SLOT_SELECT,
+        slotIndex: slotIndex
+      })
+    );
+  }
+
+  function onHotbarSlotClick(event) {
+    if (!event || !event.currentTarget) return;
+    var slotIndexValue = event.currentTarget.getAttribute("data-slot-index");
+    if (slotIndexValue == null || slotIndexValue === "") return;
+    var slotIndex = parseInt(slotIndexValue, 10);
+    if (isNaN(slotIndex)) return;
+    event.preventDefault();
+    postSlotSelect(slotIndex);
+  }
+
+  function bindHotbarClicks() {
+    if (hotbarBindingsReady) return;
+    var slots = getSlotElements();
+    var index = 0;
+    for (index = 0; index < slots.length; index += 1) {
+      if (!slots[index]) continue;
+      slots[index].addEventListener("click", onHotbarSlotClick);
+    }
+    hotbarBindingsReady = true;
   }
 
   function cancelIconClearTimer(slotIndex) {
@@ -467,6 +517,41 @@
     return !!(window.vuplex && window.vuplex.postMessage);
   }
 
+  function isGameMenuMode() {
+    return window.WebMenuMode === "game";
+  }
+
+  function isWebFakeConnectHud() {
+    return document.documentElement.classList.contains("web-fake-connect-active");
+  }
+
+  function setGameplayHudLayerActive(active) {
+    var hudRoot = gameHudRootElement || document.getElementById("gameHudRoot");
+    var layerActive = active === true && (isGameMenuMode() || isWebFakeConnectHud());
+    if (hudRoot) {
+      hudRoot.classList.toggle("game-hud--layer-active", layerActive);
+      hudRoot.setAttribute("aria-hidden", layerActive ? "false" : "true");
+    }
+  }
+
+  function onMenuModeChanged() {
+    refreshFpsCountersLayout();
+    if (!isGameMenuMode()) {
+      setGameplayHudLayerActive(false);
+      return;
+    }
+    if (window.WebMenuLayers && window.WebMenuLayers.getActiveLayer) {
+      var currentLayer = window.WebMenuLayers.getActiveLayer();
+      if (currentLayer === window.WebMenuLayers.LAYER_HUD) {
+        setGameplayHudLayerActive(true);
+      } else {
+        setGameplayHudLayerActive(false);
+      }
+      return;
+    }
+    setGameplayHudLayerActive(false);
+  }
+
   function escapeHtml(text) {
     if (!text) return "";
     return String(text)
@@ -630,14 +715,6 @@
     return '<span class="game-hud-chat-prefix terminal-text--dim">&gt; </span>' + formatUnityRichText(message);
   }
 
-  function refreshChatScrollbar() {
-    if (!window.WebScrollbarCursor) {
-      return;
-    }
-    window.WebScrollbarCursor.scheduleScrollViewScan();
-    window.WebScrollbarCursor.refreshAllScrollbars();
-  }
-
   function getChatLogContainer() {
     if (chatLogInnerElement) return chatLogInnerElement;
     return chatLogElement;
@@ -655,10 +732,23 @@
     }
   }
 
-  function scrollChatLogToEnd() {
+  function scrollChatLogToEndNow() {
     if (!chatLogElement) return;
+    var lastLine =
+      chatLogInnerElement && chatLogInnerElement.lastElementChild
+        ? chatLogInnerElement.lastElementChild
+        : null;
+    if (lastLine && lastLine.scrollIntoView) {
+      lastLine.scrollIntoView({ block: "end", inline: "nearest" });
+    }
     chatLogElement.scrollTop = chatLogElement.scrollHeight;
-    refreshChatScrollbar();
+  }
+
+  function scrollChatLogToEnd() {
+    scrollChatLogToEndNow();
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(scrollChatLogToEndNow);
+    }
   }
 
   function clearChatIdleHideTimer() {
@@ -667,9 +757,23 @@
     chatIdleHideTimer = null;
   }
 
+  function setChatOpenUnfocusedInWeb() {
+    if (!chatOpen) {
+      chatOpen = true;
+      applyChatOpenState();
+    }
+    if (chatFocused) {
+      setChatFocused(false);
+    }
+  }
+
   function scheduleChatIdleHide() {
     if (chatInputSession) return;
     clearChatIdleHideTimer();
+    if (!isUnityHost()) {
+      setChatOpenUnfocusedInWeb();
+      return;
+    }
     chatIdleHideTimer = setTimeout(function () {
       chatIdleHideTimer = null;
       if (chatInputSession) return;
@@ -682,11 +786,32 @@
     scheduleChatIdleHide();
   }
 
+  function showCommandFeedback(payload) {
+    if (!payload) return;
+    bindChatDom();
+    chatInputSession = false;
+    chatFocused = false;
+    setChatState({
+      open: true,
+      focused: false,
+      session: false,
+      clearInput: true,
+      flash: true
+    });
+    if (payload.commandText) {
+      addChatMessage(String(payload.commandText));
+    }
+    if (payload.resultMessage) {
+      addChatMessage(String(payload.resultMessage));
+    }
+  }
+
   function addChatMessage(message) {
     if (!message) return;
+    bindChatDom();
     var logContainer = getChatLogContainer();
     if (!logContainer) return;
-    if (!chatInputSession) {
+    if (!chatOpen) {
       showChatPanelTransient();
     }
     var lineElement = document.createElement("div");
@@ -754,7 +879,6 @@
       chatPanelElement.hidden = false;
       chatPanelElement.classList.add("is-open");
       chatPanelElement.setAttribute("aria-hidden", "false");
-      refreshChatScrollbar();
     } else {
       chatPanelElement.hidden = true;
       chatPanelElement.classList.remove("is-open");
@@ -779,6 +903,7 @@
   }
 
   function setChatInputSession(active) {
+    if (active && !chatInputCaptureEnabled) return;
     chatInputSession = !!active;
     if (chatInputSession) {
       suppressOpenEnterKey();
@@ -793,10 +918,41 @@
     scheduleChatIdleHide();
   }
 
+  var chatInputCaptureEnabled = false;
+
+  function setChatInputCaptureEnabled(enabled) {
+    chatInputCaptureEnabled = !!enabled;
+    if (!chatInputElement) return;
+    if (chatInputCaptureEnabled) {
+      chatInputElement.disabled = false;
+      chatInputElement.removeAttribute("readonly");
+      chatInputElement.removeAttribute("tabindex");
+      return;
+    }
+    chatInputSession = false;
+    chatFocused = false;
+    chatInputElement.blur();
+    chatInputElement.disabled = true;
+    chatInputElement.setAttribute("readonly", "readonly");
+    chatInputElement.setAttribute("tabindex", "-1");
+    applyChatOpenState();
+    syncUnityChatFocus();
+    if (isUnityHost() && chatOpen) {
+      scheduleChatIdleHide();
+    }
+  }
+
   function setChatFocused(focused) {
     chatFocused = !!focused;
     if (!chatInputElement) {
       applyChatOpenState();
+      return;
+    }
+    if (!chatInputCaptureEnabled) {
+      chatFocused = false;
+      chatInputElement.blur();
+      applyChatOpenState();
+      syncUnityChatFocus();
       return;
     }
     if (chatFocused) {
@@ -811,9 +967,9 @@
   }
 
   function refocusChatInputIfSession() {
-    if (!chatInputSession || !chatInputElement) return;
+    if (!chatInputCaptureEnabled || !chatInputSession || !chatInputElement) return;
     window.setTimeout(function () {
-      if (!chatInputSession || !chatInputElement) return;
+      if (!chatInputCaptureEnabled || !chatInputSession || !chatInputElement) return;
       chatFocused = true;
       chatInputElement.focus();
       var length = chatInputElement.value.length;
@@ -839,11 +995,13 @@
       }
     }
     if (payload.focused === true) {
-      chatFocused = true;
-      if (chatInputSession && chatInputElement) {
+      chatFocused = chatInputCaptureEnabled;
+      if (chatInputSession && chatInputElement && chatInputCaptureEnabled) {
         chatInputElement.focus();
         var focusLength = chatInputElement.value.length;
         chatInputElement.setSelectionRange(focusLength, focusLength);
+      } else if (!chatInputCaptureEnabled && chatInputElement) {
+        chatInputElement.blur();
       }
       applyChatOpenState();
     } else if (payload.focused === false) {
@@ -852,7 +1010,7 @@
         chatInputElement.blur();
       }
       applyChatOpenState();
-      if (!chatInputSession && chatOpen) {
+      if (isUnityHost() && !chatInputSession && chatOpen) {
         scheduleChatIdleHide();
       }
     } else {
@@ -875,13 +1033,22 @@
     if (payload.inputText != null && chatInputElement) {
       chatInputElement.value = String(payload.inputText);
     }
-    if (chatInputSession && chatInputElement && document.activeElement !== chatInputElement) {
+    if (payload.flash) {
+      showChatPanelTransient();
+    }
+    if (
+      chatInputCaptureEnabled &&
+      chatInputSession &&
+      chatInputElement &&
+      document.activeElement !== chatInputElement
+    ) {
       refocusChatInputIfSession();
     }
     syncUnityChatFocus();
   }
 
   function openChatByDefault() {
+    setChatInputCaptureEnabled(false);
     chatInputSession = false;
     setChatState({ open: true, focused: false, defaultOpen: true });
     scheduleChatIdleHide();
@@ -909,6 +1076,10 @@
 
   function syncUnityChatFocus() {
     if (!isUnityHost()) return;
+    if (!chatInputCaptureEnabled) {
+      postChatFocus(false);
+      return;
+    }
     postChatFocus(!!chatInputSession);
   }
 
@@ -922,9 +1093,6 @@
       }
       postChatSubmit(trimmedUnity);
       chatInputElement.value = "";
-      if (chatInputSession) {
-        refocusChatInputIfSession();
-      }
       return;
     }
     var trimmed = text.replace(/^\s+|\s+$/g, "");
@@ -941,7 +1109,7 @@
   }
 
   function onChatInputKeyDown(event) {
-    if (!event) return;
+    if (!event || !chatInputCaptureEnabled) return;
     if (event.key === "ArrowUp") {
       event.preventDefault();
       navigateCommandHistory(-1);
@@ -967,17 +1135,29 @@
         return;
       }
       setChatInputSession(false);
+      setChatState({ open: true, focused: false, clearInput: true });
     }
   }
 
   function onChatInputMouseDown(event) {
     if (!event) return;
+    if (!chatInputCaptureEnabled) {
+      event.preventDefault();
+      return;
+    }
     event.stopPropagation();
     if (chatInputSession) {
       setChatFocused(true);
       return;
     }
     setChatInputSession(true);
+  }
+
+  function onChatInputFocused() {
+    if (!window.WebGameHudCursorBridge || !window.WebGameHudCursorBridge.notifyChatInputFocused) {
+      return;
+    }
+    window.WebGameHudCursorBridge.notifyChatInputFocused();
   }
 
   function onStandaloneDocumentKeyDown(event) {
@@ -989,11 +1169,6 @@
     }
     if (targetTag === "input" || targetTag === "textarea") return;
 
-    if (event.key === "t" || event.key === "T") {
-      event.preventDefault();
-      setChatInputSession(true);
-      return;
-    }
     if (event.key === "/") {
       event.preventDefault();
       setChatInputSession(true);
@@ -1016,24 +1191,14 @@
     chatInputRowElement = chatInputElement ? chatInputElement.parentElement : null;
     if (!chatPanelElement || !chatLogElement || !chatInputElement) return;
     chatBindingsReady = true;
+    setChatInputCaptureEnabled(false);
     chatInputElement.addEventListener("keydown", onChatInputKeyDown);
     chatInputElement.addEventListener("mousedown", onChatInputMouseDown);
+    chatInputElement.addEventListener("focus", onChatInputFocused);
     chatInputElement.addEventListener("blur", refocusChatInputIfSession);
     if (chatInputRowElement) {
       chatInputRowElement.addEventListener("mousedown", onChatInputMouseDown);
     }
-    refreshChatScrollbar();
-  }
-
-  function setHudUnityCursorEnabled(enabled) {
-    var unityCursorActive = enabled === true;
-    if (unityCursorActive) {
-      document.documentElement.classList.add("game-hud--unity-cursor");
-    } else {
-      document.documentElement.classList.remove("game-hud--unity-cursor");
-    }
-    if (!window.WebGameHudCursorBridge) return;
-    window.WebGameHudCursorBridge.setUnityCursorEnabled(unityCursorActive);
   }
 
   function initStandaloneWebMode() {
@@ -1042,12 +1207,139 @@
     document.documentElement.classList.add("web-standalone");
     document.addEventListener("keydown", onStandaloneDocumentKeyDown);
     openChatByDefault();
-    addChatMessage("<color=yellow>[Web preview]</color> Press T or Enter to type. / for commands.");
+    addChatMessage("<color=yellow>[Web preview]</color> Press Enter to type. / for commands.");
+  }
+
+  function bindFpsCounterDom() {
+    if (!fpsClusterElement) {
+      fpsClusterElement = document.getElementById("gameHudFpsCluster");
+    }
+    if (!fpsUiCounterElement) {
+      fpsUiCounterElement = document.getElementById("gameHudUiFpsCounter");
+    }
+    if (!fpsGameCounterElement) {
+      fpsGameCounterElement = document.getElementById("gameHudGameFpsCounter");
+    }
+  }
+
+  function updateUiFpsCounterLabel(fpsValue) {
+    bindFpsCounterDom();
+    if (!fpsUiCounterElement) return;
+    var fpsNumber = Number(fpsValue);
+    if (isNaN(fpsNumber) || fpsNumber < 0) {
+      fpsNumber = 0;
+    }
+    fpsUiCounterElement.textContent = String(Math.round(fpsNumber)) + " UI FPS";
+  }
+
+  function updateGameFpsCounterLabel(fpsValue) {
+    bindFpsCounterDom();
+    if (!fpsGameCounterElement) return;
+    var fpsNumber = Number(fpsValue);
+    if (isNaN(fpsNumber) || fpsNumber < 0) {
+      fpsNumber = 0;
+    }
+    fpsGameCounterElement.textContent = String(Math.round(fpsNumber)) + " GAME FPS";
+  }
+
+  function flushFpsCounterLabel() {
+    if (fpsCounterPendingLabelValue < 0) return;
+    updateUiFpsCounterLabel(fpsCounterPendingLabelValue);
+    fpsCounterPendingLabelValue = -1;
+    fpsCounterLabelTimer = 0;
+  }
+
+  function queueUiFpsCounterLabel(fpsValue) {
+    fpsCounterPendingLabelValue = fpsValue;
+    if (fpsCounterLabelTimer) return;
+    flushFpsCounterLabel();
+    fpsCounterLabelTimer = window.setTimeout(flushFpsCounterLabel, fpsCounterLabelIntervalMs);
+  }
+
+  function stopFpsCounterLoop() {
+    if (fpsCounterLabelTimer) {
+      window.clearTimeout(fpsCounterLabelTimer);
+      fpsCounterLabelTimer = 0;
+    }
+    fpsCounterPendingLabelValue = -1;
+    if (!fpsCounterRafId) return;
+    window.cancelAnimationFrame(fpsCounterRafId);
+    fpsCounterRafId = 0;
+    fpsCounterLastTimestamp = 0;
+  }
+
+  function startFpsCounterLoop() {
+    stopFpsCounterLoop();
+    if (!fpsCountersEnabled) return;
+    function tick(timestamp) {
+      if (!fpsCountersEnabled) {
+        stopFpsCounterLoop();
+        return;
+      }
+      if (fpsCounterLastTimestamp > 0) {
+        var deltaMs = timestamp - fpsCounterLastTimestamp;
+        if (deltaMs > 0) {
+          var instantFps = 1000 / deltaMs;
+          if (fpsCounterSmoothed <= 0) {
+            fpsCounterSmoothed = instantFps;
+          } else {
+            fpsCounterSmoothed = fpsCounterSmoothed * 0.85 + instantFps * 0.15;
+          }
+          queueUiFpsCounterLabel(fpsCounterSmoothed);
+        }
+      }
+      fpsCounterLastTimestamp = timestamp;
+      fpsCounterRafId = window.requestAnimationFrame(tick);
+    }
+    fpsCounterRafId = window.requestAnimationFrame(tick);
+  }
+
+  function refreshFpsCountersLayout() {
+    bindFpsCounterDom();
+    if (!fpsClusterElement) return;
+    if (!fpsCountersEnabled) {
+      fpsClusterElement.classList.remove("is-enabled");
+      fpsClusterElement.setAttribute("aria-hidden", "true");
+      fpsClusterElement.hidden = true;
+      if (fpsGameCounterElement) {
+        fpsGameCounterElement.hidden = true;
+      }
+      stopFpsCounterLoop();
+      return;
+    }
+    fpsClusterElement.hidden = false;
+    fpsClusterElement.classList.add("is-enabled");
+    fpsClusterElement.setAttribute("aria-hidden", "false");
+    if (fpsUiCounterElement) {
+      fpsUiCounterElement.hidden = false;
+    }
+    var showGameCounter = fpsGameCounterEnabled && isGameMenuMode();
+    if (fpsGameCounterElement) {
+      fpsGameCounterElement.hidden = !showGameCounter;
+    }
+    startFpsCounterLoop();
+  }
+
+  function setFpsCountersState(payload) {
+    if (!payload) return;
+    if (payload.enabled === true || payload.enabled === false) {
+      fpsCountersEnabled = !!payload.enabled;
+    }
+    if (payload.gameMode === true || payload.gameMode === false) {
+      fpsGameCounterEnabled = !!payload.gameMode;
+    }
+    refreshFpsCountersLayout();
+  }
+
+  function setGameFpsCounterValue(fpsValue) {
+    if (!fpsCountersEnabled || !fpsGameCounterEnabled || !isGameMenuMode()) return;
+    updateGameFpsCounterLabel(fpsValue);
   }
 
   function bindDom() {
     buildHotbar();
     healthBarElement = document.getElementById("healthBar");
+    bindFpsCounterDom();
     bindChatDom();
     applyDefaultSlotTheme();
     if (pendingInventoryState) applyInventoryState(pendingInventoryState);
@@ -1056,9 +1348,6 @@
     else applyDefaultHealthState();
     if (pendingIconUpdates) applyIconUpdates(pendingIconUpdates);
     initStandaloneWebMode();
-    if (isUnityHost()) {
-      setHudUnityCursorEnabled(true);
-    }
   }
 
   window.WebGameHud = {
@@ -1068,12 +1357,19 @@
     setSlotIcon: setSlotIcon,
     applyIconUpdates: applyIconUpdates,
     addChatMessage: addChatMessage,
+    showCommandFeedback: showCommandFeedback,
     setChatState: setChatState,
     suppressOpenEnterKey: suppressOpenEnterKey,
     openChatByDefault: openChatByDefault,
+    setChatInputCaptureEnabled: setChatInputCaptureEnabled,
     clearChatMessages: clearChatMessages,
-    setCommandHistory: setCommandHistory
+    setCommandHistory: setCommandHistory,
+    setGameplayHudLayerActive: setGameplayHudLayerActive,
+    setFpsCountersState: setFpsCountersState,
+    setGameFpsCounterValue: setGameFpsCounterValue
   };
+
+  window.addEventListener("web-menu-mode-changed", onMenuModeChanged);
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", bindDom);

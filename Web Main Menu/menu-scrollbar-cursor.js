@@ -1,701 +1,289 @@
 (function () {
-  var scrollbarThumbMinSize = 24;
-  var scrollbarInstances = [];
-  var horizontalScrollbarInstances = [];
+  var TOKEN_SCROLL = "scroll";
+  var TOKEN_SCROLL_H = "scroll-h";
+  var SCROLL_VIEW_SELECTOR =
+    ".menu-v-scroll-view, .menu-h-scroll-view, .settings-scroll, .extras-scroll, .credits-scroll, .worlds-list, .game-hud-chat-log, .settings-tabs";
+  var DEFAULT_SCROLLBAR_SIZE = 8;
+  var SCROLLBAR_THUMB_MIN_SIZE = 24;
+  var SCROLLBAR_HIT_SLOP = 4;
+  var cachedScrollbarSize = 0;
 
-  function canListScroll(listElement) {
-    return listElement.scrollHeight > listElement.clientHeight + 1;
+  function getScrollbarSizePixels() {
+    if (cachedScrollbarSize > 0) {
+      return cachedScrollbarSize;
+    }
+    var rootStyle = window.getComputedStyle(document.documentElement);
+    var sizeValue = rootStyle.getPropertyValue("--scrollbar-size");
+    var parsed = parseFloat(sizeValue);
+    if (isNaN(parsed) || parsed <= 0) {
+      cachedScrollbarSize = DEFAULT_SCROLLBAR_SIZE;
+    } else {
+      cachedScrollbarSize = parsed;
+    }
+    return cachedScrollbarSize;
   }
 
-  function updateThumbLayout(instance) {
-    var listElement = instance.listElement;
-    var trackElement = instance.trackElement;
-    var thumbElement = instance.thumbElement;
-
-    if (!canListScroll(listElement)) {
-      trackElement.classList.add("is-hidden");
-      return;
-    }
-
-    trackElement.classList.remove("is-hidden");
-
-    var trackHeight = trackElement.clientHeight;
-    var scrollRange = listElement.scrollHeight - listElement.clientHeight;
-    var thumbHeight = Math.max(
-      scrollbarThumbMinSize,
-      Math.floor((listElement.clientHeight / listElement.scrollHeight) * trackHeight)
-    );
-    var thumbTravel = Math.max(0, trackHeight - thumbHeight);
-    var thumbOffset = scrollRange > 0 ? (listElement.scrollTop / scrollRange) * thumbTravel : 0;
-
-    instance.thumbOffset = thumbOffset;
-    thumbElement.style.height = thumbHeight + "px";
-    thumbElement.style.transform = "translateY(" + thumbOffset + "px)";
-  }
-
-  function setListScrollFromThumbOffset(instance, thumbOffset) {
-    var listElement = instance.listElement;
-    var trackElement = instance.trackElement;
-    var thumbElement = instance.thumbElement;
-    var trackHeight = trackElement.clientHeight;
-    var thumbHeight = thumbElement.offsetHeight;
-    var thumbTravel = Math.max(0, trackHeight - thumbHeight);
-    var scrollRange = listElement.scrollHeight - listElement.clientHeight;
-
-    if (thumbTravel <= 0 || scrollRange <= 0) {
-      listElement.scrollTop = 0;
-      return;
-    }
-
-    var clampedOffset = thumbOffset;
-    if (clampedOffset < 0) {
-      clampedOffset = 0;
-    }
-    if (clampedOffset > thumbTravel) {
-      clampedOffset = thumbTravel;
-    }
-
-    listElement.scrollTop = (clampedOffset / thumbTravel) * scrollRange;
-  }
-
-  function onListScroll(instance) {
-    updateThumbLayout(instance);
-  }
-
-  function onThumbPointerDown(instance, event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    instance.thumbElement.classList.add("is-dragging");
-    instance.dragPointerId = event.pointerId;
-    instance.dragStartPointerY = event.clientY;
-    instance.dragStartThumbOffset = instance.thumbOffset;
-
-    if (instance.thumbElement.setPointerCapture) {
-      instance.thumbElement.setPointerCapture(event.pointerId);
-    }
-  }
-
-  function onThumbPointerMove(instance, event) {
-    if (instance.dragPointerId !== event.pointerId) {
-      return;
-    }
-
-    var deltaY = event.clientY - instance.dragStartPointerY;
-    setListScrollFromThumbOffset(instance, instance.dragStartThumbOffset + deltaY);
-    updateThumbLayout(instance);
-  }
-
-  function onThumbPointerUp(instance, event) {
-    if (instance.dragPointerId !== event.pointerId) {
-      return;
-    }
-
-    instance.dragPointerId = null;
-    instance.thumbElement.classList.remove("is-dragging");
-
-    if (instance.thumbElement.releasePointerCapture) {
-      try {
-        instance.thumbElement.releasePointerCapture(event.pointerId);
-      } catch (ignoredError) {
-      }
-    }
-  }
-
-  function onTrackPointerDown(instance, event) {
-    if (event.target === instance.thumbElement) {
-      return;
-    }
-
-    event.preventDefault();
-
-    var trackBounds = instance.trackElement.getBoundingClientRect();
-    var thumbHeight = instance.thumbElement.offsetHeight;
-    var targetOffset = event.clientY - trackBounds.top - thumbHeight * 0.5;
-    setListScrollFromThumbOffset(instance, targetOffset);
-    updateThumbLayout(instance);
-  }
-
-  function onVerticalScrollbarWheel(instance, event) {
-    if (event.deltaY === 0) {
-      return;
-    }
-    if (instance.trackElement.classList.contains("is-hidden")) {
-      return;
-    }
-    instance.listElement.scrollTop += event.deltaY / 5;
-    updateThumbLayout(instance);
-    event.preventDefault();
-    event.stopPropagation();
-  }
-
-  function attachScrollbarBehavior(instance) {
-    var listElement = instance.listElement;
-    var trackElement = instance.trackElement;
-    var thumbElement = instance.thumbElement;
-
-    listElement.addEventListener("scroll", function () {
-      onListScroll(instance);
-    });
-
-    thumbElement.addEventListener("pointerdown", function (event) {
-      onThumbPointerDown(instance, event);
-    });
-
-    thumbElement.addEventListener("pointermove", function (event) {
-      onThumbPointerMove(instance, event);
-    });
-
-    thumbElement.addEventListener("pointerup", function (event) {
-      onThumbPointerUp(instance, event);
-    });
-
-    thumbElement.addEventListener("pointercancel", function (event) {
-      onThumbPointerUp(instance, event);
-    });
-
-    trackElement.addEventListener("pointerdown", function (event) {
-      onTrackPointerDown(instance, event);
-    });
-
-    trackElement.addEventListener("wheel", function (event) {
-      onVerticalScrollbarWheel(instance, event);
-    }, { passive: false });
-
-    if (typeof ResizeObserver !== "undefined") {
-      instance.resizeObserver = new ResizeObserver(function () {
-        updateThumbLayout(instance);
-      });
-      instance.resizeObserver.observe(listElement);
-      instance.resizeObserver.observe(trackElement);
-    }
-
-    if (typeof MutationObserver !== "undefined") {
-      instance.mutationObserver = new MutationObserver(function () {
-        updateThumbLayout(instance);
-      });
-      instance.mutationObserver.observe(listElement, { childList: true, subtree: true });
-    }
-
-    updateThumbLayout(instance);
-  }
-
-  var SCROLL_VIEW_CLASS = "menu-v-scroll-view";
-  var HORIZONTAL_SCROLL_VIEW_CLASS = "menu-h-scroll-view";
-  var scrollViewScanTimer = 0;
-
-  function getMenuScreenRoot(rootElement) {
-    if (rootElement && rootElement.classList && rootElement.classList.contains("menu-screen")) {
-      return rootElement;
-    }
-    if (rootElement && rootElement.closest) {
-      var closestMenuScreen = rootElement.closest(".menu-screen");
-      if (closestMenuScreen) {
-        return closestMenuScreen;
-      }
-    }
-    return document.querySelector(".menu-screen");
-  }
-
-  function getElementDepth(element) {
-    var depth = 0;
-    var node = element;
-    while (node) {
-      depth += 1;
-      node = node.parentElement;
-    }
-    return depth;
-  }
-
-  function isVerticalScrollTrackElement(element) {
-    if (!element || !element.classList) {
-      return false;
-    }
-    if (element.classList.contains("menu-v-scrollbar") || element.classList.contains("menu-v-scrollbar-thumb")) {
+  function hasVerticalScrollbarTrack(element) {
+    var style = window.getComputedStyle(element);
+    var overflowY = style.overflowY;
+    if (overflowY === "scroll") {
       return true;
     }
-    if (element.classList.contains("menu-h-scrollbar") || element.classList.contains("menu-h-scrollbar-thumb")) {
-      return true;
+    if (overflowY === "auto") {
+      return element.scrollHeight > element.clientHeight + 1;
     }
     return false;
   }
 
-  function isWrappedVerticalScrollView(element) {
-    var parentElement = element.parentElement;
-    return !!(parentElement && parentElement.classList && parentElement.classList.contains("menu-v-scroll"));
+  function hasHorizontalScrollbarTrack(element) {
+    var style = window.getComputedStyle(element);
+    var overflowX = style.overflowX;
+    if (overflowX === "scroll") {
+      return true;
+    }
+    if (overflowX === "auto") {
+      return element.scrollWidth > element.clientWidth + 1;
+    }
+    return false;
   }
 
-  function isWrappedHorizontalScrollView(element) {
-    var parentElement = element.parentElement;
-    return !!(parentElement && parentElement.classList && parentElement.classList.contains("menu-h-scroll"));
-  }
-
-  function isVerticalScrollElement(element) {
-    var tagName;
-    var computedStyle;
-    var overflowY;
-    if (!element || element.nodeType !== 1) {
+  function isScrollViewVisible(scrollView) {
+    if (!scrollView || !scrollView.isConnected) {
       return false;
     }
-    if (isVerticalScrollTrackElement(element)) {
+    var style = window.getComputedStyle(scrollView);
+    if (style.display === "none" || style.visibility === "hidden") {
       return false;
     }
-    if (isWrappedVerticalScrollView(element)) {
-      return false;
-    }
-    tagName = element.tagName;
-    if (tagName === "HTML" || tagName === "BODY") {
-      return false;
-    }
-    computedStyle = window.getComputedStyle(element);
-    overflowY = computedStyle.overflowY;
-    if (overflowY !== "auto" && overflowY !== "scroll") {
+    var bounds = scrollView.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) {
       return false;
     }
     return true;
   }
 
-  function isHorizontalScrollElement(element) {
-    var tagName;
-    var computedStyle;
-    var overflowX;
-    if (!element || element.nodeType !== 1) {
-      return false;
-    }
-    if (isVerticalScrollTrackElement(element)) {
-      return false;
-    }
-    if (isWrappedHorizontalScrollView(element)) {
-      return false;
-    }
-    tagName = element.tagName;
-    if (tagName === "HTML" || tagName === "BODY") {
-      return false;
-    }
-    computedStyle = window.getComputedStyle(element);
-    overflowX = computedStyle.overflowX;
-    if (overflowX !== "auto" && overflowX !== "scroll") {
-      return false;
-    }
-    return true;
+  function isToolbarSettingsTabs(scrollView) {
+    return scrollView.classList && scrollView.classList.contains("settings-tabs--toolbar");
   }
 
-  function collectVerticalScrollElements(rootElement) {
-    var menuScreen = getMenuScreenRoot(rootElement);
-    var nodes;
-    var results = [];
-    var index;
-    var node;
-    if (!menuScreen) {
-      return results;
+  function getVerticalScrollbarWidth(scrollView) {
+    var measuredLayout = scrollView.offsetWidth - scrollView.clientWidth;
+    var measuredVisual = scrollView.getBoundingClientRect().width - scrollView.clientWidth;
+    var measured = measuredLayout;
+    if (measuredVisual > measured) {
+      measured = measuredVisual;
     }
-    nodes = menuScreen.getElementsByTagName("*");
-    for (index = 0; index < nodes.length; index += 1) {
-      node = nodes[index];
-      if (isVerticalScrollElement(node)) {
-        results.push(node);
+    var configuredWidth = getScrollbarSizePixels();
+    if (measured > 0) {
+      if (measured < configuredWidth) {
+        return configuredWidth;
       }
+      return measured;
     }
-    results.sort(function (left, right) {
-      return getElementDepth(right) - getElementDepth(left);
-    });
-    return results;
+    if (hasVerticalScrollbarTrack(scrollView)) {
+      return configuredWidth;
+    }
+    return 0;
   }
 
-  function collectHorizontalScrollElements(rootElement) {
-    var menuScreen = getMenuScreenRoot(rootElement);
-    var nodes;
-    var results = [];
-    var index;
-    var node;
-    if (!menuScreen) {
-      return results;
+  function getHorizontalScrollbarHeight(scrollView) {
+    var measuredLayout = scrollView.offsetHeight - scrollView.clientHeight;
+    var measuredVisual = scrollView.getBoundingClientRect().height - scrollView.clientHeight;
+    var measured = measuredLayout;
+    if (measuredVisual > measured) {
+      measured = measuredVisual;
     }
-    nodes = menuScreen.getElementsByTagName("*");
-    for (index = 0; index < nodes.length; index += 1) {
-      node = nodes[index];
-      if (isHorizontalScrollElement(node)) {
-        results.push(node);
+    var configuredHeight = getScrollbarSizePixels();
+    if (measured > 0) {
+      if (measured < configuredHeight) {
+        return configuredHeight;
       }
+      return measured;
     }
-    results.sort(function (left, right) {
-      return getElementDepth(right) - getElementDepth(left);
-    });
-    return results;
+    if (hasHorizontalScrollbarTrack(scrollView)) {
+      return configuredHeight;
+    }
+    return 0;
   }
 
-  function wrapVerticalScrollView(scrollElement) {
-    if (!scrollElement || isWrappedVerticalScrollView(scrollElement)) {
-      return;
-    }
-
-    var wrapperElement = document.createElement("div");
-    wrapperElement.className = "menu-v-scroll";
-
-    var trackElement = document.createElement("div");
-    trackElement.className = "menu-v-scrollbar";
-    trackElement.setAttribute("aria-hidden", "true");
-
-    var thumbElement = document.createElement("div");
-    thumbElement.className = "menu-v-scrollbar-thumb";
-    trackElement.appendChild(thumbElement);
-
-    scrollElement.parentNode.insertBefore(wrapperElement, scrollElement);
-    wrapperElement.appendChild(scrollElement);
-    wrapperElement.appendChild(trackElement);
-    scrollElement.classList.add(SCROLL_VIEW_CLASS);
-
-    var instance = {
-      listElement: scrollElement,
-      trackElement: trackElement,
-      thumbElement: thumbElement,
-      dragPointerId: null,
-      dragStartPointerY: 0,
-      dragStartThumbOffset: 0,
-      thumbOffset: 0,
-      resizeObserver: null,
-      mutationObserver: null
-    };
-
-    attachScrollbarBehavior(instance);
-    scrollbarInstances.push(instance);
-  }
-
-  function shouldWrapScrollElement(scrollElement) {
-    return isVerticalScrollElement(scrollElement);
-  }
-
-  function shouldWrapHorizontalScrollElement(scrollElement) {
-    return isHorizontalScrollElement(scrollElement);
-  }
-
-  function scheduleScrollViewScan() {
-    if (scrollViewScanTimer) {
-      window.clearTimeout(scrollViewScanTimer);
-    }
-    scrollViewScanTimer = window.setTimeout(function () {
-      scrollViewScanTimer = 0;
-      initVerticalScrollViews(document);
-      refreshAllScrollbars();
-    }, 0);
-  }
-
-  function observeScrollViewChanges() {
-    var menuScreen = document.querySelector(".menu-screen");
-    if (!menuScreen || typeof MutationObserver === "undefined") {
-      return;
-    }
-    var observer = new MutationObserver(function () {
-      scheduleScrollViewScan();
-    });
-    observer.observe(menuScreen, { childList: true, subtree: true });
-  }
-
-  function initVerticalScrollViews(rootElement) {
-    var scrollElements = collectVerticalScrollElements(rootElement);
-    var index;
-    for (index = 0; index < scrollElements.length; index += 1) {
-      var scrollElement = scrollElements[index];
-      if (!shouldWrapScrollElement(scrollElement)) {
-        continue;
-      }
-      wrapVerticalScrollView(scrollElement);
-    }
-  }
-
-  function initScrollViews(rootElement) {
-    initVerticalScrollViews(rootElement);
-    initHorizontalScrollViews(rootElement);
-  }
-
-  function canHorizontalScroll(viewElement) {
-    return viewElement.scrollWidth > viewElement.clientWidth + 1;
-  }
-
-  function updateHorizontalThumbLayout(instance) {
-    var viewElement = instance.viewElement;
-    var trackElement = instance.trackElement;
-    var thumbElement = instance.thumbElement;
-
-    if (!canHorizontalScroll(viewElement)) {
-      trackElement.classList.add("is-hidden");
-      return;
-    }
-
-    trackElement.classList.remove("is-hidden");
-
-    var trackWidth = trackElement.clientWidth;
-    var scrollRange = viewElement.scrollWidth - viewElement.clientWidth;
-    var thumbWidth = Math.max(
-      scrollbarThumbMinSize,
-      Math.floor((viewElement.clientWidth / viewElement.scrollWidth) * trackWidth)
-    );
-    var thumbTravel = Math.max(0, trackWidth - thumbWidth);
-    var thumbOffset = scrollRange > 0 ? (viewElement.scrollLeft / scrollRange) * thumbTravel : 0;
-
-    instance.thumbOffset = thumbOffset;
-    thumbElement.style.width = thumbWidth + "px";
-    thumbElement.style.height = "";
-    thumbElement.style.transform = "translateX(" + thumbOffset + "px)";
-  }
-
-  function setHorizontalScrollFromThumbOffset(instance, thumbOffset) {
-    var viewElement = instance.viewElement;
-    var trackElement = instance.trackElement;
-    var thumbElement = instance.thumbElement;
-    var trackWidth = trackElement.clientWidth;
-    var thumbWidth = thumbElement.offsetWidth;
-    var thumbTravel = Math.max(0, trackWidth - thumbWidth);
-    var scrollRange = viewElement.scrollWidth - viewElement.clientWidth;
-
-    if (thumbTravel <= 0 || scrollRange <= 0) {
-      viewElement.scrollLeft = 0;
-      return;
-    }
-
-    var clampedOffset = thumbOffset;
-    if (clampedOffset < 0) {
-      clampedOffset = 0;
-    }
-    if (clampedOffset > thumbTravel) {
-      clampedOffset = thumbTravel;
-    }
-
-    viewElement.scrollLeft = (clampedOffset / thumbTravel) * scrollRange;
-  }
-
-  function onHorizontalThumbPointerDown(instance, event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    instance.thumbElement.classList.add("is-dragging");
-    instance.dragPointerId = event.pointerId;
-    instance.dragStartPointerX = event.clientX;
-    instance.dragStartThumbOffset = instance.thumbOffset;
-
-    if (instance.thumbElement.setPointerCapture) {
-      instance.thumbElement.setPointerCapture(event.pointerId);
-    }
-  }
-
-  function onHorizontalThumbPointerMove(instance, event) {
-    if (instance.dragPointerId !== event.pointerId) {
-      return;
-    }
-
-    var deltaX = event.clientX - instance.dragStartPointerX;
-    setHorizontalScrollFromThumbOffset(instance, instance.dragStartThumbOffset + deltaX);
-    updateHorizontalThumbLayout(instance);
-  }
-
-  function onHorizontalThumbPointerUp(instance, event) {
-    if (instance.dragPointerId !== event.pointerId) {
-      return;
-    }
-
-    instance.dragPointerId = null;
-    instance.thumbElement.classList.remove("is-dragging");
-
-    if (instance.thumbElement.releasePointerCapture) {
-      try {
-        instance.thumbElement.releasePointerCapture(event.pointerId);
-      } catch (ignoredError) {
-      }
-    }
-  }
-
-  function onHorizontalTrackPointerDown(instance, event) {
-    if (event.target === instance.thumbElement) {
-      return;
-    }
-
-    event.preventDefault();
-
-    var trackBounds = instance.trackElement.getBoundingClientRect();
-    var thumbWidth = instance.thumbElement.offsetWidth;
-    var targetOffset = event.clientX - trackBounds.left - thumbWidth * 0.5;
-    setHorizontalScrollFromThumbOffset(instance, targetOffset);
-    updateHorizontalThumbLayout(instance);
-  }
-
-  function onHorizontalScrollbarWheel(instance, event) {
-    var delta = event.deltaX;
-    if (delta === 0) {
-      delta = event.deltaY;
-    }
-    if (delta === 0) {
-      return;
-    }
-    if (instance.trackElement.classList.contains("is-hidden")) {
-      return;
-    }
-    instance.viewElement.scrollLeft += delta;
-    updateHorizontalThumbLayout(instance);
-    event.preventDefault();
-    event.stopPropagation();
-  }
-
-  function attachHorizontalScrollbarBehavior(instance) {
-    var viewElement = instance.viewElement;
-    var trackElement = instance.trackElement;
-    var thumbElement = instance.thumbElement;
-
-    viewElement.addEventListener("scroll", function () {
-      updateHorizontalThumbLayout(instance);
-    });
-
-    thumbElement.addEventListener("pointerdown", function (event) {
-      onHorizontalThumbPointerDown(instance, event);
-    });
-
-    thumbElement.addEventListener("pointermove", function (event) {
-      onHorizontalThumbPointerMove(instance, event);
-    });
-
-    thumbElement.addEventListener("pointerup", function (event) {
-      onHorizontalThumbPointerUp(instance, event);
-    });
-
-    thumbElement.addEventListener("pointercancel", function (event) {
-      onHorizontalThumbPointerUp(instance, event);
-    });
-
-    trackElement.addEventListener("pointerdown", function (event) {
-      onHorizontalTrackPointerDown(instance, event);
-    });
-
-    trackElement.addEventListener("wheel", function (event) {
-      onHorizontalScrollbarWheel(instance, event);
-    }, { passive: false });
-
-    if (typeof ResizeObserver !== "undefined") {
-      instance.resizeObserver = new ResizeObserver(function () {
-        updateHorizontalThumbLayout(instance);
-      });
-      instance.resizeObserver.observe(viewElement);
-      instance.resizeObserver.observe(trackElement);
-    }
-
-    if (typeof MutationObserver !== "undefined") {
-      instance.mutationObserver = new MutationObserver(function () {
-        updateHorizontalThumbLayout(instance);
-      });
-      instance.mutationObserver.observe(viewElement, { childList: true, subtree: true });
-    }
-
-    updateHorizontalThumbLayout(instance);
-  }
-
-  function wrapHorizontalScrollView(viewElement) {
-    if (!viewElement || isWrappedHorizontalScrollView(viewElement)) {
-      return;
-    }
-
-    var wrapperElement = document.createElement("div");
-    wrapperElement.className = "menu-h-scroll";
-
-    var trackElement = document.createElement("div");
-    trackElement.className = "menu-h-scrollbar";
-    trackElement.setAttribute("aria-hidden", "true");
-
-    var thumbElement = document.createElement("div");
-    thumbElement.className = "menu-h-scrollbar-thumb";
-    trackElement.appendChild(thumbElement);
-
-    viewElement.parentNode.insertBefore(wrapperElement, viewElement);
-    wrapperElement.appendChild(viewElement);
-    wrapperElement.appendChild(trackElement);
-    viewElement.classList.add(HORIZONTAL_SCROLL_VIEW_CLASS);
-
-    var instance = {
-      viewElement: viewElement,
-      trackElement: trackElement,
-      thumbElement: thumbElement,
-      dragPointerId: null,
-      dragStartPointerX: 0,
-      dragStartThumbOffset: 0,
-      thumbOffset: 0,
-      resizeObserver: null,
-      mutationObserver: null
-    };
-
-    attachHorizontalScrollbarBehavior(instance);
-    horizontalScrollbarInstances.push(instance);
-  }
-
-  function initHorizontalScrollViews(rootElement) {
-    horizontalScrollbarInstances = [];
-    var viewElements = collectHorizontalScrollElements(rootElement);
-    var index = 0;
-    for (index = 0; index < viewElements.length; index += 1) {
-      var viewElement = viewElements[index];
-      if (!shouldWrapHorizontalScrollElement(viewElement)) {
-        continue;
-      }
-      wrapHorizontalScrollView(viewElement);
-    }
-  }
-
-  function refreshAllHorizontalScrollbars() {
-    var index = 0;
-    for (index = 0; index < horizontalScrollbarInstances.length; index++) {
-      updateHorizontalThumbLayout(horizontalScrollbarInstances[index]);
-    }
-  }
-
-  function getScrollCursorToken(clientX, clientY) {
-    var element = document.elementFromPoint(clientX, clientY);
-    var horizontalTrack;
-    var verticalTrack;
-    if (!element || !element.closest) {
+  function getVisibleOverlayBarForScrollView(scrollView) {
+    var clip = scrollView.parentElement;
+    if (!clip || !clip.classList || !clip.classList.contains("menu-v-scroll-clip")) {
       return null;
     }
-    horizontalTrack = element.closest(".menu-h-scrollbar");
-    if (horizontalTrack != null && !horizontalTrack.classList.contains("is-hidden")) {
-      return "scroll-h";
+    var bar = clip.querySelector(".menu-v-scroll-bar");
+    if (!bar || bar.classList.contains("menu-v-scroll-bar--idle")) {
+      return null;
     }
-    verticalTrack = element.closest(".menu-v-scrollbar");
-    if (verticalTrack != null && !verticalTrack.classList.contains("is-hidden")) {
-      return "scroll";
+    return bar;
+  }
+
+  function getVerticalScrollbarThumbBounds(scrollView) {
+    var overlayBar = getVisibleOverlayBarForScrollView(scrollView);
+    var scrollHeight = scrollView.scrollHeight;
+    var clientHeight = scrollView.clientHeight;
+    if (scrollHeight <= clientHeight + 1) {
+      return null;
+    }
+    var trackHeight = clientHeight;
+    var thumbHeight = (clientHeight / scrollHeight) * clientHeight;
+    if (thumbHeight < SCROLLBAR_THUMB_MIN_SIZE) {
+      thumbHeight = SCROLLBAR_THUMB_MIN_SIZE;
+    }
+    if (thumbHeight > trackHeight) {
+      thumbHeight = trackHeight;
+    }
+    var scrollRange = scrollHeight - clientHeight;
+    var thumbTravel = trackHeight - thumbHeight;
+    var thumbTop = 0;
+    if (scrollRange > 0 && thumbTravel > 0) {
+      thumbTop = (scrollView.scrollTop / scrollRange) * thumbTravel;
+    }
+    if (overlayBar) {
+      var barBounds = overlayBar.getBoundingClientRect();
+      var barTop = barBounds.top + overlayBar.clientTop;
+      return {
+        left: barBounds.left,
+        right: barBounds.right,
+        top: barTop + thumbTop,
+        bottom: barTop + thumbTop + thumbHeight
+      };
+    }
+    var scrollbarWidth = getVerticalScrollbarWidth(scrollView);
+    if (scrollbarWidth <= 0) {
+      return null;
+    }
+    var bounds = scrollView.getBoundingClientRect();
+    var clientTop = bounds.top + scrollView.clientTop;
+    return {
+      left: bounds.right - scrollbarWidth,
+      right: bounds.right,
+      top: clientTop + thumbTop,
+      bottom: clientTop + thumbTop + thumbHeight
+    };
+  }
+
+  function isPointOnVerticalScrollbarThumb(scrollView, clientX, clientY) {
+    var thumbBounds = getVerticalScrollbarThumbBounds(scrollView);
+    if (!thumbBounds) {
+      return false;
+    }
+    if (clientX < thumbBounds.left - SCROLLBAR_HIT_SLOP || clientX > thumbBounds.right + SCROLLBAR_HIT_SLOP) {
+      return false;
+    }
+    return clientY >= thumbBounds.top - SCROLLBAR_HIT_SLOP && clientY <= thumbBounds.bottom + SCROLLBAR_HIT_SLOP;
+  }
+
+  function isPointInVerticalScrollbarTrack(scrollView, clientX, clientY) {
+    var overlayBar = getVisibleOverlayBarForScrollView(scrollView);
+    if (overlayBar) {
+      var barBounds = overlayBar.getBoundingClientRect();
+      if (clientX < barBounds.left || clientX > barBounds.right) {
+        return false;
+      }
+      if (clientY < barBounds.top || clientY > barBounds.bottom) {
+        return false;
+      }
+      return true;
+    }
+    var scrollbarWidth = getVerticalScrollbarWidth(scrollView);
+    if (scrollbarWidth <= 0) {
+      return false;
+    }
+    var bounds = scrollView.getBoundingClientRect();
+    var hitWidth = scrollbarWidth + SCROLLBAR_HIT_SLOP;
+    var distanceFromRight = bounds.right - clientX;
+    if (distanceFromRight < 0 || distanceFromRight > hitWidth) {
+      return false;
+    }
+    if (clientY < bounds.top || clientY > bounds.bottom) {
+      return false;
+    }
+    var horizontalScrollbarHeight = getHorizontalScrollbarHeight(scrollView);
+    if (horizontalScrollbarHeight > 0 && clientY > bounds.bottom - horizontalScrollbarHeight) {
+      return false;
+    }
+    return true;
+  }
+
+  function isPointInHorizontalScrollbarZone(scrollView, clientX, clientY) {
+    var scrollbarHeight = getHorizontalScrollbarHeight(scrollView);
+    if (scrollbarHeight <= 0) {
+      return false;
+    }
+    var bounds = scrollView.getBoundingClientRect();
+    var hitHeight = scrollbarHeight + SCROLLBAR_HIT_SLOP;
+    var distanceFromBottom = bounds.bottom - clientY;
+    if (distanceFromBottom < 0 || distanceFromBottom > hitHeight) {
+      return false;
+    }
+    if (clientX < bounds.left || clientX > bounds.right) {
+      return false;
+    }
+    return true;
+  }
+
+  function isPointInVerticalScrollbarZone(scrollView, clientX, clientY) {
+    if (isPointOnVerticalScrollbarThumb(scrollView, clientX, clientY)) {
+      return true;
+    }
+    return isPointInVerticalScrollbarTrack(scrollView, clientX, clientY);
+  }
+
+  function getOverlayScrollbarTokenAtPoint(clientX, clientY) {
+    var target = document.elementFromPoint(clientX, clientY);
+    while (target && target !== document.documentElement) {
+      if (target.classList) {
+        if (target.classList.contains("menu-v-scroll-bar-thumb")) {
+          return TOKEN_SCROLL;
+        }
+        if (target.classList.contains("menu-v-scroll-bar-track")) {
+          return TOKEN_SCROLL;
+        }
+        if (target.classList.contains("menu-h-scroll-bar-thumb")) {
+          return TOKEN_SCROLL_H;
+        }
+      }
+      target = target.parentElement;
     }
     return null;
   }
 
-  function isOverScrollbar(clientX, clientY) {
-    return getScrollCursorToken(clientX, clientY) != null;
-  }
-
-  function refreshAllScrollbars() {
-    var index = 0;
-    for (index = 0; index < scrollbarInstances.length; index++) {
-      updateThumbLayout(scrollbarInstances[index]);
+  function getScrollCursorToken(clientX, clientY) {
+    var overlayToken = getOverlayScrollbarTokenAtPoint(clientX, clientY);
+    if (overlayToken) {
+      return overlayToken;
     }
-    refreshAllHorizontalScrollbars();
+    var nodes = document.querySelectorAll(SCROLL_VIEW_SELECTOR);
+    var index;
+    for (index = 0; index < nodes.length; index += 1) {
+      var horizontalScrollView = nodes[index];
+      if (isToolbarSettingsTabs(horizontalScrollView)) {
+        continue;
+      }
+      if (!isScrollViewVisible(horizontalScrollView)) {
+        continue;
+      }
+      if (isPointInHorizontalScrollbarZone(horizontalScrollView, clientX, clientY)) {
+        return TOKEN_SCROLL_H;
+      }
+    }
+    for (index = 0; index < nodes.length; index += 1) {
+      var verticalScrollView = nodes[index];
+      if (isToolbarSettingsTabs(verticalScrollView)) {
+        continue;
+      }
+      if (!isScrollViewVisible(verticalScrollView)) {
+        continue;
+      }
+      if (isPointInVerticalScrollbarZone(verticalScrollView, clientX, clientY)) {
+        return TOKEN_SCROLL;
+      }
+    }
+    return null;
   }
-
-  window.addEventListener("resize", refreshAllScrollbars);
-
-  function onDomReady() {
-    initScrollViews(document);
-    observeScrollViewChanges();
-  }
-
-  window.addEventListener("web-page-changed", scheduleScrollViewScan);
-  window.addEventListener("web-locale-applied", refreshAllScrollbars);
 
   window.WebScrollbarCursor = {
-    isOverScrollbar: isOverScrollbar,
-    getScrollCursorToken: getScrollCursorToken,
-    refreshAllScrollbars: refreshAllScrollbars,
-    initVerticalScrollViews: initVerticalScrollViews,
-    initHorizontalScrollViews: initHorizontalScrollViews,
-    initScrollViews: initScrollViews,
-    scheduleScrollViewScan: scheduleScrollViewScan
+    getScrollCursorToken: getScrollCursorToken
   };
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", onDomReady);
-  } else {
-    onDomReady();
-  }
 })();

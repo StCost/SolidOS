@@ -144,7 +144,7 @@
       if (element.classList) {
         if (element.classList.contains("os-window-control")) {
           if (element.disabled) {
-            return "default";
+            return "forbidden";
           }
           return "pointer";
         }
@@ -169,6 +169,9 @@
         if (element.classList.contains("os-statusbar-node-button")) {
           return "pointer";
         }
+        if (element.classList.contains("game-hud-slot")) {
+          return "pointer";
+        }
       }
       element = element.parentElement;
     }
@@ -183,7 +186,37 @@
     return document.documentElement;
   }
 
+  function getOverlayScrollbarCursorToken(element) {
+    while (element && element !== document.documentElement) {
+      if (!element.classList) {
+        element = element.parentElement;
+        continue;
+      }
+      if (element.classList.contains("menu-v-scroll-bar-thumb")) {
+        return "scroll";
+      }
+      if (element.classList.contains("menu-v-scroll-bar-track")) {
+        return "scroll";
+      }
+      if (element.classList.contains("menu-h-scroll-bar-thumb")) {
+        return "scroll-h";
+      }
+      element = element.parentElement;
+    }
+    return null;
+  }
+
   function getTokenForTarget(target, clientX, clientY) {
+    var pointTarget = getHitTargetAtPoint(clientX, clientY);
+    if (!pointTarget) {
+      pointTarget = target;
+    }
+
+    var overlayScrollbarToken = getOverlayScrollbarCursorToken(pointTarget);
+    if (overlayScrollbarToken) {
+      return overlayScrollbarToken;
+    }
+
     if (window.WebScrollbarCursor) {
       var scrollCursorToken = window.WebScrollbarCursor.getScrollCursorToken(clientX, clientY);
       if (scrollCursorToken) {
@@ -191,10 +224,6 @@
       }
     }
 
-    var pointTarget = getHitTargetAtPoint(clientX, clientY);
-    if (!pointTarget) {
-      pointTarget = target;
-    }
     var settingsSliderToken = getSettingsSliderCursorToken(pointTarget);
     if (settingsSliderToken) {
       return settingsSliderToken;
@@ -232,6 +261,20 @@
     var interactiveToken = getInteractiveTokenFromElement(pointTarget);
     if (interactiveToken) {
       return interactiveToken;
+    }
+
+    if (pointTarget && pointTarget.classList && pointTarget.classList.contains("game-hud-panel")) {
+      return "default";
+    }
+
+    if (
+      pointTarget &&
+      pointTarget.classList &&
+      (pointTarget.classList.contains("game-hud-chat-line") ||
+        pointTarget.classList.contains("game-hud-chat-log") ||
+        pointTarget.classList.contains("game-hud-chat-log-inner"))
+    ) {
+      return "default";
     }
 
     var element = pointTarget;

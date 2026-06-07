@@ -15,31 +15,21 @@
   flex-shrink: 0;
 }
 
-.settings-tabs-window .menu-v-scroll,
-.settings-tabs-window .worlds-list-scroll {
+.settings-tabs-window .settings-scroll,
+.settings-tabs-window .menu-v-scroll-view {
+  flex: none;
+  height: 100%;
+}
+
+.settings-content-window .menu-v-scroll-clip {
   flex: 1 1 auto;
   min-height: 0;
 }
 
-.settings-content-window .menu-v-scroll,
-.settings-content-window .worlds-list-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  gap: 4px;
+.settings-content-window .settings-scroll {
+  flex: none;
+  height: 100%;
   box-sizing: border-box;
-}
-
-.settings-content-window.os-window--opening .menu-v-scroll > .menu-v-scrollbar,
-.settings-content-window.os-window--opening-body-only .menu-v-scroll > .menu-v-scrollbar {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.settings-content-window.os-window--opening .settings-scroll::-webkit-scrollbar,
-.settings-content-window.os-window--opening .settings-scroll::-webkit-scrollbar-thumb,
-.settings-content-window.os-window--opening-body-only .settings-scroll::-webkit-scrollbar,
-.settings-content-window.os-window--opening-body-only .settings-scroll::-webkit-scrollbar-thumb {
-  opacity: 0;
 }
 
 .settings-tabs {
@@ -48,8 +38,6 @@
   gap: 0.35em;
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 .settings-tabs.settings-tabs--toolbar {
@@ -167,11 +155,9 @@
 
 .settings-scroll {
   --settings-choice-btn-height: clamp(2rem, 3.2vmin, 2.35rem);
-  flex: 1 1 auto;
+  flex: none;
+  height: 100%;
   min-height: 0;
-  overflow-y: scroll;
-  overflow-x: hidden;
-  padding-right: 0.35em;
   box-sizing: border-box;
 }
 
@@ -532,10 +518,10 @@
       transparent 4px,
       transparent 8px);
   --settings-slider-stripe-filled: repeating-linear-gradient(-45deg,
-      rgba(255, 170, 80, 0.28) 0,
-      rgba(255, 170, 80, 0.28) 4px,
-      rgba(255, 128, 0, 0.1) 4px,
-      rgba(255, 128, 0, 0.1) 8px);
+      rgb(196, 98, 28) 0,
+      rgb(196, 98, 28) 4px,
+      rgb(132, 62, 14) 4px,
+      rgb(132, 62, 14) 8px);
   --settings-slider-rail-inset-left: 0.1em;
   --settings-slider-rail-inset-right: 0.7em;
   position: relative;
@@ -577,13 +563,14 @@
   z-index: 1;
   max-width: calc((100% - var(--settings-slider-rail-inset-left) - var(--settings-slider-rail-inset-right)) * var(--settings-slider-fill));
   width: calc((100% - var(--settings-slider-rail-inset-left) - var(--settings-slider-rail-inset-right)) * var(--settings-slider-fill));
-  background-color: rgba(255, 128, 0, 0.38);
+  background-color: rgb(24, 12, 4);
   background-image: var(--settings-slider-stripe-filled), url("hazard-tile.png");
   background-size: auto, 14px 14px;
   background-repeat: repeat, repeat;
-  background-blend-mode: screen, soft-light;
-  border-right-color: rgba(255, 140, 48, 0.45);
-  box-shadow: inset 0 0 10px rgba(255, 100, 32, 0.12);
+  background-blend-mode: normal, soft-light;
+  border-right-color: rgba(255, 140, 48, 0.75);
+  box-shadow: inset 0 0 8px rgba(255, 100, 32, 0.2);
+  opacity: 1;
 }
 
 .settings-choice-picker {

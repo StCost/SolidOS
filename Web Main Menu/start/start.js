@@ -7,21 +7,38 @@
   var LIST_CLASS_SINGLEPLAYER = "worlds-list--singleplayer";
   var LIST_CLASS_IP = "worlds-list--ip";
   var LIST_CLASS_STEAM = "worlds-list--steam";
-  var LISTS_STORAGE_KEY = "cm-menu-start-lists";
+  var LISTS_STORAGE_KEY = "cm-menu-start-lists-v2";
 
   var DEFAULT_WORLDS = [
     { name: "Rust Belt", seed: "48291037" },
-    { name: "Glass Canyon", seed: "10938472" }
+    { name: "Glass Canyon", seed: "10938472" },
+    { name: "Ember Rift", seed: "77120455" },
+    { name: "Static Fields", seed: "33091826" },
+    { name: "Hollow Sky", seed: "55881204" },
+    { name: "Iron Verge", seed: "90211438" },
+    { name: "Cinder Vale", seed: "14450891" },
+    { name: "Nova Drift", seed: "66372019" },
+    { name: "Ash Meridian", seed: "22874563" },
+    { name: "Pale Horizon", seed: "41560388" }
   ];
 
   var DEFAULT_SERVERS = [
     { name: "Sector 7 Relay", ip: "192.168.1.42" },
-    { name: "Collapse DMZ", ip: "10.0.0.8:7777" }
+    { name: "Collapse DMZ", ip: "10.0.0.8:7777" },
+    { name: "Relay Theta", ip: "203.0.113.50:27015" },
+    { name: "Bastion Gate", ip: "172.16.0.99" },
+    { name: "Fringe Host", ip: "10.42.0.12:7777" }
   ];
 
   var DEFAULT_FRIENDS = [
     { name: "SaintKostya" },
-    { name: "VoxelRider" }
+    { name: "VoxelRider" },
+    { name: "NeonArchivist" },
+    { name: "DustPilot" },
+    { name: "CinderFox" },
+    { name: "GridSainty" },
+    { name: "HollowSignal" },
+    { name: "PaleOrbit" }
   ];
 
   var savedWorlds = [];
@@ -36,15 +53,6 @@
     if (window.WebMenuMode === "game") return true;
     var device = document.getElementById("device");
     return !!device && device.classList.contains("menu-mode--game");
-  }
-
-  function updateConnectGameModeState() {
-    var connectDisabled = isGameMode();
-    var entries = document.querySelectorAll(".worlds-entry");
-    var index;
-    for (index = 0; index < entries.length; index++) {
-      entries[index].disabled = connectDisabled;
-    }
   }
 
   function postToUnity(payload) {
@@ -407,14 +415,6 @@
       }
     });
 
-    if (window.WebScrollbarCursor) {
-      var connectWorkspace = document.querySelector(".os-workspace--connect");
-      if (window.WebScrollbarCursor.initVerticalScrollViews && connectWorkspace) {
-        window.WebScrollbarCursor.initVerticalScrollViews(connectWorkspace);
-      }
-      window.WebScrollbarCursor.refreshAllScrollbars();
-    }
-    updateConnectGameModeState();
   }
 
   function collectListsPayload() {
@@ -525,7 +525,7 @@
       menu.dispatchMenuEvent("web-select-server", detail);
       menu.dispatchMenuEvent("web-start", detail);
     } else if (kind === "steam-multiplayer") {
-      menu.dispatchMenuEvent("web-select-steam", detail);
+      menu.dispatchMenuEvent("web-start", detail);
     }
     });
   }
@@ -543,12 +543,9 @@
     window.dispatchEvent(new CustomEvent("web-start-page-open"));
   });
 
-  window.addEventListener("web-menu-mode-changed", updateConnectGameModeState);
-
   window.WebStartMenu = {
     applyLists: applyLists,
-    renderAllLists: renderAllLists,
-    updateConnectGameModeState: updateConnectGameModeState
+    renderAllLists: renderAllLists
   };
 
   if (window.__webPendingStartLists) {

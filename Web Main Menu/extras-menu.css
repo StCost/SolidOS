@@ -14,20 +14,19 @@
   flex-shrink: 0;
 }
 
-.extras-scroll {
+.extras-content-window .menu-v-scroll-clip {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+}
+
+.extras-scroll {
+  flex: none;
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 1em;
   padding-bottom: 1rem;
   box-sizing: border-box;
-}
-
-.os-window[data-wm-preset="extras-games"] .extras-scroll {
-  padding-right: 0.35em;
 }
 
 .extras-scroll>.extras-view {

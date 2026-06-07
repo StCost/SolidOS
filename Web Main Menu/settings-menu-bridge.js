@@ -60,8 +60,4 @@
       }
     }
   };
-
-  window.addEventListener(EventSettingsOpen, function () {
-    postSettings(EventSettingsOpen, {});
-  });
 })();
