@@ -31,7 +31,6 @@ var WebWindowManager = (function () {
 
   var MINIMIZE_BOTTOM_INSET_PX = 8;
   var MINIMIZE_GAP_PX = 8;
-  var MIN_BODY_RENDER_HEIGHT_PX = 12;
   var WINDOW_CONTROLS_BIND_VERSION = 2;
 
   var activeDrag = null;
@@ -1137,7 +1136,7 @@ var WebWindowManager = (function () {
       clearWindowInlineGeometry(windowElement);
       windowElement.wmHasInlineLayout = false;
       windowElement.wmState = null;
-      setBodyMaxVar(windowElement);
+      setChromeHeightVar(windowElement);
     }
 
     var workspaces = document.querySelectorAll(".os-workspace--wm");
@@ -1346,29 +1345,6 @@ var WebWindowManager = (function () {
     windowElement.style.setProperty("--wm-chrome-height", String(chromeHeight) + "px");
   }
 
-  function setBodyMaxVar(windowElement) {
-    var bodyShell = windowElement.querySelector(".os-window-body-shell");
-    if (!bodyShell) return;
-    var chromeHeight = getWindowChromeHeight(windowElement);
-    setChromeHeightVar(windowElement);
-    var windowHeight = windowElement.clientHeight;
-    var bodyMax = windowHeight - chromeHeight;
-    if (bodyMax < 0) bodyMax = 0;
-    windowElement.style.setProperty("--wm-body-max", String(bodyMax) + "px");
-    updateWindowBodyRenderState(windowElement);
-  }
-
-  function updateWindowBodyRenderState(windowElement) {
-    if (!windowElement) return;
-    var chromeHeight = getWindowChromeHeight(windowElement);
-    var bodySpace = windowElement.clientHeight - chromeHeight;
-    if (bodySpace < MIN_BODY_RENDER_HEIGHT_PX) {
-      windowElement.classList.add("os-window--body-suppressed");
-    } else {
-      windowElement.classList.remove("os-window--body-suppressed");
-    }
-  }
-
   function getMinimizedWindowSize(windowElement, presetName) {
     var minSize = getWindowMinSize(windowElement, presetName);
     var chromeHeight = getWindowChromeHeight(windowElement);
@@ -1438,7 +1414,7 @@ var WebWindowManager = (function () {
     applyWindowRect(windowElement);
     windowElement.wmMinimizedLayoutWidth = width;
     windowElement.wmMinimizedLayoutHeight = height;
-    setBodyMaxVar(windowElement);
+    setChromeHeightVar(windowElement);
   }
 
   function layoutMinimizedWindowsInContainer(containerElement, appendedWindowElement) {
@@ -1507,17 +1483,17 @@ var WebWindowManager = (function () {
     ) {
       return;
     }
-    setBodyMaxVar(windowElement);
+    setChromeHeightVar(windowElement);
     windowElement.classList.add("os-window--open-done");
   }
 
   function finishOpenAnimation(windowElement) {
     if (!windowElement || !windowElement.classList) return;
-    setBodyMaxVar(windowElement);
+    setChromeHeightVar(windowElement);
     windowElement.classList.remove("os-window--opening");
     windowElement.classList.remove("os-window--opening-body-only");
     windowElement.classList.remove("os-window--open-done");
-    setBodyMaxVar(windowElement);
+    setChromeHeightVar(windowElement);
     dispatchWorkspaceLayoutSettled(windowElement);
   }
 
@@ -1650,7 +1626,7 @@ var WebWindowManager = (function () {
     windowElement.style.marginTop = "";
     windowElement.style.transform = "none";
     windowElement.wmHasInlineLayout = true;
-    setBodyMaxVar(windowElement);
+    setChromeHeightVar(windowElement);
   }
 
   function prepareWindowDragStart(windowElement) {
@@ -1750,7 +1726,7 @@ var WebWindowManager = (function () {
       ) {
         clampManagedWindowToContainer(windowElement);
       }
-      setBodyMaxVar(windowElement);
+      setChromeHeightVar(windowElement);
       return;
     }
 
@@ -1759,17 +1735,17 @@ var WebWindowManager = (function () {
       applySavedLayoutToWindow(windowElement);
       if (windowElement.wmHasInlineLayout) {
         clampManagedWindowToContainer(windowElement);
-        setBodyMaxVar(windowElement);
+        setChromeHeightVar(windowElement);
         return;
       }
       centerManagedWindow(windowElement, containerElement, presetName);
-      setBodyMaxVar(windowElement);
+      setChromeHeightVar(windowElement);
       return;
     }
 
     syncWindowStateFromLayout(windowElement, containerElement, presetName);
     clampManagedWindowToContainer(windowElement);
-    setBodyMaxVar(windowElement);
+    setChromeHeightVar(windowElement);
   }
 
   function isWindowDragHandleTarget(target) {
@@ -1972,6 +1948,7 @@ var WebWindowManager = (function () {
   function onPointerUp() {
     var finishedWindow = null;
     var wasDragging = !!activeDrag;
+    var wasResizing = !!activeResize;
     if (activeDrag) {
       activeDrag.windowElement.wmHasInlineLayout = true;
       finishedWindow = activeDrag.windowElement;
@@ -1983,9 +1960,13 @@ var WebWindowManager = (function () {
     if (activeResize || activeDrag) {
       clearBodyInteractionCursor();
       if (finishedWindow) {
-        if (finishedWindow.classList.contains("os-window--minimized")) {
+        if (wasResizing && finishedWindow.classList.contains("os-window--minimized")) {
+          clearMinimizedStateForUserGeometry(finishedWindow);
+        } else if (wasDragging && finishedWindow.classList.contains("os-window--minimized")) {
           applyMinimizedUserAdjustToRestoreState(finishedWindow);
-          layoutMinimizedWindowsInContainer(getLayoutContainer(finishedWindow), null);
+          if (shouldPersistWindowLayout(finishedWindow)) {
+            syncSavedLayoutFromWindow(finishedWindow);
+          }
         } else if (shouldPersistWindowLayout(finishedWindow)) {
           syncSavedLayoutFromWindow(finishedWindow);
         }
@@ -2085,6 +2066,26 @@ var WebWindowManager = (function () {
     windowElement.classList.remove("os-window--maximized");
     windowElement.wmBeforeMaximizeState = null;
     updateWindowControlChrome(windowElement);
+  }
+
+  function clearMinimizedStateForUserGeometry(windowElement) {
+    var containerElement;
+    if (!windowElement.classList.contains("os-window--minimized")) return;
+    windowElement.classList.remove("os-window--minimized");
+    setWindowMinSizeFromPreset(windowElement);
+    windowElement.wmBeforeMinimizeState = null;
+    windowElement.wmMinimizedUserAdjusted = false;
+    windowElement.wmMinimizedLayoutWidth = 0;
+    windowElement.wmMinimizedLayoutHeight = 0;
+    clampManagedWindowToContainer(windowElement);
+    setChromeHeightVar(windowElement);
+    updateWindowControlChrome(windowElement);
+    containerElement = getLayoutContainer(windowElement);
+    if (containerElement) {
+      layoutMinimizedWindowsInContainer(containerElement, null);
+    }
+    syncSavedLayoutFromWindow(windowElement);
+    scheduleWindowLayoutsSave();
   }
 
   function clearWindowChromeStates(windowElement) {
@@ -2238,7 +2239,7 @@ var WebWindowManager = (function () {
     windowElement.wmMinimizedUserAdjusted = false;
     windowElement.wmMinimizedLayoutWidth = 0;
     windowElement.wmMinimizedLayoutHeight = 0;
-    setBodyMaxVar(windowElement);
+    setChromeHeightVar(windowElement);
     updateWindowControlChrome(windowElement);
     focusWindow(windowElement);
     syncSavedLayoutFromWindow(windowElement);
@@ -2284,7 +2285,7 @@ var WebWindowManager = (function () {
     windowElement.wmState.width = width;
     windowElement.wmState.height = height;
     applyWindowRect(windowElement);
-    setBodyMaxVar(windowElement);
+    setChromeHeightVar(windowElement);
   }
 
   function maximizeManagedWindow(windowElement) {
@@ -2596,7 +2597,7 @@ var WebWindowManager = (function () {
 
     if (reducedMotion) {
       windowElement.classList.remove("os-window--opening");
-      setBodyMaxVar(windowElement);
+      setChromeHeightVar(windowElement);
       dispatchWorkspaceLayoutSettled(windowElement);
       return;
     }
@@ -2606,7 +2607,7 @@ var WebWindowManager = (function () {
     windowElement.classList.remove("os-window--opening");
     void windowElement.offsetHeight;
     windowElement.classList.add("os-window--opening");
-    setBodyMaxVar(windowElement);
+    setChromeHeightVar(windowElement);
 
     trackOpenAnimationTimer(
       windowElement,
@@ -2636,7 +2637,7 @@ var WebWindowManager = (function () {
       clearOpenAnimationTimers(windowElement);
       windowElement.classList.remove("os-window--opening-body-only");
       windowElement.classList.remove("os-window--open-done");
-      setBodyMaxVar(windowElement);
+      setChromeHeightVar(windowElement);
       dispatchWorkspaceLayoutSettled(windowElement);
       return;
     }
@@ -2647,7 +2648,7 @@ var WebWindowManager = (function () {
     windowElement.classList.remove("os-window--open-done");
     void windowElement.offsetHeight;
     windowElement.classList.add("os-window--opening-body-only");
-    setBodyMaxVar(windowElement);
+    setChromeHeightVar(windowElement);
 
     trackOpenAnimationTimer(
       windowElement,
@@ -2770,7 +2771,7 @@ var WebWindowManager = (function () {
 
     if (overlayWindow.wmHasInlineLayout && overlayWindow.wmState) {
       applyWindowRect(overlayWindow);
-      setBodyMaxVar(overlayWindow);
+      setChromeHeightVar(overlayWindow);
       return;
     }
 
@@ -2792,12 +2793,6 @@ var WebWindowManager = (function () {
     }
 
     initAllWindowControls();
-
-    var managedWindows = document.querySelectorAll(".os-window[data-wm-preset]");
-    var windowIndex = 0;
-    for (windowIndex = 0; windowIndex < managedWindows.length; windowIndex++) {
-      updateWindowBodyRenderState(managedWindows[windowIndex]);
-    }
 
     var workspaces = document.querySelectorAll(".os-workspace--wm");
     var index = 0;
