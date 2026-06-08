@@ -64,8 +64,7 @@
         path: "Extras/games/demon-bastion/index.html",
         image: "Extras/games/demon-bastion/demon-bastion-preview.jpg",
         desktopIcon: "Extras/games/demon-bastion/demon-bastion-desktop-icon.png",
-        difficulty: 4,
-        inputMode: "cursor"
+        difficulty: 4
       },
       {
         id: "sector-vector",
@@ -91,8 +90,7 @@
         path: "Extras/games/cargo-convoy/index.html",
         image: "Extras/games/cargo-convoy/cargo-convoy-preview.jpg",
         desktopIcon: "Extras/games/cargo-convoy/cargo-convoy-desktop-icon.png",
-        difficulty: 5,
-        inputMode: "cursor"
+        difficulty: 5
       },
       {
         id: "factory-night",
