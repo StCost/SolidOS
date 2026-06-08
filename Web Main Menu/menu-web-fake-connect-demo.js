@@ -206,7 +206,6 @@
 
     demoPanelElement.wmHasInlineLayout = false;
     demoPanelElement.wmState = null;
-    demoPanelElement.classList.remove("os-window--body-suppressed");
 
     setDemoWindowGeometry();
 

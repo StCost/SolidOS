@@ -215,21 +215,6 @@
   touch-action: none;
 }
 
-.os-window--managed.os-window--body-suppressed .os-window-body,
-.os-window--managed.os-window--body-suppressed .os-window-body-shell {
-  visibility: hidden;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.os-window--managed.os-window--body-suppressed .os-window-chrome {
-  pointer-events: auto;
-}
-
-.os-window--managed.os-window--minimized .os-window-body-shell {
-  display: none;
-}
-
 .os-window--managed.os-window--minimized {
   overflow: hidden;
 }
@@ -291,23 +276,11 @@
   animation: wm-chrome-open 0.3s ease-out forwards;
 }
 
-.os-window--opening .os-window-body-shell {
-  max-height: 0;
-  overflow: clip;
-  animation: wm-body-open 0.32s ease-out 0.3s forwards;
-}
-
 .os-window--opening.os-window--open-done .os-window-chrome,
 .os-window--opening.os-window--open-done .os-window-chrome--drag {
   animation: none;
   transform: none;
   overflow: visible;
-}
-
-.os-window--opening.os-window--open-done .os-window-body-shell {
-  animation: none;
-  max-height: var(--wm-body-max);
-  overflow: hidden;
 }
 
 .os-window--opening-body-only .os-window-chrome,
@@ -317,27 +290,9 @@
   overflow: visible;
 }
 
-.os-window--opening-body-only .os-window-body-shell {
-  max-height: 0;
-  overflow: clip;
-  animation: wm-body-open 0.32s ease-out forwards;
-}
-
-.os-window--opening-body-only.os-window--open-done .os-window-body-shell {
-  animation: none;
-  max-height: var(--wm-body-max);
-  overflow: hidden;
-}
-
 @keyframes wm-chrome-open {
   to {
     transform: scaleX(1);
-  }
-}
-
-@keyframes wm-body-open {
-  to {
-    max-height: var(--wm-body-max);
   }
 }
 
@@ -473,12 +428,9 @@ body[data-wm-resize="se"] {
 
   .os-window--opening .os-window-chrome,
   .os-window--opening .os-window-chrome--drag,
-  .os-window--opening .os-window-body-shell,
   .os-window--opening-body-only .os-window-chrome,
-  .os-window--opening-body-only .os-window-chrome--drag,
-  .os-window--opening-body-only .os-window-body-shell {
+  .os-window--opening-body-only .os-window-chrome--drag {
     animation: none;
     transform: none;
-    max-height: none;
   }
 }
