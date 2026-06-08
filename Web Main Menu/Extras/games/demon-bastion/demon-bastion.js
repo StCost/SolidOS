@@ -59,14 +59,14 @@
   ];
 
   var BUILD_DEFINITIONS = [
-    { id: BUILD_WALL, label: "Wall", cost: 5, color: "#8a7a68", hp: 80 },
-    { id: BUILD_TURRET, label: "Turret", cost: 25, color: "#5a8a50", hp: 120, range: 7, fireCooldown: 0.55, damage: 14 },
-    { id: BUILD_LASER, label: "Laser", cost: 40, color: "#d8c030", hp: 100, range: 8, fireCooldown: 0.06, damage: 5, laser: true },
-    { id: BUILD_MINE, label: "Mine", cost: 15, color: "#aa3030", hp: 1, trapDamage: 55, splash: 2 },
-    { id: BUILD_DOG_HOUSE, label: "Dog House", cost: 35, color: "#a07040", hp: 140 },
-    { id: BUILD_WORKSHOP, label: "Workshop", cost: 80, color: "#5080c0", hp: 260, spawnsWorker: true, passiveIncome: 0.35, passiveInterval: 5 },
-    { id: BUILD_ROCKET, label: "Rocket Sentry", cost: 55, color: "#c06030", hp: 130, range: 11, fireCooldown: 1.4, damage: 42, splash: 2 },
-    { id: BUILD_MINE_SHAFT, label: "Mine Shaft", cost: 45, color: "#686868", hp: 160, passiveIncome: 0.35, passiveInterval: 1 }
+    { id: BUILD_WALL, label: "Wall", cost: 20, color: "#8a7a68", hp: 80 },
+    { id: BUILD_TURRET, label: "Turret", cost: 100, color: "#5a8a50", hp: 120, range: 7, fireCooldown: 0.55, damage: 14 },
+    { id: BUILD_LASER, label: "Laser", cost: 220, color: "#d8c030", hp: 100, range: 8, fireCooldown: 0.06, damage: 5, laser: true },
+    { id: BUILD_MINE, label: "Mine", cost: 60, color: "#aa3030", hp: 1, trapDamage: 55, splash: 2 },
+    { id: BUILD_DOG_HOUSE, label: "Dog House", cost: 150, color: "#a07040", hp: 140 },
+    { id: BUILD_WORKSHOP, label: "Workshop", cost: 280, color: "#5080c0", hp: 260, spawnsWorker: true, passiveIncome: 0.35, passiveInterval: 5 },
+    { id: BUILD_ROCKET, label: "Rocket Sentry", cost: 240, color: "#c06030", hp: 130, range: 11, fireCooldown: 1.4, damage: 42, splash: 2 },
+    { id: BUILD_MINE_SHAFT, label: "Mine Shaft", cost: 300, color: "#686868", hp: 160, passiveIncome: 0.35, passiveInterval: 1 }
   ];
 
   var DEMON_ANGER_MAX = 100;
@@ -259,7 +259,6 @@
   var nextSpawnGoalX = -1;
   var nextSpawnGoalY = -1;
   var nextSpawnPath = null;
-  var spawnDirectionDirty = true;
   var selectedSpawnCorner = -1;
   var lastSpawnArrowScreenX = -1;
   var lastSpawnArrowScreenY = -1;
@@ -629,7 +628,6 @@
     pathChangeCellX = cellX;
     pathChangeCellY = cellY;
     pathChangeRadius = radius;
-    markSpawnDirectionDirty();
   }
 
   function markPathfindingWorldDirty() {
@@ -2400,6 +2398,24 @@
     return corner;
   }
 
+  function pickRandomAllowedSpawnCornerExcept(excludeCorner) {
+    var allowedCorners = [];
+    var cornerIndex;
+    for (cornerIndex = 0; cornerIndex < SPAWN_CORNER_COUNT; cornerIndex++) {
+      if (!isSpawnCornerAllowed(cornerIndex)) {
+        continue;
+      }
+      if (cornerIndex === excludeCorner) {
+        continue;
+      }
+      allowedCorners.push(cornerIndex);
+    }
+    if (allowedCorners.length < 1) {
+      return pickRandomAllowedSpawnCorner();
+    }
+    return allowedCorners[randomInt(0, allowedCorners.length - 1)];
+  }
+
   function getNextAllowedSpawnCorner(currentCorner) {
     var cornerIndex = currentCorner + 1;
     if (cornerIndex >= SPAWN_CORNER_COUNT) {
@@ -2597,10 +2613,6 @@
     };
   }
 
-  function markSpawnDirectionDirty() {
-    spawnDirectionDirty = true;
-  }
-
   function setSelectedSpawnCorner(corner) {
     if (!isSpawnCornerAllowed(corner)) {
       return false;
@@ -2609,7 +2621,6 @@
       return false;
     }
     selectedSpawnCorner = corner;
-    markSpawnDirectionDirty();
     refreshNextSpawnPreview();
     addFloatingText(nextSpawnCellX, nextSpawnCellY, getSpawnCornerLabel(corner), "#ffb050");
     markMinimapDirty();
@@ -2705,7 +2716,7 @@
 
   function refreshNextSpawnPreview() {
     if (selectedSpawnCorner < 0 || !isSpawnCornerAllowed(selectedSpawnCorner)) {
-      selectedSpawnCorner = pickRandomAllowedSpawnCorner();
+      selectedSpawnCorner = getDefaultSpawnCorner();
     }
     var spawnCell = getFurthestSpawnInCorner(selectedSpawnCorner);
     nextSpawnCellX = spawnCell.x;
@@ -2721,12 +2732,11 @@
       nextSpawnGoalY = marchPath.goalY;
       nextSpawnPath = marchPath.path;
     }
-    spawnDirectionDirty = false;
     nextSpawnPreviewWorldRevision = pathfindingWorldRevision;
   }
 
   function ensureNextSpawnPreviewFresh() {
-    if (spawnDirectionDirty || nextSpawnPreviewWorldRevision !== pathfindingWorldRevision) {
+    if (nextSpawnPreviewWorldRevision !== pathfindingWorldRevision) {
       refreshNextSpawnPreview();
     }
   }
@@ -2768,8 +2778,11 @@
 
   function spawnDemonWave() {
     waveNumber += 1;
-    selectedSpawnCorner = pickRandomAllowedSpawnCorner();
+    if (selectedSpawnCorner < 0 || !isSpawnCornerAllowed(selectedSpawnCorner)) {
+      selectedSpawnCorner = getDefaultSpawnCorner();
+    }
     refreshNextSpawnPreview();
+    var waveSpawnCorner = selectedSpawnCorner;
     var demonCount = 3 + waveNumber * 2;
     var spawnPoint = getNextSpawnCell();
     var spawnIndex;
@@ -2802,7 +2815,8 @@
       livingDemonCount += 1;
     }
     addFloatingText(spawnPoint.x, spawnPoint.y, "WAVE " + String(waveNumber), "#ff5050");
-    markSpawnDirectionDirty();
+    selectedSpawnCorner = pickRandomAllowedSpawnCornerExcept(waveSpawnCorner);
+    refreshNextSpawnPreview();
   }
 
   function addMoney(amount) {
@@ -5242,6 +5256,43 @@
     );
   }
 
+  function getWorldFixedLineDashOffset(distanceWorldUnits, dashSize) {
+    var dashPeriod = dashSize * 2;
+    if (dashPeriod <= 0) {
+      return 0;
+    }
+    var distancePixels = distanceWorldUnits * cellPixelSize;
+    var remainder = distancePixels % dashPeriod;
+    if (remainder < 0) {
+      remainder += dashPeriod;
+    }
+    return -remainder;
+  }
+
+  function getUnitPathDashDistance(unit) {
+    var path = unit.path;
+    if (!path || path.length === 0) {
+      return unit.x + unit.y;
+    }
+    var total = 0;
+    var fromX = path[0].x + 0.5;
+    var fromY = path[0].y + 0.5;
+    var index;
+    for (index = 1; index < unit.pathIndex; index++) {
+      var toX = path[index].x + 0.5;
+      var toY = path[index].y + 0.5;
+      var segmentDeltaX = toX - fromX;
+      var segmentDeltaY = toY - fromY;
+      total += Math.sqrt(segmentDeltaX * segmentDeltaX + segmentDeltaY * segmentDeltaY);
+      fromX = toX;
+      fromY = toY;
+    }
+    var unitDeltaX = unit.x - fromX;
+    var unitDeltaY = unit.y - fromY;
+    total += Math.sqrt(unitDeltaX * unitDeltaX + unitDeltaY * unitDeltaY);
+    return total;
+  }
+
   function isUnitPathVisible(unit) {
     if (isWorldPointInView(unit.x, unit.y, UNIT_PATH_VIEW_MARGIN)) {
       return true;
@@ -5274,9 +5325,11 @@
     }
     var unitScreen = worldToScreen(unit.x, unit.y);
     var dashSize = Math.max(3, cellPixelSize * UNIT_PATH_DASH_SCALE);
+    var dashDistance = hasPath ? getUnitPathDashDistance(unit) : unit.x + unit.y;
     context.strokeStyle = getUnitPathLineColor(unit.kind);
     context.lineWidth = Math.max(1, cellPixelSize * UNIT_PATH_LINE_WIDTH_SCALE);
     context.setLineDash([dashSize, dashSize]);
+    context.lineDashOffset = getWorldFixedLineDashOffset(dashDistance, dashSize);
     context.beginPath();
     context.moveTo(unitScreen.x, unitScreen.y);
     if (hasPath) {
@@ -5291,6 +5344,7 @@
       context.lineTo(roamScreen.x, roamScreen.y);
     }
     context.stroke();
+    context.lineDashOffset = 0;
     context.setLineDash([]);
   }
 
@@ -5884,7 +5938,6 @@
     demonAnger = 0;
     waveNumber = 0;
     pendingWaveSpawns = 0;
-    spawnDirectionDirty = true;
     selectedSpawnCorner = -1;
     lastSpawnArrowScreenX = -1;
     lastSpawnArrowScreenY = -1;

@@ -159,7 +159,7 @@ body {
   justify-content: center;
   gap: 6px;
   padding: 8px 10px 10px;
-  background: linear-gradient(180deg, rgba(20, 14, 10, 0), rgba(12, 8, 6, 0.92) 28%, rgba(8, 5, 4, 0.98));
+  background: transparent;
   pointer-events: auto;
 }
 

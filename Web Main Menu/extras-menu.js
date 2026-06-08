@@ -485,12 +485,47 @@
     return gamesLabel + GAMES_WINDOW_TITLE_SEPARATOR + gameTitle;
   }
 
+  function getGamesWindowTitleIconSrc() {
+    var game;
+    if (currentView === VIEW_GAME && activeGameId) {
+      game = findGameById(activeGameId);
+      if (game) {
+        if (game.desktopIcon) {
+          return game.desktopIcon;
+        }
+        if (game.image) {
+          return game.image;
+        }
+      }
+    }
+    if (window.WebDesktopAppIcons && window.WebDesktopAppIcons.getDesktopIconSrc) {
+      return window.WebDesktopAppIcons.getDesktopIconSrc("games");
+    }
+    return "";
+  }
+
   function updateGamesWindowTitle(windowElement) {
     var titleElement;
+    var textElement;
+    var titleText;
     if (!windowElement) return;
     titleElement = windowElement.querySelector("#extrasGamesTitle");
     if (!titleElement) return;
-    titleElement.textContent = buildGamesWindowTitle(activeGameId);
+    titleText = buildGamesWindowTitle(activeGameId);
+    if (window.WebDesktopAppIcons) {
+      if (window.WebDesktopAppIcons.ensureWindowTitleStructure) {
+        window.WebDesktopAppIcons.ensureWindowTitleStructure(titleElement);
+      }
+      if (window.WebDesktopAppIcons.setWindowTitleIconSrc) {
+        window.WebDesktopAppIcons.setWindowTitleIconSrc(titleElement, getGamesWindowTitleIconSrc());
+      }
+    }
+    textElement = titleElement.querySelector(".os-window-title-text");
+    if (textElement) {
+      textElement.textContent = titleText;
+      return;
+    }
+    titleElement.textContent = titleText;
   }
 
   function updateAllGamesWindowTitles() {

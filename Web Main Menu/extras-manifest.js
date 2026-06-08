@@ -59,6 +59,15 @@
         difficulty: 4
       },
       {
+        id: "demon-bastion",
+        title: "Demon Bastion",
+        path: "Extras/games/demon-bastion/index.html",
+        image: "Extras/games/demon-bastion/demon-bastion-preview.jpg",
+        desktopIcon: "Extras/games/demon-bastion/demon-bastion-desktop-icon.png",
+        difficulty: 4,
+        inputMode: "cursor"
+      },
+      {
         id: "sector-vector",
         title: "Sector Vector",
         path: "Extras/games/sector-vector/index.html",
@@ -92,15 +101,6 @@
         image: "Extras/games/factory-night/factory-night-preview.jpg",
         desktopIcon: "Extras/games/factory-night/factory-night-desktop-icon.png",
         difficulty: 5
-      },
-      {
-        id: "demon-bastion",
-        title: "Demon Bastion",
-        path: "Extras/games/demon-bastion/index.html",
-        image: "Extras/games/demon-bastion/demon-bastion-preview.jpg",
-        desktopIcon: "Extras/games/demon-bastion/demon-bastion-desktop-icon.png",
-        difficulty: 5,
-        inputMode: "cursor"
       },
       {
         id: "playing-cards",
