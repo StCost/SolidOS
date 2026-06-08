@@ -94,6 +94,15 @@
         difficulty: 5
       },
       {
+        id: "demon-bastion",
+        title: "Demon Bastion",
+        path: "Extras/games/demon-bastion/index.html",
+        image: "Extras/games/demon-bastion/demon-bastion-preview.png",
+        desktopIcon: "Extras/games/demon-bastion/demon-bastion-desktop-icon.png",
+        difficulty: 5,
+        inputMode: "cursor"
+      },
+      {
         id: "playing-cards",
         title: "Playing Cards",
         path: "Extras/games/playing-cards/index.html",
