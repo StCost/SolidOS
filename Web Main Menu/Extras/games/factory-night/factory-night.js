@@ -258,11 +258,35 @@
     buildImageRegistry();
   }
 
+  function isSuccessfulXhr(request) {
+    if (!request) {
+      return false;
+    }
+    if (request.status === 0) {
+      return !!request.responseText;
+    }
+    return request.status >= 200 && request.status < 300;
+  }
+
+  function setCameraFeedImageSrc(path) {
+    var nextSrc;
+    if (!cameraFeedImg || !path) {
+      return;
+    }
+    state.camFeedVersion = state.camFeedVersion + 1;
+    nextSrc = path + "#v=" + String(state.camFeedVersion);
+    if (cameraFeedImg.getAttribute("src") === nextSrc) {
+      state.camFeedVersion = state.camFeedVersion + 1;
+      nextSrc = path + "#v=" + String(state.camFeedVersion);
+    }
+    cameraFeedImg.src = nextSrc;
+  }
+
   function loadImageManifest(done) {
     var request = new XMLHttpRequest();
-    request.open("GET", IMAGE_MANIFEST_URL + "?v=" + String(Date.now()), true);
+    request.open("GET", IMAGE_MANIFEST_URL, true);
     request.onload = function () {
-      if (request.status >= 200 && request.status < 300) {
+      if (isSuccessfulXhr(request)) {
         try {
           imageManifest = JSON.parse(request.responseText);
         } catch (error) {
@@ -830,7 +854,6 @@
       return;
     }
     preloadImage(path);
-    state.camFeedVersion = state.camFeedVersion + 1;
     state.currentFeedPath = path;
     state.currentFeedIsMonster = getFeedIsMonster(path);
     if (state.currentFeedIsMonster) {
@@ -838,7 +861,7 @@
     } else {
       state.monsterViewStartMs = 0;
     }
-    cameraFeedImg.src = path + "?v=" + String(state.camFeedVersion);
+    setCameraFeedImageSrc(path);
     if (state.playing && !state.gameOver && !state.powerOut) {
       markPathUsedForRoom(state.cameraIndex, path);
     }
@@ -1141,7 +1164,6 @@
       camSwitchFadeTimer = 0;
     }
     preloadImage(path);
-    state.camFeedVersion = state.camFeedVersion + 1;
     state.currentFeedPath = path;
     state.currentFeedIsMonster = getFeedIsMonster(path);
     if (state.currentFeedIsMonster) {
@@ -1149,7 +1171,7 @@
     } else {
       state.monsterViewStartMs = 0;
     }
-    cameraFeedImg.src = path + "?v=" + String(state.camFeedVersion);
+    setCameraFeedImageSrc(path);
     cameraViewportEl.classList.remove("is-cam-switch");
     void cameraViewportEl.offsetWidth;
     cameraViewportEl.classList.add("is-cam-switch");
@@ -1184,8 +1206,7 @@
       state.currentFeedPath = idlePath;
       state.currentFeedIsMonster = false;
       state.monsterViewStartMs = 0;
-      state.camFeedVersion = state.camFeedVersion + 1;
-      cameraFeedImg.src = idlePath + "?v=" + String(state.camFeedVersion);
+      setCameraFeedImageSrc(idlePath);
       return;
     }
     if (state.powerOut) {
