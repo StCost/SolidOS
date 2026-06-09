@@ -699,31 +699,13 @@
     return target;
   }
 
-  var PREFERRED_WORD_LENGTH = 8;
-
   function getPreferredWordLengths() {
-    var lengths = [PREFERRED_WORD_LENGTH];
-    var step = 1;
-    var lower;
-    var upper;
-    var added;
-    while (step <= MAX_WORD_LENGTH) {
-      lower = PREFERRED_WORD_LENGTH - step;
-      upper = PREFERRED_WORD_LENGTH + step;
-      added = false;
-      if (lower >= MIN_WORD_LENGTH) {
-        lengths.push(lower);
-        added = true;
-      }
-      if (upper <= MAX_WORD_LENGTH) {
-        lengths.push(upper);
-        added = true;
-      }
-      if (!added && lower < MIN_WORD_LENGTH && upper > MAX_WORD_LENGTH) {
-        break;
-      }
-      step += 1;
+    var lengths = [];
+    var length;
+    for (length = MAX_WORD_LENGTH; length >= MIN_WORD_LENGTH; length--) {
+      lengths.push(length);
     }
+    shuffleArray(lengths);
     return lengths;
   }
 
