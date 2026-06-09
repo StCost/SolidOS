@@ -300,7 +300,12 @@
   var buildBarBuilt = false;
   var buildButtonsById = null;
   var lastFrameTime = 0;
+  var gameTime = 0;
   var animationHandle = 0;
+
+  function getSynth() {
+    return window.WebExtrasGameSynthAudio;
+  }
   var pointerDown = false;
   var pointerDrag = false;
   var minimapPointerDown = false;
@@ -2207,6 +2212,9 @@
   function finishBuildOrder(order, unit) {
     var footprintSize = order.size || 1;
     createBuilding(order.type, order.x, order.y);
+    if (getSynth()) {
+      getSynth().playBuildPlace();
+    }
     removeBuildOrder(order);
     unit.buildOrderId = -1;
     clearUnitPath(unit);
@@ -2253,6 +2261,9 @@
     }
     addMoney(getBuildRefundAmount(order.type, order.buildProgress, order.buildHitsNeeded));
     removeBuildOrder(order);
+    if (getSynth()) {
+      getSynth().playSell();
+    }
     return true;
   }
 
@@ -2265,6 +2276,9 @@
     }
     addMoney(getBuildRefundAmount(building.type, building.maxHp, building.maxHp));
     removeBuilding(building);
+    if (getSynth()) {
+      getSynth().playSell();
+    }
     return true;
   }
 
@@ -2316,6 +2330,9 @@
     if (isPlayerWall(cellX, cellY)) {
       addMoney(Math.floor(getBuildDefinition(BUILD_WALL).cost * BUILD_SELL_REFUND_FRACTION));
       destroyPlayerWall(cellX, cellY);
+      if (getSynth()) {
+        getSynth().playSell();
+      }
       return true;
     }
     var building = getBuildingAt(cellX, cellY);
@@ -2346,6 +2363,9 @@
 
   function triggerTrapMineExplosion(worldX, worldY, damage, splashRadius) {
     applyRocketSplash(worldX, worldY, damage, splashRadius);
+    if (getSynth()) {
+      getSynth().playExplosion(true);
+    }
     rocketBlasts.push({
       x: worldX,
       y: worldY,
@@ -2761,6 +2781,9 @@
       formatLocalized(LOCALE_KEY_WAVE_ANNOUNCE, "WAVE {0}", waveNumber),
       "#ff5050"
     );
+    if (getSynth()) {
+      getSynth().playWaveAnnounce();
+    }
     selectedSpawnCorner = pickRandomAllowedSpawnCornerExcept(waveSpawnCorner);
     refreshNextSpawnPreview();
   }
@@ -2807,6 +2830,9 @@
     }
     totalGoldCollected += amount;
     addMoney(amount);
+    if (getSynth()) {
+      getSynth().playCollect();
+    }
     addFloatingText(
       worldCellX,
       worldCellY,
@@ -2892,6 +2918,9 @@
   function damageBuilding(building, amount) {
     building.hp -= amount;
     if (building.hp <= 0) {
+      if (getSynth()) {
+        getSynth().playImpact();
+      }
       removeBuilding(building);
       return true;
     }
@@ -4148,6 +4177,9 @@
             if (building.fireTimer <= 0) {
               building.fireTimer = definition.fireCooldown;
               damageDemon(laserTarget, definition.damage);
+              if (getSynth()) {
+                getSynth().playLaserBurst(getSynth().TEAM_FRIENDLY, gameTime);
+              }
             }
           } else {
             building.laserTargetUnit = null;
@@ -4172,6 +4204,9 @@
                 splashRadius: definition.splash,
                 spriteKey: "projectile"
               });
+              if (getSynth()) {
+                getSynth().playRocketFire();
+              }
             } else {
               var buildingSize = building.size || 1;
               var buildingCenter = getBuildingCenter(building);
@@ -4185,6 +4220,9 @@
                 damage: definition.damage,
                 spriteKey: "projectile"
               });
+              if (getSynth()) {
+                getSynth().playGunfire(getSynth().TEAM_FRIENDLY, gameTime);
+              }
             }
           } else if (building.fireTimer < 0) {
             building.fireTimer = 0;
@@ -4223,6 +4261,9 @@
   }
 
   function onProjectileHit(projectile) {
+    if (getSynth()) {
+      getSynth().playImpact();
+    }
     if (projectile.splashRadius && projectile.splashRadius > 0) {
       applyRocketSplash(
         projectile.x,
@@ -4339,6 +4380,9 @@
       }
       if (unit.kind === UNIT_DEMON) {
         spawnDemonDeathEffect(unit.x, unit.y);
+        if (getSynth()) {
+          getSynth().playUnitDeath(false, gameTime);
+        }
         livingDemonCount -= 1;
         if (livingDemonCount < 0) {
           livingDemonCount = 0;
@@ -4422,6 +4466,12 @@
         runSetRecord = true;
       }
       updateGameOverLines();
+      if (getSynth()) {
+        if (runSetRecord) {
+          getSynth().playRecord();
+        }
+        getSynth().playFail();
+      }
       gameOverLine.classList.remove("hidden");
       if (gameOverGoldLine) {
         gameOverGoldLine.classList.remove("hidden");
@@ -5679,6 +5729,7 @@
     }
     lastFrameTime = timestamp;
     if (phase === PHASE_PLAYING) {
+      gameTime += deltaSeconds;
       updateCamera(deltaSeconds);
       updateBuildings(deltaSeconds);
       removeDeadUnits();
@@ -5905,6 +5956,7 @@
   }
 
   function resetGame() {
+    gameTime = 0;
     worldSeed = Date.now() >>> 0;
     generateWorld();
     buildings = [];
@@ -5952,6 +6004,12 @@
     resizeCanvas();
     resetGame();
     gameRoot.focus();
+    if (getSynth()) {
+      getSynth().ensureContext();
+    }
+    if (getSynth()) {
+      getSynth().playGameStart();
+    }
     if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
       window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
     }

@@ -108,7 +108,9 @@
   var bestNight;
   var bestCorrectReports;
   var preloadedImages = {};
-  var audioContext;
+  function getSynth() {
+    return window.WebExtrasGameSynthAudio;
+  }
   var menuPreviewRoomIndex = 0;
   var feedAssignRefreshActive = false;
   var feedAssignPreviousPaths = [];
@@ -1152,6 +1154,9 @@
   }
 
   function playCameraSwitchFade(path) {
+    if (getSynth()) {
+      getSynth().playCameraSwitch();
+    }
     if (!cameraFeedImg || !path) {
       return;
     }
@@ -1261,40 +1266,20 @@
     }
   }
 
-  function playReportNoise() {
-    var oscillator;
-    var gainNode;
-    var now;
-    try {
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioContext.state === "suspended") {
-        audioContext.resume();
-      }
-      oscillator = audioContext.createOscillator();
-      gainNode = audioContext.createGain();
-      oscillator.type = "sawtooth";
-      oscillator.frequency.value = 90 + Math.random() * 40;
-      gainNode.gain.value = 0.08;
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      now = audioContext.currentTime;
-      oscillator.start(now);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-      oscillator.stop(now + 0.36);
-    } catch (error) {
-    }
-  }
-
-  function showReportedEffect(showReportedText) {
+  function showReportedEffect(showReportedText, isMonster) {
     if (cameraViewportEl) {
       cameraViewportEl.classList.add("is-reported");
     }
     if (showReportedText && cameraReportedEl) {
       cameraReportedEl.classList.remove("is-hidden");
     }
-    playReportNoise();
+    if (getSynth()) {
+      if (isMonster) {
+        getSynth().playReportCorrect();
+      } else {
+        getSynth().playReportWrong();
+      }
+    }
     window.setTimeout(function () {
       if (cameraViewportEl) {
         cameraViewportEl.classList.remove("is-reported");
@@ -1317,7 +1302,7 @@
       trySaveBestCorrectReports(state.correctReports);
     }
     forceRefreshAllCameraFeeds();
-    showReportedEffect(isMonster);
+    showReportedEffect(isMonster, isMonster);
     updateHud();
     setMonitorVisual();
   }
@@ -1368,49 +1353,6 @@
     );
   }
 
-  function playJumpscareScream() {
-    var oscillator;
-    var gainNode;
-    var noiseBuffer;
-    var noiseSource;
-    var now;
-    try {
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioContext.state === "suspended") {
-        audioContext.resume();
-      }
-      now = audioContext.currentTime;
-      oscillator = audioContext.createOscillator();
-      gainNode = audioContext.createGain();
-      oscillator.type = "sawtooth";
-      oscillator.frequency.setValueAtTime(220, now);
-      oscillator.frequency.exponentialRampToValueAtTime(55, now + 0.45);
-      gainNode.gain.setValueAtTime(0.2, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 0.52);
-      noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.2, audioContext.sampleRate);
-      var noiseData = noiseBuffer.getChannelData(0);
-      var sampleIndex;
-      for (sampleIndex = 0; sampleIndex < noiseData.length; sampleIndex++) {
-        noiseData[sampleIndex] = (Math.random() * 2 - 1) * 0.35;
-      }
-      noiseSource = audioContext.createBufferSource();
-      noiseSource.buffer = noiseBuffer;
-      var noiseGain = audioContext.createGain();
-      noiseGain.gain.setValueAtTime(0.12, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-      noiseSource.connect(noiseGain);
-      noiseGain.connect(audioContext.destination);
-      noiseSource.start(now);
-    } catch (error) {
-    }
-  }
-
   function triggerPowerOutScreamer() {
     var screamerPath;
     if (!state.playing || state.gameOver || !state.powerOut) {
@@ -1423,7 +1365,9 @@
     if (gameRoot) {
       gameRoot.classList.add("is-power-out-screamer");
     }
-    playJumpscareScream();
+    if (getSynth()) {
+      getSynth().playJumpscare();
+    }
     powerOutScreamerTimer = window.setTimeout(function () {
       powerOutScreamerTimer = 0;
       hideFullscreenScreamer();
@@ -1453,6 +1397,9 @@
     setMonitorVisual();
     updateHud();
     schedulePowerOutScare();
+    if (getSynth()) {
+      getSynth().playPowerOutHum();
+    }
   }
 
   function advanceHour() {
@@ -1474,6 +1421,9 @@
     }
     if (winOverlayEl) {
       winOverlayEl.classList.remove("is-hidden");
+    }
+    if (getSynth()) {
+      getSynth().playWin();
     }
   }
 
@@ -1498,7 +1448,9 @@
     if (gameOverOverlayEl) {
       gameOverOverlayEl.classList.remove("is-hidden");
     }
-    playJumpscareScream();
+    if (getSynth()) {
+      getSynth().playJumpscare();
+    }
   }
 
   function stopTimers() {

@@ -7,6 +7,7 @@
   <title>Trouble Drivers</title>
   <script src="../iframe-game-locale.js"></script>
   <script src="../iframe-game-input.js"></script>
+  <script src="../extras-game-synth-audio.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -603,6 +604,10 @@
     var LOCALE_KEY_METERS_SUFFIX = "web.game.meters-suffix";
     var LOCALE_KEY_DISTANCE_LABEL = "web.game.label.distance";
     var METERS_PER_UNIT = 0.08;
+
+    function getSynth() {
+      return window.WebExtrasGameSynthAudio;
+    }
 
     var PHASE_START = "start";
     var PHASE_PLAYING = "playing";
@@ -3221,6 +3226,9 @@
         dust.alpha = 0.35 + Math.random() * 0.4;
         dustParticles.push(dust);
       }
+      if (getSynth()) {
+        getSynth().playImpact();
+      }
     }
 
     function getCarWheelContactPosition(wheelSvgX, wheelSvgY, wheelHeadingAngle) {
@@ -3537,6 +3545,9 @@
         blue = 48 + Math.floor(Math.random() * 28);
         pushDeathExplosionImpact(worldX, worldY, angle, speed, life, size, red, green, blue, 0.94, false);
       }
+      if (isEnemy && getSynth()) {
+        getSynth().playExplosion(false);
+      }
     }
 
     function beginCrystalCollect(crystal) {
@@ -3556,6 +3567,9 @@
       spawnScoreFlyLabel(carCenter.x, carCenter.y, points, rgb[0], rgb[1], rgb[2]);
       spawnCollectEffects(carCenter.x, carCenter.y, crystalScreen.x, crystalScreen.y, rgb[0], rgb[1], rgb[2], crystal.rarity);
       spawnCollectArc(crystal);
+      if (getSynth()) {
+        getSynth().playCollect();
+      }
     }
 
     function collectCrystal(crystal) {
@@ -4700,6 +4714,9 @@
       updateDamageVignette(false);
       damageVignette.style.setProperty("--vignette-inner", "0%");
       damageVignette.classList.add("is-visible");
+      if (getSynth()) {
+        getSynth().playFail();
+      }
     }
 
     function startGame() {
@@ -4712,6 +4729,10 @@
       updateSpeedGauge();
       updateCheckEngineHud();
       focusGameInput();
+      if (getSynth()) {
+        getSynth().ensureContext();
+        getSynth().playGameStart();
+      }
       if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
         window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
       }
