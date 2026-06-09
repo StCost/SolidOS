@@ -9,7 +9,8 @@
     "web-page-changed",
     "web-start-lists-save",
     "web-open-external-url",
-    "web-extras-game-record-save"
+    "web-extras-game-record-save",
+    "web-ui-local-storage-save"
   ];
 
   function postToUnity(event) {
@@ -31,7 +32,8 @@
       active: detail.active === true,
       inputMode: detail.inputMode || "",
       gameId: detail.gameId || "",
-      recordsJson: detail.recordsJson || ""
+      recordsJson: detail.recordsJson || "",
+      localStorageRaw: detail.localStorageRaw || ""
     };
 
     window.vuplex.postMessage(JSON.stringify(payload));
