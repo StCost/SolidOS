@@ -122,15 +122,28 @@
     }
   }
 
+  function getFocusedDesktopWindowElement() {
+    return document.querySelector(
+      "#desktopSurface .os-window.os-window--focused[data-wm-preset]"
+    );
+  }
+
   function getFocusedWindowPreset() {
     var windowManager = getWindowManager();
     if (windowManager && windowManager.getFocusedDesktopWindowPreset) {
       return windowManager.getFocusedDesktopWindowPreset();
     }
-    var focused = document.querySelector(
-      "#desktopSurface .os-window.os-window--focused[data-wm-preset]"
-    );
+    var focused = getFocusedDesktopWindowElement();
     if (!focused) return "";
+    return focused.getAttribute("data-wm-preset") || "";
+  }
+
+  function getRouteWindowPresetForUrl() {
+    var focused = getFocusedDesktopWindowElement();
+    if (!focused) return "";
+    if (focused.classList.contains("os-window--minimized")) {
+      return "";
+    }
     return focused.getAttribute("data-wm-preset") || "";
   }
 
@@ -197,7 +210,7 @@
 
   function syncRouteFromFocusedWindow(useReplace) {
     if (!isWebMode() || applyingRoute || !routeBootComplete) return;
-    var windowPreset = getFocusedWindowPreset();
+    var windowPreset = getRouteWindowPresetForUrl();
     var tabValue = getTabForFocusedWindow(windowPreset);
     setLocationRoute(windowPreset, tabValue, useReplace === true);
   }

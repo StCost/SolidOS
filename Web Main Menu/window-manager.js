@@ -40,6 +40,7 @@ var WebWindowManager = (function () {
   var mainMenuCanvasShown = false;
   var savedLayoutTable = {};
   var layoutSaveTimer = 0;
+  var desktopLayoutBootFinished = false;
   var LAYOUTS_STORAGE_KEY = "cm-menu-window-layouts";
   var DEFAULT_DESKTOP_WINDOW_LAYOUTS = {
     "menu-splash": {
@@ -387,6 +388,48 @@ var WebWindowManager = (function () {
     }
   }
 
+  function isNearMaximizedRestoreState(windowElement, restoreState) {
+    var containerElement = getLayoutContainer(windowElement);
+    var bounds;
+    var widthGap;
+    var heightGap;
+    if (!restoreState || !containerElement) return false;
+    bounds = getBounds(containerElement);
+    widthGap = bounds.width - restoreState.width;
+    heightGap = bounds.height - restoreState.height;
+    if (widthGap < 48 && heightGap < 48) {
+      return true;
+    }
+    return false;
+  }
+
+  function getSavedLayoutRestoreState(windowElement) {
+    var presetName = windowElement.getAttribute("data-wm-preset");
+    var layoutKey = getLayoutKey(windowElement);
+    var savedLayout = savedLayoutTable[layoutKey];
+    var containerElement = getLayoutContainer(windowElement);
+    var coords = getLayoutCoords();
+    var mergedLayout;
+    var resolvedRect;
+    var minSize;
+    if (!presetName || !savedLayout || !containerElement || !coords) return null;
+    mergedLayout = mergeLayoutWithDesktopDefault(presetName, savedLayout);
+    resolvedRect = coords.resolveWindowRect(mergedLayout, containerElement);
+    minSize = getWindowMinSize(windowElement, presetName);
+    return {
+      left: resolvedRect.left,
+      top: resolvedRect.top,
+      width: Math.max(
+        resolvedRect.width || mergedLayout.width || minSize.minWidth,
+        minSize.minWidth
+      ),
+      height: Math.max(
+        resolvedRect.height || mergedLayout.height || minSize.minHeight,
+        minSize.minHeight
+      )
+    };
+  }
+
   function applySavedChromeStatesFromSaved() {
     var windows = document.querySelectorAll("#desktopSurface .os-window[data-wm-preset]");
     var index = 0;
@@ -422,7 +465,10 @@ var WebWindowManager = (function () {
 
     if (shouldMaximize) {
       prepareWindowDragStart(windowElement);
-      windowElement.wmBeforeMaximizeState = captureWindowRestoreState(windowElement);
+      windowElement.wmBeforeMaximizeState = getSavedLayoutRestoreState(windowElement);
+      if (!windowElement.wmBeforeMaximizeState) {
+        windowElement.wmBeforeMaximizeState = captureWindowRestoreState(windowElement);
+      }
       windowElement.classList.add("os-window--maximized");
       setMaximizedWindowRect(windowElement);
       updateWindowControlChrome(windowElement);
@@ -659,12 +705,40 @@ var WebWindowManager = (function () {
     if (inlineZIndex > 0) {
       entry.zIndex = inlineZIndex;
     }
+    if (isMinimized) {
+      if (previous) {
+        previous.open = entry.open;
+        previous.minimized = true;
+        previous.maximized = false;
+        if (entry.zIndex !== undefined) {
+          previous.zIndex = entry.zIndex;
+        }
+        return;
+      }
+      containerElement = getLayoutContainer(windowElement);
+      if (!containerElement) return;
+      setSavedLayout(layoutKey, mergeLayoutWithDesktopDefault(layoutKey, entry), containerElement);
+      return;
+    }
+
+    if (isMaximized) {
+      if (previous) {
+        previous.open = entry.open;
+        previous.minimized = false;
+        previous.maximized = true;
+        if (entry.zIndex !== undefined) {
+          previous.zIndex = entry.zIndex;
+        }
+        return;
+      }
+      containerElement = getLayoutContainer(windowElement);
+      if (!containerElement) return;
+      setSavedLayout(layoutKey, mergeLayoutWithDesktopDefault(layoutKey, entry), containerElement);
+      return;
+    }
+
     restoreState = null;
-    if (isMinimized && windowElement.wmBeforeMinimizeState) {
-      restoreState = windowElement.wmBeforeMinimizeState;
-    } else if (isMaximized && windowElement.wmBeforeMaximizeState) {
-      restoreState = windowElement.wmBeforeMaximizeState;
-    } else if (windowElement.wmState && !isMinimized) {
+    if (windowElement.wmState) {
       restoreState = {
         left: windowElement.wmState.left,
         top: windowElement.wmState.top,
@@ -913,6 +987,28 @@ var WebWindowManager = (function () {
       entry.zIndex = savedLayout.zIndex;
     }
 
+    if (windowElement.classList.contains("os-window--minimized")) {
+      if (savedLayout) {
+        entry.anchor = savedLayout.anchor;
+        entry.centerOffsetX = savedLayout.centerOffsetX;
+        entry.centerOffsetY = savedLayout.centerOffsetY;
+        if (savedLayout.width !== undefined) entry.width = Math.round(savedLayout.width);
+        if (savedLayout.height !== undefined) entry.height = Math.round(savedLayout.height);
+      }
+      return entry;
+    }
+
+    if (windowElement.classList.contains("os-window--maximized")) {
+      if (savedLayout) {
+        entry.anchor = savedLayout.anchor;
+        entry.centerOffsetX = savedLayout.centerOffsetX;
+        entry.centerOffsetY = savedLayout.centerOffsetY;
+        if (savedLayout.width !== undefined) entry.width = Math.round(savedLayout.width);
+        if (savedLayout.height !== undefined) entry.height = Math.round(savedLayout.height);
+      }
+      return entry;
+    }
+
     restoreState = captureWindowRestoreState(windowElement);
     if (restoreState) {
       var containerElement = getLayoutContainer(windowElement);
@@ -1112,7 +1208,31 @@ var WebWindowManager = (function () {
     cancelPendingLayoutSave();
     populateDefaultWindowLayoutTable();
     mergePersistedWindowLayoutPayload(getPersistedLayoutsPayload());
-    applyAllSavedLayoutsWhenReady(null);
+  }
+
+  function finishDesktopLayoutBoot() {
+    if (desktopLayoutBootFinished) return;
+    desktopLayoutBootFinished = true;
+    if (!hasPersistedWindowLayouts()) {
+      revealDesktopAfterLayoutsReady();
+      return;
+    }
+    applyAllSavedLayoutsWhenReady(function () {
+      window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
+    });
+  }
+
+  function onDesktopIconsReadyForLayoutBoot() {
+    var routePreset = "";
+    if (!isUnityHost()) {
+      if (window.WebMenuRoute && window.WebMenuRoute.getInitialWindowPreset) {
+        routePreset = window.WebMenuRoute.getInitialWindowPreset();
+      }
+      if (routePreset && setRouteBootDesktopVisibility) {
+        setRouteBootDesktopVisibility(routePreset);
+      }
+    }
+    finishDesktopLayoutBoot();
   }
 
   function resetAllWindowLayouts() {
@@ -2250,10 +2370,14 @@ var WebWindowManager = (function () {
   }
 
   function restoreFromMaximized(windowElement) {
-    if (!windowElement.wmBeforeMaximizeState) return false;
+    var restoreState = windowElement.wmBeforeMaximizeState;
+    if (!restoreState || isNearMaximizedRestoreState(windowElement, restoreState)) {
+      restoreState = getSavedLayoutRestoreState(windowElement);
+    }
+    if (!restoreState) return false;
     prepareWindowDragStart(windowElement);
     windowElement.classList.remove("os-window--maximized");
-    applyRestoreState(windowElement, windowElement.wmBeforeMaximizeState);
+    applyRestoreState(windowElement, restoreState);
     windowElement.wmBeforeMaximizeState = null;
     clampManagedWindowToContainer(windowElement);
     updateWindowControlChrome(windowElement);
@@ -2309,6 +2433,9 @@ var WebWindowManager = (function () {
     }
 
     windowElement.wmBeforeMaximizeState = captureWindowRestoreState(windowElement);
+    if (!windowElement.wmBeforeMaximizeState) {
+      windowElement.wmBeforeMaximizeState = getSavedLayoutRestoreState(windowElement);
+    }
 
     setMaximizedWindowRect(windowElement);
     windowElement.classList.add("os-window--maximized");
@@ -2855,13 +2982,6 @@ var WebWindowManager = (function () {
     if (pageMenuElement && !pageMenuElement.hidden) activatePage(pageMenuElement);
   }
 
-  function reapplyPersistedLayoutsAfterBoot() {
-    if (!hasPersistedWindowLayouts()) return;
-    applyAllSavedLayoutsWhenReady(function () {
-      window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
-    });
-  }
-
   function initOnReady() {
     var pageMenuElement = document.getElementById("pageMenu");
     var device = document.getElementById("device");
@@ -2871,19 +2991,6 @@ var WebWindowManager = (function () {
     cancelPendingLayoutSave();
     loadPersistedLayouts();
     initAll();
-    if (!isUnityHost() && hasPersistedWindowLayouts()) {
-      var routePreset = "";
-      if (window.WebMenuRoute && window.WebMenuRoute.getInitialWindowPreset) {
-        routePreset = window.WebMenuRoute.getInitialWindowPreset();
-      }
-      if (routePreset && setRouteBootDesktopVisibility) {
-        setRouteBootDesktopVisibility(routePreset);
-      }
-      reapplyPersistedLayoutsAfterBoot();
-      window.requestAnimationFrame(function () {
-        reapplyPersistedLayoutsAfterBoot();
-      });
-    }
     if (shouldDeferMainMenuOpenAnimations()) {
       if (mainMenuCanvasShown) {
         onMainMenuCanvasShown();
@@ -2899,13 +3006,8 @@ var WebWindowManager = (function () {
   }
 
   window.addEventListener("web-menu-canvas-shown", onMainMenuCanvasShown);
-  window.addEventListener("web-menu-boot-dismiss", function () {
-    if (hasPersistedWindowLayouts()) {
-      applyAllSavedLayoutsWhenReady(null);
-    } else {
-      revealDesktopAfterLayoutsReady();
-    }
-  });
+  window.addEventListener("web-desktop-icons-ready", onDesktopIconsReadyForLayoutBoot);
+  window.addEventListener("web-menu-boot-dismiss", finishDesktopLayoutBoot);
   window.addEventListener("web-page-changed", function () {
     syncActivePageWindows();
   });

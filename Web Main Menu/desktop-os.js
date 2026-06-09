@@ -2574,16 +2574,6 @@ var WebDesktop = (function () {
       windowManager.hasPersistedWindowLayouts &&
       windowManager.hasPersistedWindowLayouts()
     ) {
-      if (routePreset && windowManager.setRouteBootDesktopVisibility) {
-        windowManager.setRouteBootDesktopVisibility(routePreset);
-      }
-      if (windowManager.applyDesktopWindowVisibility) {
-        windowManager.applyDesktopWindowVisibility();
-      }
-      if (windowManager.applySavedWindowStackOrder) {
-        windowManager.applySavedWindowStackOrder(true);
-      }
-      window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
       return;
     }
     if (routePreset && windowManager && windowManager.isDesktopWindowPreset(routePreset)) {
