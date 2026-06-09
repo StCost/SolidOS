@@ -59,15 +59,43 @@
   ];
 
   var BUILD_DEFINITIONS = [
-    { id: BUILD_WALL, label: "Wall", cost: 20, color: "#8a7a68", hp: 80 },
-    { id: BUILD_TURRET, label: "Turret", cost: 100, color: "#5a8a50", hp: 120, range: 7, fireCooldown: 0.55, damage: 14 },
-    { id: BUILD_LASER, label: "Laser", cost: 220, color: "#d8c030", hp: 100, range: 8, fireCooldown: 0.06, damage: 5, laser: true },
-    { id: BUILD_MINE, label: "Mine", cost: 60, color: "#aa3030", hp: 1, trapDamage: 55, splash: 2 },
-    { id: BUILD_DOG_HOUSE, label: "Dog House", cost: 150, color: "#a07040", hp: 140 },
-    { id: BUILD_WORKSHOP, label: "Workshop", cost: 280, color: "#5080c0", hp: 260, spawnsWorker: true, passiveIncome: 0.35, passiveInterval: 5 },
-    { id: BUILD_ROCKET, label: "Rocket Sentry", cost: 240, color: "#c06030", hp: 130, range: 11, fireCooldown: 1.4, damage: 42, splash: 2 },
-    { id: BUILD_MINE_SHAFT, label: "Mine Shaft", cost: 300, color: "#686868", hp: 160, passiveIncome: 0.35, passiveInterval: 1 }
+    { id: BUILD_WALL, localeKey: "web.game.demon-bastion.build.wall", cost: 20, color: "#8a7a68", hp: 80 },
+    { id: BUILD_TURRET, localeKey: "web.game.demon-bastion.build.turret", cost: 100, color: "#5a8a50", hp: 120, range: 7, fireCooldown: 0.55, damage: 14 },
+    { id: BUILD_LASER, localeKey: "web.game.demon-bastion.build.laser", cost: 220, color: "#d8c030", hp: 100, range: 8, fireCooldown: 0.06, damage: 5, laser: true },
+    { id: BUILD_MINE, localeKey: "web.game.demon-bastion.build.mine", cost: 60, color: "#aa3030", hp: 1, trapDamage: 55, splash: 2 },
+    { id: BUILD_DOG_HOUSE, localeKey: "web.game.demon-bastion.build.dog-house", cost: 150, color: "#a07040", hp: 140 },
+    { id: BUILD_WORKSHOP, localeKey: "web.game.demon-bastion.build.workshop", cost: 280, color: "#5080c0", hp: 260, spawnsWorker: true, passiveIncome: 0.35, passiveInterval: 5 },
+    { id: BUILD_ROCKET, localeKey: "web.game.demon-bastion.build.rocket", cost: 240, color: "#c06030", hp: 130, range: 11, fireCooldown: 1.4, damage: 42, splash: 2 },
+    { id: BUILD_MINE_SHAFT, localeKey: "web.game.demon-bastion.build.mine-shaft", cost: 300, color: "#686868", hp: 160, passiveIncome: 0.35, passiveInterval: 1 }
   ];
+
+  var BUILD_LABEL_FALLBACKS = {
+    wall: "Wall",
+    turret: "Turret",
+    laser: "Laser",
+    mine: "Mine",
+    dog_house: "Dog House",
+    workshop: "Workshop",
+    rocket: "Rocket Sentry",
+    mine_shaft: "Mine Shaft"
+  };
+
+  var STORAGE_BEST_GOLD_COLLECTED = "demonBastionBestGoldCollected";
+  var LOCALE_KEY_TITLE = "web.game.demon-bastion.title";
+  var LOCALE_KEY_HINT = "web.game.demon-bastion.hint";
+  var LOCALE_KEY_GOLD = "web.game.demon-bastion.gold";
+  var LOCALE_KEY_SCORE = "web.game.demon-bastion.score";
+  var LOCALE_KEY_DEMON_ANGER = "web.game.demon-bastion.demon-anger";
+  var LOCALE_KEY_WAVE = "web.game.demon-bastion.wave";
+  var LOCALE_KEY_BEST_GOLD = "web.game.demon-bastion.best-gold";
+  var LOCALE_KEY_GAME_OVER = "web.game.demon-bastion.game-over";
+  var LOCALE_KEY_GAME_OVER_GOLD = "web.game.demon-bastion.game-over-gold";
+  var LOCALE_KEY_NEW_RECORD = "web.game.demon-bastion.new-record";
+  var LOCALE_KEY_WAVE_ANNOUNCE = "web.game.demon-bastion.wave-announce";
+  var LOCALE_KEY_BUILD_NONE = "web.game.demon-bastion.build.none";
+  var LOCALE_KEY_BUILD_SELL = "web.game.demon-bastion.build.sell";
+  var LOCALE_KEY_BUILD_SELL_REFUND = "web.game.demon-bastion.build.sell-refund";
+  var LOCALE_KEY_BUILD_COST_SUFFIX = "web.game.demon-bastion.build.cost-suffix";
 
   var DEMON_ANGER_MAX = 100;
   var DEMON_ANGER_PER_CREDIT = 0.1;
@@ -141,27 +169,12 @@
   var ENEMY_ARROW_SIZE = 14;
   var SPAWN_PREVIEW_COARSE_STEP = 2;
   var SPAWN_PREVIEW_REFINE_RADIUS = 8;
-  var SPAWN_EDGE_NORTH = 0;
-  var SPAWN_EDGE_EAST = 1;
-  var SPAWN_EDGE_SOUTH = 2;
-  var SPAWN_EDGE_WEST = 3;
-  var SPAWN_EDGE_COUNT = 4;
-  var SPAWN_EDGE_BAND = 6;
-  var SPAWN_EDGE_PICK_SCREEN_MARGIN = 40;
   var SPAWN_CORNER_NW = 0;
   var SPAWN_CORNER_NE = 1;
   var SPAWN_CORNER_SE = 2;
   var SPAWN_CORNER_SW = 3;
   var SPAWN_CORNER_COUNT = 4;
   var SPAWN_CORNER_BAND = 10;
-  var SPAWN_CORNER_LABEL_NE = "NE SPAWN";
-  var SPAWN_CORNER_LABEL_SE = "SE SPAWN";
-  var SPAWN_CORNER_LABEL_SW = "SW SPAWN";
-  var SPAWN_CORNER_LABEL_NW = "NW SPAWN";
-  var SPAWN_EDGE_LABEL_NORTH = "NORTH SPAWN";
-  var SPAWN_EDGE_LABEL_EAST = "EAST SPAWN";
-  var SPAWN_EDGE_LABEL_SOUTH = "SOUTH SPAWN";
-  var SPAWN_EDGE_LABEL_WEST = "WEST SPAWN";
   var UNIT_PATH_VIEW_MARGIN = 3;
   var UNIT_PATH_LINE_WIDTH_SCALE = 0.06;
   var UNIT_PATH_DASH_SCALE = 0.16;
@@ -221,11 +234,15 @@
   var btnZoomOut;
   var hudTop;
   var hudMoney;
+  var hudScore;
   var hudAngerFill;
   var hudWave;
   var buildBar;
   var gameScreen;
   var gameOverLine;
+  var gameOverGoldLine;
+  var gameOverRecordLine;
+  var bestGoldLine;
   var controlHint;
 
   var terrain;
@@ -249,6 +266,9 @@
 
   var phase = PHASE_START;
   var money = 0;
+  var totalGoldCollected = 0;
+  var recordGoldCollected = 0;
+  var runSetRecord = false;
   var demonAnger = 0;
   var waveNumber = 0;
   var pendingWaveSpawns = 0;
@@ -260,9 +280,6 @@
   var nextSpawnGoalY = -1;
   var nextSpawnPath = null;
   var selectedSpawnCorner = -1;
-  var lastSpawnArrowScreenX = -1;
-  var lastSpawnArrowScreenY = -1;
-  var lastSpawnArrowHitRadius = 0;
   var pathfindingWorldRevision = 1;
   var pathChangeCellX = -1;
   var pathChangeCellY = -1;
@@ -304,6 +321,159 @@
   var pathScratchQueueY = null;
   var pathScratchHeap = null;
   var worldSeed = 0;
+
+  function getLocalized(key, fallback) {
+    if (window.WebLocale && window.WebLocale.get) {
+      return window.WebLocale.get(key, fallback);
+    }
+    if (fallback != null) {
+      return fallback;
+    }
+    return key;
+  }
+
+  function formatLocalized(key, fallback) {
+    var argIndex;
+    var text = getLocalized(key, fallback);
+    for (argIndex = 2; argIndex < arguments.length; argIndex++) {
+      text = text.split("{" + String(argIndex - 2) + "}").join(String(arguments[argIndex]));
+    }
+    return text;
+  }
+
+  function applyDomLocale(root) {
+    var scope = root || document;
+    var keyElements = scope.querySelectorAll("[data-locale-key]");
+    var index;
+    for (index = 0; index < keyElements.length; index++) {
+      var element = keyElements[index];
+      var localeKey = element.getAttribute("data-locale-key");
+      if (!localeKey) {
+        continue;
+      }
+      element.textContent = getLocalized(localeKey, element.textContent);
+    }
+    var ariaElements = scope.querySelectorAll("[data-locale-aria-label]");
+    for (index = 0; index < ariaElements.length; index++) {
+      var ariaElement = ariaElements[index];
+      var ariaKey = ariaElement.getAttribute("data-locale-aria-label");
+      if (!ariaKey) {
+        continue;
+      }
+      ariaElement.setAttribute("aria-label", getLocalized(ariaKey, ariaElement.getAttribute("aria-label") || ""));
+    }
+  }
+
+  function getBuildLabel(buildId) {
+    var definition = getBuildDefinition(buildId);
+    if (!definition) {
+      return "";
+    }
+    var fallback = BUILD_LABEL_FALLBACKS[buildId];
+    if (!fallback) {
+      fallback = buildId;
+    }
+    return getLocalized(definition.localeKey, fallback);
+  }
+
+  function getBuildCostLabel(cost) {
+    return formatLocalized(LOCALE_KEY_BUILD_COST_SUFFIX, "{0} g", cost);
+  }
+
+  function loadRecordGoldCollected() {
+    var raw = 0;
+    try {
+      raw = parseInt(window.localStorage.getItem(STORAGE_BEST_GOLD_COLLECTED) || "0", 10);
+    } catch (storageError) {
+      raw = 0;
+    }
+    if (isNaN(raw) || raw < 0) {
+      raw = 0;
+    }
+    return raw;
+  }
+
+  function saveRecordGoldCollected(value) {
+    try {
+      window.localStorage.setItem(STORAGE_BEST_GOLD_COLLECTED, String(value));
+    } catch (storageError) {
+    }
+  }
+
+  function updateBestGoldLine() {
+    if (!bestGoldLine) {
+      return;
+    }
+    bestGoldLine.textContent = formatLocalized(
+      LOCALE_KEY_BEST_GOLD,
+      "Best gold collected: {0}",
+      recordGoldCollected
+    );
+  }
+
+  function updateControlHint() {
+    if (!controlHint) {
+      return;
+    }
+    controlHint.textContent = formatLocalized(
+      LOCALE_KEY_HINT,
+      "Top-down base defense on a {0}×{1} field. Pan with WASD, drag, or touch. Scroll to zoom. The dashed path and direction arrow show the next demon attack route; each new wave picks a fresh side automatically.",
+      WORLD_SIZE,
+      WORLD_SIZE
+    );
+  }
+
+  function updateBuildBarLabels() {
+    if (!buildButtonsById) {
+      return;
+    }
+    var noneButton = buildButtonsById[BUILD_NONE];
+    if (noneButton) {
+      noneButton.textContent = getLocalized(LOCALE_KEY_BUILD_NONE, "None");
+    }
+    var sellButton = buildButtonsById[BUILD_SELL];
+    if (sellButton) {
+      sellButton.innerHTML =
+        '<span class="build-btn-label">' +
+        getLocalized(LOCALE_KEY_BUILD_SELL, "Sell") +
+        '</span><span class="build-btn-cost">' +
+        getLocalized(LOCALE_KEY_BUILD_SELL_REFUND, "60% refund") +
+        "</span>";
+    }
+    var index;
+    for (index = 0; index < BUILD_DEFINITIONS.length; index++) {
+      var definition = BUILD_DEFINITIONS[index];
+      var button = buildButtonsById[definition.id];
+      if (!button) {
+        continue;
+      }
+      var buildSpriteKey = getBuildingSpriteKey(definition.id);
+      var buildSpritePath = SPRITE_FILE_BY_KEY[buildSpriteKey];
+      button.innerHTML =
+        '<img class="build-btn-icon" src="' +
+        buildSpritePath +
+        '" alt="" />' +
+        '<span class="build-btn-label">' +
+        getBuildLabel(definition.id) +
+        '</span><span class="build-btn-cost">' +
+        getBuildCostLabel(definition.cost) +
+        "</span>";
+    }
+  }
+
+  function applyGameLocale() {
+    applyDomLocale(document);
+    document.title = getLocalized(LOCALE_KEY_TITLE, "Demon Bastion");
+    updateControlHint();
+    updateBestGoldLine();
+    updateBuildBarLabels();
+    updateGameOverLines();
+    document.documentElement.classList.add("locale-ready");
+  }
+
+  function onGameLocaleApplied() {
+    applyGameLocale();
+  }
 
   function cellIndex(cellX, cellY) {
     return cellY * WORLD_SIZE + cellX;
@@ -2376,19 +2546,6 @@
     return corner >= 0 && corner < SPAWN_CORNER_COUNT && corner !== getPlayerSpawnCorner();
   }
 
-  function getSpawnCornerLabel(corner) {
-    if (corner === SPAWN_CORNER_NE) {
-      return SPAWN_CORNER_LABEL_NE;
-    }
-    if (corner === SPAWN_CORNER_SE) {
-      return SPAWN_CORNER_LABEL_SE;
-    }
-    if (corner === SPAWN_CORNER_SW) {
-      return SPAWN_CORNER_LABEL_SW;
-    }
-    return SPAWN_CORNER_LABEL_NW;
-  }
-
   function pickRandomAllowedSpawnCorner() {
     var blockedCorner = getPlayerSpawnCorner();
     var corner = randomInt(0, SPAWN_CORNER_COUNT - 1);
@@ -2414,22 +2571,6 @@
       return pickRandomAllowedSpawnCorner();
     }
     return allowedCorners[randomInt(0, allowedCorners.length - 1)];
-  }
-
-  function getNextAllowedSpawnCorner(currentCorner) {
-    var cornerIndex = currentCorner + 1;
-    if (cornerIndex >= SPAWN_CORNER_COUNT) {
-      cornerIndex = 0;
-    }
-    var safety = 0;
-    while (!isSpawnCornerAllowed(cornerIndex) && safety < SPAWN_CORNER_COUNT) {
-      cornerIndex += 1;
-      if (cornerIndex >= SPAWN_CORNER_COUNT) {
-        cornerIndex = 0;
-      }
-      safety += 1;
-    }
-    return cornerIndex;
   }
 
   function isCellInSpawnCorner(cellX, cellY, corner) {
@@ -2501,105 +2642,6 @@
     return bestCorner;
   }
 
-  function getSpawnEdgeLabel(edge) {
-    if (edge === SPAWN_EDGE_EAST) {
-      return SPAWN_EDGE_LABEL_EAST;
-    }
-    if (edge === SPAWN_EDGE_SOUTH) {
-      return SPAWN_EDGE_LABEL_SOUTH;
-    }
-    if (edge === SPAWN_EDGE_WEST) {
-      return SPAWN_EDGE_LABEL_WEST;
-    }
-    return SPAWN_EDGE_LABEL_NORTH;
-  }
-
-  function canChooseSpawnEdge() {
-    if (phase !== PHASE_PLAYING) {
-      return false;
-    }
-    return livingDemonCount < 1;
-  }
-
-  function isCellOnSpawnEdge(cellX, cellY, edge) {
-    var margin = getSpawnSampleMargin();
-    var band = SPAWN_EDGE_BAND;
-    if (edge === SPAWN_EDGE_NORTH) {
-      return cellY >= margin && cellY <= margin + band;
-    }
-    if (edge === SPAWN_EDGE_SOUTH) {
-      return cellY >= WORLD_SIZE - margin - band - 1 && cellY <= WORLD_SIZE - margin - 1;
-    }
-    if (edge === SPAWN_EDGE_WEST) {
-      return cellX >= margin && cellX <= margin + band;
-    }
-    if (edge === SPAWN_EDGE_EAST) {
-      return cellX >= WORLD_SIZE - margin - band - 1 && cellX <= WORLD_SIZE - margin - 1;
-    }
-    return false;
-  }
-
-  function getFurthestSpawnOnEdge(edge) {
-    var bestCandidate = { x: WORLD_SIZE >> 1, y: WORLD_SIZE >> 1, score: -1 };
-    var sampleStep = SPAWN_PREVIEW_COARSE_STEP;
-    var margin = getSpawnSampleMargin();
-    var sampleY;
-    var sampleX;
-    if (edge === SPAWN_EDGE_NORTH || edge === SPAWN_EDGE_SOUTH) {
-      var minY = margin;
-      var maxY = margin + SPAWN_EDGE_BAND;
-      if (edge === SPAWN_EDGE_SOUTH) {
-        minY = WORLD_SIZE - margin - SPAWN_EDGE_BAND - 1;
-        maxY = WORLD_SIZE - margin - 1;
-      }
-      for (sampleY = minY; sampleY <= maxY; sampleY += sampleStep) {
-        for (sampleX = margin; sampleX < WORLD_SIZE - margin; sampleX += sampleStep) {
-          tryUpdateBestSpawnCandidate(sampleX, sampleY, bestCandidate);
-        }
-      }
-    } else {
-      var minX = margin;
-      var maxX = margin + SPAWN_EDGE_BAND;
-      if (edge === SPAWN_EDGE_EAST) {
-        minX = WORLD_SIZE - margin - SPAWN_EDGE_BAND - 1;
-        maxX = WORLD_SIZE - margin - 1;
-      }
-      for (sampleX = minX; sampleX <= maxX; sampleX += sampleStep) {
-        for (sampleY = margin; sampleY < WORLD_SIZE - margin; sampleY += sampleStep) {
-          tryUpdateBestSpawnCandidate(sampleX, sampleY, bestCandidate);
-        }
-      }
-    }
-    var refineOffsetY;
-    var refineOffsetX;
-    for (refineOffsetY = -SPAWN_PREVIEW_REFINE_RADIUS; refineOffsetY <= SPAWN_PREVIEW_REFINE_RADIUS; refineOffsetY++) {
-      for (refineOffsetX = -SPAWN_PREVIEW_REFINE_RADIUS; refineOffsetX <= SPAWN_PREVIEW_REFINE_RADIUS; refineOffsetX++) {
-        var refineX = bestCandidate.x + refineOffsetX;
-        var refineY = bestCandidate.y + refineOffsetY;
-        if (!isCellOnSpawnEdge(refineX, refineY, edge)) {
-          continue;
-        }
-        tryUpdateBestSpawnCandidate(refineX, refineY, bestCandidate);
-      }
-    }
-    return { x: bestCandidate.x, y: bestCandidate.y };
-  }
-
-  function getDefaultSpawnEdge() {
-    var bestEdge = SPAWN_EDGE_NORTH;
-    var bestScore = -1;
-    var edgeIndex;
-    for (edgeIndex = 0; edgeIndex < SPAWN_EDGE_COUNT; edgeIndex++) {
-      var spawnCell = getFurthestSpawnOnEdge(edgeIndex);
-      var score = getNearestWorkshopDistance(spawnCell.x, spawnCell.y);
-      if (score > bestScore) {
-        bestScore = score;
-        bestEdge = edgeIndex;
-      }
-    }
-    return bestEdge;
-  }
-
   function findDemonMarchPath(startX, startY) {
     var workshop = findNearestWorkshop(startX, startY);
     if (!workshop) {
@@ -2611,107 +2653,6 @@
       goalY: marchPath.goalY,
       path: marchPath.path
     };
-  }
-
-  function setSelectedSpawnCorner(corner) {
-    if (!isSpawnCornerAllowed(corner)) {
-      return false;
-    }
-    if (!canChooseSpawnEdge()) {
-      return false;
-    }
-    selectedSpawnCorner = corner;
-    refreshNextSpawnPreview();
-    addFloatingText(nextSpawnCellX, nextSpawnCellY, getSpawnCornerLabel(corner), "#ffb050");
-    markMinimapDirty();
-    return true;
-  }
-
-  function cycleSelectedSpawnCorner() {
-    if (!canChooseSpawnEdge()) {
-      return false;
-    }
-    var nextCorner = getNextAllowedSpawnCorner(selectedSpawnCorner);
-    if (selectedSpawnCorner < 0) {
-      nextCorner = pickRandomAllowedSpawnCorner();
-    }
-    return setSelectedSpawnCorner(nextCorner);
-  }
-
-  function getSpawnCornerFromScreenPoint(screenX, screenY) {
-    var distTop = screenY;
-    var distBottom = canvasHeight - screenY;
-    var distLeft = screenX;
-    var distRight = canvasWidth - screenX;
-    var minDist = distTop;
-    var corner = SPAWN_CORNER_NE;
-    if (distRight < minDist) {
-      minDist = distRight;
-      corner = SPAWN_CORNER_SE;
-    }
-    if (distBottom < minDist) {
-      minDist = distBottom;
-      if (screenX >= canvasWidth * 0.5) {
-        corner = SPAWN_CORNER_SE;
-      } else {
-        corner = SPAWN_CORNER_SW;
-      }
-    }
-    if (distLeft < minDist) {
-      corner = SPAWN_CORNER_SW;
-    }
-    if (minDist > SPAWN_EDGE_PICK_SCREEN_MARGIN) {
-      return -1;
-    }
-    if (!isSpawnCornerAllowed(corner)) {
-      corner = pickRandomAllowedSpawnCorner();
-    }
-    return corner;
-  }
-
-  function setSelectedSpawnEdge(edge) {
-    var corner = SPAWN_CORNER_NE;
-    if (edge === SPAWN_EDGE_EAST) {
-      corner = SPAWN_CORNER_SE;
-    } else if (edge === SPAWN_EDGE_SOUTH) {
-      corner = SPAWN_CORNER_SE;
-    } else if (edge === SPAWN_EDGE_WEST) {
-      corner = SPAWN_CORNER_SW;
-    }
-    return setSelectedSpawnCorner(corner);
-  }
-
-  function cycleSelectedSpawnEdge() {
-    return cycleSelectedSpawnCorner();
-  }
-
-  function isScreenPointOnSpawnArrow(screenX, screenY) {
-    if (lastSpawnArrowHitRadius <= 0) {
-      return false;
-    }
-    var deltaX = screenX - lastSpawnArrowScreenX;
-    var deltaY = screenY - lastSpawnArrowScreenY;
-    var hitRadius = lastSpawnArrowHitRadius + 8;
-    return deltaX * deltaX + deltaY * deltaY <= hitRadius * hitRadius;
-  }
-
-  function tryHandleSpawnEdgeClick(screenX, screenY) {
-    if (!canChooseSpawnEdge()) {
-      return false;
-    }
-    if (isScreenPointOnSpawnArrow(screenX, screenY)) {
-      cycleSelectedSpawnCorner();
-      return true;
-    }
-    var corner = getSpawnCornerFromScreenPoint(screenX, screenY);
-    if (corner < 0) {
-      return false;
-    }
-    if (selectedSpawnCorner === corner) {
-      return true;
-    }
-    setSelectedSpawnCorner(corner);
-    return true;
   }
 
   function refreshNextSpawnPreview() {
@@ -2779,7 +2720,7 @@
   function spawnDemonWave() {
     waveNumber += 1;
     if (selectedSpawnCorner < 0 || !isSpawnCornerAllowed(selectedSpawnCorner)) {
-      selectedSpawnCorner = getDefaultSpawnCorner();
+      selectedSpawnCorner = pickRandomAllowedSpawnCorner();
     }
     refreshNextSpawnPreview();
     var waveSpawnCorner = selectedSpawnCorner;
@@ -2814,7 +2755,12 @@
       });
       livingDemonCount += 1;
     }
-    addFloatingText(spawnPoint.x, spawnPoint.y, "WAVE " + String(waveNumber), "#ff5050");
+    addFloatingText(
+      spawnPoint.x,
+      spawnPoint.y,
+      formatLocalized(LOCALE_KEY_WAVE_ANNOUNCE, "WAVE {0}", waveNumber),
+      "#ff5050"
+    );
     selectedSpawnCorner = pickRandomAllowedSpawnCornerExcept(waveSpawnCorner);
     refreshNextSpawnPreview();
   }
@@ -2859,6 +2805,7 @@
     if (amount <= 0) {
       return;
     }
+    totalGoldCollected += amount;
     addMoney(amount);
     addFloatingText(
       worldCellX,
@@ -4223,7 +4170,7 @@
                 speed: 12,
                 damage: definition.damage,
                 splashRadius: definition.splash,
-                spriteKey: "rocket"
+                spriteKey: "projectile"
               });
             } else {
               var buildingSize = building.size || 1;
@@ -4429,6 +4376,34 @@
     checkPendingWaveSpawn();
   }
 
+  function updateGameOverLines() {
+    if (phase !== PHASE_GAME_OVER) {
+      return;
+    }
+    if (gameOverLine) {
+      gameOverLine.textContent = formatLocalized(
+        LOCALE_KEY_GAME_OVER,
+        "All workshops destroyed — wave {0}",
+        waveNumber
+      );
+    }
+    if (gameOverGoldLine) {
+      gameOverGoldLine.textContent = formatLocalized(
+        LOCALE_KEY_GAME_OVER_GOLD,
+        "Gold collected: {0}",
+        totalGoldCollected
+      );
+    }
+    if (gameOverRecordLine) {
+      if (runSetRecord) {
+        gameOverRecordLine.textContent = getLocalized(LOCALE_KEY_NEW_RECORD, "NEW RECORD!");
+        gameOverRecordLine.classList.remove("hidden");
+      } else {
+        gameOverRecordLine.classList.add("hidden");
+      }
+    }
+  }
+
   function checkGameOver() {
     var hasWorkshop = false;
     var index;
@@ -4440,12 +4415,22 @@
     }
     if (!hasWorkshop) {
       phase = PHASE_GAME_OVER;
-      gameOverLine.textContent = "All workshops destroyed — wave " + String(waveNumber);
+      runSetRecord = false;
+      if (totalGoldCollected > recordGoldCollected) {
+        recordGoldCollected = totalGoldCollected;
+        saveRecordGoldCollected(recordGoldCollected);
+        runSetRecord = true;
+      }
+      updateGameOverLines();
       gameOverLine.classList.remove("hidden");
+      if (gameOverGoldLine) {
+        gameOverGoldLine.classList.remove("hidden");
+      }
       gameScreen.classList.remove("hidden");
       hudTop.classList.add("hidden");
       buildBar.classList.add("hidden");
       minimapPanel.classList.add("hidden");
+      updateBestGoldLine();
     }
   }
 
@@ -4856,9 +4841,7 @@
       var rect = canvas.getBoundingClientRect();
       var screenX = event.clientX - rect.left;
       var screenY = event.clientY - rect.top;
-      if (!tryHandleSpawnEdgeClick(screenX, screenY)) {
-        handleWorldClick(screenX, screenY);
-      }
+      handleWorldClick(screenX, screenY);
     }
     pointerDown = false;
     pointerDrag = false;
@@ -5427,11 +5410,12 @@
     var index;
     for (index = 0; index < projectiles.length; index++) {
       var projectile = projectiles[index];
+      var isRocketProjectile = projectile.splashRadius > 0;
       var spriteKey = projectile.spriteKey || "projectile";
-      var drawSize = spriteKey === "rocket" ? Math.max(6, cellPixelSize * 0.42) : Math.max(4, cellPixelSize * 0.3);
+      var drawSize = isRocketProjectile ? Math.max(6, cellPixelSize * 0.42) : Math.max(4, cellPixelSize * 0.3);
       var screen = worldToScreen(projectile.x - 0.15, projectile.y - 0.15);
       if (!drawSprite(spriteKey, screen.x, screen.y, drawSize, drawSize)) {
-        context.fillStyle = spriteKey === "rocket" ? "#ff8040" : "#ffe060";
+        context.fillStyle = isRocketProjectile ? "#ff8040" : "#ffe060";
         context.fillRect(screen.x, screen.y, drawSize, drawSize);
       }
     }
@@ -5621,7 +5605,6 @@
   }
 
   function renderSpawnDirectionArrow() {
-    lastSpawnArrowHitRadius = 0;
     if (phase !== PHASE_PLAYING) {
       return;
     }
@@ -5640,13 +5623,6 @@
     var blue = Math.floor(90 - urgency * 70);
     var fillAlpha = 0.28 + urgency * 0.62;
     var strokeAlpha = 0.4 + urgency * 0.55;
-    lastSpawnArrowScreenX = edgePoint.x;
-    lastSpawnArrowScreenY = edgePoint.y;
-    lastSpawnArrowHitRadius = arrowSize + 6;
-    if (canChooseSpawnEdge()) {
-      fillAlpha += 0.12;
-      strokeAlpha += 0.15;
-    }
     context.save();
     context.translate(edgePoint.x, edgePoint.y);
     context.rotate(edgePoint.angle);
@@ -5818,7 +5794,7 @@
     noneButton.type = "button";
     noneButton.className = "build-btn build-btn-none";
     noneButton.setAttribute("data-build-id", BUILD_NONE);
-    noneButton.textContent = "None";
+    noneButton.textContent = getLocalized(LOCALE_KEY_BUILD_NONE, "None");
     noneButton.addEventListener("click", function (event) {
       var target = event.currentTarget;
       var buildId = target.getAttribute("data-build-id");
@@ -5843,10 +5819,10 @@
         buildSpritePath +
         '" alt="" />' +
         '<span class="build-btn-label">' +
-        definition.label +
+        getBuildLabel(definition.id) +
         '</span><span class="build-btn-cost">' +
-        String(definition.cost) +
-        " cr</span>";
+        getBuildCostLabel(definition.cost) +
+        "</span>";
       button.addEventListener("click", function (event) {
         var target = event.currentTarget;
         var buildId = target.getAttribute("data-build-id");
@@ -5862,7 +5838,12 @@
     sellButton.type = "button";
     sellButton.className = "build-btn build-btn-sell";
     sellButton.setAttribute("data-build-id", BUILD_SELL);
-    sellButton.innerHTML = '<span class="build-btn-label">Sell</span><span class="build-btn-cost">60% refund</span>';
+    sellButton.innerHTML =
+      '<span class="build-btn-label">' +
+      getLocalized(LOCALE_KEY_BUILD_SELL, "Sell") +
+      '</span><span class="build-btn-cost">' +
+      getLocalized(LOCALE_KEY_BUILD_SELL_REFUND, "60% refund") +
+      "</span>";
     sellButton.addEventListener("click", function (event) {
       var target = event.currentTarget;
       var buildId = target.getAttribute("data-build-id");
@@ -5897,6 +5878,9 @@
 
   function updateHud() {
     hudMoney.textContent = String(money);
+    if (hudScore) {
+      hudScore.textContent = String(totalGoldCollected);
+    }
     hudWave.textContent = String(waveNumber);
     var angerRatio = demonAnger / DEMON_ANGER_MAX;
     if (angerRatio < 0) angerRatio = 0;
@@ -5935,13 +5919,12 @@
     floatingTexts = [];
     livingDemonCount = 0;
     money = 0;
+    totalGoldCollected = 0;
+    runSetRecord = false;
     demonAnger = 0;
     waveNumber = 0;
     pendingWaveSpawns = 0;
     selectedSpawnCorner = -1;
-    lastSpawnArrowScreenX = -1;
-    lastSpawnArrowScreenY = -1;
-    lastSpawnArrowHitRadius = 0;
     nextSpawnPreviewWorldRevision = -1;
     selectedBuildId = BUILD_NONE;
     cellPixelSize = DEFAULT_CELL_PIXEL_SIZE;
@@ -5957,6 +5940,12 @@
     phase = PHASE_PLAYING;
     gameScreen.classList.add("hidden");
     gameOverLine.classList.add("hidden");
+    if (gameOverGoldLine) {
+      gameOverGoldLine.classList.add("hidden");
+    }
+    if (gameOverRecordLine) {
+      gameOverRecordLine.classList.add("hidden");
+    }
     hudTop.classList.remove("hidden");
     buildBar.classList.remove("hidden");
     minimapPanel.classList.remove("hidden");
@@ -5969,6 +5958,7 @@
   }
 
   function bindInput() {
+    window.addEventListener("web-locale-applied", onGameLocaleApplied);
     window.addEventListener("resize", resizeCanvas);
     document.addEventListener("keydown", function (event) {
       keysDown[event.key] = true;
@@ -6152,20 +6142,18 @@
     btnZoomOut = document.getElementById("btnZoomOut");
     hudTop = document.getElementById("hudTop");
     hudMoney = document.getElementById("hudMoney");
+    hudScore = document.getElementById("hudScore");
     hudAngerFill = document.getElementById("hudAngerFill");
     hudWave = document.getElementById("hudWave");
     buildBar = document.getElementById("buildBar");
     gameScreen = document.getElementById("gameScreen");
     gameOverLine = document.getElementById("gameOverLine");
+    gameOverGoldLine = document.getElementById("gameOverGoldLine");
+    gameOverRecordLine = document.getElementById("gameOverRecordLine");
+    bestGoldLine = document.getElementById("bestGoldLine");
     controlHint = document.getElementById("controlHint");
-    if (controlHint) {
-      controlHint.textContent =
-        "Top-down base defense on a " +
-        String(WORLD_SIZE) +
-        "×" +
-        String(WORLD_SIZE) +
-        " field. Pan with WASD, drag, or touch. Scroll to zoom. Between waves, click a screen edge or the direction arrow to choose the next demon attack side; the dashed path shows their expected route.";
-    }
+    recordGoldCollected = loadRecordGoldCollected();
+    applyGameLocale();
     buildings = [];
     buildOrders = [];
     activeBuildOrderCount = 0;
