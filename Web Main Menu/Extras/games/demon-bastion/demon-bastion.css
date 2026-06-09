@@ -299,13 +299,35 @@ body {
   color: rgba(255, 220, 180, 0.78);
 }
 
-#gameOverLine {
-  margin-top: 14px;
-  font-size: 0.9rem;
-  color: #ff6050;
-  letter-spacing: 0.12em;
+#bestGoldLine {
+  margin-top: 12px;
+  font-size: 0.72rem;
+  color: rgba(255, 190, 110, 0.82);
+  letter-spacing: 0.08em;
 }
 
-#gameOverLine.hidden {
+#gameOverLine,
+#gameOverGoldLine,
+#gameOverRecordLine {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+}
+
+#gameOverLine {
+  color: #ff6050;
+}
+
+#gameOverGoldLine {
+  color: rgba(255, 200, 130, 0.9);
+}
+
+#gameOverRecordLine {
+  color: #ffb040;
+}
+
+#gameOverLine.hidden,
+#gameOverGoldLine.hidden,
+#gameOverRecordLine.hidden {
   display: none;
 }

@@ -2288,6 +2288,14 @@ var WebWindowManager = (function () {
       window.WebSettings.releaseContent();
       return;
     }
+    if (
+      (presetName === "extras-games" || presetName === "extras-art" || presetName === "extras-links") &&
+      window.WebExtras &&
+      window.WebExtras.releaseContent
+    ) {
+      window.WebExtras.releaseContent(windowElement);
+      return;
+    }
     var scrollSelector = ".menu-v-scroll-view, .settings-scroll, .extras-scroll, .credits-scroll, .worlds-list";
     var scrollNodes = windowElement.querySelectorAll(scrollSelector);
     var index;
