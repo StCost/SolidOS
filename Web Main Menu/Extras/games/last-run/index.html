@@ -6,6 +6,7 @@
   <title>Last Run</title>
   <script src="../iframe-game-locale.js"></script>
   <script src="../iframe-game-input.js"></script>
+  <script src="../extras-game-synth-audio.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -429,6 +430,8 @@
   </div>
   <script src="../extras-game-start-music-notify.js"></script>
   <script>
+    function getSynth() { return window.WebExtrasGameSynthAudio; }
+
     var HIGH_SCORE_STORAGE_KEY = "cm-last-run-high-score";
     var GAME_TITLE = "Last Run";
     var LOCALE_KEY_GAME_OVER = "web.game.game-over";
@@ -995,6 +998,9 @@
         hudHighScore.classList.add("is-record");
         spawnRecordBurst();
         recordBurst.classList.add("is-active");
+        if (getSynth()) {
+          getSynth().playRecord();
+        }
       } else {
         gameScreen.classList.remove("is-record");
         hudHighScore.classList.remove("is-record");
@@ -1283,6 +1289,9 @@
 
     function endGame() {
       var newRecord = false;
+      if (getSynth()) {
+        getSynth().playFail();
+      }
       var finalMeters = Math.floor(distanceMeters);
       if (finalMeters > highScoreMeters) {
         highScoreMeters = finalMeters;
@@ -1300,6 +1309,9 @@
 
     function triggerDamageEffects() {
       var index;
+      if (getSynth()) {
+        getSynth().playImpact();
+      }
       screenShakeTimer = 0.22;
       screenShakeStrength = 7;
       damageFlash.classList.remove("is-active");
@@ -1368,6 +1380,9 @@
       jumpLaunched = true;
       jumpHoldTime = 0;
       playerVelocityY = -jumpTapImpulse;
+      if (getSynth()) {
+        getSynth().playJump();
+      }
       addTrailCleanup();
     }
 
@@ -1460,6 +1475,9 @@
       var groundY = getPlayerGroundY();
       var footY = groundY + playerYOffset;
       if (footY >= groundY) {
+        if (!grounded && getSynth()) {
+          getSynth().playLandThud();
+        }
         playerYOffset = 0;
         playerVelocityY = 0;
         grounded = true;
@@ -1678,6 +1696,9 @@
 
     function spawnMeteorExplosion(screenX, groundY, meteorSize) {
       var index;
+      if (getSynth()) {
+        getSynth().playExplosion(true);
+      }
       meteorExplosions.push({
         screenX: screenX,
         groundY: groundY,
