@@ -11,6 +11,56 @@
     return presetName.split("\\").join("\\\\").split('"').join("\\\"");
   }
 
+  function isSavedLayoutOpen(entry) {
+    if (!entry) return false;
+    if (entry.open === false || entry.open === 0) return false;
+    if (entry.open === true || entry.open === 1) return true;
+    return true;
+  }
+
+  function shouldPresetBeOpenByDefault(presetName) {
+    if (presetName === "menu-splash") return true;
+    return false;
+  }
+
+  function getPersistedEntryForPreset(presetName) {
+    var index = 0;
+    for (index = 0; index < persistedLayouts.length; index++) {
+      if (persistedLayouts[index] && persistedLayouts[index].preset === presetName) {
+        return persistedLayouts[index];
+      }
+    }
+    return null;
+  }
+
+  function shouldPresetBeOpen(presetName) {
+    var persistedEntry = getPersistedEntryForPreset(presetName);
+    if (persistedEntry && persistedEntry.open !== undefined) {
+      return isSavedLayoutOpen(persistedEntry);
+    }
+    return shouldPresetBeOpenByDefault(presetName);
+  }
+
+  function buildOpenStateCssRule(presetName, shouldOpen) {
+    var presetSelector = escapePresetSelector(presetName);
+    if (!shouldOpen) {
+      return (
+        "html." +
+        HTML_BOOTSTRAP_CLASS +
+        ' .os-window[data-wm-preset="' +
+        presetSelector +
+        '"]{visibility:hidden!important;pointer-events:none!important;opacity:0!important;}'
+      );
+    }
+    return (
+      "html." +
+      HTML_BOOTSTRAP_CLASS +
+      ' .os-window[data-wm-preset="' +
+      presetSelector +
+      '"].os-window--closed{visibility:visible!important;pointer-events:auto!important;opacity:1!important;}'
+    );
+  }
+
   function readLayoutsPayload() {
     if (window.__cmWmLayoutsPayload) {
       return window.__cmWmLayoutsPayload;
@@ -169,6 +219,13 @@
         sizeCss +
         "bottom:auto;right:auto;transform:none;margin:0;}"
     );
+  }
+
+  for (presetName in defaultWindowLayouts) {
+    if (!Object.prototype.hasOwnProperty.call(defaultWindowLayouts, presetName)) {
+      continue;
+    }
+    cssRules.push(buildOpenStateCssRule(presetName, shouldPresetBeOpen(presetName)));
   }
 
   if (!cssRules.length) return;
