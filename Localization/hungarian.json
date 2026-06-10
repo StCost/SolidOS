@@ -195,6 +195,7 @@
   "web.connect.prompt.net-join": "net join",
   "web.connect.prompt.net-use": "net use",
   "web.connect.prompt.net-view": "net view",
+  "web.credits.developers": "Fejlesztő: Dreaming Saints.",
   "web.credits.game-description": "co-op tesla-punk open-world fps játék",
   "web.credits.intro-line": "COLLAPSE MACHINE by Dreaming Saints",
   "web.credits.loading": "Stáblista betöltése...",
@@ -397,9 +398,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Stáblista",
   "web.window.extras-data": "extras.dat",
-  "yes": "Igen",
-  "settings.menu-icon-snap-to-grid": "Asztali ikonok rácshoz igazítása",
-  "web.credits.developers": "Fejlesztő: Dreaming Saints.",
-  "web.game.cargo-convoy.crystals-label": "KRISTÁLYOK",
-  "web.game.cargo-convoy.spawn-escort": "+ KÍSÉRET ({0})"
+  "yes": "Igen"
 }

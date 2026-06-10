@@ -195,6 +195,7 @@
   "web.connect.prompt.net-join": "net join",
   "web.connect.prompt.net-use": "net use",
   "web.connect.prompt.net-view": "net view",
+  "web.credits.developers": "Dreaming Saints 개발",
   "web.credits.game-description": "협동 테슬라펑크 오픈 월드 FPS",
   "web.credits.intro-line": "COLLAPSE MACHINE by Dreaming Saints",
   "web.credits.loading": "크레딧 불러오는 중...",
@@ -397,9 +398,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "크레딧",
   "web.window.extras-data": "extras.dat",
-  "yes": "예",
-  "settings.menu-icon-snap-to-grid": "바탕화면 아이콘을 격자에 맞춤",
-  "web.credits.developers": "Dreaming Saints 개발",
-  "web.game.cargo-convoy.crystals-label": "크리스탈",
-  "web.game.cargo-convoy.spawn-escort": "+ 호위 ({0})"
+  "yes": "예"
 }

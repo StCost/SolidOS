@@ -195,6 +195,7 @@
   "web.connect.prompt.net-join": "net join",
   "web.connect.prompt.net-use": "net use",
   "web.connect.prompt.net-view": "net view",
+  "web.credits.developers": "Разработено от Dreaming Saints.",
   "web.credits.game-description": "кооперативна tesla-punk open-world FPS игра",
   "web.credits.intro-line": "COLLAPSE MACHINE by Dreaming Saints",
   "web.credits.loading": "Зареждане на екипа...",
@@ -397,9 +398,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Екип",
   "web.window.extras-data": "extras.dat",
-  "yes": "Да",
-  "settings.menu-icon-snap-to-grid": "Подравняване на иконите към мрежата",
-  "web.credits.developers": "Разработено от Dreaming Saints.",
-  "web.game.cargo-convoy.crystals-label": "КРИСТАЛИ",
-  "web.game.cargo-convoy.spawn-escort": "+ ЕСКОРТ ({0})"
+  "yes": "Да"
 }

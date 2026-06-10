@@ -195,6 +195,7 @@
   "web.connect.prompt.net-join": "net join",
   "web.connect.prompt.net-use": "net use",
   "web.connect.prompt.net-view": "net view",
+  "web.credits.developers": "พัฒนาโดย Dreaming Saints",
   "web.credits.game-description": "เกม FPS โลกเปิด tesla-punk แบบร่วมมือ",
   "web.credits.intro-line": "COLLAPSE MACHINE by Dreaming Saints",
   "web.credits.loading": "กำลังโหลดเครดิต...",
@@ -397,9 +398,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "เครดิต",
   "web.window.extras-data": "extras.dat",
-  "yes": "ใช่",
-  "settings.menu-icon-snap-to-grid": "จัดไอคอนเดสก์ท็อปให้ตรงกริด",
-  "web.credits.developers": "พัฒนาโดย Dreaming Saints",
-  "web.game.cargo-convoy.crystals-label": "คริสตัล",
-  "web.game.cargo-convoy.spawn-escort": "+ คุ้มกัน ({0})"
+  "yes": "ใช่"
 }

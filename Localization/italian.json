@@ -195,6 +195,7 @@
   "web.connect.prompt.net-join": "net join",
   "web.connect.prompt.net-use": "net use",
   "web.connect.prompt.net-view": "net view",
+  "web.credits.developers": "Sviluppato da Dreaming Saints.",
   "web.credits.game-description": "FPS open world tesla-punk co-op",
   "web.credits.intro-line": "COLLAPSE MACHINE by Dreaming Saints",
   "web.credits.loading": "Caricamento crediti...",
@@ -397,9 +398,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Crediti",
   "web.window.extras-data": "extras.dat",
-  "yes": "Sì",
-  "settings.menu-icon-snap-to-grid": "Allinea le icone del desktop alla griglia",
-  "web.credits.developers": "Sviluppato da Dreaming Saints.",
-  "web.game.cargo-convoy.crystals-label": "CRISTALLI",
-  "web.game.cargo-convoy.spawn-escort": "+ SCORTA ({0})"
+  "yes": "Sì"
 }
