@@ -44,6 +44,13 @@
     }
   }
 
+  function scalePeakGain(peakGain) {
+    if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.scalePeakGain) {
+      return window.WebExtrasGameAudioVolume.scalePeakGain(peakGain);
+    }
+    return peakGain * 0.5;
+  }
+
   function scheduleGainEnvelope(gainNode, peakGain, startTime, attackSeconds, releaseSeconds) {
     gainNode.gain.setValueAtTime(0.001, startTime);
     gainNode.gain.exponentialRampToValueAtTime(peakGain, startTime + attackSeconds);
@@ -72,7 +79,7 @@
     if (Math.abs(endFreq - startFrequency) > 0.5) {
       oscillator.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
     }
-    scheduleGainEnvelope(gainNode, peakGain, now, 0.008, duration);
+    scheduleGainEnvelope(gainNode, scalePeakGain(peakGain), now, 0.008, duration);
     oscillator.connect(gainNode);
     gainNode.connect(context.destination);
     oscillator.start(now);
@@ -100,7 +107,7 @@
     noiseSource = context.createBufferSource();
     noiseSource.buffer = noiseBuffer;
     noiseGain = context.createGain();
-    scheduleGainEnvelope(noiseGain, peakGain, now, 0.004, duration);
+    scheduleGainEnvelope(noiseGain, scalePeakGain(peakGain), now, 0.004, duration);
     noiseSource.connect(noiseGain);
     noiseGain.connect(context.destination);
     noiseSource.start(now);
@@ -281,7 +288,7 @@
     gainNode = context.createGain();
     oscillator.type = "sawtooth";
     oscillator.frequency.value = 90 + Math.random() * 40;
-    gainNode.gain.value = 0.08;
+    gainNode.gain.value = scalePeakGain(0.08);
     oscillator.connect(gainNode);
     gainNode.connect(context.destination);
     oscillator.start(now);
@@ -331,7 +338,7 @@
     oscillator.type = "sawtooth";
     oscillator.frequency.setValueAtTime(220, now);
     oscillator.frequency.exponentialRampToValueAtTime(55, now + 0.45);
-    gainNode.gain.setValueAtTime(0.2, now);
+    gainNode.gain.setValueAtTime(scalePeakGain(0.2), now);
     gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
     oscillator.connect(gainNode);
     gainNode.connect(context.destination);
@@ -345,7 +352,7 @@
     noiseSource = context.createBufferSource();
     noiseSource.buffer = noiseBuffer;
     noiseGain = context.createGain();
-    noiseGain.gain.setValueAtTime(0.12, now);
+    noiseGain.gain.setValueAtTime(scalePeakGain(0.12), now);
     noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
     noiseSource.connect(noiseGain);
     noiseGain.connect(context.destination);
