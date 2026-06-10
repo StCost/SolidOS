@@ -109,16 +109,7 @@ var localeFiles = fs.readdirSync(localizationDir).filter(function (name) {
   return name.endsWith(".json") && name !== "languages.json" && !name.startsWith("_");
 });
 
-var allowRemovePrefixes = ["web.game.cargo-convoy.spawn-escort", "web.game.cargo-convoy.crystals-label"];
-var removeKeys = unusedKeys.filter(function (key) {
-  var index = 0;
-  for (index = 0; index < allowRemovePrefixes.length; index += 1) {
-    if (key === allowRemovePrefixes[index]) {
-      return true;
-    }
-  }
-  return false;
-});
+var removeKeys = [];
 
 console.log("Unused keys (sample):");
 var sampleIndex = 0;

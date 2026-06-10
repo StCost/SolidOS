@@ -7,6 +7,7 @@
   <title>Sector Vector</title>
   <script src="../iframe-game-locale.js"></script>
   <script src="../iframe-game-input.js"></script>
+  <script src="../extras-game-start-music-notify.js"></script>
   <script src="../extras-game-synth-audio.js"></script>
   <style>
     * {
@@ -758,6 +759,9 @@
       controlHint.classList.remove("hidden");
       screenMeters.classList.add("hidden");
       hudPlaying.classList.add("hidden");
+      if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
+        window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
+      }
     }
 
     function showGameOverScreen(isRecord, displayDistanceUnits) {
@@ -777,6 +781,9 @@
         syncHighScoreHud(true);
       } else {
         gameScreen.classList.remove("is-record");
+      }
+      if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameOver) {
+        window.WebExtrasGameStartMusicNotify.notifyGameOver();
       }
     }
 
@@ -799,6 +806,9 @@
       if (getSynth()) {
         getSynth().ensureContext();
         getSynth().playGameStart();
+      }
+      if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
+        window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
       }
     }
 

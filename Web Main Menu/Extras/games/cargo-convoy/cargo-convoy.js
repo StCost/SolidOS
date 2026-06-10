@@ -2354,6 +2354,9 @@
     selectionRing.classList.remove("is-visible");
     resetMovementKeys();
     updateTruckDamageVignette();
+    if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
+      window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
+    }
   }
 
   function showGameOverScreen(isRecord) {
@@ -2373,6 +2376,9 @@
       gameScreen.classList.remove("is-record");
     }
     updateTruckDamageVignette();
+    if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameOver) {
+      window.WebExtrasGameStartMusicNotify.notifyGameOver();
+    }
     if (getSynth()) {
       if (isRecord) {
         getSynth().playRecord();
@@ -2395,6 +2401,9 @@
     }
     if (getSynth()) {
       getSynth().playGameStart();
+    }
+    if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
+      window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
     }
   }
 
