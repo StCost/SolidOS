@@ -46,6 +46,7 @@
         title: "Airborne Robot",
         path: "Extras/games/airborne-robot/index.html",
         image: "Extras/games/airborne-robot/airborne-robot-preview.jpg",
+        desktopIcon: "Extras/games/airborne-robot/airborne-robot-desktop-icon.png",
         difficulty: 4,
         startMusicPath: "ui-robot-start-music.wav",
         gameplayMusicPath: "ui-robot-game-music.wav"
@@ -104,7 +105,8 @@
         path: "Extras/games/factory-night/index.html",
         image: "Extras/games/factory-night/factory-night-preview.jpg",
         desktopIcon: "Extras/games/factory-night/factory-night-desktop-icon.png",
-        difficulty: 5
+        difficulty: 5,
+        startMusicPath: "ui-factory-night-game-music.wav"
       },
       {
         id: "playing-cards",
