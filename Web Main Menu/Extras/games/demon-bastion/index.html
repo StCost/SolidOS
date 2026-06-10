@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Demon Bastion</title>
+
+  <style>
+
+    html:not(.locale-ready) [data-locale-key],
+
+    html:not(.locale-ready) [data-locale-aria-label] {
+
+      visibility: hidden;
+
+    }
+
+  </style>
+
+  <script src="../iframe-game-locale.js"></script>
+
+  <script src="../iframe-game-input.js"></script>
+
+  <script src="../extras-game-start-music-notify.js"></script>
+
+  <script src="../extras-game-synth-audio.js"></script>
+
+  <link rel="stylesheet" href="demon-bastion.css" />
+
+</head>
+
+<body>
+
+  <div id="gameRoot" tabindex="0">
+
+    <canvas id="gameCanvas" aria-hidden="true"></canvas>
+
+    <div id="minimapPanel" class="hidden" aria-hidden="true">
+
+      <canvas id="minimapCanvas" width="64" height="64"></canvas>
+
+      <div id="minimapZoomControls">
+
+        <button type="button" id="btnZoomOut" class="minimap-zoom-btn" data-locale-aria-label="web.game.demon-bastion.zoom-out-aria" aria-label="Zoom out">−</button>
+
+        <button type="button" id="btnZoomIn" class="minimap-zoom-btn" data-locale-aria-label="web.game.demon-bastion.zoom-in-aria" aria-label="Zoom in">+</button>
+
+      </div>
+
+    </div>
+
+    <div id="hudTop" class="hidden">
+
+      <div class="hud-stat">
+
+        <div class="hud-stat-label" data-locale-key="web.game.demon-bastion.gold">GOLD</div>
+
+        <div class="hud-stat-value" id="hudMoney">0</div>
+
+      </div>
+
+      <div class="hud-stat">
+
+        <div class="hud-stat-label" data-locale-key="web.game.demon-bastion.score">SCORE</div>
+
+        <div class="hud-stat-value" id="hudScore">0</div>
+
+      </div>
+
+      <div class="hud-stat">
+
+        <div class="hud-stat-label" data-locale-key="web.game.demon-bastion.demon-anger">DEMON ANGER</div>
+
+        <div class="hud-stat-bar"><div id="hudAngerFill"></div></div>
+
+      </div>
+
+      <div class="hud-stat">
+
+        <div class="hud-stat-label" data-locale-key="web.game.demon-bastion.wave">WAVE</div>
+
+        <div class="hud-stat-value" id="hudWave">0</div>
+
+      </div>
+
+    </div>
+
+    <div id="buildBar" class="hidden"></div>
+
+    <div id="gameScreen">
+
+      <h1 id="screenTitle" data-locale-key="web.game.demon-bastion.title">Demon Bastion</h1>
+
+      <p id="controlHint">
+
+        Top-down base defense. Pan with WASD, drag, or touch. Scroll to zoom. Mine ore, spend gold on defenses,
+
+        and survive escalating demon waves.
+
+      </p>
+
+      <p id="bestGoldLine"></p>
+
+      <p id="gameOverLine" class="hidden"></p>
+
+      <p id="gameOverGoldLine" class="hidden"></p>
+
+      <p id="gameOverRecordLine" class="hidden"></p>
+
+    </div>
+
+  </div>
+
+  <script src="demon-bastion.js"></script>
+
+</body>
+
+</html>
+
+

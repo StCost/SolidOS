@@ -212,21 +212,9 @@ var WebDesktop = (function () {
       window.dispatchEvent(new CustomEvent("web-settings-open"));
       return;
     }
-    if (presetName === "extras-games") {
-      if (window.WebExtras && window.WebExtras.openGamesPanel) {
-        window.WebExtras.openGamesPanel(windowElement);
-      }
-      return;
-    }
-    if (presetName === "extras-art") {
-      if (window.WebExtras && window.WebExtras.openArtPanel) {
-        window.WebExtras.openArtPanel(windowElement);
-      }
-      return;
-    }
-    if (presetName === "extras-links") {
-      if (window.WebExtras && window.WebExtras.openLinksPanel) {
-        window.WebExtras.openLinksPanel(windowElement);
+    if (presetName === "extras-games" || presetName === "extras-art" || presetName === "extras-links") {
+      if (window.WebExtras && window.WebExtras.bindToWindow) {
+        window.WebExtras.bindToWindow(windowElement);
       }
       return;
     }
@@ -2574,16 +2562,6 @@ var WebDesktop = (function () {
       windowManager.hasPersistedWindowLayouts &&
       windowManager.hasPersistedWindowLayouts()
     ) {
-      if (routePreset && windowManager.setRouteBootDesktopVisibility) {
-        windowManager.setRouteBootDesktopVisibility(routePreset);
-      }
-      if (windowManager.applyDesktopWindowVisibility) {
-        windowManager.applyDesktopWindowVisibility();
-      }
-      if (windowManager.applySavedWindowStackOrder) {
-        windowManager.applySavedWindowStackOrder(true);
-      }
-      window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
       return;
     }
     if (routePreset && windowManager && windowManager.isDesktopWindowPreset(routePreset)) {

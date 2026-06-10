@@ -645,13 +645,18 @@
 }
 
 .extras-art-bg-option:disabled .settings-switch-track {
-  border-color: rgba(255, 128, 0, 0.12);
-  background: rgba(8, 10, 14, 0.92);
+  border-color: rgba(255, 128, 0, 0.1);
+  background: rgba(8, 6, 4, 0.92);
 }
 
 .extras-art-bg-option:disabled .settings-switch-thumb {
-  border-color: rgba(255, 128, 0, 0.1);
-  background: rgba(255, 160, 96, 0.18);
+  border-color: rgba(255, 128, 0, 0.08);
+  background-color: rgba(36, 26, 16, 0.38);
+  background-image: repeating-linear-gradient(-45deg,
+      rgba(196, 98, 28, 0.06) 0,
+      rgba(196, 98, 28, 0.06) 4px,
+      rgba(100, 52, 14, 0.03) 4px,
+      rgba(100, 52, 14, 0.03) 8px);
 }
 
 .extras-art-bg-option:disabled .settings-switch.is-on .settings-switch-track {

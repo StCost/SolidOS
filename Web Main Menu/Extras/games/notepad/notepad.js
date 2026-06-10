@@ -18,6 +18,10 @@
   var saveTimer = 0;
   var resizeTimer = 0;
 
+  function getSynth() {
+    return window.WebExtrasGameSynthAudio;
+  }
+
   function getLocalized(key, fallback) {
     if (window.WebLocale && window.WebLocale.get) {
       return window.WebLocale.get(key, fallback);
@@ -80,6 +84,9 @@
     saveTimer = setTimeout(function () {
       saveTimer = 0;
       saveNow();
+      if (getSynth()) {
+        getSynth().playUiClick();
+      }
     }, SAVE_DEBOUNCE_MS);
   }
 
@@ -125,6 +132,25 @@
     scheduleSave();
   }
 
+  function isPrintableKey(event) {
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+      return false;
+    }
+    if (event.key && event.key.length === 1) {
+      return true;
+    }
+    return false;
+  }
+
+  function onKeyDown(event) {
+    if (!isPrintableKey(event)) {
+      return;
+    }
+    if (getSynth()) {
+      getSynth().playKeyType();
+    }
+  }
+
   function setLayoutVariables() {
     if (!notepadShell) {
       return;
@@ -143,6 +169,7 @@
     syncSheetHeight();
 
     bodyInput.addEventListener("input", onInput);
+    bodyInput.addEventListener("keydown", onKeyDown);
 
     window.addEventListener("resize", scheduleSyncSheetHeight);
     window.addEventListener("web-locale-applied", function () {

@@ -7,6 +7,7 @@
   <script src="../iframe-game-locale.js"></script>
   <script src="../iframe-game-input.js"></script>
   <script src="../iframe-game-audio-volume.js"></script>
+  <script src="../extras-game-synth-audio.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -308,11 +309,7 @@
       "web.game.citrus-slice.praise.incredible",
       "web.game.citrus-slice.praise.legendary"
     ];
-    var SLICE_TONE_BASE_HZ = 360;
-    var SLICE_TONE_STEP_RATIO = 1.122462048;
-    var SLICE_TONE_MAX_STEPS = 16;
-    var SLICE_TONE_STAGGER_SEC = 0.042;
-    var pendingSliceToneStagger = 0;
+    function getSynth() { return window.WebExtrasGameSynthAudio; }
 
     var POD_TYPES = [
       {
@@ -442,12 +439,6 @@
     var swipePoints = [];
     var swipeActive = false;
     var popups = [];
-
-    var audioContext = null;
-    var audioSliceGain = null;
-    var audioBombGain = null;
-    var bombSoundLockUntil = 0;
-    var BOMB_SOUND_LOCK_SEC = 0.42;
 
     var damageFlash = null;
     var damageCrack = null;
@@ -596,50 +587,12 @@
             scale: 1.35
           });
           screenShake = 6;
-          playSliceTone(6);
+          if (getSynth()) {
+            getSynth().playSlice(6);
+          }
         }
         nextWaveTime = gameTime + WAVE_CLEAR_COOLDOWN;
       }
-    }
-
-    function getArcadeAudioVolume() {
-      if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume) {
-        return window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume();
-      }
-      return 0.5;
-    }
-
-    function updateArcadeMasterGain() {
-      var arcadeVolume;
-      if (!audioContext || !audioSliceGain || !audioBombGain) {
-        return;
-      }
-      arcadeVolume = getArcadeAudioVolume();
-      audioSliceGain.gain.value = arcadeVolume;
-      audioBombGain.gain.value = arcadeVolume;
-    }
-
-    function initAudio() {
-      if (audioContext) return;
-      try {
-        var AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (AudioCtx) {
-          audioContext = new AudioCtx();
-          audioSliceGain = audioContext.createGain();
-          audioBombGain = audioContext.createGain();
-          audioSliceGain.connect(audioContext.destination);
-          audioBombGain.connect(audioContext.destination);
-          updateArcadeMasterGain();
-          if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.bindArcadeVolumeChangeListener) {
-            window.WebExtrasGameAudioVolume.bindArcadeVolumeChangeListener(updateArcadeMasterGain);
-          }
-        }
-      } catch (ignored) {}
-    }
-
-    function isBombSoundLocked() {
-      if (!audioContext) return false;
-      return audioContext.currentTime < bombSoundLockUntil;
     }
 
     function triggerDamageFlash() {
@@ -653,73 +606,6 @@
         void damageCrack.offsetWidth;
         damageCrack.classList.add("is-active");
       }
-    }
-
-    function getSliceTonePitch(comboLevel) {
-      var steps = comboLevel - 1;
-      if (steps < 0) steps = 0;
-      if (steps > SLICE_TONE_MAX_STEPS) steps = SLICE_TONE_MAX_STEPS;
-      return SLICE_TONE_BASE_HZ * Math.pow(SLICE_TONE_STEP_RATIO, steps);
-    }
-
-    function resetSliceToneStagger() {
-      pendingSliceToneStagger = 0;
-    }
-
-    function playSliceTone(comboLevel) {
-      if (!audioContext || !audioSliceGain) return;
-      if (isBombSoundLocked()) return;
-      if (audioContext.state === "suspended") {
-        audioContext.resume();
-      }
-      var level = comboLevel;
-      if (level < 1) level = 1;
-      var pitch = getSliceTonePitch(level);
-      var startPitch = pitch * (0.78 - Math.min(level * 0.008, 0.06));
-      if (startPitch < 80) startPitch = 80;
-      var endPitch = pitch * (0.62 - Math.min(level * 0.01, 0.1));
-      if (endPitch < 90) endPitch = 90;
-      var duration = 0.09 + Math.min(level * 0.005, 0.06);
-      var volume = 0.17 + Math.min(level * 0.008, 0.12);
-      var now = audioContext.currentTime + pendingSliceToneStagger;
-      pendingSliceToneStagger += SLICE_TONE_STAGGER_SEC;
-      var oscillator = audioContext.createOscillator();
-      var gainNode = audioContext.createGain();
-      oscillator.type = level >= 6 ? "triangle" : "sine";
-      oscillator.frequency.setValueAtTime(startPitch, now);
-      oscillator.frequency.exponentialRampToValueAtTime(pitch, now + duration * 0.45);
-      oscillator.frequency.exponentialRampToValueAtTime(endPitch, now + duration);
-      gainNode.gain.setValueAtTime(volume, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration + 0.05);
-      oscillator.connect(gainNode);
-      gainNode.connect(audioSliceGain);
-      oscillator.start(now);
-      oscillator.stop(now + duration + 0.06);
-    }
-
-    function playBombTone() {
-      if (!audioContext || !audioBombGain || !audioSliceGain) return;
-      if (audioContext.state === "suspended") {
-        audioContext.resume();
-      }
-      var now = audioContext.currentTime;
-      var arcadeVolume = getArcadeAudioVolume();
-      bombSoundLockUntil = now + BOMB_SOUND_LOCK_SEC;
-      audioSliceGain.gain.cancelScheduledValues(now);
-      audioSliceGain.gain.setValueAtTime(audioSliceGain.gain.value, now);
-      audioSliceGain.gain.linearRampToValueAtTime(0.04 * arcadeVolume, now + 0.03);
-      audioSliceGain.gain.linearRampToValueAtTime(arcadeVolume, now + BOMB_SOUND_LOCK_SEC);
-      var oscillator = audioContext.createOscillator();
-      var gainNode = audioContext.createGain();
-      oscillator.type = "sawtooth";
-      oscillator.frequency.setValueAtTime(95, now);
-      oscillator.frequency.exponentialRampToValueAtTime(38, now + 0.28);
-      gainNode.gain.setValueAtTime(0.28, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
-      oscillator.connect(gainNode);
-      gainNode.connect(audioBombGain);
-      oscillator.start(now);
-      oscillator.stop(now + 0.36);
     }
 
     function resizeCanvas() {
@@ -1107,7 +993,9 @@
         hudLives.textContent = getLivesText();
         screenShake = 16;
         triggerDamageFlash();
-        playBombTone();
+        if (getSynth()) {
+          getSynth().playBomb();
+        }
         addJuiceParticles(pos.x, pos.y, entity.type.juice, 10);
         combo = 0;
         comboTimer = 0;
@@ -1148,7 +1036,9 @@
         screenShake = 4 + combo * 0.5;
       }
 
-      playSliceTone(combo);
+      if (getSynth()) {
+        getSynth().playSlice(combo);
+      }
 
       var halfOffset = entity.radius * 0.55;
       var normalX = Math.cos(sliceAngle);
@@ -1269,7 +1159,6 @@
 
     function testSwipeSlice() {
       if (swipePoints.length < 1) return;
-      resetSliceToneStagger();
       var entityIndex;
       var slicesThisSwipe = 0;
       var praiseX = viewWidth * 0.5;
@@ -1296,7 +1185,7 @@
       }
       if (slicesThisSwipe >= 2) {
         addComboPraisePopup(combo, slicesThisSwipe, praiseX, praiseY);
-        if (slicesThisSwipe >= 4 && !isBombSoundLocked()) {
+        if (slicesThisSwipe >= 4) {
           screenShake = 5 + slicesThisSwipe;
         }
       } else if (combo > comboBeforeSwipe && combo >= 2) {
@@ -1366,7 +1255,9 @@
       }
       if (gameState !== "playing") return;
       event.preventDefault();
-      initAudio();
+      if (getSynth()) {
+        getSynth().ensureContext();
+      }
       swipeActive = true;
       swipePoints = [];
       var pos = getPointerPos(event);
@@ -1423,6 +1314,9 @@
           missCount++;
           wavePodMissed++;
           updateMissHud();
+          if (getSynth()) {
+            getSynth().playMiss();
+          }
           combo = 0;
           comboTimer = 0;
           hudCombo.classList.remove("is-visible");
@@ -1987,7 +1881,9 @@
     }
 
     function startGame() {
-      initAudio();
+      if (getSynth()) {
+        getSynth().ensureContext();
+      }
       runStartHighScore = highScore;
       resetGameState();
       gameState = "playing";
@@ -1999,6 +1895,9 @@
     }
 
     function endGame() {
+      if (getSynth()) {
+        getSynth().playFail();
+      }
       gameState = "over";
       popups = [];
       particles = [];

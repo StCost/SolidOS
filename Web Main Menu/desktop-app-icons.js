@@ -67,19 +67,7 @@ var WebDesktopAppIcons = (function () {
     return "";
   }
 
-  function ensureWindowTitleIcon(titleElement, iconId) {
-    if (!titleElement || !iconId) return;
-
-    var existingIcon = titleElement.querySelector(".os-window-title-icon");
-    var iconSrc = getDesktopIconSrc(iconId);
-    if (!iconSrc) return;
-
-    if (existingIcon) {
-      existingIcon.src = iconSrc;
-      return;
-    }
-
-    var iconElement = createAppIconImage(iconSrc, "os-window-title-icon", 16);
+  function insertWindowTitleIcon(titleElement, iconElement) {
     var textElement = titleElement.querySelector(".os-window-title-text");
     if (textElement) {
       titleElement.insertBefore(iconElement, textElement);
@@ -92,6 +80,34 @@ var WebDesktopAppIcons = (function () {
       return;
     }
     titleElement.appendChild(iconElement);
+  }
+
+  function ensureWindowTitleIcon(titleElement, iconId) {
+    if (!titleElement || !iconId) return;
+
+    var iconSrc = getDesktopIconSrc(iconId);
+    if (!iconSrc) return;
+
+    setWindowTitleIconSrc(titleElement, iconSrc);
+  }
+
+  function setWindowTitleIconSrc(titleElement, iconSrc) {
+    if (!titleElement || !iconSrc) return;
+
+    wrapWindowTitleText(titleElement);
+
+    var existingIcon = titleElement.querySelector(".os-window-title-icon");
+    if (existingIcon) {
+      existingIcon.src = iconSrc;
+      return;
+    }
+
+    insertWindowTitleIcon(titleElement, createAppIconImage(iconSrc, "os-window-title-icon", 16));
+  }
+
+  function ensureWindowTitleStructure(titleElement) {
+    if (!titleElement) return;
+    wrapWindowTitleText(titleElement);
   }
 
   function wrapWindowTitleText(titleElement) {
@@ -116,6 +132,10 @@ var WebDesktopAppIcons = (function () {
     var index = 0;
     for (index = 0; index < windowElements.length; index++) {
       var windowElement = windowElements[index];
+      var presetName = windowElement.getAttribute("data-wm-preset");
+      if (presetName === "extras-games") {
+        continue;
+      }
       var iconId = getIconIdForWindow(windowElement);
       if (!iconId && windowElement.classList.contains("extras-art-window")) {
         iconId = "art";
@@ -151,6 +171,8 @@ var WebDesktopAppIcons = (function () {
       }
       return "";
     },
+    ensureWindowTitleStructure: ensureWindowTitleStructure,
+    setWindowTitleIconSrc: setWindowTitleIconSrc,
     mountDesktopIcons: mountDesktopIcons,
     mountWindowTitleIcons: mountWindowTitleIcons
   };
