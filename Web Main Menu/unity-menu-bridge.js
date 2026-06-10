@@ -7,9 +7,7 @@
     "web-select-server",
     "web-select-steam",
     "web-page-changed",
-    "web-start-lists-save",
     "web-open-external-url",
-    "web-extras-game-record-save",
     "web-ui-local-storage-save"
   ];
 

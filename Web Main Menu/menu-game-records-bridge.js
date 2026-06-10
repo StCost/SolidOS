@@ -1,5 +1,4 @@
 (function () {
-  var EVENT_SAVE = "web-extras-game-record-save";
   var STORAGE_KEY_PREFIX = "cm-extras-game-records:";
   var IFRAME_MESSAGE_TYPE = "cm-extras-game-storage";
   var recordsByGameId = {};
@@ -51,14 +50,6 @@
       recordsJson = "";
     }
     recordsByGameId[gameId] = recordsJson;
-    if (isUnityHost()) {
-      window.dispatchEvent(
-        new CustomEvent(EVENT_SAVE, {
-          detail: { gameId: gameId, recordsJson: recordsJson }
-        })
-      );
-      return;
-    }
     writeRecordsJsonToBrowserStorage(gameId, recordsJson);
   }
 
@@ -139,9 +130,7 @@
       gameId = entry.gameId;
       recordsJson = entry.recordsJson || "";
       recordsByGameId[gameId] = recordsJson;
-      if (!isUnityHost()) {
-        writeRecordsJsonToBrowserStorage(gameId, recordsJson);
-      }
+      writeRecordsJsonToBrowserStorage(gameId, recordsJson);
     }
   }
 

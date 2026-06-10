@@ -1,15 +1,22 @@
 var WebDesktop = (function () {
   var ICON_LAYOUTS_STORAGE_KEY = "cm-menu-icon-layouts";
   var GAME_DESKTOP_LINKS_STORAGE_KEY = "cm-menu-game-desktop-links";
-  var EVENT_GAME_DESKTOP_LINKS_SAVE = "web-game-desktop-links-save";
   var ICON_LAYOUT_BOOTSTRAP_CLASS = "menu-icon-layout-bootstrap";
   var ICON_LAYOUT_BOOTSTRAP_STYLE_ID = "cm-desktop-icon-layout-bootstrap";
   var ICON_DRAG_SOUND_STEP_PX = 300;
   var ICON_DRAG_START_THRESHOLD_PX = 8;
   var ICON_CLICK_SUPPRESS_MS = 400;
-  var ICON_GRID_CELL_WIDTH = 88;
-  var ICON_GRID_CELL_HEIGHT = 104;
-  var ICON_MIN_FOOTPRINT = 88;
+  var BASE_ICON_GRID_CELL_WIDTH = 88;
+  var BASE_ICON_GRID_CELL_HEIGHT = 104;
+  var BASE_ICON_MIN_FOOTPRINT = 88;
+  var BASE_ICON_IMAGE_PIXEL_SIZE = 52;
+  var DESKTOP_ICON_SCALE_MIN_PERCENT = 50;
+  var DESKTOP_ICON_SCALE_MAX_PERCENT = 300;
+  var DESKTOP_ICON_SCALE_DEFAULT_PERCENT = 100;
+  var ICON_GRID_CELL_WIDTH = BASE_ICON_GRID_CELL_WIDTH;
+  var ICON_GRID_CELL_HEIGHT = BASE_ICON_GRID_CELL_HEIGHT;
+  var ICON_MIN_FOOTPRINT = BASE_ICON_MIN_FOOTPRINT;
+  var desktopIconScalePercent = DESKTOP_ICON_SCALE_DEFAULT_PERCENT;
   var cachedIconGridLayout = null;
 
   var WINDOW_PRESET_TITLE = "menu-splash";
@@ -98,6 +105,65 @@ var WebDesktop = (function () {
   var desktopMarqueeBox = null;
 
   var DESKTOP_MARQUEE_MIN_SIZE_PX = 4;
+  function clampDesktopIconScalePercent(percent) {
+    var value = Math.round(Number(percent));
+    if (isNaN(value)) {
+      value = DESKTOP_ICON_SCALE_DEFAULT_PERCENT;
+    }
+    if (value < DESKTOP_ICON_SCALE_MIN_PERCENT) {
+      value = DESKTOP_ICON_SCALE_MIN_PERCENT;
+    }
+    if (value > DESKTOP_ICON_SCALE_MAX_PERCENT) {
+      value = DESKTOP_ICON_SCALE_MAX_PERCENT;
+    }
+    return value;
+  }
+
+  function updateIconGridMetricsFromScale() {
+    var scale = desktopIconScalePercent / 100;
+    ICON_GRID_CELL_WIDTH = Math.round(BASE_ICON_GRID_CELL_WIDTH * scale);
+    ICON_GRID_CELL_HEIGHT = Math.round(BASE_ICON_GRID_CELL_HEIGHT * scale);
+    ICON_MIN_FOOTPRINT = Math.round(BASE_ICON_MIN_FOOTPRINT * scale);
+    cachedIconGridLayout = null;
+  }
+
+  function getDesktopIconImagePixelSize() {
+    return Math.round(BASE_ICON_IMAGE_PIXEL_SIZE * desktopIconScalePercent / 100);
+  }
+
+  function setDesktopIconScaleCssVariable(percent) {
+    var iconsRoot = document.getElementById("desktopIcons");
+    if (!iconsRoot) {
+      return;
+    }
+    iconsRoot.style.setProperty("--desktop-icon-scale", String(percent / 100));
+  }
+
+  function updateDesktopIconImageSizes() {
+    var pixelSize = getDesktopIconImagePixelSize();
+    var iconsRoot = desktopIconsRoot || document.getElementById("desktopIcons");
+    if (!iconsRoot) {
+      return;
+    }
+    var images = iconsRoot.querySelectorAll(".os-app-icon");
+    var index = 0;
+    for (index = 0; index < images.length; index++) {
+      images[index].width = pixelSize;
+      images[index].height = pixelSize;
+    }
+  }
+
+  function setDesktopIconScalePercent(percent) {
+    desktopIconScalePercent = clampDesktopIconScalePercent(percent);
+    updateIconGridMetricsFromScale();
+    setDesktopIconScaleCssVariable(desktopIconScalePercent);
+    updateDesktopIconImageSizes();
+  }
+
+  function getDesktopIconScalePercent() {
+    return desktopIconScalePercent;
+  }
+
   var ICON_SELECTED_CLASS = "os-desktop-icon--selected";
   var ICON_DISABLED_CLASS = "os-desktop-icon--disabled";
 
@@ -2744,18 +2810,6 @@ var WebDesktop = (function () {
   function postGameDesktopLinksSave() {
     var payload = buildGameDesktopLinksPayload();
     writeGameDesktopLinksToStorage(payload);
-    if (!isUnityHost()) {
-      return;
-    }
-    if (!window.vuplex || !window.vuplex.postMessage) {
-      return;
-    }
-    window.vuplex.postMessage(
-      JSON.stringify({
-        eventName: EVENT_GAME_DESKTOP_LINKS_SAVE,
-        layoutsJson: JSON.stringify(payload)
-      })
-    );
   }
 
   function persistGameDesktopLinksNow() {
@@ -2887,8 +2941,8 @@ var WebDesktop = (function () {
   function getGameShortcutTargetPosition(excludeIconElement) {
     var gamesLayout = getGamesReferenceCenterLayout();
     var existingGameIconCount = countGameDesktopIcons(excludeIconElement);
-    var centerOffsetX = (gamesLayout.centerOffsetX || 0) + 88 + existingGameIconCount * ICON_GRID_CELL_WIDTH;
-    var centerOffsetY = (gamesLayout.centerOffsetY || 0) - 104;
+    var centerOffsetX = (gamesLayout.centerOffsetX || 0) + ICON_GRID_CELL_WIDTH + existingGameIconCount * ICON_GRID_CELL_WIDTH;
+    var centerOffsetY = (gamesLayout.centerOffsetY || 0) - ICON_GRID_CELL_HEIGHT;
     var coords = getLayoutCoords();
     var layoutRoot = getIconLayoutRoot();
     if (!coords || !layoutRoot) {
@@ -2992,8 +3046,8 @@ var WebDesktop = (function () {
       imageElement.src = getGameDesktopIconImagePath(game);
       imageElement.alt = "";
       imageElement.draggable = false;
-      imageElement.width = 52;
-      imageElement.height = 52;
+      imageElement.width = getDesktopIconImagePixelSize();
+      imageElement.height = getDesktopIconImagePixelSize();
       glyphElement.appendChild(imageElement);
     } else if (window.WebDesktopAppIcons && window.WebDesktopAppIcons.ensureDesktopIconGlyph) {
       iconElement.setAttribute("data-desktop-icon", "games");
@@ -3045,6 +3099,11 @@ var WebDesktop = (function () {
   }
 
   function initOnReady() {
+    if (window.WebSettings && window.WebSettings.getDesktopIconScalePercent) {
+      setDesktopIconScalePercent(window.WebSettings.getDesktopIconScalePercent());
+    } else {
+      setDesktopIconScalePercent(DESKTOP_ICON_SCALE_DEFAULT_PERCENT);
+    }
     initDesktopIcons();
     bindStatusNodeButton();
     bindDesktopWindowsToggle();
@@ -3122,7 +3181,10 @@ var WebDesktop = (function () {
     hasOpenAppWindows: hasOpenAppWindows,
     updateDesktopTabOrder: updateDesktopTabOrder,
     isMenuLayoutPhoneVertical: isMenuLayoutPhoneVertical,
-    updateMenuLayoutPhoneMode: updateMenuLayoutPhoneMode
+    updateMenuLayoutPhoneMode: updateMenuLayoutPhoneMode,
+    getDesktopIconScalePercent: getDesktopIconScalePercent,
+    setDesktopIconScalePercent: setDesktopIconScalePercent,
+    getDesktopIconImagePixelSize: getDesktopIconImagePixelSize
   };
 })();
 

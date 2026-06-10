@@ -427,11 +427,7 @@
 
   function postListsSave() {
     var payload = collectListsPayload();
-    if (!isUnityHost()) {
-      writeListsToStorage(payload);
-      return;
-    }
-    postToUnity({ eventName: "web-start-lists-save", listsJson: JSON.stringify(payload) });
+    writeListsToStorage(payload);
   }
 
   function scheduleListsSave() {
@@ -442,10 +438,20 @@
     }, 120);
   }
 
+  function getStoredServers() {
+    var stored = readListsFromStorage();
+    if (stored && stored.servers && stored.servers.length) {
+      return copyListEntries(stored.servers);
+    }
+    return copyListEntries(savedServers);
+  }
+
   function applyLists(payload) {
     if (!payload) return;
     savedWorlds = copyListEntries(payload.worlds);
-    savedServers = copyListEntries(payload.servers);
+    if (payload.servers && payload.servers.length) {
+      savedServers = copyListEntries(payload.servers);
+    }
     savedFriends = copyListEntries(payload.friends);
     renderAllLists();
   }
@@ -549,11 +555,21 @@
   };
 
   if (window.__webPendingStartLists) {
-    applyLists(window.__webPendingStartLists);
+    var pendingStartLists = window.__webPendingStartLists;
     window.__webPendingStartLists = null;
+    if (!pendingStartLists.servers || !pendingStartLists.servers.length) {
+      pendingStartLists.servers = getStoredServers();
+    }
+    applyLists(pendingStartLists);
+    writeListsToStorage(collectListsPayload());
   } else if (!isUnityHost()) {
     loadLocalLists();
   } else {
-    renderAllLists();
+    var storedLists = readListsFromStorage();
+    if (storedLists) {
+      applyLists(storedLists);
+    } else {
+      renderAllLists();
+    }
   }
 })();
