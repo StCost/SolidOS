@@ -78,6 +78,10 @@
   var bracketRangeByPairId = null;
   var wordHighlightElementsByWordId = null;
   var bracketHighlightElementsByPairId = null;
+
+  function getSynth() {
+    return window.WebExtrasGameSynthAudio;
+  }
   var terminalGridEventsBound = false;
   var lastHoverCellIndex = -1;
 
@@ -699,31 +703,13 @@
     return target;
   }
 
-  var PREFERRED_WORD_LENGTH = 8;
-
   function getPreferredWordLengths() {
-    var lengths = [PREFERRED_WORD_LENGTH];
-    var step = 1;
-    var lower;
-    var upper;
-    var added;
-    while (step <= MAX_WORD_LENGTH) {
-      lower = PREFERRED_WORD_LENGTH - step;
-      upper = PREFERRED_WORD_LENGTH + step;
-      added = false;
-      if (lower >= MIN_WORD_LENGTH) {
-        lengths.push(lower);
-        added = true;
-      }
-      if (upper <= MAX_WORD_LENGTH) {
-        lengths.push(upper);
-        added = true;
-      }
-      if (!added && lower < MIN_WORD_LENGTH && upper > MAX_WORD_LENGTH) {
-        break;
-      }
-      step += 1;
+    var lengths = [];
+    var length;
+    for (length = MAX_WORD_LENGTH; length >= MIN_WORD_LENGTH; length--) {
+      lengths.push(length);
     }
+    shuffleArray(lengths);
     return lengths;
   }
 
@@ -1172,6 +1158,9 @@
     if (isWin) {
       hackOverlay.classList.add("is-win");
       recordWin();
+      if (getSynth()) {
+        getSynth().playSuccess();
+      }
       overlayTitle.textContent = getLocalized(LOCALE_KEY_WIN, "ACCESS GRANTED");
       overlaySub.textContent = getLocalized(
         LOCALE_KEY_WIN_SUB,
@@ -1180,6 +1169,9 @@
     } else {
       hackOverlay.classList.add("is-lose");
       recordLockout();
+      if (getSynth()) {
+        getSynth().playFail();
+      }
       overlayTitle.textContent = getLocalized(LOCALE_KEY_LOSE, "LOCKOUT");
       overlaySub.textContent = getLocalized(
         LOCALE_KEY_LOSE_SUB,
@@ -1291,6 +1283,9 @@
     }
     attemptsLeft -= 1;
     markWordSpent(entry);
+    if (getSynth()) {
+      getSynth().playError();
+    }
     setAttemptsHud();
     checkWinOrLose();
   }
@@ -1360,6 +1355,9 @@
     var secondEntry;
     if (gameEnded) {
       return;
+    }
+    if (getSynth()) {
+      getSynth().playTerminalBlip();
     }
     range = getBracketCellRange(pairId);
     if (!range) {
@@ -2076,6 +2074,9 @@
   }
 
   function startNewRound() {
+    if (getSynth()) {
+      getSynth().playGameStart();
+    }
     attemptsLeft = MAX_ATTEMPTS;
     setAttemptsHud();
     rerollLevelKeepLives();

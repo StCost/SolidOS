@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Playing Cards</title>
   <script src="../iframe-game-input.js"></script>
+  <script src="../extras-game-synth-audio.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -72,6 +73,10 @@
   <script src="../extras-game-start-music-notify.js"></script>
   <script>
     (function () {
+      function getSynth() {
+        return window.WebExtrasGameSynthAudio;
+      }
+
       var canvas = document.getElementById("gameCanvas");
       var context = canvas.getContext("2d");
       var actionFlash = document.getElementById("actionFlash");
@@ -1031,6 +1036,9 @@
         cardEntry.isThrown = false;
         snapCardPositionToGrid(cardEntry);
         clampCardToScreen(cardEntry);
+        if (getSynth()) {
+          getSynth().playCardSnap();
+        }
       }
 
       function clearPointerState() {
@@ -1154,6 +1162,11 @@
         tableCards.length = 0;
         particles.length = 0;
         nextCardZIndex = 1;
+        if (getSynth()) {
+          getSynth().playShuffle();
+          getSynth().ensureContext();
+          getSynth().playGameStart();
+        }
         resizeCanvas();
         lastFrameTime = 0;
         if (animationFrameId) {

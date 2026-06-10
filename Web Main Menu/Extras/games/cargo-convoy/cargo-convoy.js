@@ -320,193 +320,8 @@
   var enemyPathUpdateTimer = 0;
   var selectionRingRotateAngle = 0;
 
-  var synthAudioContext = null;
-  var synthLastGunfireTime = -999;
-  var synthLastLaserTime = -999;
-  var synthLastHealTime = -999;
-  var synthLastDeathTime = -999;
-  var SYNTH_GUNFIRE_INTERVAL = 0.045;
-  var SYNTH_LASER_INTERVAL = 0.07;
-  var SYNTH_HEAL_INTERVAL = 0.07;
-  var SYNTH_DEATH_INTERVAL = 0.06;
-  var SYNTH_TEAM_FRIENDLY = "friendly";
-  var SYNTH_QUIETER_DECIBELS = 5;
-  var SYNTH_QUIETER_GAIN = Math.pow(10, -SYNTH_QUIETER_DECIBELS / 20);
-
-  function scaleSynthPeakGain(peakGain) {
-    if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.scalePeakGain) {
-      return window.WebExtrasGameAudioVolume.scalePeakGain(peakGain);
-    }
-    return peakGain * 0.5;
-  }
-
-  function ensureSynthAudioContext() {
-    try {
-      if (!synthAudioContext) {
-        synthAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (synthAudioContext.state === "suspended") {
-        synthAudioContext.resume();
-      }
-      return synthAudioContext;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  function scheduleSynthGainEnvelope(gainNode, peakGain, startTime, attackSeconds, releaseSeconds) {
-    gainNode.gain.setValueAtTime(0.001, startTime);
-    gainNode.gain.exponentialRampToValueAtTime(peakGain, startTime + attackSeconds);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + releaseSeconds);
-  }
-
-  function playSynthOscillatorBurst(waveType, startFrequency, endFrequency, peakGain, duration) {
-    var context;
-    var now;
-    var oscillator;
-    var gainNode;
-    var endFreq;
-    context = ensureSynthAudioContext();
-    if (!context) {
-      return;
-    }
-    now = context.currentTime;
-    oscillator = context.createOscillator();
-    gainNode = context.createGain();
-    oscillator.type = waveType;
-    endFreq = endFrequency;
-    if (endFreq < 1) {
-      endFreq = 1;
-    }
-    oscillator.frequency.setValueAtTime(startFrequency, now);
-    if (Math.abs(endFreq - startFrequency) > 0.5) {
-      oscillator.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
-    }
-    scheduleSynthGainEnvelope(gainNode, scaleSynthPeakGain(peakGain), now, 0.008, duration);
-    oscillator.connect(gainNode);
-    gainNode.connect(context.destination);
-    oscillator.start(now);
-    oscillator.stop(now + duration + 0.02);
-  }
-
-  function playSynthNoiseBurst(peakGain, duration) {
-    var context;
-    var now;
-    var noiseBuffer;
-    var noiseData;
-    var sampleIndex;
-    var noiseSource;
-    var noiseGain;
-    context = ensureSynthAudioContext();
-    if (!context) {
-      return;
-    }
-    now = context.currentTime;
-    noiseBuffer = context.createBuffer(1, Math.floor(context.sampleRate * duration), context.sampleRate);
-    noiseData = noiseBuffer.getChannelData(0);
-    for (sampleIndex = 0; sampleIndex < noiseData.length; sampleIndex += 1) {
-      noiseData[sampleIndex] = (Math.random() * 2 - 1) * 0.35;
-    }
-    noiseSource = context.createBufferSource();
-    noiseSource.buffer = noiseBuffer;
-    noiseGain = context.createGain();
-    scheduleSynthGainEnvelope(noiseGain, scaleSynthPeakGain(peakGain), now, 0.004, duration);
-    noiseSource.connect(noiseGain);
-    noiseGain.connect(context.destination);
-    noiseSource.start(now);
-  }
-
-  function playSynthGunfire(team) {
-    var peakGain;
-    var startFrequency;
-    if (gameTime - synthLastGunfireTime < SYNTH_GUNFIRE_INTERVAL) {
-      return;
-    }
-    synthLastGunfireTime = gameTime;
-    peakGain = 0.05;
-    startFrequency = 720;
-    if (team === SYNTH_TEAM_FRIENDLY) {
-      peakGain = 0.06;
-      startFrequency = 880;
-    }
-    playSynthOscillatorBurst("square", startFrequency, 220, peakGain * SYNTH_QUIETER_GAIN, 0.08);
-  }
-
-  function playSynthLaserBurst(team) {
-    var peakGain;
-    if (gameTime - synthLastLaserTime < SYNTH_LASER_INTERVAL) {
-      return;
-    }
-    synthLastLaserTime = gameTime;
-    peakGain = 0.05;
-    if (team === SYNTH_TEAM_FRIENDLY) {
-      peakGain = 0.062;
-    }
-    playSynthOscillatorBurst("sawtooth", 640, 420, peakGain * SYNTH_QUIETER_GAIN, 0.1);
-  }
-
-  function playSynthHealBurst() {
-    if (gameTime - synthLastHealTime < SYNTH_HEAL_INTERVAL) {
-      return;
-    }
-    synthLastHealTime = gameTime;
-    playSynthOscillatorBurst("sine", 520, 780, 0.028, 0.05);
-  }
-
-  function playSynthImpact() {
-    playSynthOscillatorBurst("triangle", 180, 90, 0.09, 0.12);
-    playSynthNoiseBurst(0.05, 0.08);
-  }
-
-  function playSynthExplosion(isLarge) {
-    var peakGain;
-    var noiseGain;
-    var noiseDuration;
-    peakGain = 0.11;
-    noiseGain = 0.08;
-    noiseDuration = 0.16;
-    if (isLarge) {
-      peakGain = 0.14;
-      noiseGain = 0.1;
-      noiseDuration = 0.22;
-    }
-    playSynthOscillatorBurst("sawtooth", 120, 40, peakGain, 0.28);
-    playSynthNoiseBurst(noiseGain, noiseDuration);
-  }
-
-  function playSynthCollect() {
-    playSynthOscillatorBurst("sine", 520, 980, 0.07 * SYNTH_QUIETER_GAIN, 0.14);
-  }
-
-  function playSynthEscortSpawnSecondBlip() {
-    playSynthOscillatorBurst("sine", 660, 880, 0.06, 0.14);
-  }
-
-  function playSynthEscortSpawn() {
-    playSynthOscillatorBurst("sine", 280, 520, 0.08, 0.16);
-    window.setTimeout(playSynthEscortSpawnSecondBlip, 70);
-  }
-
-  function playSynthGameStartSecondBlip() {
-    playSynthOscillatorBurst("sine", 660, 880, 0.05, 0.1);
-  }
-
-  function playSynthGameStart() {
-    playSynthOscillatorBurst("sine", 440, 660, 0.06, 0.12);
-    window.setTimeout(playSynthGameStartSecondBlip, 80);
-  }
-
-  function playSynthUnitDeath(isTruck) {
-    if (!isTruck && gameTime - synthLastDeathTime < SYNTH_DEATH_INTERVAL) {
-      return;
-    }
-    synthLastDeathTime = gameTime;
-    if (isTruck) {
-      playSynthOscillatorBurst("sawtooth", 220, 45, 0.16, 0.55);
-      playSynthNoiseBurst(0.08, 0.35);
-      return;
-    }
-    playSynthOscillatorBurst("square", 160, 70, 0.07, 0.2);
+  function getSynth() {
+    return window.WebExtrasGameSynthAudio;
   }
 
   function getLocaleApi() {
@@ -700,7 +515,9 @@
     if (!isPlaying()) {
       return;
     }
-    ensureSynthAudioContext();
+    if (getSynth()) {
+      getSynth().ensureContext();
+    }
     setKeyFromCode(event.code, true);
   }
 
@@ -2562,6 +2379,13 @@
     if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameOver) {
       window.WebExtrasGameStartMusicNotify.notifyGameOver();
     }
+    if (getSynth()) {
+      if (isRecord) {
+        getSynth().playRecord();
+      } else {
+        getSynth().playFail();
+      }
+    }
   }
 
   function startPlaying() {
@@ -2572,8 +2396,12 @@
     syncPlayingHud();
     focusGameRoot();
     setGameInputMovementMode();
-    ensureSynthAudioContext();
-    playSynthGameStart();
+    if (getSynth()) {
+      getSynth().ensureContext();
+    }
+    if (getSynth()) {
+      getSynth().playGameStart();
+    }
     if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
       window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
     }
@@ -3149,7 +2977,9 @@
     });
     nextProjectileId += 1;
     spawnMuzzleFlash(fromX, fromY, angle, team, false);
-    playSynthGunfire(team);
+    if (getSynth()) {
+      getSynth().playGunfire(team, gameTime);
+    }
   }
 
   function spawnHealBeam(fromX, fromY, toX, toY) {
@@ -3191,7 +3021,9 @@
     appliedHeal = healUnit(targetUnit, healAmount);
     recordUnitHealDone(sourceUnit, appliedHeal);
     spawnHealBeam(fromX, fromY, targetX, targetY);
-    playSynthHealBurst();
+    if (getSynth()) {
+      getSynth().playHealBurst(gameTime);
+    }
   }
 
   function fireLaser(fromX, fromY, targetUnit, team, deltaSeconds, sourceUnit) {
@@ -3205,7 +3037,9 @@
     damageUnit(targetUnit, damage, targetX, targetY, sourceUnit);
     spawnLaserBeam(fromX, fromY, targetX, targetY, team);
     spawnMuzzleFlash(fromX, fromY, Math.atan2(targetY - fromY, targetX - fromX), team, true);
-    playSynthLaserBurst(team);
+    if (getSynth()) {
+      getSynth().playLaserBurst(team, gameTime);
+    }
   }
 
   function spawnLaserBeam(fromX, fromY, toX, toY, team) {
@@ -4600,7 +4434,9 @@
     enemyTruck.destinationY = truckUnit.y;
     units.push(enemyTruck);
     spawnDeathExplosion(worldX, worldY, true);
-    playSynthGameStart();
+    if (getSynth()) {
+      getSynth().playGameStart();
+    }
     return true;
   }
 
@@ -4760,6 +4596,9 @@
       progress = 1;
     }
     pendingRocketStrikeWarning.progress = progress;
+    if (getSynth()) {
+      getSynth().playWarningBeep(gameTime);
+    }
   }
 
   function spawnRocketStrikeBlast(worldX, worldY) {
@@ -4780,7 +4619,9 @@
     var unitRadius;
     var distSq;
     var hitRadius;
-    playSynthExplosion(true);
+    if (getSynth()) {
+      getSynth().playExplosion(true);
+    }
     for (unitIndex = 0; unitIndex < units.length; unitIndex += 1) {
       unit = units[unitIndex];
       if (unit.dead) {
@@ -4900,6 +4741,9 @@
         progress = 1;
       }
       pendingMinefieldWarning.progress = progress;
+      if (getSynth()) {
+        getSynth().playWarningBeep(gameTime);
+      }
     }
     tryDropMinefieldFromPending();
   }
@@ -4973,7 +4817,9 @@
       size: 18
     });
     spawnHitSparks(worldX, worldY);
-    playSynthExplosion(false);
+    if (getSynth()) {
+      getSynth().playExplosion(false);
+    }
   }
 
   function getMineUnitHitRadius(unit) {
@@ -5040,7 +4886,9 @@
     syncPlayingHud();
     spawnFriendlyEscortArrival(spawnPos.x, spawnPos.y);
     spawnEscortModeReveal(escort);
-    playSynthEscortSpawn();
+    if (getSynth()) {
+      getSynth().playEscortSpawn();
+    }
   }
 
   function dropCrystalsAt(worldX, worldY, amount, minRarity) {
@@ -5082,7 +4930,9 @@
     }
     dropCrystalsAt(unit.x, unit.y, dropCount, unit.team === "enemy" ? 1 : null);
     spawnDeathExplosion(unit.x, unit.y, isUnitTruckKind(unit));
-    playSynthUnitDeath(isUnitTruckKind(unit));
+    if (getSynth()) {
+      getSynth().playUnitDeath(isUnitTruckKind(unit), gameTime);
+    }
 
     if (unit.kind === UNIT_TRUCK) {
       var isRecord = saveHighScoreIfNeeded();
@@ -5134,7 +4984,9 @@
         distSq = distanceSquared(projectile.x, projectile.y, unit.x, unit.y);
         if (distSq <= (unit.radius + PROJECTILE_RADIUS) * (unit.radius + PROJECTILE_RADIUS)) {
           damageUnit(unit, projectile.damage, projectile.x, projectile.y, getUnitById(projectile.sourceUnitId));
-          playSynthImpact();
+          if (getSynth()) {
+            getSynth().playImpact();
+          }
           projectiles.splice(index, 1);
           break;
         }
@@ -5151,7 +5003,9 @@
     crystals.splice(index, 1);
     tryAutoSpawnEscorts();
     syncPlayingHud();
-    playSynthCollect();
+    if (getSynth()) {
+      getSynth().playCollect();
+    }
   }
 
   function getUnitCrystalCollectRadius(unit) {
@@ -5960,7 +5814,9 @@
     }
     event.preventDefault();
     focusGameRoot();
-    ensureSynthAudioContext();
+    if (getSynth()) {
+      getSynth().ensureContext();
+    }
 
     if (isStart() || isGameOver()) {
       startPlaying();

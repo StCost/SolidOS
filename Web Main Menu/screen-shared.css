@@ -831,13 +831,10 @@ html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--se {
 
 .menu-screen.terminal-animations-off .os-window--opening .os-window-chrome,
 .menu-screen.terminal-animations-off .os-window--opening .os-window-chrome--drag,
-.menu-screen.terminal-animations-off .os-window--opening .os-window-body-shell,
 .menu-screen.terminal-animations-off .os-window--opening-body-only .os-window-chrome,
-.menu-screen.terminal-animations-off .os-window--opening-body-only .os-window-chrome--drag,
-.menu-screen.terminal-animations-off .os-window--opening-body-only .os-window-body-shell {
+.menu-screen.terminal-animations-off .os-window--opening-body-only .os-window-chrome--drag {
   animation: none !important;
   transform: none;
-  max-height: none;
   overflow: visible;
 }
 

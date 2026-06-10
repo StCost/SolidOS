@@ -6,6 +6,7 @@
   <title>Atom Clicker</title>
   <script src="../iframe-game-locale.js"></script>
   <script src="../iframe-game-input.js"></script>
+  <script src="../extras-game-synth-audio.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -667,6 +668,8 @@
   </div>
   <script src="../extras-game-start-music-notify.js"></script>
   <script>
+    function getSynth() { return window.WebExtrasGameSynthAudio; }
+
     var degreeSymbol = "\u00B0";
     var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
     var HIGH_SCORE_STORAGE_KEY = "cm-atom-clicker-high-score";
@@ -885,6 +888,10 @@
       spawnRipple(anchor.x, anchor.y, power);
       spawnRecordBurst(anchor.x, anchor.y, power);
       spawnRecordPop(anchor.x, anchor.y, newBest);
+
+      if (getSynth()) {
+        getSynth().playRecord();
+      }
 
       for (index = 0; index < particleCount; index++) {
         var particle = document.createElement("div");
@@ -1312,6 +1319,11 @@
       shakeScore(clickPower);
       addSpinBoost(clickPower);
 
+      if (getSynth()) {
+        getSynth().ensureContext();
+        getSynth().playClick(440 + clickValue * 12, Date.now() * 0.001);
+      }
+
       if (Math.random() < bonusChance) {
         var bonusMinimum = getClickMinimum(score);
         var maxBonus = getMaxBonus(score);
@@ -1325,6 +1337,9 @@
         updateHighScoreFromScore();
         var tier = getBonusTier(bonus, maxBonus);
         spawnExplosion(x, y, bonus, maxBonus);
+        if (getSynth()) {
+          getSynth().playBonusPop();
+        }
         spawnScorePop(bonusX, bonusY, bonus, "bonus", tier);
         shakeAtom(totalPower);
         shakeScore(totalPower);

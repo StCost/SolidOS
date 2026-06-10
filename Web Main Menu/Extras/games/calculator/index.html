@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="../../../menu-scrollbar.css" />
   <script src="../iframe-game-input.js"></script>
   <script src="../iframe-game-cursor.js"></script>
+  <script src="../extras-game-synth-audio.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -346,6 +347,10 @@
   <script src="../extras-game-start-music-notify.js"></script>
   <script>
     (function () {
+      function getSynth() {
+        return window.WebExtrasGameSynthAudio;
+      }
+
       var TOKEN_NUMBER = "number";
       var TOKEN_OPERATOR = "operator";
       var TOKEN_FUNCTION = "function";
@@ -1146,7 +1151,16 @@
         audioElement.currentTime = 0;
         var playPromise = audioElement.play();
         if (playPromise && playPromise.catch) {
-          playPromise.catch(function () {});
+          playPromise.catch(function () {
+            if (!getSynth()) {
+              return;
+            }
+            if (audioElement === ensureCalcButtonHoverAudio()) {
+              getSynth().playUiHover();
+            } else {
+              getSynth().playUiClick();
+            }
+          });
         }
       }
 

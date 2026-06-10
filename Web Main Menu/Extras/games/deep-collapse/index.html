@@ -7,6 +7,7 @@
   <title>Deep Collapse</title>
   <script src="../iframe-game-locale.js"></script>
   <script src="../iframe-game-input.js"></script>
+  <script src="../extras-game-synth-audio.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -307,6 +308,8 @@
   <script src="../extras-game-start-music-notify.js"></script>
   <script>
     (function () {
+      function getSynth() { return window.WebExtrasGameSynthAudio; }
+
       var canvas = document.getElementById("gameCanvas");
       var ctx = canvas.getContext("2d");
       var scoreValueEl = document.getElementById("scoreValue");
@@ -1006,6 +1009,10 @@
         if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
           window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
         }
+        if (getSynth()) {
+          getSynth().ensureContext();
+          getSynth().playGameStart();
+        }
       }
 
       function placeSurfaceCrystal(col, row, cellType, clusterId) {
@@ -1336,6 +1343,9 @@
           bestScore = value;
           bestValueEl.textContent = formatScoreTons(bestScore);
           saveBestScore();
+          if (getSynth()) {
+            getSynth().playRecord();
+          }
         }
       }
 
@@ -2461,6 +2471,9 @@
         sunDestroyed = true;
         sunDestroyLife = SUN_DESTROY_DURATION;
         screenShake = Math.min(14, screenShake + 8);
+        if (getSynth()) {
+          getSynth().playExplosion(true);
+        }
         pushImplodeRing(sunWorldX, sunWorldY, 48, 1, 255, 230, 120);
         pushImplodeRing(sunWorldX, sunWorldY, 110, 0.92, 255, 170, 50);
         pushImplodeRing(sunWorldX, sunWorldY, 190, 0.78, 255, 90, 25);
@@ -2542,6 +2555,10 @@
         crystalMarks = crystalMarksBuffer;
 
         screenShake = Math.min(6, 2.2 + radius * 0.02);
+
+        if (getSynth()) {
+          getSynth().playCollapse(radius);
+        }
 
         pushImplodeRing(collapseX, collapseY, radius, 1.15, 200, 80, 255);
         pushImplodeRing(collapseX, collapseY, radius * 0.82, 1, 255, 140, 220);
@@ -2730,6 +2747,9 @@
         var startX;
         var startY;
         var travelTime;
+        if (getSynth()) {
+          getSynth().playCollect();
+        }
         score += earned;
         setBestScoreIfHigher(score);
         updateHudDisplay();

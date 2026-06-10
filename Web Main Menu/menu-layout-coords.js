@@ -130,15 +130,21 @@ var WebMenuLayoutCoords = (function () {
     entry = {
       preset: presetName,
       anchor: ANCHOR_CENTER,
-      centerOffsetX: Math.round(storedLayout.centerOffsetX || 0),
-      centerOffsetY: Math.round(storedLayout.centerOffsetY || 0),
       open: storedLayout.open
     };
     if (storedLayout.zIndex !== undefined && storedLayout.zIndex > 0) {
       entry.zIndex = storedLayout.zIndex;
     }
-    if (storedLayout.minimized === true) entry.minimized = true;
-    if (storedLayout.maximized === true) entry.maximized = true;
+    if (storedLayout.minimized === true) {
+      entry.minimized = true;
+      return entry;
+    }
+    if (storedLayout.maximized === true) {
+      entry.maximized = true;
+      return entry;
+    }
+    entry.centerOffsetX = Math.round(storedLayout.centerOffsetX || 0);
+    entry.centerOffsetY = Math.round(storedLayout.centerOffsetY || 0);
     if (storedLayout.width !== undefined) entry.width = storedLayout.width;
     if (storedLayout.height !== undefined) entry.height = storedLayout.height;
     return entry;

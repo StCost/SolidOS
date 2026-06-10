@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../../../screen-shared.css" />
   <link rel="stylesheet" href="../../../settings-menu.css" />
   <script src="../iframe-game-locale.js"></script>
+  <script src="../extras-game-synth-audio.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -871,6 +872,10 @@
     var LOCALE_KEY_HOLD_REVERSE = "web.game.prompt.hold-reverse-spin";
     var HINT_FALLBACK = "Hold to reverse spin \u2014 land on your feet";
     var COMBO_PREFIX = "x";
+
+    function getSynth() {
+      return window.WebExtrasGameSynthAudio;
+    }
 
     var METERS_PER_UNIT = 0.06;
 
@@ -2448,6 +2453,13 @@
       if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
         window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
       }
+      if (getSynth()) {
+        if (newRecord) {
+          getSynth().playRecord();
+        } else {
+          getSynth().playFail();
+        }
+      }
     }
 
     function hideGameScreen() {
@@ -2603,6 +2615,10 @@
       applyDebugSpawnAtMeters();
       if (isDebugStartWithShieldEnabled()) {
         setShieldActive(true);
+      }
+      if (getSynth()) {
+        getSynth().ensureContext();
+        getSynth().playGameStart();
       }
       if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
         window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
@@ -2889,6 +2905,13 @@
         maxRadius: quality === "perfect" ? 64 : 44,
         quality: quality
       });
+      if (getSynth()) {
+        if (quality === "perfect") {
+          getSynth().playLandPerfect();
+        } else {
+          getSynth().playLandGood();
+        }
+      }
     }
 
     function getForwardSpeedMeters() {
@@ -3055,6 +3078,9 @@
       damageFlash.classList.remove("is-head-burst");
       void damageFlash.offsetWidth;
       damageFlash.classList.add("is-active");
+      if (getSynth()) {
+        getSynth().playImpact();
+      }
     }
 
     function triggerHeadBurstFlash() {
@@ -3144,6 +3170,9 @@
       });
       for (index = 0; index < 10; index++) {
         spawnLimbDebrisAtCenter();
+      }
+      if (getSynth()) {
+        getSynth().playCrash();
       }
     }
 

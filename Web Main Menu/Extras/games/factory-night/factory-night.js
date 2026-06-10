@@ -108,7 +108,9 @@
   var bestNight;
   var bestCorrectReports;
   var preloadedImages = {};
-  var audioContext;
+  function getSynth() {
+    return window.WebExtrasGameSynthAudio;
+  }
   var menuPreviewRoomIndex = 0;
   var feedAssignRefreshActive = false;
   var feedAssignPreviousPaths = [];
@@ -258,11 +260,35 @@
     buildImageRegistry();
   }
 
+  function isSuccessfulXhr(request) {
+    if (!request) {
+      return false;
+    }
+    if (request.status === 0) {
+      return !!request.responseText;
+    }
+    return request.status >= 200 && request.status < 300;
+  }
+
+  function setCameraFeedImageSrc(path) {
+    var nextSrc;
+    if (!cameraFeedImg || !path) {
+      return;
+    }
+    state.camFeedVersion = state.camFeedVersion + 1;
+    nextSrc = path + "#v=" + String(state.camFeedVersion);
+    if (cameraFeedImg.getAttribute("src") === nextSrc) {
+      state.camFeedVersion = state.camFeedVersion + 1;
+      nextSrc = path + "#v=" + String(state.camFeedVersion);
+    }
+    cameraFeedImg.src = nextSrc;
+  }
+
   function loadImageManifest(done) {
     var request = new XMLHttpRequest();
-    request.open("GET", IMAGE_MANIFEST_URL + "?v=" + String(Date.now()), true);
+    request.open("GET", IMAGE_MANIFEST_URL, true);
     request.onload = function () {
-      if (request.status >= 200 && request.status < 300) {
+      if (isSuccessfulXhr(request)) {
         try {
           imageManifest = JSON.parse(request.responseText);
         } catch (error) {
@@ -830,7 +856,6 @@
       return;
     }
     preloadImage(path);
-    state.camFeedVersion = state.camFeedVersion + 1;
     state.currentFeedPath = path;
     state.currentFeedIsMonster = getFeedIsMonster(path);
     if (state.currentFeedIsMonster) {
@@ -838,7 +863,7 @@
     } else {
       state.monsterViewStartMs = 0;
     }
-    cameraFeedImg.src = path + "?v=" + String(state.camFeedVersion);
+    setCameraFeedImageSrc(path);
     if (state.playing && !state.gameOver && !state.powerOut) {
       markPathUsedForRoom(state.cameraIndex, path);
     }
@@ -1129,6 +1154,9 @@
   }
 
   function playCameraSwitchFade(path) {
+    if (getSynth()) {
+      getSynth().playCameraSwitch();
+    }
     if (!cameraFeedImg || !path) {
       return;
     }
@@ -1141,7 +1169,6 @@
       camSwitchFadeTimer = 0;
     }
     preloadImage(path);
-    state.camFeedVersion = state.camFeedVersion + 1;
     state.currentFeedPath = path;
     state.currentFeedIsMonster = getFeedIsMonster(path);
     if (state.currentFeedIsMonster) {
@@ -1149,7 +1176,7 @@
     } else {
       state.monsterViewStartMs = 0;
     }
-    cameraFeedImg.src = path + "?v=" + String(state.camFeedVersion);
+    setCameraFeedImageSrc(path);
     cameraViewportEl.classList.remove("is-cam-switch");
     void cameraViewportEl.offsetWidth;
     cameraViewportEl.classList.add("is-cam-switch");
@@ -1184,8 +1211,7 @@
       state.currentFeedPath = idlePath;
       state.currentFeedIsMonster = false;
       state.monsterViewStartMs = 0;
-      state.camFeedVersion = state.camFeedVersion + 1;
-      cameraFeedImg.src = idlePath + "?v=" + String(state.camFeedVersion);
+      setCameraFeedImageSrc(idlePath);
       return;
     }
     if (state.powerOut) {
@@ -1240,45 +1266,20 @@
     }
   }
 
-  function playReportNoise() {
-    var oscillator;
-    var gainNode;
-    var now;
-    var arcadeVolume;
-    try {
-      arcadeVolume = 0.5;
-      if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume) {
-        arcadeVolume = window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume();
-      }
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioContext.state === "suspended") {
-        audioContext.resume();
-      }
-      oscillator = audioContext.createOscillator();
-      gainNode = audioContext.createGain();
-      oscillator.type = "sawtooth";
-      oscillator.frequency.value = 90 + Math.random() * 40;
-      gainNode.gain.value = 0.08 * arcadeVolume;
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      now = audioContext.currentTime;
-      oscillator.start(now);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-      oscillator.stop(now + 0.36);
-    } catch (error) {
-    }
-  }
-
-  function showReportedEffect(showReportedText) {
+  function showReportedEffect(showReportedText, isMonster) {
     if (cameraViewportEl) {
       cameraViewportEl.classList.add("is-reported");
     }
     if (showReportedText && cameraReportedEl) {
       cameraReportedEl.classList.remove("is-hidden");
     }
-    playReportNoise();
+    if (getSynth()) {
+      if (isMonster) {
+        getSynth().playReportCorrect();
+      } else {
+        getSynth().playReportWrong();
+      }
+    }
     window.setTimeout(function () {
       if (cameraViewportEl) {
         cameraViewportEl.classList.remove("is-reported");
@@ -1301,7 +1302,7 @@
       trySaveBestCorrectReports(state.correctReports);
     }
     forceRefreshAllCameraFeeds();
-    showReportedEffect(isMonster);
+    showReportedEffect(isMonster, isMonster);
     updateHud();
     setMonitorVisual();
   }
@@ -1352,54 +1353,6 @@
     );
   }
 
-  function playJumpscareScream() {
-    var oscillator;
-    var gainNode;
-    var noiseBuffer;
-    var noiseSource;
-    var now;
-    var arcadeVolume;
-    try {
-      arcadeVolume = 0.5;
-      if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume) {
-        arcadeVolume = window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume();
-      }
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioContext.state === "suspended") {
-        audioContext.resume();
-      }
-      now = audioContext.currentTime;
-      oscillator = audioContext.createOscillator();
-      gainNode = audioContext.createGain();
-      oscillator.type = "sawtooth";
-      oscillator.frequency.setValueAtTime(220, now);
-      oscillator.frequency.exponentialRampToValueAtTime(55, now + 0.45);
-      gainNode.gain.setValueAtTime(0.2 * arcadeVolume, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 0.52);
-      noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.2, audioContext.sampleRate);
-      var noiseData = noiseBuffer.getChannelData(0);
-      var sampleIndex;
-      for (sampleIndex = 0; sampleIndex < noiseData.length; sampleIndex++) {
-        noiseData[sampleIndex] = (Math.random() * 2 - 1) * 0.35;
-      }
-      noiseSource = audioContext.createBufferSource();
-      noiseSource.buffer = noiseBuffer;
-      var noiseGain = audioContext.createGain();
-      noiseGain.gain.setValueAtTime(0.12 * arcadeVolume, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-      noiseSource.connect(noiseGain);
-      noiseGain.connect(audioContext.destination);
-      noiseSource.start(now);
-    } catch (error) {
-    }
-  }
-
   function triggerPowerOutScreamer() {
     var screamerPath;
     if (!state.playing || state.gameOver || !state.powerOut) {
@@ -1412,7 +1365,9 @@
     if (gameRoot) {
       gameRoot.classList.add("is-power-out-screamer");
     }
-    playJumpscareScream();
+    if (getSynth()) {
+      getSynth().playJumpscare();
+    }
     powerOutScreamerTimer = window.setTimeout(function () {
       powerOutScreamerTimer = 0;
       hideFullscreenScreamer();
@@ -1442,6 +1397,9 @@
     setMonitorVisual();
     updateHud();
     schedulePowerOutScare();
+    if (getSynth()) {
+      getSynth().playPowerOutHum();
+    }
   }
 
   function advanceHour() {
@@ -1463,6 +1421,9 @@
     }
     if (winOverlayEl) {
       winOverlayEl.classList.remove("is-hidden");
+    }
+    if (getSynth()) {
+      getSynth().playWin();
     }
   }
 
@@ -1487,7 +1448,9 @@
     if (gameOverOverlayEl) {
       gameOverOverlayEl.classList.remove("is-hidden");
     }
-    playJumpscareScream();
+    if (getSynth()) {
+      getSynth().playJumpscare();
+    }
   }
 
   function stopTimers() {

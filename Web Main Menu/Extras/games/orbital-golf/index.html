@@ -7,6 +7,7 @@
   <title>Orbital Golf</title>
   <script src="../iframe-game-locale.js"></script>
   <script src="../iframe-game-input.js"></script>
+  <script src="../extras-game-synth-audio.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -298,6 +299,10 @@
   <script src="../extras-game-start-music-notify.js"></script>
   <script>
     (function () {
+      function getSynth() {
+        return window.WebExtrasGameSynthAudio;
+      }
+
       var canvas = document.getElementById("gameCanvas");
       var ctx = canvas.getContext("2d");
       var distanceValueEl = document.getElementById("distanceValue");
@@ -3128,6 +3133,9 @@
         ballVelX = 0;
         ballVelY = 0;
         gameState = stateAiming;
+        if (getSynth()) {
+          getSynth().playFail();
+        }
         showLoseScreen();
         updateDistanceHud();
       }
@@ -3448,6 +3456,9 @@
         showCongratsScreen();
         startCelebrationEffects();
         updateDistanceHud();
+        if (getSynth()) {
+          getSynth().playWin();
+        }
       }
 
       function updateCongratsScreen(deltaSeconds) {
@@ -3710,6 +3721,9 @@
         physicsTimeAccumulator = 0;
         setCursorPushHoldActive(false);
         spawnBlackHoleParticles(holeX, holeY);
+        if (getSynth()) {
+          getSynth().playWarp();
+        }
       }
 
       function updateBlackHoleWarp(deltaSeconds) {
@@ -3885,6 +3899,14 @@
         ballVelY = kick.velY;
         syncBallDisplayPrevious();
         gameState = stateRolling;
+        if (getSynth()) {
+          var launchSpeed = Math.sqrt(kick.velX * kick.velX + kick.velY * kick.velY);
+          if (launchSpeed > 80) {
+            getSynth().playBounce(launchSpeed);
+          } else {
+            getSynth().playClick();
+          }
+        }
         updateDistanceHud();
       }
 
@@ -3933,6 +3955,10 @@
           ballY = stepResult.y;
           ballVelX = stepResult.vx;
           ballVelY = stepResult.vy;
+          if (stepResult.wallBounced && getSynth()) {
+            var bounceSpeed = Math.sqrt(ballVelX * ballVelX + ballVelY * ballVelY);
+            getSynth().playBounce(bounceSpeed);
+          }
           if (stepResult.captured && stepResult.hole) {
             physicsTimeAccumulator = 0;
             triggerBlackHoleWarp(stepResult.hole.x, stepResult.hole.y);
