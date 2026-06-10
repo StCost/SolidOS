@@ -195,6 +195,7 @@
   "web.connect.prompt.net-join": "net join",
   "web.connect.prompt.net-use": "net use",
   "web.connect.prompt.net-view": "net view",
+  "web.credits.developers": "Kehittäjä: Dreaming Saints.",
   "web.credits.game-description": "co-op tesla-punk open-world fps-peli",
   "web.credits.intro-line": "COLLAPSE MACHINE by Dreaming Saints",
   "web.credits.loading": "Ladataan credits...",
@@ -397,9 +398,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Tekijät",
   "web.window.extras-data": "extras.dat",
-  "yes": "Kyllä",
-  "settings.menu-icon-snap-to-grid": "Kiinnitä työpöytäkuvakkeet ruudukkoon",
-  "web.credits.developers": "Kehittäjä: Dreaming Saints.",
-  "web.game.cargo-convoy.crystals-label": "KRISTALLIT",
-  "web.game.cargo-convoy.spawn-escort": "+ SAATTUE ({0})"
+  "yes": "Kyllä"
 }

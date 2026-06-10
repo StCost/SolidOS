@@ -195,6 +195,7 @@
   "web.connect.prompt.net-join": "net join",
   "web.connect.prompt.net-use": "net use",
   "web.connect.prompt.net-view": "net view",
+  "web.credits.developers": "Dreaming Saints tarafından geliştirildi.",
   "web.credits.game-description": "co-op tesla-punk açık dünya FPS",
   "web.credits.intro-line": "COLLAPSE MACHINE by Dreaming Saints",
   "web.credits.loading": "Jenerik yükleniyor...",
@@ -397,9 +398,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Jenerik",
   "web.window.extras-data": "extras.dat",
-  "yes": "Evet",
-  "settings.menu-icon-snap-to-grid": "Masaüstü simgelerini ızgaraya hizala",
-  "web.credits.developers": "Dreaming Saints tarafından geliştirildi.",
-  "web.game.cargo-convoy.crystals-label": "KRİSTAL",
-  "web.game.cargo-convoy.spawn-escort": "+ EŞLİK ({0})"
+  "yes": "Evet"
 }

@@ -195,6 +195,7 @@
   "web.connect.prompt.net-join": "net join",
   "web.connect.prompt.net-use": "net use",
   "web.connect.prompt.net-view": "net view",
+  "web.credits.developers": "由 Dreaming Saints 开发。",
   "web.credits.game-description": "合作特斯拉朋克开放世界FPS",
   "web.credits.intro-line": "COLLAPSE MACHINE by Dreaming Saints",
   "web.credits.loading": "正在加载制作人员...",
@@ -397,9 +398,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "制作人员",
   "web.window.extras-data": "extras.dat",
-  "yes": "是",
-  "settings.menu-icon-snap-to-grid": "桌面图标对齐网格",
-  "web.credits.developers": "由 Dreaming Saints 开发。",
-  "web.game.cargo-convoy.crystals-label": "水晶",
-  "web.game.cargo-convoy.spawn-escort": "+ 护卫 ({0})"
+  "yes": "是"
 }

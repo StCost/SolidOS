@@ -42,11 +42,11 @@
         difficulty: 3
       },
       {
-        id: "airborne-robot",
-        title: "Airborne Robot",
-        path: "Extras/games/airborne-robot/index.html",
-        image: "Extras/games/airborne-robot/airborne-robot-preview.jpg",
-        desktopIcon: "Extras/games/airborne-robot/airborne-robot-desktop-icon.png",
+        id: "airbot",
+        title: "Airbot",
+        path: "Extras/games/airbot/index.html",
+        image: "Extras/games/airbot/airbot-preview.jpg",
+        desktopIcon: "Extras/games/airbot/airbot-desktop-icon.png",
         difficulty: 4,
         startMusicPath: "ui-robot-start-music.wav",
         gameplayMusicPath: "ui-robot-game-music.wav"

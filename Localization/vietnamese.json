@@ -195,6 +195,7 @@
   "web.connect.prompt.net-join": "net join",
   "web.connect.prompt.net-use": "net use",
   "web.connect.prompt.net-view": "net view",
+  "web.credits.developers": "Phát triển bởi Dreaming Saints.",
   "web.credits.game-description": "game FPS open-world tesla-punk co-op",
   "web.credits.intro-line": "COLLAPSE MACHINE by Dreaming Saints",
   "web.credits.loading": "Đang tải phần ghi công...",
@@ -397,9 +398,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Đội ngũ",
   "web.window.extras-data": "extras.dat",
-  "yes": "Có",
-  "settings.menu-icon-snap-to-grid": "Căn biểu tượng màn hình nền vào lưới",
-  "web.credits.developers": "Phát triển bởi Dreaming Saints.",
-  "web.game.cargo-convoy.crystals-label": "TINH THỂ",
-  "web.game.cargo-convoy.spawn-escort": "+ HỘ TỐNG ({0})"
+  "yes": "Có"
 }

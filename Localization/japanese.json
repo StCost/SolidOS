@@ -195,6 +195,7 @@
   "web.connect.prompt.net-join": "net join",
   "web.connect.prompt.net-use": "net use",
   "web.connect.prompt.net-view": "net view",
+  "web.credits.developers": "Dreaming Saints 開発",
   "web.credits.game-description": "協力型テスラパンク・オープンワールドFPS",
   "web.credits.intro-line": "COLLAPSE MACHINE by Dreaming Saints",
   "web.credits.loading": "クレジットを読み込み中...",
@@ -397,9 +398,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "クレジット",
   "web.window.extras-data": "extras.dat",
-  "yes": "はい",
-  "settings.menu-icon-snap-to-grid": "デスクトップアイコンをグリッドに揃える",
-  "web.credits.developers": "Dreaming Saints 開発",
-  "web.game.cargo-convoy.crystals-label": "クリスタル",
-  "web.game.cargo-convoy.spawn-escort": "+ 護衛 ({0})"
+  "yes": "はい"
 }

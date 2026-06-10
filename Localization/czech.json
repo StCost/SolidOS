@@ -195,6 +195,7 @@
   "web.connect.prompt.net-join": "net join",
   "web.connect.prompt.net-use": "net use",
   "web.connect.prompt.net-view": "net view",
+  "web.credits.developers": "Vyvíjí Dreaming Saints.",
   "web.credits.game-description": "koop tesla-punk open-world FPS hra",
   "web.credits.intro-line": "COLLAPSE MACHINE by Dreaming Saints",
   "web.credits.loading": "Načítání titulků...",
@@ -397,9 +398,5 @@
   "web.window.config-tabs": "config_tabs.ini",
   "web.window.credits-list": "Titulky",
   "web.window.extras-data": "extras.dat",
-  "yes": "Ano",
-  "settings.menu-icon-snap-to-grid": "Přichytit ikony na mřížku",
-  "web.credits.developers": "Vyvíjí Dreaming Saints.",
-  "web.game.cargo-convoy.crystals-label": "KRISTALY",
-  "web.game.cargo-convoy.spawn-escort": "+ ESKORT ({0})"
+  "yes": "Ano"
 }
