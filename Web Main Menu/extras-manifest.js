@@ -42,10 +42,11 @@
         difficulty: 3
       },
       {
-        id: "airborne-robot",
-        title: "Airborne Robot",
-        path: "Extras/games/airborne-robot/index.html",
-        image: "Extras/games/airborne-robot/airborne-robot-preview.jpg",
+        id: "airbot",
+        title: "Airbot",
+        path: "Extras/games/airbot/index.html",
+        image: "Extras/games/airbot/airbot-preview.jpg",
+        desktopIcon: "Extras/games/airbot/airbot-desktop-icon.png",
         difficulty: 4,
         startMusicPath: "ui-robot-start-music.wav",
         gameplayMusicPath: "ui-robot-game-music.wav"
@@ -73,7 +74,10 @@
         image: "Extras/games/sector-vector/sector-vector-preview.jpg",
         desktopIcon: "Extras/games/sector-vector/sector-vector-desktop-icon.png",
         difficulty: 5,
-        inputMode: "movement"
+        inputMode: "movement",
+        startMusicPath: "ui-sector-vector-start-music.wav",
+        gameplayMusicPath: "ui-sector-vector-game-music.wav",
+        gameOverMusicPath: "ui-sector-vector-gameover-music.wav"
       },
       {
         id: "trouble-drivers",
@@ -90,7 +94,10 @@
         path: "Extras/games/cargo-convoy/index.html",
         image: "Extras/games/cargo-convoy/cargo-convoy-preview.jpg",
         desktopIcon: "Extras/games/cargo-convoy/cargo-convoy-desktop-icon.png",
-        difficulty: 5
+        difficulty: 5,
+        startMusicPath: "ui-cargo-convoy-start-music.wav",
+        gameplayMusicPath: "ui-cargo-convoy-game-music.wav",
+        gameOverMusicPath: "ui-cargo-convoy-gameover-music.wav"
       },
       {
         id: "factory-night",
@@ -98,7 +105,8 @@
         path: "Extras/games/factory-night/index.html",
         image: "Extras/games/factory-night/factory-night-preview.jpg",
         desktopIcon: "Extras/games/factory-night/factory-night-desktop-icon.png",
-        difficulty: 5
+        difficulty: 5,
+        startMusicPath: "ui-factory-night-game-music.wav"
       },
       {
         id: "playing-cards",

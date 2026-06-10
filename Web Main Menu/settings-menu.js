@@ -70,6 +70,7 @@
     menuMusicEnabled: true,
     masterVolume: 0.5,
     musicVolume: 1,
+    arcadeGamesVolume: 1,
     vehicleVolume: 1,
     weatherVolume: 1,
     weaponVolume: 1,
@@ -317,6 +318,7 @@
         { type: "slider", key: "masterVolume", labelKey: "settings.master-volume", min: 0, max: 100, step: 1, format: volumeFormat, parse: volumeParse },
         { type: "toggle", key: "menuMusicEnabled", labelKey: "settings.menu-music-enabled" },
         { type: "slider", key: "musicVolume", labelKey: "settings.music-volume", min: 0, max: 100, step: 1, format: volumeFormat, parse: volumeParse },
+        { type: "slider", key: "arcadeGamesVolume", labelKey: "settings.arcade-games-volume", min: 0, max: 100, step: 1, format: volumeFormat, parse: volumeParse },
         { type: "slider", key: "vehicleVolume", labelKey: "settings.vehicle-volume", min: 0, max: 100, step: 1, format: volumeFormat, parse: volumeParse },
         { type: "slider", key: "weatherVolume", labelKey: "settings.weather-volume", min: 0, max: 100, step: 1, format: volumeFormat, parse: volumeParse },
         { type: "slider", key: "weaponVolume", labelKey: "settings.weapon-volume", min: 0, max: 100, step: 1, format: volumeFormat, parse: volumeParse },
@@ -1901,7 +1903,8 @@
     if (
       Object.prototype.hasOwnProperty.call(payload, "masterVolume") ||
       Object.prototype.hasOwnProperty.call(payload, "musicVolume") ||
-      Object.prototype.hasOwnProperty.call(payload, "interfaceVolume")
+      Object.prototype.hasOwnProperty.call(payload, "interfaceVolume") ||
+      Object.prototype.hasOwnProperty.call(payload, "arcadeGamesVolume")
     ) {
       pushAudioVolumeStateToMenu();
     }
