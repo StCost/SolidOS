@@ -7,6 +7,9 @@
   var SETTINGS_SUCCESS_TOAST_VIEWPORT_PADDING_PX = 12;
   var LOCALE_KEY_RESET_DEFAULTS_DONE = "settings.web.reset-defaults-done";
   var LOCALE_KEY_RESET_LAYOUTS_DONE = "settings.web.reset-window-layouts-done";
+  var LOCAL_ONLY_SETTING_KEYS = {
+    desktopIconScalePercent: true
+  };
 
   function isGameMode() {
     if (window.WebMenuMode === "game") return true;
@@ -88,6 +91,7 @@
     graphicsFieldOfView: 60,
     graphicsFpsCapFps: 60,
     graphicsWebPixelDensityPercent: 100,
+    desktopIconScalePercent: 100,
     showFpsCounter: false,
     languageOptions: []
   };
@@ -329,6 +333,15 @@
         { type: "toggle", key: "useCustomCursor", labelKey: "settings.custom-cursor" },
         { type: "toggle", key: "terminalAnimationsEnabled", labelKey: "settings.terminal-animations" },
         { type: "toggle", key: "menuBackgroundAnimationEnabled", labelKey: "settings.menu-background-animation" },
+        {
+          type: "slider",
+          key: "desktopIconScalePercent",
+          labelKey: "settings.web.desktop-icon-scale",
+          min: 50,
+          max: 300,
+          step: 5,
+          format: percentFormat
+        },
         {
           type: "action",
           actionId: "reset-window-layouts",
@@ -648,7 +661,15 @@
     successToastTimer = window.setTimeout(hideSettingsSuccessToast, SETTINGS_SUCCESS_TOAST_MS);
   }
 
+  function isLocalOnlySettingKey(key) {
+    return !!LOCAL_ONLY_SETTING_KEYS[key];
+  }
+
   function postChange(key, value) {
+    if (isLocalOnlySettingKey(key)) {
+      saveLocalPreview();
+      return;
+    }
     if (isUnityHost() && window.WebSettingsBridge) {
       window.WebSettingsBridge.set(key, value);
     } else {
@@ -676,6 +697,45 @@
     return null;
   }
 
+  function loadLocalOnlySettingsFromStorage() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        state.desktopIconScalePercent = DEFAULT_STATE.desktopIconScalePercent;
+        applyDesktopIconScale(state.desktopIconScalePercent);
+        return;
+      }
+      var parsed = JSON.parse(raw);
+      if (parsed && Object.prototype.hasOwnProperty.call(parsed, "desktopIconScalePercent")) {
+        state.desktopIconScalePercent = parsed.desktopIconScalePercent;
+      } else {
+        state.desktopIconScalePercent = DEFAULT_STATE.desktopIconScalePercent;
+      }
+      applyDesktopIconScale(state.desktopIconScalePercent);
+    } catch (error) {
+      state.desktopIconScalePercent = DEFAULT_STATE.desktopIconScalePercent;
+      applyDesktopIconScale(state.desktopIconScalePercent);
+    }
+  }
+
+  function resetLocalOnlySettings() {
+    state.desktopIconScalePercent = DEFAULT_STATE.desktopIconScalePercent;
+    applyDesktopIconScale(state.desktopIconScalePercent);
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      var parsed = {};
+      if (raw) {
+        parsed = JSON.parse(raw);
+      }
+      parsed.desktopIconScalePercent = DEFAULT_STATE.desktopIconScalePercent;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    } catch (error) {
+    }
+    if (window.WebMenuLocalStorageBridge && window.WebMenuLocalStorageBridge.flushSave) {
+      window.WebMenuLocalStorageBridge.flushSave();
+    }
+  }
+
   function loadLocalPreview() {
     var preservedLanguageOptions = getPreservedLanguageOptions();
     try {
@@ -701,6 +761,7 @@
     }
     settingsHostStateReady = true;
     applyTerminalAnimations(getTerminalAnimationsEnabled(state.terminalAnimationsEnabled));
+    applyDesktopIconScale(state.desktopIconScalePercent);
     renderAll();
     pushAudioVolumeStateToMenu();
   }
@@ -722,6 +783,7 @@
     applyTerminalAnimations(getTerminalAnimationsEnabled(state.terminalAnimationsEnabled));
     applyMenuBackgroundAnimation(state.menuBackgroundAnimationEnabled !== false);
     applyMenuMusicEnabled(state.menuMusicEnabled !== false);
+    applyDesktopIconScale(state.desktopIconScalePercent);
     renderAll();
     pushAudioVolumeStateToMenu();
   }
@@ -780,6 +842,9 @@
     }
     if (key === "useCustomCursor") {
       applyCustomCursorMode(state.useCustomCursor);
+    }
+    if (key === "desktopIconScalePercent") {
+      applyDesktopIconScale(state.desktopIconScalePercent);
     }
     if (key === "language") {
       notifyLanguageChanged();
@@ -855,6 +920,7 @@
 
   function onSettingsResetClicked(event) {
     if (window.WebSettingsBridge) {
+      resetLocalOnlySettings();
       window.WebSettingsBridge.reset();
       showSettingsSuccessToast(
         LOCALE_KEY_RESET_DEFAULTS_DONE,
@@ -1471,6 +1537,26 @@
     }
   }
 
+  function getDesktopIconScalePercent() {
+    var percent = Number(state.desktopIconScalePercent);
+    if (isNaN(percent)) return 100;
+    if (percent < 50) return 50;
+    if (percent > 300) return 300;
+    return Math.round(percent);
+  }
+
+  function applyDesktopIconScale(percent) {
+    if (window.WebDesktop && window.WebDesktop.setDesktopIconScalePercent) {
+      window.WebDesktop.setDesktopIconScalePercent(percent);
+    }
+  }
+
+  function onDesktopIconScaleSliderInput(field) {
+    if (!field || field.key !== "desktopIconScalePercent") return;
+    applyDesktopIconScale(state.desktopIconScalePercent);
+    saveLocalPreview();
+  }
+
   function sliderValueIsTypedInput(field) {
     return !field.steppedOptions;
   }
@@ -1536,6 +1622,7 @@
     updateSliderDisplay(field, slider, valueInput);
     postChange(field.key, getSliderPostValue(field, wireValue));
     onAudioVolumeSliderInput(field);
+    onDesktopIconScaleSliderInput(field);
     if (!isUnityHost()) {
       saveLocalPreview();
     }
@@ -1565,6 +1652,7 @@
     var wireValue = updateSliderDisplay(field, slider, valueDisplay);
     postChange(field.key, getSliderPostValue(field, wireValue));
     onAudioVolumeSliderInput(field);
+    onDesktopIconScaleSliderInput(field);
     if (!isUnityHost()) {
       saveLocalPreview();
     }
@@ -1687,6 +1775,7 @@
     slider.addEventListener("input", function () {
       updateSliderDisplay(field, slider, valueDisplay);
       onAudioVolumeSliderInput(field);
+      onDesktopIconScaleSliderInput(field);
     });
 
     slider.addEventListener("change", function () {
@@ -1932,6 +2021,8 @@
       if (window.WebLocaleLoader && window.WebLocaleLoader.flushPendingLanguageOptions) {
         window.WebLocaleLoader.flushPendingLanguageOptions();
       }
+    } else {
+      loadLocalOnlySettingsFromStorage();
     }
 
     window.addEventListener("web-settings-open", onSettingsMenuOpen);
@@ -1955,6 +2046,9 @@
     applyMenuMusicEnabled: applyMenuMusicEnabled,
     isMenuMusicEnabled: isMenuMusicEnabled,
     applyCustomCursorMode: applyCustomCursorMode,
+    getDesktopIconScalePercent: getDesktopIconScalePercent,
+    applyDesktopIconScale: applyDesktopIconScale,
+    loadLocalOnlySettingsFromStorage: loadLocalOnlySettingsFromStorage,
     onLocaleUpdated: onLocaleUpdated,
     loadLocalPreview: loadLocalPreview,
     resetLocalPreview: resetLocalPreview,

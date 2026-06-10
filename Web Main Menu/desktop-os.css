@@ -101,6 +101,7 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  --desktop-icon-scale: 1;
   --desktop-icon-img-filter:
     drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 1px rgba(0, 0, 0, 0.42)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.34));
   --desktop-icon-label-filter:
@@ -121,16 +122,16 @@
   left: auto;
   top: auto;
   z-index: 1;
-  width: 88px;
+  width: calc(88px * var(--desktop-icon-scale));
   margin: 0;
-  padding: 8px 0 0;
+  padding: calc(8px * var(--desktop-icon-scale)) 0 0;
   border: none;
   background: transparent;
   pointer-events: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: calc(0.35rem * var(--desktop-icon-scale));
   cursor: var(--cursor-pointer);
   font: inherit;
   text-align: center;
@@ -148,8 +149,8 @@
 
 .os-desktop-icon-glyph {
   position: relative;
-  width: 3.25rem;
-  height: 3.25rem;
+  width: calc(3.25rem * var(--desktop-icon-scale));
+  height: calc(3.25rem * var(--desktop-icon-scale));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -188,7 +189,7 @@
 
 .os-desktop-icon-label {
   width: 100%;
-  font-size: clamp(0.62rem, 1.2vmin, 0.74rem);
+  font-size: calc(clamp(0.62rem, 1.2vmin, 0.74rem) * var(--desktop-icon-scale));
   letter-spacing: 0.03em;
   line-height: 1.2;
   text-transform: none;
@@ -222,8 +223,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 88px;
-  height: 88px;
+  width: calc(88px * var(--desktop-icon-scale));
+  height: calc(88px * var(--desktop-icon-scale));
   box-sizing: border-box;
   border: 1px solid rgba(255, 128, 0, 0.55);
   background: rgba(255, 128, 0, 0.12);
@@ -278,7 +279,7 @@
 .os-desktop-icon-drag-ghost {
   position: absolute;
   z-index: 10;
-  width: 88px;
+  width: calc(88px * var(--desktop-icon-scale));
   margin: 0;
   padding: 0;
   border: none;
@@ -287,7 +288,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: calc(0.35rem * var(--desktop-icon-scale));
   text-align: center;
   font: inherit;
   opacity: 0.7;

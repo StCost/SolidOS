@@ -45,7 +45,11 @@ var WebDesktopAppIcons = (function () {
     var iconSrc = getDesktopIconSrc(iconId);
     if (!iconSrc) return;
 
-    glyphElement.appendChild(createAppIconImage(iconSrc, "os-app-icon", 52));
+    var pixelSize = 52;
+    if (window.WebDesktop && window.WebDesktop.getDesktopIconImagePixelSize) {
+      pixelSize = window.WebDesktop.getDesktopIconImagePixelSize();
+    }
+    glyphElement.appendChild(createAppIconImage(iconSrc, "os-app-icon", pixelSize));
   }
 
   function mountDesktopIcons() {
