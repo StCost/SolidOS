@@ -6,7 +6,8 @@
   <title>Atom Clicker</title>
   <script src="../iframe-game-locale.js"></script>
   <script src="../iframe-game-input.js"></script>
-  <script src="../extras-game-synth-audio.js"></script>
+  <script src="../iframe-game-audio-volume.js"></script>
+  <script src="../extras-game-ui-audio-paths.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -668,7 +669,18 @@
   </div>
   <script src="../extras-game-start-music-notify.js"></script>
   <script>
-    function getSynth() { return window.WebExtrasGameSynthAudio; }
+    var CLICK_AUDIO_FILE = "ui-atom-clicker-click.wav";
+    var BONUS_AUDIO_FILE = "ui-atom-clicker-bonus.wav";
+    var RECORD_AUDIO_FILE = "ui-atom-clicker-record.wav";
+    var CLICK_AUDIO_INTERVAL_SECONDS = 0.03;
+    var SEMITONE_PITCH_RATIO = 1.0594630943592953;
+    var DEFAULT_ARCADE_OUTPUT_VOLUME = 0.5;
+    var FALLBACK_AUDIO_PREFIX = "../../../../audio/";
+
+    var clickAudio = null;
+    var bonusAudio = null;
+    var recordAudio = null;
+    var lastClickAudioTime = 0;
 
     var degreeSymbol = "\u00B0";
     var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
@@ -852,6 +864,98 @@
       removeNodeLater(burst, 550);
     }
 
+    function getUiSoundPath(fileName) {
+      if (window.WebExtrasGameUiAudioPaths && window.WebExtrasGameUiAudioPaths.getUiSoundPath) {
+        return window.WebExtrasGameUiAudioPaths.getUiSoundPath(fileName);
+      }
+      return FALLBACK_AUDIO_PREFIX + fileName;
+    }
+
+    function getArcadeOutputVolume() {
+      if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume) {
+        return window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume();
+      }
+      return DEFAULT_ARCADE_OUTPUT_VOLUME;
+    }
+
+    function ensureClickAudio() {
+      if (clickAudio) {
+        return clickAudio;
+      }
+      clickAudio = new Audio(getUiSoundPath(CLICK_AUDIO_FILE));
+      clickAudio.preload = "auto";
+      return clickAudio;
+    }
+
+    function ensureBonusAudio() {
+      if (bonusAudio) {
+        return bonusAudio;
+      }
+      bonusAudio = new Audio(getUiSoundPath(BONUS_AUDIO_FILE));
+      bonusAudio.preload = "auto";
+      return bonusAudio;
+    }
+
+    function ensureRecordAudio() {
+      if (recordAudio) {
+        return recordAudio;
+      }
+      recordAudio = new Audio(getUiSoundPath(RECORD_AUDIO_FILE));
+      recordAudio.preload = "auto";
+      return recordAudio;
+    }
+
+    function getClickAudioGameTime() {
+      return Date.now() * 0.001;
+    }
+
+    function canPlayClickAudio(gameTime) {
+      return gameTime - lastClickAudioTime >= CLICK_AUDIO_INTERVAL_SECONDS;
+    }
+
+    function getClickPitchRate(clickValue) {
+      var semitoneSteps = clickValue - 1;
+      if (semitoneSteps < 0) {
+        semitoneSteps = 0;
+      }
+      return Math.pow(SEMITONE_PITCH_RATIO, semitoneSteps);
+    }
+
+    function playUiSound(audioElement, playbackRate) {
+      var playPromise;
+      if (!audioElement) {
+        return;
+      }
+      audioElement.volume = getArcadeOutputVolume();
+      if (typeof playbackRate === "number" && !isNaN(playbackRate)) {
+        audioElement.playbackRate = playbackRate;
+      } else {
+        audioElement.playbackRate = 1;
+      }
+      audioElement.currentTime = 0;
+      playPromise = audioElement.play();
+      if (playPromise && playPromise.catch) {
+        playPromise.catch(function () {});
+      }
+    }
+
+    function playClickSound(clickValue) {
+      var gameTime = getClickAudioGameTime();
+      if (!canPlayClickAudio(gameTime)) {
+        return;
+      }
+      lastClickAudioTime = gameTime;
+      playUiSound(ensureClickAudio(), getClickPitchRate(clickValue));
+    }
+
+    function playBonusSound() {
+      playUiSound(ensureBonusAudio());
+    }
+
+    function playRecordSound() {
+      playUiSound(ensureRecordAudio());
+    }
+
     function spawnRecordPop(x, y, newBestValue) {
       var pop = document.createElement("div");
       pop.className = "score-pop score-pop--record";
@@ -889,9 +993,7 @@
       spawnRecordBurst(anchor.x, anchor.y, power);
       spawnRecordPop(anchor.x, anchor.y, newBest);
 
-      if (getSynth()) {
-        getSynth().playRecord();
-      }
+      playRecordSound();
 
       for (index = 0; index < particleCount; index++) {
         var particle = document.createElement("div");
@@ -1319,10 +1421,7 @@
       shakeScore(clickPower);
       addSpinBoost(clickPower);
 
-      if (getSynth()) {
-        getSynth().ensureContext();
-        getSynth().playClick(440 + clickValue * 12, Date.now() * 0.001);
-      }
+      playClickSound(clickValue);
 
       if (Math.random() < bonusChance) {
         var bonusMinimum = getClickMinimum(score);
@@ -1337,9 +1436,7 @@
         updateHighScoreFromScore();
         var tier = getBonusTier(bonus, maxBonus);
         spawnExplosion(x, y, bonus, maxBonus);
-        if (getSynth()) {
-          getSynth().playBonusPop();
-        }
+        playBonusSound();
         spawnScorePop(bonusX, bonusY, bonus, "bonus", tier);
         shakeAtom(totalPower);
         shakeScore(totalPower);
@@ -1358,6 +1455,10 @@
         }
       }
     }
+
+    ensureClickAudio();
+    ensureBonusAudio();
+    ensureRecordAudio();
 
     highScore = readHighScore();
     bindClickTap();

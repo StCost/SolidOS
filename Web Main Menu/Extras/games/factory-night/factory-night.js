@@ -18,6 +18,7 @@
   var REPORTED_FLASH_MS = 1100;
   var ALL_CAMERAS_REFRESH_MS = 9000;
   var CAM_CHANGE_FADE_MS = 1000;
+  var CAMERA_CHANGE_AUDIO_FILE = "ui-factory-night-camera-change.wav";
   var POWER_OUT_SCARE_MIN_MS = 5000;
   var POWER_OUT_SCARE_MAX_MS = 12000;
   var POWER_OUT_SCREAMER_FLASH_MS = 520;
@@ -111,6 +112,7 @@
   function getSynth() {
     return window.WebExtrasGameSynthAudio;
   }
+  var cameraChangeAudio = null;
   var menuPreviewRoomIndex = 0;
   var feedAssignRefreshActive = false;
   var feedAssignPreviousPaths = [];
@@ -1153,10 +1155,43 @@
     }
   }
 
-  function playCameraSwitchFade(path) {
-    if (getSynth()) {
-      getSynth().playCameraSwitch();
+  function getCameraChangeSoundPath() {
+    if (window.WebExtrasGameUiAudioPaths && window.WebExtrasGameUiAudioPaths.getUiSoundPath) {
+      return window.WebExtrasGameUiAudioPaths.getUiSoundPath(CAMERA_CHANGE_AUDIO_FILE);
     }
+    return "../../../../audio/" + CAMERA_CHANGE_AUDIO_FILE;
+  }
+
+  function getCameraChangeOutputVolume() {
+    if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume) {
+      return window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume();
+    }
+    return 0.5;
+  }
+
+  function ensureCameraChangeAudio() {
+    if (cameraChangeAudio) {
+      return cameraChangeAudio;
+    }
+    cameraChangeAudio = new Audio(getCameraChangeSoundPath());
+    cameraChangeAudio.preload = "auto";
+    return cameraChangeAudio;
+  }
+
+  function playCameraChangeSound() {
+    var audio;
+    var playPromise;
+    audio = ensureCameraChangeAudio();
+    audio.volume = getCameraChangeOutputVolume();
+    audio.currentTime = 0;
+    playPromise = audio.play();
+    if (playPromise && playPromise.catch) {
+      playPromise.catch(function () {});
+    }
+  }
+
+  function playCameraSwitchFade(path) {
+    playCameraChangeSound();
     if (!cameraFeedImg || !path) {
       return;
     }
@@ -1644,6 +1679,7 @@
       bestNight = loadBestNight();
       bestCorrectReports = loadBestCorrectReports();
       preloadAllAssets();
+      ensureCameraChangeAudio();
       state = createInitialState();
       pickMenuPreviewRoom();
       bindUi();
@@ -1653,6 +1689,9 @@
       updateBestCorrectReportsLine();
       applyGameLocale();
       ensureCameraMotionLoop();
+      if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
+        window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
+      }
     });
   }
 

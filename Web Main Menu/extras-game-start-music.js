@@ -6,13 +6,17 @@
 
   var startMusicPath = "";
   var gameplayMusicPath = "";
+  var gameOverMusicPath = "";
 
   var startMusicAudio = null;
   var gameplayMusicAudio = null;
+  var gameOverMusicAudio = null;
   var startMusicStarted = false;
   var gameplayMusicStarted = false;
+  var gameOverMusicStarted = false;
   var startMusicActive = false;
   var gameplayMusicActive = false;
+  var gameOverMusicActive = false;
   var usesStartScreenMusic = false;
 
   function getMusicVolumeFromSettings() {
@@ -36,6 +40,14 @@
       gameplayMusicAudio = null;
     }
     gameplayMusicStarted = false;
+  }
+
+  function resetGameOverMusicAudio() {
+    if (gameOverMusicAudio) {
+      gameOverMusicAudio.pause();
+      gameOverMusicAudio = null;
+    }
+    gameOverMusicStarted = false;
   }
 
   function getDefaultStartMusicPath() {
@@ -65,9 +77,20 @@
     return pathOrFileName;
   }
 
-  function setMusicPaths(nextStartMusicPath, nextGameplayMusicPath) {
+  function normalizeGameOverMusicPath(pathOrFileName) {
+    if (!pathOrFileName) {
+      return "";
+    }
+    if (window.WebMenuAudioPaths && window.WebMenuAudioPaths.getMenuAudioPath) {
+      return window.WebMenuAudioPaths.getMenuAudioPath(pathOrFileName);
+    }
+    return pathOrFileName;
+  }
+
+  function setMusicPaths(nextStartMusicPath, nextGameplayMusicPath, nextGameOverMusicPath) {
     var startPath = normalizeMusicPath(nextStartMusicPath, DEFAULT_START_MUSIC_FILE);
     var gameplayPath = normalizeMusicPath(nextGameplayMusicPath, DEFAULT_GAMEPLAY_MUSIC_FILE);
+    var gameOverPath = normalizeGameOverMusicPath(nextGameOverMusicPath);
     if (startPath !== startMusicPath) {
       startMusicPath = startPath;
       resetStartMusicAudio();
@@ -76,10 +99,14 @@
       gameplayMusicPath = gameplayPath;
       resetGameplayMusicAudio();
     }
+    if (gameOverPath !== gameOverMusicPath) {
+      gameOverMusicPath = gameOverPath;
+      resetGameOverMusicAudio();
+    }
   }
 
   function resetMusicPaths() {
-    setMusicPaths("", "");
+    setMusicPaths("", "", "");
   }
 
   function ensureStartMusicAudio() {
@@ -106,6 +133,18 @@
     return gameplayMusicAudio;
   }
 
+  function ensureGameOverMusicAudio() {
+    if (!gameOverMusicPath) {
+      return null;
+    }
+    if (gameOverMusicAudio) return gameOverMusicAudio;
+    gameOverMusicAudio = new Audio(gameOverMusicPath);
+    gameOverMusicAudio.loop = true;
+    gameOverMusicAudio.preload = "auto";
+    gameOverMusicAudio.volume = 0;
+    return gameOverMusicAudio;
+  }
+
   function applyStartMusicVolume() {
     if (!startMusicAudio) return;
     startMusicAudio.volume = getMusicVolumeFromSettings();
@@ -114,6 +153,11 @@
   function applyGameplayMusicVolume() {
     if (!gameplayMusicAudio) return;
     gameplayMusicAudio.volume = getMusicVolumeFromSettings();
+  }
+
+  function applyGameOverMusicVolume() {
+    if (!gameOverMusicAudio) return;
+    gameOverMusicAudio.volume = getMusicVolumeFromSettings();
   }
 
   function pauseMenuMusic() {
@@ -136,6 +180,11 @@
   function onGameplayMusicPlayFailed() {
     gameplayMusicStarted = false;
     gameplayMusicActive = false;
+  }
+
+  function onGameOverMusicPlayFailed() {
+    gameOverMusicStarted = false;
+    gameOverMusicActive = false;
   }
 
   function onResumeMusicPlayFailed() {
@@ -163,8 +212,16 @@
     gameplayMusicAudio.currentTime = 0;
   }
 
+  function stopGameOverMusicOnly() {
+    gameOverMusicActive = false;
+    if (!gameOverMusicAudio) return;
+    gameOverMusicAudio.pause();
+    gameOverMusicAudio.currentTime = 0;
+  }
+
   function startStartMusic() {
     stopGameplayMusicOnly();
+    stopGameOverMusicOnly();
     pauseMenuMusic();
     startMusicActive = true;
     var audio = ensureStartMusicAudio();
@@ -181,6 +238,7 @@
 
   function startGameplayMusic() {
     stopStartMusicOnly();
+    stopGameOverMusicOnly();
     pauseMenuMusic();
     gameplayMusicActive = true;
     var audio = ensureGameplayMusicAudio();
@@ -188,6 +246,29 @@
     if (!gameplayMusicStarted) {
       gameplayMusicStarted = true;
       playAudioElement(audio, onGameplayMusicPlayFailed);
+      return;
+    }
+    if (audio.paused) {
+      playAudioElement(audio, onResumeMusicPlayFailed);
+    }
+  }
+
+  function startGameOverMusic() {
+    if (!gameOverMusicPath) {
+      return;
+    }
+    stopStartMusicOnly();
+    stopGameplayMusicOnly();
+    pauseMenuMusic();
+    gameOverMusicActive = true;
+    var audio = ensureGameOverMusicAudio();
+    if (!audio) {
+      return;
+    }
+    applyGameOverMusicVolume();
+    if (!gameOverMusicStarted) {
+      gameOverMusicStarted = true;
+      playAudioElement(audio, onGameOverMusicPlayFailed);
       return;
     }
     if (audio.paused) {
@@ -205,6 +286,7 @@
 
   function stop() {
     stopStartMusicOnly();
+    stopGameOverMusicOnly();
     if (usesStartScreenMusic) {
       startGameplayMusic();
       return;
@@ -216,6 +298,7 @@
     usesStartScreenMusic = false;
     stopStartMusicOnly();
     stopGameplayMusicOnly();
+    stopGameOverMusicOnly();
     resetMusicPaths();
     resumeMenuMusic();
   }
@@ -231,6 +314,9 @@
     if (gameplayMusicActive) {
       applyGameplayMusicVolume();
     }
+    if (gameOverMusicActive) {
+      applyGameOverMusicVolume();
+    }
   }
 
   window.WebExtrasGameStartMusic = {
@@ -238,6 +324,7 @@
     setUsesStartScreenMusic: setUsesStartScreenMusic,
     start: start,
     stop: stop,
+    startGameOver: startGameOverMusic,
     forceStop: forceStop,
     isGameplayMusicActive: isGameplayMusicActive
   };
