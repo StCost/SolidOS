@@ -1,7 +1,7 @@
 {
   "chat.placeholder": "Въведете съобщение...",
-  "credits.rest": "<color=#FFCC9F>StGrikus</color>\n\nДизайнер на звука\nИнженер по звук",
-  "credits.stcost": "<color=#FFCC9F>StCost</color>\n\nВодещ разработчик\nИнженер по софтуер\nДизайнер на игри",
+  "credits.rest": "<color=#FFCC9F>StGrikus</color>\n\nДизайнер на звука\nИнженер по звук\nКомпозитор\nМаркетинг",
+  "credits.stcost": "<color=#FFCC9F>StCost</color>\n\nРъководител на екипа\nИнженер по софтуер\nДизайнер на игри\nМаркетинг",
   "credits.sttaya": "<color=#FFCC9F>StTaya</color>\n\n3D художник\nХудожествен дизайнер\nАниматор\nДизайнер на нива",
   "credits.tech": "<color=#FFCC9F>Създадено с</color>\n\nUnity\nMirror\nuTerrains\nHigh Definition Render Pipeline\nEmerald AI 2025 by Black Horizon Studios\nFMOD Studio by Firelight Technologies Pty Ltd\nVuplex 3D WebView by Vuplex Inc.",
   "language-name": "Български",
