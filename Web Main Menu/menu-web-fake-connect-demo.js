@@ -9,6 +9,14 @@
   var DEMO_WINDOW_HEIGHT_FALLBACK_PX = 600;
   var DEMO_WINDOW_INSET_PX = 24;
   var DEMO_HOTBAR_SLOT_COUNT = 12;
+  var DEMO_HOTBAR_ICON_PATH_PREFIX = "hotbar-demo-icons/";
+  var DEMO_HOTBAR_ICON_RG = DEMO_HOTBAR_ICON_PATH_PREFIX + "rg.png";
+  var DEMO_HOTBAR_ICON_AM = DEMO_HOTBAR_ICON_PATH_PREFIX + "am.png";
+  var DEMO_HOTBAR_ICON_SC = DEMO_HOTBAR_ICON_PATH_PREFIX + "sc.png";
+  var DEMO_HOTBAR_ICON_MED = DEMO_HOTBAR_ICON_PATH_PREFIX + "med.png";
+  var DEMO_HOTBAR_ICON_TK = DEMO_HOTBAR_ICON_PATH_PREFIX + "tk.png";
+  var DEMO_HOTBAR_ICON_GR = DEMO_HOTBAR_ICON_PATH_PREFIX + "gr.png";
+  var DEMO_HOTBAR_ICON_BT = DEMO_HOTBAR_ICON_PATH_PREFIX + "bt.png";
 
   var demoHostElement = null;
   var demoWorkspaceElement = null;
@@ -24,20 +32,6 @@
 
   function isWebMode() {
     return !isUnityHost();
-  }
-
-  function buildDemoItemIconDataUrl(label, fillColor) {
-    var iconLabel = label || "?";
-    var background = fillColor || "#3a2818";
-    var svg =
-      "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'>" +
-      "<rect width='32' height='32' rx='5' fill='" +
-      background +
-      "' stroke='rgba(255,128,0,0.55)' stroke-width='1'/>" +
-      "<text x='16' y='21' text-anchor='middle' font-family='monospace' font-size='9' fill='#ffe0c0'>" +
-      iconLabel +
-      "</text></svg>";
-    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
   }
 
   function buildEmptyDemoSlots() {
@@ -56,43 +50,43 @@
       hasItem: true,
       stack: 1,
       maxStack: 1,
-      iconDataUrl: buildDemoItemIconDataUrl("RG", "#4a2810")
+      iconDataUrl: DEMO_HOTBAR_ICON_RG
     };
     slots[1] = {
       hasItem: true,
       stack: 999,
       maxStack: 999,
-      iconDataUrl: buildDemoItemIconDataUrl("AM", "#3a3218")
+      iconDataUrl: DEMO_HOTBAR_ICON_AM
     };
     slots[2] = {
       hasItem: true,
       stack: 999,
       maxStack: 999,
-      iconDataUrl: buildDemoItemIconDataUrl("SC", "#2a2040")
+      iconDataUrl: DEMO_HOTBAR_ICON_SC
     };
     slots[3] = {
       hasItem: true,
       stack: 1,
       maxStack: 1,
-      iconDataUrl: buildDemoItemIconDataUrl("MED", "#284a22")
+      iconDataUrl: DEMO_HOTBAR_ICON_MED
     };
     slots[4] = {
       hasItem: true,
       stack: 1,
       maxStack: 1,
-      iconDataUrl: buildDemoItemIconDataUrl("TK", "#223048")
+      iconDataUrl: DEMO_HOTBAR_ICON_TK
     };
     slots[5] = {
       hasItem: true,
       stack: 1,
       maxStack: 1,
-      iconDataUrl: buildDemoItemIconDataUrl("GR", "#4a3018")
+      iconDataUrl: DEMO_HOTBAR_ICON_GR
     };
     slots[7] = {
       hasItem: true,
       stack: 1,
       maxStack: 1,
-      iconDataUrl: buildDemoItemIconDataUrl("BT", "#342818")
+      iconDataUrl: DEMO_HOTBAR_ICON_BT
     };
     window.WebGameHud.applyInventoryState({
       selectedIndex: 2,

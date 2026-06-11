@@ -902,8 +902,16 @@
     return Date.now() < chatOpenEnterSuppressUntil;
   }
 
+  function enableStandaloneChatInputCapture() {
+    if (isUnityHost() || chatInputCaptureEnabled) return;
+    setChatInputCaptureEnabled(true);
+  }
+
   function setChatInputSession(active) {
-    if (active && !chatInputCaptureEnabled) return;
+    if (active && !chatInputCaptureEnabled) {
+      if (isUnityHost()) return;
+      enableStandaloneChatInputCapture();
+    }
     chatInputSession = !!active;
     if (chatInputSession) {
       suppressOpenEnterKey();
@@ -1142,8 +1150,11 @@
   function onChatInputMouseDown(event) {
     if (!event) return;
     if (!chatInputCaptureEnabled) {
-      event.preventDefault();
-      return;
+      if (isUnityHost()) {
+        event.preventDefault();
+        return;
+      }
+      enableStandaloneChatInputCapture();
     }
     event.stopPropagation();
     if (chatInputSession) {

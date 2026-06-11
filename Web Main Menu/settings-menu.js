@@ -272,6 +272,15 @@
     return options;
   }
 
+  function sortLanguageOptions(options) {
+    options.sort(function (left, right) {
+      if (left.value === DEFAULT_LANGUAGE_CODE) return -1;
+      if (right.value === DEFAULT_LANGUAGE_CODE) return 1;
+      return left.label.localeCompare(right.label);
+    });
+    return options;
+  }
+
   function getLanguageOptions() {
     var source = state.languageOptions;
     if ((!source || !source.length) && window.__cmLanguageOptions && window.__cmLanguageOptions.length) {
@@ -282,7 +291,7 @@
       if (!isUnityMenuHost() && window.WebLocaleLoader && window.WebLocaleLoader.loadLanguageOptions) {
         window.WebLocaleLoader.loadLanguageOptions();
       }
-      return [{ value: state.language || "english", label: state.language || "english" }];
+      return [{ value: state.language || DEFAULT_LANGUAGE_CODE, label: state.language || DEFAULT_LANGUAGE_CODE }];
     }
     var options = [];
     var index;
@@ -290,7 +299,7 @@
       var entry = source[index];
       options.push({ value: entry.code, label: entry.label || entry.code });
     }
-    return options;
+    return sortLanguageOptions(options);
   }
 
   function getFieldsForTab(tabId) {
