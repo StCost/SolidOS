@@ -285,8 +285,8 @@ var WebDesktop = (function () {
       return;
     }
     if (presetName === "credits-content") {
-      if (window.WebCredits && window.WebCredits.renderIntoWindow) {
-        window.WebCredits.renderIntoWindow(windowElement);
+      if (window.WebCredits && window.WebCredits.bindToWindow) {
+        window.WebCredits.bindToWindow(windowElement);
       }
     }
   }

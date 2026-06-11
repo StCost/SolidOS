@@ -47,6 +47,8 @@
   var chatOpenEnterSuppressUntil = 0;
   var CHAT_OPEN_ENTER_SUPPRESS_MS = 300;
   var chatIdleHideTimer = null;
+  var COMMAND_HISTORY_STORAGE_KEY = "cm-chat-command-history";
+  var MAX_STORED_UNIQUE_COMMANDS = 10;
   var commandHistory = [];
   var commandHistoryIndex = 0;
   var chatBindingsReady = false;
@@ -841,6 +843,38 @@
     commandHistoryIndex = commandHistory.length;
   }
 
+  function getUniqueCommandsForStorage() {
+    var unique = [];
+    var seen = {};
+    var index = 0;
+    for (index = commandHistory.length - 1; index >= 0 && unique.length < MAX_STORED_UNIQUE_COMMANDS; index -= 1) {
+      var command = commandHistory[index];
+      var lookupKey = String(command).toLowerCase();
+      if (seen[lookupKey]) continue;
+      seen[lookupKey] = true;
+      unique.unshift(command);
+    }
+    return unique;
+  }
+
+  function saveCommandHistoryToStorage() {
+    try {
+      localStorage.setItem(COMMAND_HISTORY_STORAGE_KEY, JSON.stringify(getUniqueCommandsForStorage()));
+    } catch (error) {
+    }
+  }
+
+  function loadCommandHistoryFromStorage() {
+    try {
+      var raw = localStorage.getItem(COMMAND_HISTORY_STORAGE_KEY);
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      if (!parsed || !parsed.length) return;
+      setCommandHistory(parsed);
+    } catch (error) {
+    }
+  }
+
   function resetCommandHistorySession() {
     commandHistoryIndex = commandHistory.length;
   }
@@ -850,17 +884,19 @@
     if (direction < 0) {
       commandHistoryIndex = Math.max(0, commandHistoryIndex - 1);
       chatInputElement.value = commandHistory[commandHistoryIndex];
+      chatInputElement.setSelectionRange(chatInputElement.value.length, chatInputElement.value.length);
       return;
     }
     commandHistoryIndex = Math.min(commandHistory.length, commandHistoryIndex + 1);
     if (commandHistoryIndex < commandHistory.length) {
       chatInputElement.value = commandHistory[commandHistoryIndex];
+      chatInputElement.setSelectionRange(chatInputElement.value.length, chatInputElement.value.length);
       return;
     }
     chatInputElement.value = "";
   }
 
-  function pushLocalCommandHistory(text) {
+  function pushCommandHistory(text) {
     if (!text) return;
     var index = 0;
     for (index = 0; index < commandHistory.length; index += 1) {
@@ -871,6 +907,7 @@
     }
     commandHistory.push(text);
     commandHistoryIndex = commandHistory.length;
+    saveCommandHistoryToStorage();
   }
 
   function applyChatOpenState() {
@@ -1099,13 +1136,14 @@
       if (!trimmedUnity) {
         return;
       }
+      pushCommandHistory(trimmedUnity);
       postChatSubmit(trimmedUnity);
       chatInputElement.value = "";
       return;
     }
     var trimmed = text.replace(/^\s+|\s+$/g, "");
     if (trimmed) {
-      pushLocalCommandHistory(trimmed);
+      pushCommandHistory(trimmed);
       addChatMessage(trimmed);
       chatInputElement.value = "";
     }
@@ -1120,12 +1158,16 @@
     if (!event || !chatInputCaptureEnabled) return;
     if (event.key === "ArrowUp") {
       event.preventDefault();
-      navigateCommandHistory(-1);
+      if (!isUnityHost()) {
+        navigateCommandHistory(-1);
+      }
       return;
     }
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      navigateCommandHistory(1);
+      if (!isUnityHost()) {
+        navigateCommandHistory(1);
+      }
       return;
     }
     if (event.key === "Enter") {
@@ -1348,6 +1390,7 @@
   }
 
   function bindDom() {
+    loadCommandHistoryFromStorage();
     buildHotbar();
     healthBarElement = document.getElementById("healthBar");
     bindFpsCounterDom();
@@ -1375,6 +1418,7 @@
     setChatInputCaptureEnabled: setChatInputCaptureEnabled,
     clearChatMessages: clearChatMessages,
     setCommandHistory: setCommandHistory,
+    navigateCommandHistory: navigateCommandHistory,
     setGameplayHudLayerActive: setGameplayHudLayerActive,
     setFpsCountersState: setFpsCountersState,
     setGameFpsCounterValue: setGameFpsCounterValue
