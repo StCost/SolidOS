@@ -34,6 +34,10 @@
     return !isUnityHost();
   }
 
+  function getRandomDemoStackCount() {
+    return Math.floor(Math.random() * 999) + 1;
+  }
+
   function buildEmptyDemoSlots() {
     var slots = [];
     var index = 0;
@@ -54,13 +58,13 @@
     };
     slots[1] = {
       hasItem: true,
-      stack: 999,
+      stack: getRandomDemoStackCount(),
       maxStack: 999,
       iconDataUrl: DEMO_HOTBAR_ICON_AM
     };
     slots[2] = {
       hasItem: true,
-      stack: 999,
+      stack: getRandomDemoStackCount(),
       maxStack: 999,
       iconDataUrl: DEMO_HOTBAR_ICON_SC
     };

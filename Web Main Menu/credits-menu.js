@@ -88,17 +88,70 @@
     return '<div class="credits-block">' + formatCreditsBlock(blockText) + "</div>";
   }
 
+  function ensureCreditsShell(windowElement) {
+    if (!windowElement) return null;
+    var scrollElement = windowElement.querySelector(".credits-scroll");
+    if (!scrollElement) {
+      var clipElement = windowElement.querySelector(".menu-v-scroll-clip");
+      if (!clipElement) return null;
+      scrollElement = document.createElement("div");
+      scrollElement.className = "credits-scroll menu-v-scroll-view";
+      scrollElement.setAttribute("role", "region");
+      scrollElement.setAttribute("data-locale-aria-label", "web.aria.credits-content");
+      scrollElement.setAttribute("aria-label", "Credits");
+      clipElement.appendChild(scrollElement);
+    }
+    var introElement = scrollElement.querySelector(".credits-intro");
+    if (!introElement) {
+      introElement = document.createElement("div");
+      introElement.className = "credits-intro";
+      introElement.innerHTML =
+        '<p class="credits-intro-title terminal-text" data-locale-key="web.credits.intro-line">COLLAPSE MACHINE by Dreaming Saints</p>' +
+        '<p data-locale-key="web.credits.game-description">co-op tesla-punk open-world fps game</p>';
+      scrollElement.insertBefore(introElement, scrollElement.firstChild);
+      if (window.WebLocale && window.WebLocale.applyDom) {
+        window.WebLocale.applyDom();
+      }
+    }
+    var contentRoot = scrollElement.querySelector("#" + CREDITS_CONTENT_ID);
+    if (!contentRoot) {
+      contentRoot = document.createElement("div");
+      contentRoot.id = CREDITS_CONTENT_ID;
+      contentRoot.setAttribute("role", "region");
+      contentRoot.setAttribute("data-locale-aria-label", "web.aria.credits-list");
+      contentRoot.setAttribute("aria-label", "Credits list");
+      scrollElement.appendChild(contentRoot);
+    }
+    return contentRoot;
+  }
+
+  function getCreditsContentRoot(windowElement) {
+    if (!windowElement) return null;
+    var contentRoot = windowElement.querySelector("#" + CREDITS_CONTENT_ID);
+    if (!contentRoot) {
+      contentRoot = windowElement.querySelector('[id^="creditsContent"]');
+    }
+    return contentRoot;
+  }
+
+  function releaseCreditsContent(windowElement) {
+    var contentRoot = getCreditsContentRoot(windowElement);
+    if (!contentRoot) return;
+    contentRoot.innerHTML = "";
+  }
+
+  function bindToWindow(windowElement) {
+    var contentRoot = ensureCreditsShell(windowElement);
+    if (!contentRoot) return;
+    renderCreditsIntoRoot(contentRoot);
+  }
+
   function renderIntoWindow(windowElement) {
     if (!windowElement) {
       renderCredits();
       return;
     }
-    var contentRoot = windowElement.querySelector("#" + CREDITS_CONTENT_ID);
-    if (!contentRoot) {
-      contentRoot = windowElement.querySelector('[id^="creditsContent"]');
-    }
-    if (!contentRoot) return;
-    renderCreditsIntoRoot(contentRoot);
+    bindToWindow(windowElement);
   }
 
   function renderCreditsIntoRoot(contentRoot) {
@@ -139,7 +192,7 @@
 
   function renderCredits() {
     var openWindows = document.querySelectorAll(
-      '.os-window[data-wm-preset="credits-content"]'
+      '.os-window[data-wm-preset="credits-content"]:not(.os-window--closed)'
     );
     var index = 0;
     if (openWindows.length) {
@@ -165,6 +218,8 @@
 
   window.WebCredits = {
     renderCredits: renderCredits,
-    renderIntoWindow: renderIntoWindow
+    renderIntoWindow: renderIntoWindow,
+    bindToWindow: bindToWindow,
+    releaseContent: releaseCreditsContent
   };
 })();

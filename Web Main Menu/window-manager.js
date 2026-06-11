@@ -2296,7 +2296,11 @@ var WebWindowManager = (function () {
       window.WebExtras.releaseContent(windowElement);
       return;
     }
-    var scrollSelector = ".menu-v-scroll-view, .settings-scroll, .extras-scroll, .credits-scroll, .worlds-list";
+    if (presetName === "credits-content" && window.WebCredits && window.WebCredits.releaseContent) {
+      window.WebCredits.releaseContent(windowElement);
+      return;
+    }
+    var scrollSelector = ".menu-v-scroll-view, .settings-scroll, .extras-scroll, .worlds-list";
     var scrollNodes = windowElement.querySelectorAll(scrollSelector);
     var index;
     for (index = 0; index < scrollNodes.length; index += 1) {
