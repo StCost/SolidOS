@@ -50,6 +50,25 @@
   box-sizing: border-box;
 }
 
+.worlds-list--empty {
+  justify-content: center;
+}
+
+.worlds-list-empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3em;
+  padding: 1em 0.75em;
+  font-size: clamp(0.8rem, 1.6vmin, 0.95rem);
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: rgba(255, 160, 96, 0.55);
+  -webkit-text-fill-color: rgba(255, 160, 96, 0.55);
+}
+
 .worlds-list>li {
   flex: 0 0 auto;
   min-height: 2.5em;
