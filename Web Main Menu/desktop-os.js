@@ -1515,24 +1515,6 @@ var WebDesktop = (function () {
     return excludeIcons;
   }
 
-  function resolveGroupDragSecondaryDropPosition(
-    iconElement,
-    startLeft,
-    startTop,
-    gridDeltaColumn,
-    gridDeltaRow,
-    pixelDeltaLeft,
-    pixelDeltaTop,
-    occupancyExcludeIcons
-  ) {
-    return findClosestFreeIconPosition(
-      iconElement,
-      startLeft + pixelDeltaLeft,
-      startTop + pixelDeltaTop,
-      occupancyExcludeIcons
-    );
-  }
-
   function resolveIconDropPosition(iconElement, left, top, clientX, clientY, excludeIcons) {
     var excludeTarget = excludeIcons || iconElement;
     return findClosestFreeIconPosition(iconElement, left, top, excludeTarget);
@@ -2270,7 +2252,6 @@ var WebDesktop = (function () {
     var resolvedDropPosition;
     var deltaLeft;
     var deltaTop;
-    var isGroupDrag = drag.iconElements.length > 1;
 
     removeIconDragGhosts(drag);
     document.body.removeAttribute("data-icon-drag");
@@ -2298,27 +2279,14 @@ var WebDesktop = (function () {
       if (iconElement === primaryIconElement) continue;
       startPosition = getDragStartPositionForIcon(drag, iconElement);
       occupancyExcludeIcons = getUnplacedGroupDragExcludeIcons(drag.iconElements, placedGroupIcons);
-      if (isGroupDrag) {
-        resolvedDropPosition = resolveGroupDragSecondaryDropPosition(
-          iconElement,
-          startPosition.left,
-          startPosition.top,
-          gridDeltaColumn,
-          gridDeltaRow,
-          deltaLeft,
-          deltaTop,
-          occupancyExcludeIcons
-        );
-      } else {
-        resolvedDropPosition = resolveIconDropPosition(
-          iconElement,
-          startPosition.left + deltaLeft,
-          startPosition.top + deltaTop,
-          null,
-          null,
-          occupancyExcludeIcons
-        );
-      }
+      resolvedDropPosition = resolveIconDropPosition(
+        iconElement,
+        startPosition.left + deltaLeft,
+        startPosition.top + deltaTop,
+        null,
+        null,
+        occupancyExcludeIcons
+      );
       applyIconPosition(iconElement, resolvedDropPosition.left, resolvedDropPosition.top);
       syncIconLayoutFromElement(iconElement);
       placedGroupIcons.push(iconElement);
