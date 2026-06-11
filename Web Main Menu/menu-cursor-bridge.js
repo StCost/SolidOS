@@ -186,6 +186,28 @@
     return document.documentElement;
   }
 
+  function getWindowChromeDragToken(pointTarget) {
+    if (pointTarget && pointTarget.closest) {
+      if (pointTarget.closest(".os-window-controls, .os-window-control")) {
+        return null;
+      }
+    }
+
+    var element = pointTarget;
+    while (element && element !== document.documentElement) {
+      if (element.classList) {
+        if (
+          element.classList.contains("os-window-chrome--drag") ||
+          element.classList.contains("os-window-title--drag")
+        ) {
+          return "drag";
+        }
+      }
+      element = element.parentElement;
+    }
+    return null;
+  }
+
   function getOverlayScrollbarCursorToken(element) {
     while (element && element !== document.documentElement) {
       if (!element.classList) {
@@ -212,21 +234,9 @@
       pointTarget = target;
     }
 
-    var overlayScrollbarToken = getOverlayScrollbarCursorToken(pointTarget);
-    if (overlayScrollbarToken) {
-      return overlayScrollbarToken;
-    }
-
-    if (window.WebScrollbarCursor) {
-      var scrollCursorToken = window.WebScrollbarCursor.getScrollCursorToken(clientX, clientY);
-      if (scrollCursorToken) {
-        return scrollCursorToken;
-      }
-    }
-
-    var settingsSliderToken = getSettingsSliderCursorToken(pointTarget);
-    if (settingsSliderToken) {
-      return settingsSliderToken;
+    var windowChromeDragToken = getWindowChromeDragToken(pointTarget);
+    if (windowChromeDragToken) {
+      return windowChromeDragToken;
     }
 
     var body = document.body;
@@ -253,6 +263,23 @@
       }
     }
 
+    var overlayScrollbarToken = getOverlayScrollbarCursorToken(pointTarget);
+    if (overlayScrollbarToken) {
+      return overlayScrollbarToken;
+    }
+
+    if (window.WebScrollbarCursor) {
+      var scrollCursorToken = window.WebScrollbarCursor.getScrollCursorToken(clientX, clientY);
+      if (scrollCursorToken) {
+        return scrollCursorToken;
+      }
+    }
+
+    var settingsSliderToken = getSettingsSliderCursorToken(pointTarget);
+    if (settingsSliderToken) {
+      return settingsSliderToken;
+    }
+
     var resizeToken = getResizeTokenFromElement(pointTarget);
     if (resizeToken) {
       return resizeToken;
@@ -275,14 +302,6 @@
         pointTarget.classList.contains("game-hud-chat-log-inner"))
     ) {
       return "default";
-    }
-
-    var element = pointTarget;
-    while (element && element !== document.documentElement) {
-      if (element.classList && element.classList.contains("os-window-chrome--drag")) {
-        return "drag";
-      }
-      element = element.parentElement;
     }
 
     return "default";
