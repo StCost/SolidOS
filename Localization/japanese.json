@@ -1,7 +1,7 @@
 {
   "chat.placeholder": "メッセージを入力...",
-  "credits.rest": "<color=#FFCC9F>StGrikus</color>\n\nサウンドデザイナー\nサウンドエンジニア",
-  "credits.stcost": "<color=#FFCC9F>StCost</color>\n\nリード開発者\nソフトウェアエンジニア\nゲームデザイナー",
+  "credits.rest": "<color=#FFCC9F>StGrikus</color>\n\nサウンドデザイナー\nサウンドエンジニア\n音楽作曲家\nマーケティング",
+  "credits.stcost": "<color=#FFCC9F>StCost</color>\n\nチームリード\nソフトウェアエンジニア\nゲームデザイナー\nマーケティング",
   "credits.sttaya": "<color=#FFCC9F>StTaya</color>\n\n3Dアーティスト\nアートデザイナー\nアニメーター\nレベルデザイナー",
   "credits.tech": "<color=#FFCC9F>使用技術</color>\n\nUnity\nMirror\nuTerrains\nHigh Definition Render Pipeline\nEmerald AI 2025 by Black Horizon Studios\nFMOD Studio by Firelight Technologies Pty Ltd\nVuplex 3D WebView by Vuplex Inc.",
   "language-name": "日本語",

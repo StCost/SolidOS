@@ -1,7 +1,7 @@
 {
   "chat.placeholder": "Scrie un mesaj...",
-  "credits.rest": "<color=#FFCC9F>StGrikus</color>\n\nDesigner de sunet\nInginer de sunet",
-  "credits.stcost": "<color=#FFCC9F>StCost</color>\n\nDezvoltator principal\nInginer software\nDesigner de jocuri",
+  "credits.rest": "<color=#FFCC9F>StGrikus</color>\n\nDesigner de sunet\nInginer de sunet\nCompozitor muzical\nMarketing",
+  "credits.stcost": "<color=#FFCC9F>StCost</color>\n\nLider de echipă\nInginer software\nDesigner de jocuri\nMarketing",
   "credits.sttaya": "<color=#FFCC9F>StTaya</color>\n\nArtist 3D\nDesigner de artă\nAnimator\nDesigner de nivele",
   "credits.tech": "<color=#FFCC9F>Realizat cu</color>\n\nUnity\nMirror\nuTerrains\nHigh Definition Render Pipeline\nEmerald AI 2025 by Black Horizon Studios\nFMOD Studio by Firelight Technologies Pty Ltd\nVuplex 3D WebView by Vuplex Inc.",
   "language-name": "Română",

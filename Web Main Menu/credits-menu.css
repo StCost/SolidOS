@@ -34,6 +34,12 @@
   padding-bottom: 0.35em;
 }
 
+#creditsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2em;
+}
+
 .credits-row {
   display: flex;
   flex-direction: row;
