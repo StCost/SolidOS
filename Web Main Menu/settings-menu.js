@@ -98,7 +98,6 @@
   };
 
   var state = copyState(DEFAULT_STATE);
-  var localeStrings = {};
   var activeTabId = "interface";
   var settingsHostStateReady = false;
   var contentRoot;
@@ -120,10 +119,6 @@
   function getLocalized(key, fallback) {
     if (window.WebLocale && window.WebLocale.resolveLocaleKey) {
       key = window.WebLocale.resolveLocaleKey(key);
-    }
-    if (key && Object.prototype.hasOwnProperty.call(localeStrings, key)) {
-      var localeValue = localeStrings[key];
-      if (localeValue != null && localeValue !== "") return localeValue;
     }
     if (window.WebLocale) {
       return window.WebLocale.get(key, fallback);
@@ -1836,24 +1831,11 @@
     renderFields();
   }
 
-  function applyLocaleStringEntries(entries) {
-    if (!entries || !entries.length) return;
-    var index;
-    for (index = 0; index < entries.length; index++) {
-      var entry = entries[index];
-      if (!entry || !entry.key) continue;
-      localeStrings[entry.key] = entry.value;
-    }
-  }
-
   function applyState(payload) {
     if (!payload) return;
     settingsHostStateReady = true;
     ensureSettingsUiRoots();
     var previousLanguage = state.language;
-    if (payload.localeStrings) {
-      applyLocaleStringEntries(payload.localeStrings);
-    }
     var key;
     for (key in payload) {
       if (!Object.prototype.hasOwnProperty.call(payload, key)) continue;
@@ -1861,7 +1843,6 @@
         state.languageOptions = payload.languageOptions;
         continue;
       }
-      if (key === "localeStrings") continue;
       if (key === "controlsSection" || key === "controlsRows" || key === "controlsListeningRowId") continue;
       if (key === "graphicsLodBiasPercent") {
         state[key] = parseLodBiasPercent(payload[key]);
