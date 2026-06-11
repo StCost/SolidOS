@@ -211,13 +211,8 @@
 
     contentRoot.appendChild(block);
 
-    if (window.WebSettings) {
-      if (window.WebSettings.refreshAllSliderValuePositions) {
-        window.WebSettings.refreshAllSliderValuePositions();
-      }
-      if (window.WebSettings.scheduleSliderValueLayoutRefresh) {
-        window.WebSettings.scheduleSliderValueLayoutRefresh();
-      }
+    if (window.WebSettings && window.WebSettings.refreshAllSliderValuePositions) {
+      window.WebSettings.refreshAllSliderValuePositions();
     }
   }
 

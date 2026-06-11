@@ -154,17 +154,6 @@
     return true;
   }
 
-  function cancelSliderLayoutWork() {
-    if (sliderLayoutRefreshFrame) {
-      window.cancelAnimationFrame(sliderLayoutRefreshFrame);
-      sliderLayoutRefreshFrame = 0;
-    }
-    if (sliderLayoutRefreshTimer) {
-      window.clearTimeout(sliderLayoutRefreshTimer);
-      sliderLayoutRefreshTimer = 0;
-    }
-  }
-
   function releaseSettingsScrollBound() {
     if (!contentRoot) return;
     if (!contentRoot.getAttribute("data-settings-scroll-bound")) return;
@@ -173,7 +162,6 @@
   }
 
   function releaseSettingsContent() {
-    cancelSliderLayoutWork();
     if (window.WebMenuHelpTooltip) {
       window.WebMenuHelpTooltip.hide();
     }
@@ -472,12 +460,6 @@
       return field.format(Number(endpointValue));
     }
     return String(endpointValue);
-  }
-
-  function getSliderThumbOffsetPx(slider, ratio) {
-    var trackWidth = slider.offsetWidth;
-    if (trackWidth <= 0) return -1;
-    return ratio * (trackWidth - sliderThumbWidthPx) + sliderThumbWidthPx * 0.5;
   }
 
   function resolveOptions(field) {
@@ -1106,7 +1088,6 @@
     if (window.WebMenuHelpTooltip) {
       window.WebMenuHelpTooltip.hide();
     }
-    cancelSliderLayoutWork();
     settingsResetFooterElement = null;
     contentRoot.textContent = "";
     contentRoot.classList.remove("is-empty");
@@ -1135,8 +1116,7 @@
       contentRoot.classList.add("is-empty");
     }
     appendSettingsResetFooter();
-    refreshAllSliderValuePositions();
-    scheduleSliderValueLayoutRefresh();
+    refreshAllSliderFillVisuals();
   }
 
   function appendFieldLabel(labelBox, field) {
@@ -1364,13 +1344,6 @@
     return row;
   }
 
-  var sliderThumbWidthPx = 12;
-  var sliderThumbHeightPx = 18;
-  var sliderResizeTimer = 0;
-  var sliderLayoutRefreshFrame = 0;
-  var sliderLayoutRefreshTimer = 0;
-  var sliderLayoutObserver = null;
-
   function getSliderThumbRatio(slider) {
     var min = Number(slider.min);
     var max = Number(slider.max);
@@ -1389,83 +1362,6 @@
     track.style.setProperty("--settings-slider-fill", String(getSliderThumbRatio(slider)));
   }
 
-  function updateSliderTrackLayout(slider, valueSpan, minSpan, maxSpan) {
-    if (!slider) return;
-    var trackWidth = slider.offsetWidth;
-    if (trackWidth <= 0) {
-      scheduleSliderValueLayoutRefresh();
-      return;
-    }
-    updateSliderFillVisual(slider);
-    var minOffsetPx = getSliderThumbOffsetPx(slider, 0);
-    var maxOffsetPx = getSliderThumbOffsetPx(slider, 1);
-    if (minSpan && minOffsetPx >= 0) {
-      minSpan.style.left = minOffsetPx + "px";
-    }
-    if (maxSpan && maxOffsetPx >= 0) {
-      maxSpan.style.left = maxOffsetPx + "px";
-    }
-    if (!valueSpan) return;
-    var ratio = getSliderThumbRatio(slider);
-    var valueOffsetPx = getSliderThumbOffsetPx(slider, ratio);
-    if (valueOffsetPx >= 0) {
-      valueSpan.style.left = valueOffsetPx + "px";
-    }
-  }
-
-  function onSliderLayoutRefreshPass() {
-    sliderLayoutRefreshFrame = 0;
-    refreshAllSliderValuePositions();
-  }
-
-  function onSliderLayoutRefreshFrame() {
-    sliderLayoutRefreshFrame = window.requestAnimationFrame(onSliderLayoutRefreshPass);
-  }
-
-  function onSliderLayoutDelayedRefresh() {
-    sliderLayoutRefreshTimer = 0;
-    refreshAllSliderValuePositions();
-  }
-
-  function scheduleSliderValueLayoutRefresh() {
-    if (sliderLayoutRefreshFrame) {
-      window.cancelAnimationFrame(sliderLayoutRefreshFrame);
-    }
-    sliderLayoutRefreshFrame = window.requestAnimationFrame(onSliderLayoutRefreshFrame);
-
-    if (sliderLayoutRefreshTimer) {
-      window.clearTimeout(sliderLayoutRefreshTimer);
-    }
-    sliderLayoutRefreshTimer = window.setTimeout(onSliderLayoutDelayedRefresh, 750);
-  }
-
-  function onSettingsContentResize() {
-    scheduleSliderValueLayoutRefresh();
-  }
-
-  function ensureSliderLayoutObserver() {
-    if (!contentRoot || sliderLayoutObserver) return;
-    if (typeof ResizeObserver === "undefined") return;
-    sliderLayoutObserver = new ResizeObserver(onSettingsContentResize);
-    sliderLayoutObserver.observe(contentRoot);
-  }
-
-  function onWorkspaceLayoutSettled(event) {
-    var workspaceElement = event.detail && event.detail.workspaceElement;
-    if (!workspaceElement || !workspaceElement.classList) return;
-    if (!workspaceElement.classList.contains("os-workspace--settings")) return;
-    if (sliderLayoutRefreshFrame) {
-      window.cancelAnimationFrame(sliderLayoutRefreshFrame);
-      sliderLayoutRefreshFrame = 0;
-    }
-    sliderLayoutRefreshFrame = window.requestAnimationFrame(function () {
-      sliderLayoutRefreshFrame = window.requestAnimationFrame(function () {
-        sliderLayoutRefreshFrame = 0;
-        refreshAllSliderValuePositions();
-      });
-    });
-  }
-
   function onSettingsMenuOpen() {
     ensureSettingsUiRoots();
     if (!isUnityMenuHost() && window.WebLocaleLoader && window.WebLocaleLoader.flushPendingLanguageOptions) {
@@ -1476,22 +1372,20 @@
     if (activeTabId === "controls" && window.WebSettingsControls) {
       window.WebSettingsControls.openControlsTab();
     }
-    scheduleSliderValueLayoutRefresh();
+    refreshAllSliderFillVisuals();
   }
 
-  function refreshAllSliderValuePositions() {
+  function refreshAllSliderFillVisuals() {
     if (!contentRoot) return;
     var sliders = contentRoot.querySelectorAll(".settings-slider");
     var index;
     for (index = 0; index < sliders.length; index++) {
-      var slider = sliders[index];
-      var track = slider.parentElement;
-      if (!track) continue;
-      var valueSpan = track.querySelector(".settings-slider-value");
-      var minSpan = track.querySelector(".settings-slider-min");
-      var maxSpan = track.querySelector(".settings-slider-max");
-      updateSliderTrackLayout(slider, valueSpan, minSpan, maxSpan);
+      updateSliderFillVisual(sliders[index]);
     }
+  }
+
+  function refreshAllSliderValuePositions() {
+    refreshAllSliderFillVisuals();
   }
 
   function getTerminalAnimationsEnabled(value) {
@@ -1688,27 +1582,24 @@
   }
 
   function updateSliderDisplay(field, slider, valueDisplay) {
-    var track = slider.parentElement;
-    var minSpan = track ? track.querySelector(".settings-slider-min") : null;
-    var maxSpan = track ? track.querySelector(".settings-slider-max") : null;
     var wireValue = slider.value;
     if (field.steppedOptions) {
       var steppedIndex = parseInt(wireValue, 10);
       var steppedOption = getSteppedOptionByIndex(field.steppedOptions, steppedIndex);
       state[field.key] = steppedOption.value;
       setSliderValueDisplay(valueDisplay, field, wireValue);
-      updateSliderTrackLayout(slider, valueDisplay, minSpan, maxSpan);
+      updateSliderFillVisual(slider);
       return steppedOption.value;
     }
     if (field.parse) {
       state[field.key] = parseFloat(field.parse(wireValue));
       setSliderValueDisplay(valueDisplay, field, wireValue);
-      updateSliderTrackLayout(slider, valueDisplay, minSpan, maxSpan);
+      updateSliderFillVisual(slider);
       return wireValue;
     }
     state[field.key] = parseInt(wireValue, 10);
     setSliderValueDisplay(valueDisplay, field, wireValue);
-    updateSliderTrackLayout(slider, valueDisplay, minSpan, maxSpan);
+    updateSliderFillVisual(slider);
     return wireValue;
   }
 
@@ -1831,7 +1722,7 @@
     line.appendChild(labelBox);
     line.appendChild(controlBox);
     row.appendChild(line);
-    updateSliderTrackLayout(slider, valueDisplay, minSpan, maxSpan);
+    updateSliderFillVisual(slider);
     return row;
   }
 
@@ -1992,12 +1883,6 @@
     renderAll();
   }
 
-  function onWindowResizeForSliders() {
-    if (sliderResizeTimer) window.clearTimeout(sliderResizeTimer);
-    sliderResizeTimer = window.setTimeout(refreshAllSliderValuePositions, 100);
-  }
-
-
   function init() {
     if (window.WebMenuHelpTooltip) {
       window.WebMenuHelpTooltip.init();
@@ -2021,10 +1906,6 @@
     window.addEventListener("web-settings-open", onSettingsMenuOpen);
     window.addEventListener("web-desktop-windows-restored", onDesktopWindowsRestored);
     window.addEventListener("web-desktop-window-closed", onSettingsWindowClosed);
-    ensureSliderLayoutObserver();
-
-    window.addEventListener("resize", onWindowResizeForSliders);
-    window.addEventListener("web-wm-layout-settled", onWorkspaceLayoutSettled);
     if (isSettingsWindowVisible()) {
       if (isUnityMenuHost() && !settingsHostStateReady && window.WebSettingsBridge) {
         window.WebSettingsBridge.open();
@@ -2057,7 +1938,6 @@
     buildSliderRowForField: buildSliderRow,
     renderControlsOnly: renderControlsOnly,
     refreshAllSliderValuePositions: refreshAllSliderValuePositions,
-    scheduleSliderValueLayoutRefresh: scheduleSliderValueLayoutRefresh,
     refreshOnOpen: onSettingsMenuOpen,
     releaseContent: releaseSettingsContent
   };
