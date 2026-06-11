@@ -8,6 +8,12 @@
   var LIST_CLASS_IP = "worlds-list--ip";
   var LIST_CLASS_STEAM = "worlds-list--steam";
   var LISTS_STORAGE_KEY = "cm-menu-start-lists-v2";
+  var LOCALE_KEY_EMPTY_WORLDS = "web.connect.empty.worlds";
+  var LOCALE_KEY_EMPTY_SERVERS = "web.connect.empty.servers";
+  var LOCALE_KEY_EMPTY_STEAM = "web.connect.empty.steam";
+  var EMPTY_WORLDS_FALLBACK = "No worlds saved yet.";
+  var EMPTY_SERVERS_FALLBACK = "No servers saved yet.";
+  var EMPTY_STEAM_FALLBACK = "No friends currently in game.";
 
   var DEFAULT_WORLDS = [
     { name: "Rust Belt", seed: "48291037" },
@@ -85,6 +91,14 @@
       return detail.name || "";
     }
     return "";
+  }
+
+  function getLocalized(key, fallback) {
+    if (window.WebLocale) {
+      return window.WebLocale.get(key, fallback);
+    }
+    if (fallback != null) return fallback;
+    return key || "";
   }
 
   function copyListEntries(source) {
@@ -376,6 +390,14 @@
     scheduleListsSave();
   }
 
+  function createEmptyListItem(localeKey, fallback) {
+    var listItem = document.createElement("li");
+    listItem.className = "worlds-list-empty";
+    listItem.setAttribute("data-locale-key", localeKey);
+    listItem.textContent = getLocalized(localeKey, fallback);
+    return listItem;
+  }
+
   function renderListInWindows(presetName, listClassName, buildItem) {
     var windows = document.querySelectorAll(
       '.os-window[data-wm-preset="' + presetName + '"]'
@@ -385,6 +407,12 @@
       var listRoot = windows[windowIndex].querySelector("." + listClassName);
       if (!listRoot) continue;
       listRoot.textContent = "";
+      if (!buildItem.count) {
+        listRoot.classList.add("worlds-list--empty");
+        listRoot.appendChild(createEmptyListItem(buildItem.emptyLocaleKey, buildItem.emptyFallback));
+        continue;
+      }
+      listRoot.classList.remove("worlds-list--empty");
       var index = 0;
       for (index = 0; index < buildItem.count; index++) {
         listRoot.appendChild(buildItem.create(index));
@@ -395,6 +423,8 @@
   function renderAllLists() {
     renderListInWindows(PRESET_WORLDS, LIST_CLASS_SINGLEPLAYER, {
       count: savedWorlds.length,
+      emptyLocaleKey: LOCALE_KEY_EMPTY_WORLDS,
+      emptyFallback: EMPTY_WORLDS_FALLBACK,
       create: function (index) {
         var world = savedWorlds[index];
         return createSingleplayerListItem(world.seed, world.name, index + 1);
@@ -402,6 +432,8 @@
     });
     renderListInWindows(PRESET_SERVERS, LIST_CLASS_IP, {
       count: savedServers.length,
+      emptyLocaleKey: LOCALE_KEY_EMPTY_SERVERS,
+      emptyFallback: EMPTY_SERVERS_FALLBACK,
       create: function (index) {
         var server = savedServers[index];
         return createIpListItem(server.ip, server.name, index + 1);
@@ -409,6 +441,8 @@
     });
     renderListInWindows(PRESET_STEAM, LIST_CLASS_STEAM, {
       count: savedFriends.length,
+      emptyLocaleKey: LOCALE_KEY_EMPTY_STEAM,
+      emptyFallback: EMPTY_STEAM_FALLBACK,
       create: function (index) {
         var friendEntry = savedFriends[index];
         return createSteamListItem(friendEntry.name, index + 1);
@@ -548,6 +582,8 @@
     if (!detail || detail.pageId !== "start") return;
     window.dispatchEvent(new CustomEvent("web-start-page-open"));
   });
+
+  window.addEventListener("web-locale-applied", renderAllLists);
 
   window.WebStartMenu = {
     applyLists: applyLists,
