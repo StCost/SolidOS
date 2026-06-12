@@ -524,7 +524,11 @@
   }
 
   function isWebFakeConnectHud() {
-    return document.documentElement.classList.contains("web-fake-connect-active");
+    var deviceElement = document.getElementById("device");
+    if (document.documentElement.classList.contains("web-fake-connect-active")) {
+      return true;
+    }
+    return !!deviceElement && deviceElement.classList.contains("menu-mode--web-fake-connect");
   }
 
   function setGameplayHudLayerActive(active) {
@@ -533,6 +537,9 @@
     if (hudRoot) {
       hudRoot.classList.toggle("game-hud--layer-active", layerActive);
       hudRoot.setAttribute("aria-hidden", layerActive ? "false" : "true");
+    }
+    if (layerActive && !isUnityHost()) {
+      enableStandaloneChatInputCapture();
     }
   }
 
@@ -1093,7 +1100,11 @@
   }
 
   function openChatByDefault() {
-    setChatInputCaptureEnabled(false);
+    if (isUnityHost()) {
+      setChatInputCaptureEnabled(false);
+    } else {
+      enableStandaloneChatInputCapture();
+    }
     chatInputSession = false;
     setChatState({ open: true, focused: false, defaultOpen: true });
     scheduleChatIdleHide();
@@ -1206,6 +1217,16 @@
     setChatInputSession(true);
   }
 
+  function onChatInputFocusIn() {
+    if (isUnityHost()) return;
+    if (!chatInputCaptureEnabled) {
+      enableStandaloneChatInputCapture();
+    }
+    if (!chatInputSession) {
+      setChatInputSession(true);
+    }
+  }
+
   function onChatInputFocused() {
     if (!window.WebGameHudCursorBridge || !window.WebGameHudCursorBridge.notifyChatInputFocused) {
       return;
@@ -1247,6 +1268,7 @@
     setChatInputCaptureEnabled(false);
     chatInputElement.addEventListener("keydown", onChatInputKeyDown);
     chatInputElement.addEventListener("mousedown", onChatInputMouseDown);
+    chatInputElement.addEventListener("focusin", onChatInputFocusIn);
     chatInputElement.addEventListener("focus", onChatInputFocused);
     chatInputElement.addEventListener("blur", refocusChatInputIfSession);
     if (chatInputRowElement) {

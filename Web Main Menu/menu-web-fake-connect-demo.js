@@ -318,10 +318,10 @@
   function onLoadingComplete() {
     if (!isWebMode()) return;
 
-    setMenuLayer(LAYER_HUD);
-    setWebFakeConnectHudMode(true);
-    setHudLayerActive(true);
     document.documentElement.classList.add("web-fake-connect-active");
+    setWebFakeConnectHudMode(true);
+    setMenuLayer(LAYER_HUD);
+    setHudLayerActive(true);
     applyDemoInventoryPreview();
 
     window.setTimeout(function () {
