@@ -41,8 +41,8 @@
   }
 
   function getRowLabel(row) {
+    if (row.labelKey) return getLocalized(row.labelKey, row.labelText || row.labelKey);
     if (row.labelText) return row.labelText;
-    if (row.labelKey) return getLocalized(row.labelKey, row.labelKey);
     var actionName = getActionNameFromRowId(row.rowId);
     if (actionName) return actionName;
     return row.rowId || "";
@@ -159,6 +159,9 @@
     labelBox.className = "settings-field-label-box";
     var labelSpan = document.createElement("span");
     labelSpan.className = "settings-label settings-label-text term-row-label terminal-text";
+    if (row.labelKey) {
+      labelSpan.setAttribute("data-locale-key", row.labelKey);
+    }
     labelSpan.textContent = getRowLabel(row);
     labelBox.appendChild(labelSpan);
 

@@ -2,6 +2,7 @@
   var MAP_GAME = "GameControls";
   var MAP_VEHICLE = "VehicleControls";
   var MAP_SHARED = "SharedControls";
+  var KEY_PREFIX = "settings.controls.action.";
 
   function row(mapName, actionName, bindingIndex, labelKey, displayText) {
     var entry = {
@@ -13,29 +14,49 @@
     return entry;
   }
 
+  function actionKey(actionName) {
+    if (actionName.indexOf("Inventory ") === 0) {
+      return KEY_PREFIX + "inventory-" + actionName.substring("Inventory ".length);
+    }
+    var kebab = "";
+    var index;
+    for (index = 0; index < actionName.length; index++) {
+      var character = actionName.charAt(index);
+      if (character >= "A" && character <= "Z" && kebab.length > 0) {
+        kebab = kebab + "-";
+      }
+      kebab = kebab + character.toLowerCase();
+    }
+    return KEY_PREFIX + kebab;
+  }
+
+  function gameRow(actionName, displayText) {
+    return row(MAP_GAME, actionName, -1, actionKey(actionName), displayText);
+  }
+
   var ON_FOOT = [
-    row(MAP_GAME, "Jump", -1, "", "Space"),
-    row(MAP_GAME, "Crouch", -1, "", "Left Ctrl"),
-    row(MAP_GAME, "Sprint", -1, "", "Left Shift"),
-    row(MAP_GAME, "Fire", -1, "", "LMB"),
-    row(MAP_GAME, "Aim", -1, "", "RMB"),
-    row(MAP_GAME, "Grab", -1, "", "F"),
-    row(MAP_GAME, "EmptyHands", -1, "settings.controls.action.empty-hands", "R"),
-    row(MAP_GAME, "Drop", -1, "", "Q"),
-    row(MAP_GAME, "Alt", -1, "", "Left Alt"),
-    row(MAP_GAME, "Mark", -1, "", "MMB"),
-    row(MAP_GAME, "Inventory 1", -1, "", "1"),
-    row(MAP_GAME, "Inventory 2", -1, "", "2"),
-    row(MAP_GAME, "Inventory 3", -1, "", "3"),
-    row(MAP_GAME, "Inventory 4", -1, "", "4"),
-    row(MAP_GAME, "Inventory 5", -1, "", "5"),
-    row(MAP_GAME, "Inventory 6", -1, "", "6"),
-    row(MAP_GAME, "Inventory 7", -1, "", "7"),
-    row(MAP_GAME, "Inventory 8", -1, "", "8"),
-    row(MAP_GAME, "Inventory 9", -1, "", "9"),
-    row(MAP_GAME, "Inventory 10", -1, "", "0"),
-    row(MAP_GAME, "Inventory 11", -1, "", "-"),
-    row(MAP_GAME, "Inventory 12", -1, "", "=")
+    gameRow("Jump", "Space"),
+    gameRow("Crouch", "Left Ctrl"),
+    gameRow("Sprint", "Left Shift"),
+    gameRow("Fire", "LMB"),
+    gameRow("Aim", "RMB"),
+    gameRow("Grab", "F"),
+    gameRow("EmptyHands", "R"),
+    gameRow("Drop", "Q"),
+    gameRow("Alt", "Left Alt"),
+    gameRow("Mark", "MMB"),
+    gameRow("Inventory 1", "1"),
+    gameRow("Inventory 2", "2"),
+    gameRow("Inventory 3", "3"),
+    gameRow("Inventory 4", "4"),
+    gameRow("Inventory 5", "5"),
+    gameRow("Inventory 6", "6"),
+    gameRow("Inventory 7", "7"),
+    gameRow("Inventory 8", "8"),
+    gameRow("Inventory 9", "9"),
+    gameRow("Inventory 10", "0"),
+    gameRow("Inventory 11", "-"),
+    gameRow("Inventory 12", "=")
   ];
 
   var DRIVING = [
