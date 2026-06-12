@@ -1,0 +1,167 @@
+* {
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  tap-highlight-color: transparent;
+}
+
+*:focus,
+*:focus-visible,
+*:active {
+  outline: none;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #02040c;
+  color: #c8e8ff;
+  font-family: "Courier New", Courier, monospace;
+  cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+}
+
+#gameRoot {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+#gameRoot:focus {
+  outline: none;
+}
+
+#gameCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  z-index: 1;
+}
+
+.hud-panel {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  text-shadow: 0 0 12px rgba(80, 180, 255, 0.45);
+  letter-spacing: 0.12em;
+}
+
+#hudPlaying {
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+#hudPlaying.hidden {
+  display: none;
+}
+
+#hudDistance {
+  font-size: 1.2rem;
+  color: #e0f4ff;
+}
+
+#hudBest {
+  top: 12px;
+  right: 14px;
+  font-size: 0.78rem;
+  color: #5a88a8;
+  text-align: right;
+}
+
+#hudBest.is-record {
+  color: #ffd878;
+  animation: record-glow 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes record-glow {
+  from {
+    text-shadow: 0 0 8px rgba(255, 200, 80, 0.4);
+  }
+
+  to {
+    text-shadow: 0 0 16px rgba(255, 220, 120, 0.85);
+  }
+}
+
+#gameScreen {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  pointer-events: auto;
+  background: radial-gradient(ellipse at 50% 40%, rgba(8, 20, 48, 0.42), rgba(2, 4, 12, 0.58));
+  cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+}
+
+#gameScreen.hidden {
+  display: none;
+}
+
+#screenTitle {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #d8f0ff;
+  text-shadow: 0 0 20px rgba(100, 200, 255, 0.55);
+}
+
+#controlHint {
+  margin: 0;
+  font-size: 0.86rem;
+  letter-spacing: 0.1em;
+  color: #88b8d8;
+  text-align: center;
+  max-width: 86%;
+  line-height: 1.5;
+}
+
+.screen-score {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: 0.16em;
+  color: #a8d0f0;
+}
+
+.screen-score.hidden {
+  display: none;
+}
+
+#gameScreen.is-record #screenTitle {
+  color: #ffe898;
+  text-shadow: 0 0 22px rgba(255, 210, 80, 0.75);
+}
+
+#captureFlash {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(120, 220, 255, 0.35), transparent 55%);
+  opacity: 0;
+}
+
+#captureFlash.is-active {
+  animation: capture-flash 0.35s ease-out forwards;
+}
+
+@keyframes capture-flash {
+  0% {
+    opacity: 0.75;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}

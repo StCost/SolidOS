@@ -60,6 +60,14 @@
         difficulty: 4
       },
       {
+        id: "orbit-hop",
+        title: "Orbit Hop",
+        path: "Extras/games/orbit-hop/index.html",
+        image: "Extras/games/orbit-hop/orbit-hop-preview.jpg",
+        desktopIcon: "Extras/games/orbit-hop/orbit-hop-desktop-icon.png",
+        difficulty: 3
+      },
+      {
         id: "demon-bastion",
         title: "Demon Bastion",
         path: "Extras/games/demon-bastion/index.html",
