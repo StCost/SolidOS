@@ -1935,7 +1935,7 @@ var WebWindowManager = (function () {
       if (dragHandle) {
         try {
           dragHandle.setPointerCapture(event.pointerId);
-        } catch (error) {}
+        } catch (error) { }
       }
       event.preventDefault();
       event.stopPropagation();
@@ -1990,7 +1990,7 @@ var WebWindowManager = (function () {
         beginResize(event.currentTarget, event.clientX, event.clientY, event.pointerId);
         try {
           event.currentTarget.setPointerCapture(event.pointerId);
-        } catch (error) {}
+        } catch (error) { }
         event.preventDefault();
         event.stopPropagation();
       });
@@ -3042,11 +3042,11 @@ var WebWindowManager = (function () {
     syncActivePageWindows();
   });
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initOnReady);
-    } else {
-      initOnReady();
-    }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initOnReady);
+  } else {
+    initOnReady();
+  }
 
   return {
     initAll: initAll,
