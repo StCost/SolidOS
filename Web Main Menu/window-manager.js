@@ -1232,6 +1232,7 @@ var WebWindowManager = (function () {
     if (desktopLayoutBootFinished) return;
     desktopLayoutBootFinished = true;
     if (!hasPersistedWindowLayouts()) {
+      clearLayoutBootstrap();
       revealDesktopAfterLayoutsReady();
       return;
     }
