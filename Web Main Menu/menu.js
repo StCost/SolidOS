@@ -25,6 +25,28 @@
     });
   }
 
+  var titleTechList = document.getElementById("titleTechList");
+  if (titleTechList) {
+    titleTechList.addEventListener("click", function (event) {
+      var target = event.target;
+      var techLink;
+      var href;
+      var label;
+      if (!target || !target.closest) return;
+      techLink = target.closest(".term-tech-link");
+      if (!techLink || !titleTechList.contains(techLink)) return;
+      event.stopPropagation();
+      href = techLink.getAttribute("data-tech-href");
+      label = techLink.getAttribute("data-tech-label");
+      if (!href) return;
+      if (window.WebExtras && window.WebExtras.requestLinkOpen) {
+        window.WebExtras.requestLinkOpen(href, label || href);
+        return;
+      }
+      window.open(href, "_blank", "noopener,noreferrer");
+    });
+  }
+
   document.addEventListener("keydown", function (event) {
     if (event.key !== "Escape") return;
     if (isGameMode()) return;
