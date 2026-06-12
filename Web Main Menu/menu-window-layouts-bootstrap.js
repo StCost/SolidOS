@@ -2,6 +2,10 @@
   var STORAGE_KEY = "cm-menu-window-layouts";
   var STYLE_ELEMENT_ID = "cm-wm-layout-bootstrap";
   var HTML_BOOTSTRAP_CLASS = "menu-wm-layout-bootstrap";
+  var MINIMIZE_BOTTOM_INSET_PX = 8;
+  var MINIMIZE_GAP_PX = 8;
+  var MINIMIZED_BOOTSTRAP_WIDTH_PX = 200;
+  var MINIMIZED_BOOTSTRAP_CHROME_HEIGHT_PX = 28;
 
   function isUnityHost() {
     return typeof window.vuplex !== "undefined" && window.vuplex.postMessage;
@@ -39,6 +43,63 @@
       return isSavedLayoutOpen(persistedEntry);
     }
     return shouldPresetBeOpenByDefault(presetName);
+  }
+
+  function isSavedLayoutMinimized(entry) {
+    return !!(entry && entry.minimized === true);
+  }
+
+  function buildMinimizedBootstrapPresetOrder() {
+    var order = [];
+    var index = 0;
+    var entry;
+    for (index = 0; index < persistedLayouts.length; index++) {
+      entry = persistedLayouts[index];
+      if (!entry || !entry.preset) continue;
+      if (!isSavedLayoutMinimized(entry)) continue;
+      if (!isSavedLayoutOpen(entry)) continue;
+      order.push(entry.preset);
+    }
+    return order;
+  }
+
+  function buildMinimizedBootstrapCssRule(presetName, stackIndex) {
+    var presetSelector = escapePresetSelector(presetName);
+    var left = MINIMIZE_BOTTOM_INSET_PX + stackIndex * (MINIMIZED_BOOTSTRAP_WIDTH_PX + MINIMIZE_GAP_PX);
+    return (
+      "html." +
+      HTML_BOOTSTRAP_CLASS +
+      ' .os-window[data-wm-preset="' +
+      presetSelector +
+      '"]{' +
+      "left:" +
+      left +
+      "px!important;" +
+      "top:auto!important;" +
+      "bottom:" +
+      MINIMIZE_BOTTOM_INSET_PX +
+      "px!important;" +
+      "right:auto!important;" +
+      "width:" +
+      MINIMIZED_BOOTSTRAP_WIDTH_PX +
+      "px!important;" +
+      "height:" +
+      MINIMIZED_BOOTSTRAP_CHROME_HEIGHT_PX +
+      "px!important;" +
+      "overflow:hidden!important;" +
+      "transform:none!important;margin:0!important;}"
+    );
+  }
+
+  function buildMinimizedBootstrapBodyHideCssRule(presetName) {
+    var presetSelector = escapePresetSelector(presetName);
+    return (
+      "html." +
+      HTML_BOOTSTRAP_CLASS +
+      ' .os-window[data-wm-preset="' +
+      presetSelector +
+      '"] .os-window-body-shell{display:none!important;}'
+    );
   }
 
   function buildOpenStateCssRule(presetName, shouldOpen) {
@@ -190,6 +251,14 @@
 
   if (!mergedLayouts.length) return;
 
+  var minimizedBootstrapOrder = buildMinimizedBootstrapPresetOrder();
+  var minimizedBootstrapIndexByPreset = {};
+  var minimizedBootstrapIndex = 0;
+  for (minimizedBootstrapIndex = 0; minimizedBootstrapIndex < minimizedBootstrapOrder.length; minimizedBootstrapIndex++) {
+    minimizedBootstrapIndexByPreset[minimizedBootstrapOrder[minimizedBootstrapIndex]] =
+      minimizedBootstrapIndex;
+  }
+
   var cssRules = [];
   var index = 0;
   for (index = 0; index < mergedLayouts.length; index++) {
@@ -198,9 +267,16 @@
     var width;
     var height;
     var sizeCss = "";
+    var minimizedStackIndex;
     if (!entry || !entry.preset) continue;
     if (!window.WebMenuLayoutCoords.isCenterLayoutEntry(entry)) continue;
     presetSelector = escapePresetSelector(entry.preset);
+    if (Object.prototype.hasOwnProperty.call(minimizedBootstrapIndexByPreset, entry.preset)) {
+      minimizedStackIndex = minimizedBootstrapIndexByPreset[entry.preset];
+      cssRules.push(buildMinimizedBootstrapCssRule(entry.preset, minimizedStackIndex));
+      cssRules.push(buildMinimizedBootstrapBodyHideCssRule(entry.preset));
+      continue;
+    }
     if (entry.width !== undefined) {
       width = Math.round(entry.width);
       sizeCss += "width:" + width + "px;";
