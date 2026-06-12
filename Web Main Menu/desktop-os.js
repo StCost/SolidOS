@@ -307,6 +307,10 @@ var WebDesktop = (function () {
       windowManager.setSavedWindowOpen(windowElement, true);
     }
 
+    if (windowManager.clearSavedWindowMinimizedState) {
+      windowManager.clearSavedWindowMinimizedState(windowElement);
+    }
+
     if (windowElement.classList.contains("os-window--minimized") && windowManager.restoreWindow) {
       windowManager.restoreWindow(windowElement);
     }

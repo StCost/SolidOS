@@ -526,6 +526,15 @@ var WebWindowManager = (function () {
     clampManagedWindowToContainer(windowElement);
   }
 
+  function clearSavedWindowMinimizedState(windowElement) {
+    var layoutKey = getLayoutKey(windowElement);
+    var savedLayout;
+    if (!layoutKey) return;
+    savedLayout = savedLayoutTable[layoutKey];
+    if (!savedLayout) return;
+    savedLayout.minimized = false;
+  }
+
   function setSavedWindowOpen(windowElement, isOpen) {
     var layoutKey = getLayoutKey(windowElement);
     var previous;
@@ -704,6 +713,15 @@ var WebWindowManager = (function () {
     inlineZIndex = getWindowInlineZIndex(windowElement);
     if (inlineZIndex > 0) {
       entry.zIndex = inlineZIndex;
+    }
+    if (windowElement.classList.contains("os-window--closed") && previous) {
+      previous.open = false;
+      previous.minimized = false;
+      previous.maximized = false;
+      if (entry.zIndex !== undefined) {
+        previous.zIndex = entry.zIndex;
+      }
+      return;
     }
     if (isMinimized) {
       if (previous) {
@@ -3054,6 +3072,7 @@ var WebWindowManager = (function () {
     syncWindowLayout: syncWindowLayout,
     clampManagedWindowToContainer: clampManagedWindowToContainer,
     setSavedWindowOpen: setSavedWindowOpen,
+    clearSavedWindowMinimizedState: clearSavedWindowMinimizedState,
     ensureWindowStructure: ensureWindowStructure,
     centerWindowInContainer: centerOverlayWindow,
     applyWindowRect: applyWindowRect,
