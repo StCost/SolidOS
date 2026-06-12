@@ -42,6 +42,14 @@
         difficulty: 3
       },
       {
+        id: "space-leap",
+        title: "Space Leap",
+        path: "Extras/games/space-leap/index.html",
+        image: "Extras/games/space-leap/space-leap-preview.jpg",
+        desktopIcon: "Extras/games/space-leap/space-leap-desktop-icon.png",
+        difficulty: 3
+      },
+      {
         id: "airbot",
         title: "Airbot",
         path: "Extras/games/airbot/index.html",
@@ -58,14 +66,6 @@
         image: "Extras/games/orbital-golf/orbital-golf-preview.jpg",
         desktopIcon: "Extras/games/orbital-golf/orbital-golf-desktop-icon.png",
         difficulty: 4
-      },
-      {
-        id: "orbit-hop",
-        title: "Orbit Hop",
-        path: "Extras/games/orbit-hop/index.html",
-        image: "Extras/games/orbit-hop/orbit-hop-preview.jpg",
-        desktopIcon: "Extras/games/orbit-hop/orbit-hop-desktop-icon.png",
-        difficulty: 3
       },
       {
         id: "demon-bastion",
