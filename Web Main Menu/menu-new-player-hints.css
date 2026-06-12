@@ -1,0 +1,85 @@
+.new-player-hint-host {
+  position: relative;
+}
+
+.new-player-hint-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: calc(0.62rem * var(--desktop-icon-scale, 1));
+  height: calc(0.62rem * var(--desktop-icon-scale, 1));
+  min-width: 8px;
+  min-height: 8px;
+  border-radius: 50%;
+  background: #e83030;
+  border: 1.5px solid rgba(255, 210, 210, 0.92);
+  box-shadow: 0 0 8px rgba(232, 48, 48, 0.72);
+  pointer-events: none;
+  z-index: 4;
+  transform: translate(30%, -30%);
+  animation: new-player-hint-blink 2.6s ease-in-out infinite;
+}
+
+.os-desktop-icon-glyph.new-player-hint-host .new-player-hint-dot {
+  top: 8%;
+  right: 8%;
+  transform: none;
+}
+
+.settings-row[data-setting-key="language"].new-player-hint-host .new-player-hint-dot {
+  top: 0.2em;
+  right: 0.35em;
+  width: 0.58rem;
+  height: 0.58rem;
+  min-width: 8px;
+  min-height: 8px;
+  transform: none;
+}
+
+.worlds-compose-field.new-player-hint-host .new-player-hint-dot {
+  width: 0.54rem;
+  height: 0.54rem;
+  min-width: 8px;
+  min-height: 8px;
+  top: 0;
+  right: 0;
+  transform: translate(22%, -34%);
+}
+
+.worlds-compose-actions {
+  overflow: visible;
+}
+
+#btnAddWorld.new-player-hint-create-active {
+  position: relative;
+  overflow: visible;
+}
+
+#btnAddWorld.new-player-hint-create-active:not(:disabled)::after {
+  content: "";
+  position: absolute;
+  top: 0.2em;
+  right: 0.45em;
+  width: 0.54rem;
+  height: 0.54rem;
+  min-width: 8px;
+  min-height: 8px;
+  border-radius: 50%;
+  background: #e83030;
+  border: 1.5px solid rgba(255, 210, 210, 0.92);
+  box-shadow: 0 0 8px rgba(232, 48, 48, 0.72);
+  pointer-events: none;
+  z-index: 4;
+  animation: new-player-hint-blink 2.6s ease-in-out infinite;
+}
+
+@keyframes new-player-hint-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.22;
+  }
+}

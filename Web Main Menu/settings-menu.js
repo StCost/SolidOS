@@ -1117,6 +1117,9 @@
     }
     appendSettingsResetFooter();
     refreshAllSliderFillVisuals();
+    if (window.WebNewPlayerHints && window.WebNewPlayerHints.syncLanguageHint) {
+      window.WebNewPlayerHints.syncLanguageHint();
+    }
   }
 
   function appendFieldLabel(labelBox, field) {
