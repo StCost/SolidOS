@@ -362,7 +362,7 @@
   "web.game.notepad.brand": "工業現場ログ",
   "web.game.notepad.placeholder": "現場メモを記録...",
   "web.game.notepad.title": "メモ帳",
-  "web.game.orbit-hop.hint": "長押しで照準、離して軌道から発射。惑星から惑星へ跳び、星へと昇ろう。",
+  "web.game.space-leap.hint": "長押しで照準、離して軌道から発射。惑星から惑星へ跳び、星へと昇ろう。",
   "web.game.orbital-golf.out-of-hits": "打数終了",
   "web.game.prompt.click-continue": "クリックで続行",
   "web.game.prompt.click-continue-quiet": "クリックで続行",

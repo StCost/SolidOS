@@ -1,7 +1,7 @@
 (function () {
-  var HIGH_SCORE_STORAGE_KEY = "cm-orbit-hop-high-score";
-  var GAME_TITLE = "Orbit Hop";
-  var LOCALE_KEY_HINT = "web.game.orbit-hop.hint";
+  var HIGH_SCORE_STORAGE_KEY = "cm-space-leap-high-score";
+  var GAME_TITLE = "Space Leap";
+  var LOCALE_KEY_HINT = "web.game.space-leap.hint";
   var LOCALE_KEY_GAME_OVER = "web.game.game-over";
   var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
   var DISTANCE_SUFFIX = "km";
