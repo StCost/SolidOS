@@ -196,7 +196,7 @@
   z-index: 6;
 }
 
-.os-window--managed > .os-window-chrome {
+.os-window--managed>.os-window-chrome {
   flex-shrink: 0;
   width: 100%;
   box-sizing: border-box;

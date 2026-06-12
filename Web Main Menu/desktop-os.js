@@ -2655,11 +2655,10 @@ var WebDesktop = (function () {
     var fallback = allMinimized ? "Restore all windows" : "Minimize all windows";
     if (window.WebLocale) {
       toggleButton.setAttribute("aria-label", window.WebLocale.get(labelKey, fallback));
-      toggleButton.setAttribute("title", window.WebLocale.get(labelKey, fallback));
     } else {
       toggleButton.setAttribute("aria-label", fallback);
-      toggleButton.setAttribute("title", fallback);
     }
+    toggleButton.removeAttribute("title");
     if (allMinimized) {
       toggleButton.setAttribute("data-wm-windows-toggle", "restore");
     } else {

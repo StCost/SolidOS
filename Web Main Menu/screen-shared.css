@@ -611,7 +611,7 @@ html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--se {
 }
 
 .os-window.os-window--focused,
-.term-overlay.is-open > .os-window {
+.term-overlay.is-open>.os-window {
   --wm-border: rgba(255, 128, 0, 0.32);
   --wm-border-inset: rgba(255, 128, 0, 0.06);
   --wm-chrome-edge: rgba(255, 128, 0, 0.2);
@@ -651,7 +651,7 @@ html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--se {
 }
 
 .os-window.os-window--focused .os-window-dot:not(.os-window-control),
-.term-overlay.is-open > .os-window .os-window-dot:not(.os-window-control) {
+.term-overlay.is-open>.os-window .os-window-dot:not(.os-window-control) {
   border-color: rgba(255, 128, 0, 0.35);
 }
 
@@ -662,7 +662,7 @@ html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--se {
 }
 
 .os-window.os-window--focused .os-window-dot--active:not(.os-window-control),
-.term-overlay.is-open > .os-window .os-window-dot--active:not(.os-window-control) {
+.term-overlay.is-open>.os-window .os-window-dot--active:not(.os-window-control) {
   background: rgba(255, 128, 0, 0.45);
   border-color: rgba(255, 128, 0, 0.65);
   box-shadow: 0 0 6px rgba(255, 128, 0, 0.35);
