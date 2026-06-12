@@ -362,6 +362,7 @@
   "web.game.notepad.brand": "산업 현장 로그",
   "web.game.notepad.placeholder": "현장 메모 기록...",
   "web.game.notepad.title": "메모장",
+  "web.game.orbit-hop.hint": "조준하려면 누르고 있고, 떼면 궤도에서 발사됩니다. 행성 사이를 뛰어 넘으며 별을 향해 올라가세요.",
   "web.game.orbital-golf.out-of-hits": "타수 소진",
   "web.game.prompt.click-continue": "클릭하여 계속",
   "web.game.prompt.click-continue-quiet": "클릭하여 계속",
