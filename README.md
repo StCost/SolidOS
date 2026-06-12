@@ -2,9 +2,9 @@
 
 Browser-based menus for the Unity game, loaded from **StreamingAssets** (transparent background for embedding in a WebView / browser overlay).
 
-Standalone repo: [collapse-machine-web](https://github.com/StCost/collapse-machine-web)
+Standalone repo: [SolidOS](https://github.com/StCost/SolidOS)
 
-Live preview (GitHub Pages): [stcost.github.io/collapse-machine-web](https://stcost.github.io/collapse-machine-web/)
+Live preview (GitHub Pages): [stcost.github.io/SolidOS](https://stcost.github.io/SolidOS/)
 
 Pushes to `main` run `.github/workflows/deploy-pages.yml` and publish the main menu at the site root. In the repo settings, set **Pages → Build and deployment → Source** to **GitHub Actions** (first deploy only).
 
