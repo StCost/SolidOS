@@ -1,9 +1,11 @@
 {
   "chat.placeholder": "Ketik pesan...",
-  "credits.rest": "<color=#FFCC9F>StGrikus</color>\n\nDesainer Suara\nInsinyur Suara\nKomposer Musik\nPemasaran",
+  "credits.rest": [
+    "<color=#FFCC9F>StGrikus</color>\n\nDesainer Suara\nInsinyur Suara\nKomposer Musik\nPemasaran",
+    "<color=#FFCC9F>Dibuat dengan</color>\n\nUnity\nMirror\nuTerrains\nHigh Definition Render Pipeline\nEmerald 2025 by Black Horizon Studios\nFMOD Studio by Firelight Technologies Pty Ltd\nVuplex 3D WebView by Vuplex Inc.\nHTML + CSS + JS"
+  ],
   "credits.stcost": "<color=#FFCC9F>StCost</color>\n\nPemimpin Tim\nInsinyur Perangkat Lunak\nDesainer Game\nPemasaran",
   "credits.sttaya": "<color=#FFCC9F>StTaya</color>\n\nSeniman 3D\nDesainer Seni\nAnimator\nDesainer Level",
-  "credits.tech": "<color=#FFCC9F>Dibuat dengan</color>\n\nUnity\nMirror\nuTerrains\nHigh Definition Render Pipeline\nEmerald AI 2025 by Black Horizon Studios\nFMOD Studio by Firelight Technologies Pty Ltd\nVuplex 3D WebView by Vuplex Inc.",
   "language-name": "Bahasa Indonesia",
   "loading0": "1/4 Inisialisasi... ‎ ",
   "loading1": "2/4 Mengingat...   ‎ ",

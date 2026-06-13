@@ -1,9 +1,11 @@
 {
   "chat.placeholder": "พิมพ์ข้อความ...",
-  "credits.rest": "<color=#FFCC9F>StGrikus</color>\n\nนักออกแบบเสียง\nวิศวกรเสียง\nนักแต่งเพลง\nการตลาด",
+  "credits.rest": [
+    "<color=#FFCC9F>StGrikus</color>\n\nนักออกแบบเสียง\nวิศวกรเสียง\nนักแต่งเพลง\nการตลาด",
+    "<color=#FFCC9F>สร้างด้วย</color>\n\nUnity\nMirror\nuTerrains\nHigh Definition Render Pipeline\nEmerald 2025 by Black Horizon Studios\nFMOD Studio by Firelight Technologies Pty Ltd\nVuplex 3D WebView by Vuplex Inc.\nHTML + CSS + JS"
+  ],
   "credits.stcost": "<color=#FFCC9F>StCost</color>\n\nหัวหน้าทีม\nวิศวกรซอฟต์แวร์\nนักออกแบบเกม\nการตลาด",
   "credits.sttaya": "<color=#FFCC9F>StTaya</color>\n\nศิลปิน 3D\nนักออกแบบงานศิลป์\nแอนิเมเตอร์\nนักออกแบบเลเวล",
-  "credits.tech": "<color=#FFCC9F>สร้างด้วย</color>\n\nUnity\nMirror\nuTerrains\nHigh Definition Render Pipeline\nEmerald AI 2025 by Black Horizon Studios\nFMOD Studio by Firelight Technologies Pty Ltd\nVuplex 3D WebView by Vuplex Inc.",
   "language-name": "ไทย",
   "loading0": "1/4 กำลังเริ่มต้น... ‎ ",
   "loading1": "2/4 กำลังจดจำ...   ‎ ",

@@ -1,9 +1,11 @@
 {
   "chat.placeholder": "Írjon üzenetet...",
-  "credits.rest": "<color=#FFCC9F>StGrikus</color>\n\nHangtervező\nHangmérnök\nZeneszerző\nMarketing",
+  "credits.rest": [
+    "<color=#FFCC9F>StGrikus</color>\n\nHangtervező\nHangmérnök\nZeneszerző\nMarketing",
+    "<color=#FFCC9F>Készült a következőkkel</color>\n\nUnity\nMirror\nuTerrains\nHigh Definition Render Pipeline\nEmerald 2025 by Black Horizon Studios\nFMOD Studio by Firelight Technologies Pty Ltd\nVuplex 3D WebView by Vuplex Inc.\nHTML + CSS + JS"
+  ],
   "credits.stcost": "<color=#FFCC9F>StCost</color>\n\nCsapatvezető\nSzoftvermérnök\nJátéktervező\nMarketing",
   "credits.sttaya": "<color=#FFCC9F>StTaya</color>\n\n3D művész\nKépzőművészeti tervező\nAnimátor\nSzinttervező",
-  "credits.tech": "<color=#FFCC9F>Készült a következőkkel</color>\n\nUnity\nMirror\nuTerrains\nHigh Definition Render Pipeline\nEmerald AI 2025 by Black Horizon Studios\nFMOD Studio by Firelight Technologies Pty Ltd\nVuplex 3D WebView by Vuplex Inc.",
   "language-name": "Magyar",
   "loading0": "1/4 Inicializálás... ‎ ",
   "loading1": "2/4 Emlékezés...   ‎ ",

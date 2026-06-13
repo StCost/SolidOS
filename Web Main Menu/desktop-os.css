@@ -538,6 +538,7 @@ body[data-icon-drag] * {
   color: rgba(255, 160, 96, 0.72);
   -webkit-text-fill-color: rgba(255, 160, 96, 0.72);
   margin-bottom: 1.25em;
+  text-align: center;
 }
 
 .credits-intro-title {
