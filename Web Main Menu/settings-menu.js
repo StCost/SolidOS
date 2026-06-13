@@ -366,7 +366,7 @@
           key: "graphicsWebPixelDensityPercent",
           labelKey: "settings.graphics.web-pixel-density",
           min: 50,
-          max: 300,
+          max: 200,
           step: 5,
           format: percentFormat
         },
