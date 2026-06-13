@@ -281,7 +281,7 @@
   z-index: 10;
   width: calc(88px * var(--desktop-icon-scale));
   margin: 0;
-  padding: 0;
+  padding: calc(8px * var(--desktop-icon-scale)) 0 0;
   border: none;
   background: transparent;
   pointer-events: none;
@@ -301,14 +301,8 @@
   cursor: var(--cursor-drag);
 }
 
-.os-desktop-icon-drag-ghost .os-desktop-icon-label {
-  width: 100%;
-  max-width: 5.5rem;
-  margin: 0;
-  padding: 0;
-  text-align: center;
-  display: block;
-  box-sizing: border-box;
+.os-desktop-icon-drag-ghost .os-desktop-icon-label.terminal-text {
+  filter: var(--desktop-icon-label-filter);
 }
 
 .os-window--closed {

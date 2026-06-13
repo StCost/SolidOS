@@ -5,7 +5,7 @@
       <stop offset="100%" stop-color="#607d8b"/>
     </linearGradient>
   </defs>
-  <path d="M24 10 L26 14 L30 13 L31 17 L35 18 L34 22 L37 25 L34 28 L35 32 L31 33 L30 37 L26 36 L24 40 L22 36 L18 37 L17 33 L13 32 L14 28 L11 25 L14 22 L13 18 L17 17 L18 13 L22 14 Z" fill="url(#gear-fill)" stroke="#37474f" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M 19.98 15.3 L 22.17 11.12 L 25.83 11.12 L 28.02 15.3 L 32.52 13.89 L 35.11 16.48 L 33.7 20.98 L 37.88 23.17 L 37.88 26.83 L 33.7 29.02 L 35.11 33.52 L 32.52 36.11 L 28.02 34.7 L 25.83 38.88 L 22.17 38.88 L 19.98 34.7 L 15.48 36.11 L 12.89 33.52 L 14.3 29.02 L 10.12 26.83 L 10.12 23.17 L 14.3 20.98 L 12.89 16.48 L 15.48 13.89 L 19.98 15.3 Z" fill="url(#gear-fill)" stroke="#37474f" stroke-width="1.2" stroke-linejoin="miter"/>
   <circle cx="24" cy="25" r="7" fill="#263238" stroke="#ff8000" stroke-width="2"/>
   <circle cx="24" cy="25" r="3" fill="#ff8000"/>
 </svg>
