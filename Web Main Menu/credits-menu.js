@@ -4,7 +4,10 @@
     "credits.sttaya"
   ];
 
-  var CREDIT_REST_KEY = "credits.rest";
+  var CREDIT_STACK_KEYS = [
+    "credits.rest",
+    "credits.tech"
+  ];
 
   var PAGE_CREDITS = "credits";
   var CREDITS_CONTENT_ID = "creditsContent";
@@ -64,36 +67,14 @@
     return html;
   }
 
-  function getLocalizedCreditRestBlocks() {
-    var blocks = [];
-    var restValue = null;
-    if (window.WebLocale && window.WebLocale.getStrings) {
-      restValue = window.WebLocale.getStrings()[CREDIT_REST_KEY];
-    }
-    if (!restValue) {
-      restValue = getLocalized(CREDIT_REST_KEY, "");
-    }
-    if (!restValue) return blocks;
-    if (typeof restValue === "string") {
-      blocks.push(restValue);
-      return blocks;
-    }
-    if (!Array.isArray(restValue)) return blocks;
-    var index;
-    for (index = 0; index < restValue.length; index++) {
-      var blockText = restValue[index];
-      if (blockText) blocks.push(blockText);
-    }
-    return blocks;
-  }
-
   function hasCreditStrings() {
     var index;
-    for (index = 0; index < CREDIT_ROW_KEYS.length; index++) {
-      var blockText = getLocalized(CREDIT_ROW_KEYS[index], "");
+    var allKeys = CREDIT_ROW_KEYS.concat(CREDIT_STACK_KEYS);
+    for (index = 0; index < allKeys.length; index++) {
+      var blockText = getLocalized(allKeys[index], "");
       if (blockText) return true;
     }
-    return getLocalizedCreditRestBlocks().length > 0;
+    return false;
   }
 
   function setMessage(contentRoot, message) {
@@ -198,9 +179,8 @@
     }
 
     var stackHtml = "";
-    var restBlocks = getLocalizedCreditRestBlocks();
-    for (index = 0; index < restBlocks.length; index++) {
-      stackHtml += '<div class="credits-block">' + formatCreditsBlock(restBlocks[index]) + "</div>";
+    for (index = 0; index < CREDIT_STACK_KEYS.length; index++) {
+      stackHtml += buildCreditsBlockHtml(CREDIT_STACK_KEYS[index]);
     }
 
     if (stackHtml) {

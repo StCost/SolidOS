@@ -1,11 +1,9 @@
 {
   "chat.placeholder": "Saisissez un message...",
-  "credits.rest": [
-    "<color=#FFCC9F>StGrikus</color>\n\nConcepteur sonore\nIngénieur du son\nCompositeur musical\nMarketing",
-    "<color=#FFCC9F>Créé avec</color>\n\nUnity\nMirror\nuTerrains\nHigh Definition Render Pipeline\nEmerald 2025 by Black Horizon Studios\nFMOD Studio by Firelight Technologies Pty Ltd\nVuplex 3D WebView by Vuplex Inc.\nHTML + CSS + JS"
-  ],
+  "credits.rest": "<color=#FFCC9F>StGrikus</color>\n\nConcepteur sonore\nIngénieur du son\nCompositeur musical\nMarketing",
   "credits.stcost": "<color=#FFCC9F>StCost</color>\n\nChef d'équipe\nIngénieur logiciel\nConcepteur de jeu\nMarketing",
   "credits.sttaya": "<color=#FFCC9F>StTaya</color>\n\nArtiste 3D\nDesigner artistique\nAnimateur\nConcepteur de niveaux",
+  "credits.tech": "<color=#FFCC9F>Créé avec</color>\n\nUnity\nMirror\nuTerrains\nHigh Definition Render Pipeline\nEmerald 2025 by Black Horizon Studios\nFMOD Studio by Firelight Technologies Pty Ltd\nVuplex 3D WebView by Vuplex Inc.\nHTML + CSS + JS",
   "language-name": "Français",
   "loading0": "1/4 Démarrage...    ‎ ",
   "loading1": "2/4 Mémorisation... ‎ ",
