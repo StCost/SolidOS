@@ -1,9 +1,11 @@
 {
   "chat.placeholder": "输入消息...",
-  "credits.rest": "<color=#FFCC9F>StGrikus</color>\n\n音效设计师\n音效工程师\n音乐作曲家\n市场营销",
+  "credits.rest": [
+    "<color=#FFCC9F>StGrikus</color>\n\n音效设计师\n音效工程师\n音乐作曲家\n市场营销",
+    "<color=#FFCC9F>采用以下技术制作</color>\n\nUnity\nMirror\nuTerrains\nHigh Definition Render Pipeline\nEmerald 2025 by Black Horizon Studios\nFMOD Studio by Firelight Technologies Pty Ltd\nVuplex 3D WebView by Vuplex Inc.\nHTML + CSS + JS"
+  ],
   "credits.stcost": "<color=#FFCC9F>StCost</color>\n\n团队负责人\n软件工程师\n游戏设计师\n市场营销",
   "credits.sttaya": "<color=#FFCC9F>StTaya</color>\n\n3D 美术\n美术设计\n动画师\n关卡设计师",
-  "credits.tech": "<color=#FFCC9F>采用以下技术制作</color>\n\nUnity\nMirror\nuTerrains\nHigh Definition Render Pipeline\nEmerald AI 2025 by Black Horizon Studios\nFMOD Studio by Firelight Technologies Pty Ltd\nVuplex 3D WebView by Vuplex Inc.",
   "language-name": "简体中文",
   "loading0": "1/4 初始化中...         ‎ ",
   "loading1": "2/4 载入记忆...         ‎ ",
