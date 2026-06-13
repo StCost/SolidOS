@@ -208,9 +208,24 @@
     return null;
   }
 
+  function isActiveOverlayScrollbarElement(element) {
+    if (!element || !element.closest) {
+      return false;
+    }
+    var bar = element.closest(".menu-v-scroll-bar, .menu-h-scroll-bar");
+    if (!bar) {
+      return true;
+    }
+    return !bar.classList.contains("menu-v-scroll-bar--idle");
+  }
+
   function getOverlayScrollbarCursorToken(element) {
     while (element && element !== document.documentElement) {
       if (!element.classList) {
+        element = element.parentElement;
+        continue;
+      }
+      if (!isActiveOverlayScrollbarElement(element)) {
         element = element.parentElement;
         continue;
       }

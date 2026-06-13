@@ -23,28 +23,30 @@
     return cachedScrollbarSize;
   }
 
+  function canScrollVertically(element) {
+    return element.scrollHeight > element.clientHeight + 1;
+  }
+
+  function canScrollHorizontally(element) {
+    return element.scrollWidth > element.clientWidth + 1;
+  }
+
   function hasVerticalScrollbarTrack(element) {
     var style = window.getComputedStyle(element);
     var overflowY = style.overflowY;
-    if (overflowY === "scroll") {
-      return true;
+    if (overflowY !== "scroll" && overflowY !== "auto") {
+      return false;
     }
-    if (overflowY === "auto") {
-      return element.scrollHeight > element.clientHeight + 1;
-    }
-    return false;
+    return canScrollVertically(element);
   }
 
   function hasHorizontalScrollbarTrack(element) {
     var style = window.getComputedStyle(element);
     var overflowX = style.overflowX;
-    if (overflowX === "scroll") {
-      return true;
+    if (overflowX !== "scroll" && overflowX !== "auto") {
+      return false;
     }
-    if (overflowX === "auto") {
-      return element.scrollWidth > element.clientWidth + 1;
-    }
-    return false;
+    return canScrollHorizontally(element);
   }
 
   function isScrollViewVisible(scrollView) {
@@ -67,6 +69,13 @@
   }
 
   function getVerticalScrollbarWidth(scrollView) {
+    var overlayBar = getVisibleOverlayBarForScrollView(scrollView);
+    if (overlayBar) {
+      return getScrollbarSizePixels();
+    }
+    if (!canScrollVertically(scrollView)) {
+      return 0;
+    }
     var measuredLayout = scrollView.offsetWidth - scrollView.clientWidth;
     var measuredVisual = scrollView.getBoundingClientRect().width - scrollView.clientWidth;
     var measured = measuredLayout;
@@ -87,6 +96,9 @@
   }
 
   function getHorizontalScrollbarHeight(scrollView) {
+    if (!canScrollHorizontally(scrollView)) {
+      return 0;
+    }
     var measuredLayout = scrollView.offsetHeight - scrollView.clientHeight;
     var measuredVisual = scrollView.getBoundingClientRect().height - scrollView.clientHeight;
     var measured = measuredLayout;
@@ -230,10 +242,21 @@
     return isPointInVerticalScrollbarTrack(scrollView, clientX, clientY);
   }
 
+  function isActiveOverlayScrollbarElement(element) {
+    if (!element || !element.classList) {
+      return false;
+    }
+    var bar = element.closest(".menu-v-scroll-bar, .menu-h-scroll-bar");
+    if (!bar) {
+      return true;
+    }
+    return !bar.classList.contains("menu-v-scroll-bar--idle");
+  }
+
   function getOverlayScrollbarTokenAtPoint(clientX, clientY) {
     var target = document.elementFromPoint(clientX, clientY);
     while (target && target !== document.documentElement) {
-      if (target.classList) {
+      if (target.classList && isActiveOverlayScrollbarElement(target)) {
         if (target.classList.contains("menu-v-scroll-bar-thumb")) {
           return TOKEN_SCROLL;
         }
