@@ -441,7 +441,9 @@
   flex-shrink: 0;
 }
 
-.extras-view#extrasViewGame {
+.extras-view#extrasViewGame,
+.extras-view#extrasViewGamePlay,
+.extras-view.extras-view--game {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -450,7 +452,8 @@
   box-sizing: border-box;
 }
 
-.extras-view#extrasViewGame .extras-game-frame {
+.extras-view#extrasViewGamePlay .extras-game-frame,
+.extras-view.extras-view--game .extras-game-frame {
   flex: 1 1 0;
   min-height: 10rem;
 }

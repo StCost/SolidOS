@@ -23,6 +23,7 @@ var WebWindowManager = (function () {
     "extras-content": { minWidth: MIN_WIDTH, minHeight: 0 },
     "extras-nav": { minWidth: MIN_WIDTH, minHeight: 0 },
     "extras-games": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "extras-game": { minWidth: MIN_WIDTH, minHeight: 0 },
     "extras-art": { minWidth: MIN_WIDTH, minHeight: 0 },
     "extras-links": { minWidth: MIN_WIDTH, minHeight: 0 },
     "modal-center": { minWidth: MIN_WIDTH, minHeight: 0 },
@@ -87,6 +88,14 @@ var WebWindowManager = (function () {
       anchor: "center",
       centerOffsetX: -360,
       centerOffsetY: -310,
+      width: 720,
+      height: 620,
+      open: false
+    },
+    "extras-game": {
+      anchor: "center",
+      centerOffsetX: -300,
+      centerOffsetY: -270,
       width: 720,
       height: 620,
       open: false
@@ -235,6 +244,18 @@ var WebWindowManager = (function () {
     if (layout.zIndex !== undefined) {
       merged.zIndex = layout.zIndex;
     }
+    if (layout.restoreWidth !== undefined) {
+      merged.restoreWidth = layout.restoreWidth;
+    }
+    if (layout.restoreHeight !== undefined) {
+      merged.restoreHeight = layout.restoreHeight;
+    }
+    if (layout.restoreCenterOffsetX !== undefined) {
+      merged.restoreCenterOffsetX = layout.restoreCenterOffsetX;
+    }
+    if (layout.restoreCenterOffsetY !== undefined) {
+      merged.restoreCenterOffsetY = layout.restoreCenterOffsetY;
+    }
     return merged;
   }
 
@@ -281,6 +302,22 @@ var WebWindowManager = (function () {
       savedLayoutTable[layoutKey].zIndex = mergedLayout.zIndex;
     } else if (previous && previous.zIndex !== undefined) {
       savedLayoutTable[layoutKey].zIndex = previous.zIndex;
+    }
+    if (mergedLayout.restoreWidth !== undefined) {
+      savedLayoutTable[layoutKey].restoreWidth = mergedLayout.restoreWidth;
+      savedLayoutTable[layoutKey].restoreHeight = mergedLayout.restoreHeight;
+      savedLayoutTable[layoutKey].restoreCenterOffsetX = mergedLayout.restoreCenterOffsetX;
+      savedLayoutTable[layoutKey].restoreCenterOffsetY = mergedLayout.restoreCenterOffsetY;
+    } else if (!minimized && storedLayout.width !== undefined && storedLayout.height !== undefined) {
+      savedLayoutTable[layoutKey].restoreWidth = storedLayout.width;
+      savedLayoutTable[layoutKey].restoreHeight = storedLayout.height;
+      savedLayoutTable[layoutKey].restoreCenterOffsetX = storedLayout.centerOffsetX;
+      savedLayoutTable[layoutKey].restoreCenterOffsetY = storedLayout.centerOffsetY;
+    } else if (previous && previous.restoreWidth !== undefined) {
+      savedLayoutTable[layoutKey].restoreWidth = previous.restoreWidth;
+      savedLayoutTable[layoutKey].restoreHeight = previous.restoreHeight;
+      savedLayoutTable[layoutKey].restoreCenterOffsetX = previous.restoreCenterOffsetX;
+      savedLayoutTable[layoutKey].restoreCenterOffsetY = previous.restoreCenterOffsetY;
     }
   }
 
@@ -403,6 +440,112 @@ var WebWindowManager = (function () {
     return false;
   }
 
+  function isNearMinimizedRestoreState(windowElement, restoreState) {
+    var chromeHeight;
+    var presetName;
+    var minSize;
+    if (!restoreState || !windowElement) return false;
+    chromeHeight = getWindowChromeHeight(windowElement);
+    if (restoreState.height <= chromeHeight + 4) {
+      return true;
+    }
+    presetName = windowElement.getAttribute("data-wm-preset");
+    minSize = getWindowMinSize(windowElement, presetName);
+    if (minSize && restoreState.height <= minSize.minHeight + 4) {
+      return true;
+    }
+    return false;
+  }
+
+  function setSavedLayoutRestoreGeometry(layoutKey, windowElement, restoreState) {
+    var previous;
+    var containerElement;
+    var coords;
+    var centerOffsets;
+    if (!layoutKey || !restoreState) return;
+    previous = savedLayoutTable[layoutKey];
+    if (!previous) return;
+    previous.width = restoreState.width;
+    previous.height = restoreState.height;
+    previous.anchor = "center";
+    containerElement = getLayoutContainer(windowElement);
+    coords = getLayoutCoords();
+    if (!containerElement || !coords) return;
+    centerOffsets = coords.absoluteToCenterOffset(
+      restoreState.left,
+      restoreState.top,
+      containerElement
+    );
+    previous.centerOffsetX = centerOffsets.centerOffsetX;
+    previous.centerOffsetY = centerOffsets.centerOffsetY;
+    previous.restoreWidth = restoreState.width;
+    previous.restoreHeight = restoreState.height;
+    previous.restoreCenterOffsetX = centerOffsets.centerOffsetX;
+    previous.restoreCenterOffsetY = centerOffsets.centerOffsetY;
+  }
+
+  function getStoredRestoreState(windowElement) {
+    var presetName = windowElement.getAttribute("data-wm-preset");
+    var layoutKey = getLayoutKey(windowElement);
+    var savedLayout = savedLayoutTable[layoutKey];
+    var containerElement = getLayoutContainer(windowElement);
+    var coords = getLayoutCoords();
+    var defaultLayout;
+    var layoutForResolve;
+    var resolvedRect;
+    var minSize;
+    if (!presetName || !savedLayout || !containerElement || !coords) return null;
+    layoutForResolve = { anchor: "center" };
+    if (savedLayout.restoreWidth !== undefined && savedLayout.restoreHeight !== undefined) {
+      layoutForResolve.width = savedLayout.restoreWidth;
+      layoutForResolve.height = savedLayout.restoreHeight;
+      layoutForResolve.centerOffsetX = savedLayout.restoreCenterOffsetX;
+      layoutForResolve.centerOffsetY = savedLayout.restoreCenterOffsetY;
+    } else if (savedLayout.width !== undefined && savedLayout.height !== undefined) {
+      layoutForResolve.width = savedLayout.width;
+      layoutForResolve.height = savedLayout.height;
+      layoutForResolve.centerOffsetX = savedLayout.centerOffsetX;
+      layoutForResolve.centerOffsetY = savedLayout.centerOffsetY;
+      if (savedLayout.anchor !== undefined) {
+        layoutForResolve.anchor = savedLayout.anchor;
+      }
+    } else {
+      defaultLayout = DEFAULT_DESKTOP_WINDOW_LAYOUTS[presetName];
+      if (!defaultLayout) return null;
+      layoutForResolve.width = defaultLayout.width;
+      layoutForResolve.height = defaultLayout.height;
+      layoutForResolve.centerOffsetX = defaultLayout.centerOffsetX;
+      layoutForResolve.centerOffsetY = defaultLayout.centerOffsetY;
+    }
+    resolvedRect = coords.resolveWindowRect(layoutForResolve, containerElement);
+    minSize = getWindowMinSize(windowElement, presetName);
+    return {
+      left: resolvedRect.left,
+      top: resolvedRect.top,
+      width: Math.max(
+        resolvedRect.width || layoutForResolve.width || minSize.minWidth,
+        minSize.minWidth
+      ),
+      height: Math.max(
+        resolvedRect.height || layoutForResolve.height || minSize.minHeight,
+        minSize.minHeight
+      )
+    };
+  }
+
+  function getWindowRestoreState(windowElement) {
+    var restoreState;
+    if (!windowElement) return null;
+    restoreState = windowElement.wmBeforeMinimizeState;
+    if (!restoreState || isNearMinimizedRestoreState(windowElement, restoreState)) {
+      restoreState = getStoredRestoreState(windowElement);
+    }
+    if (!restoreState || isNearMinimizedRestoreState(windowElement, restoreState)) {
+      return null;
+    }
+    return restoreState;
+  }
+
   function getSavedLayoutRestoreState(windowElement) {
     var presetName = windowElement.getAttribute("data-wm-preset");
     var layoutKey = getLayoutKey(windowElement);
@@ -442,6 +585,7 @@ var WebWindowManager = (function () {
   function applySavedChromeStateToWindow(windowElement) {
     var layoutKey = getLayoutKey(windowElement);
     var savedLayout = savedLayoutTable[layoutKey];
+    var restoreState;
     if (!savedLayout) return;
     if (windowElement.classList.contains("os-window--closed")) return;
 
@@ -455,7 +599,11 @@ var WebWindowManager = (function () {
 
     if (shouldMinimize) {
       prepareWindowDragStart(windowElement);
-      windowElement.wmBeforeMinimizeState = captureWindowRestoreState(windowElement);
+      restoreState = getStoredRestoreState(windowElement);
+      if (!restoreState) {
+        restoreState = captureWindowRestoreState(windowElement);
+      }
+      windowElement.wmBeforeMinimizeState = restoreState;
       windowElement.wmMinimizedUserAdjusted = false;
       windowElement.classList.add("os-window--minimized");
       setMinimizedWindowRect(windowElement);
@@ -504,7 +652,25 @@ var WebWindowManager = (function () {
     var minSize = getWindowMinSize(windowElement, presetName);
     var coords = getLayoutCoords();
     var resolvedRect;
+    var restoreState;
     if (!coords) return;
+    if (savedLayout.minimized === true) {
+      restoreState = getStoredRestoreState(windowElement);
+      if (restoreState) {
+        windowElement.wmState = {
+          left: restoreState.left,
+          top: restoreState.top,
+          width: restoreState.width,
+          height: restoreState.height,
+          minWidth: minSize.minWidth,
+          minHeight: minSize.minHeight
+        };
+        applyWindowRect(windowElement);
+        windowElement.wmHasInlineLayout = true;
+        clampManagedWindowToContainer(windowElement);
+        return;
+      }
+    }
     mergedLayout = mergeLayoutWithDesktopDefault(presetName, savedLayout);
     resolvedRect = coords.resolveWindowRect(mergedLayout, containerElement);
     windowElement.wmState = {
@@ -724,12 +890,19 @@ var WebWindowManager = (function () {
       return;
     }
     if (isMinimized) {
+      restoreState = windowElement.wmBeforeMinimizeState;
+      if (!restoreState || isNearMinimizedRestoreState(windowElement, restoreState)) {
+        restoreState = getStoredRestoreState(windowElement);
+      }
       if (previous) {
         previous.open = entry.open;
         previous.minimized = true;
         previous.maximized = false;
         if (entry.zIndex !== undefined) {
           previous.zIndex = entry.zIndex;
+        }
+        if (restoreState) {
+          setSavedLayoutRestoreGeometry(layoutKey, windowElement, restoreState);
         }
         return;
       }
@@ -2319,6 +2492,10 @@ var WebWindowManager = (function () {
       window.WebCredits.releaseContent(windowElement);
       return;
     }
+    if (presetName === "extras-game" && window.WebExtras && window.WebExtras.releaseGamePlayContent) {
+      window.WebExtras.releaseGamePlayContent(windowElement);
+      return;
+    }
     var scrollSelector = ".menu-v-scroll-view, .settings-scroll, .extras-scroll, .worlds-list";
     var scrollNodes = windowElement.querySelectorAll(scrollSelector);
     var index;
@@ -2332,6 +2509,22 @@ var WebWindowManager = (function () {
     var settingsTabs = windowElement.querySelector(".settings-tabs");
     if (settingsTabs) {
       settingsTabs.textContent = "";
+    }
+  }
+
+  function releaseMinimizedWindowContent(windowElement) {
+    if (!windowElement) return;
+    var presetName = windowElement.getAttribute("data-wm-preset") || "";
+    if (presetName === "extras-game" && window.WebExtras && window.WebExtras.releaseGameWindow) {
+      window.WebExtras.releaseGameWindow(windowElement);
+    }
+  }
+
+  function restoreMinimizedWindowContent(windowElement) {
+    if (!windowElement) return;
+    var presetName = windowElement.getAttribute("data-wm-preset") || "";
+    if (presetName === "extras-game" && window.WebExtras && window.WebExtras.restoreGameWindow) {
+      window.WebExtras.restoreGameWindow(windowElement);
     }
   }
 
@@ -2372,8 +2565,8 @@ var WebWindowManager = (function () {
   }
 
   function restoreFromMinimized(windowElement) {
-    if (!windowElement.wmBeforeMinimizeState) return false;
-    var restoreState = windowElement.wmBeforeMinimizeState;
+    var restoreState = getWindowRestoreState(windowElement);
+    if (!restoreState) return false;
     windowElement.classList.remove("os-window--minimized");
     if (!windowElement.wmState) {
       prepareWindowDragStart(windowElement);
@@ -2397,6 +2590,7 @@ var WebWindowManager = (function () {
     scheduleWindowLayoutsSave();
     layoutMinimizedWindowsInContainer(getLayoutContainer(windowElement), null);
     syncDesktopTabOrder();
+    restoreMinimizedWindowContent(windowElement);
     return true;
   }
 
@@ -2506,6 +2700,7 @@ var WebWindowManager = (function () {
     syncSavedLayoutFromWindow(windowElement);
     scheduleWindowLayoutsSave();
     syncDesktopTabOrder();
+    releaseMinimizedWindowContent(windowElement);
   }
 
   function restoreManagedWindow(windowElement) {
