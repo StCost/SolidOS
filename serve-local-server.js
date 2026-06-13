@@ -100,8 +100,4 @@ server.on("error", function (error) {
   process.exit(1);
 });
 
-server.listen(port, function () {
-  console.log("Serving " + rootDirectory);
-  console.log("http://localhost:" + port);
-  console.log("http://localhost:" + port + "/Web%20Main%20Menu/index.html");
-});
+server.listen(port);
