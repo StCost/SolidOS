@@ -79,6 +79,14 @@ var WebMenuLayoutCoords = (function () {
     };
     if (layout.width !== undefined) stored.width = layout.width;
     if (layout.height !== undefined) stored.height = layout.height;
+    if (layout.restoreWidth !== undefined) stored.restoreWidth = layout.restoreWidth;
+    if (layout.restoreHeight !== undefined) stored.restoreHeight = layout.restoreHeight;
+    if (layout.restoreCenterOffsetX !== undefined) {
+      stored.restoreCenterOffsetX = layout.restoreCenterOffsetX;
+    }
+    if (layout.restoreCenterOffsetY !== undefined) {
+      stored.restoreCenterOffsetY = layout.restoreCenterOffsetY;
+    }
     if (layout.zIndex !== undefined) stored.zIndex = layout.zIndex;
     if (layout.left !== undefined && layout.top !== undefined) {
       top = layout.top;
@@ -137,6 +145,17 @@ var WebMenuLayoutCoords = (function () {
     }
     if (storedLayout.minimized === true) {
       entry.minimized = true;
+      if (storedLayout.restoreWidth !== undefined && storedLayout.restoreHeight !== undefined) {
+        entry.restoreWidth = storedLayout.restoreWidth;
+        entry.restoreHeight = storedLayout.restoreHeight;
+        entry.restoreCenterOffsetX = Math.round(storedLayout.restoreCenterOffsetX || 0);
+        entry.restoreCenterOffsetY = Math.round(storedLayout.restoreCenterOffsetY || 0);
+      } else if (storedLayout.width !== undefined && storedLayout.height !== undefined) {
+        entry.restoreWidth = storedLayout.width;
+        entry.restoreHeight = storedLayout.height;
+        entry.restoreCenterOffsetX = Math.round(storedLayout.centerOffsetX || 0);
+        entry.restoreCenterOffsetY = Math.round(storedLayout.centerOffsetY || 0);
+      }
       return entry;
     }
     if (storedLayout.maximized === true) {

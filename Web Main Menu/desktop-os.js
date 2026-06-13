@@ -284,6 +284,12 @@ var WebDesktop = (function () {
       }
       return;
     }
+    if (presetName === "extras-game") {
+      if (window.WebExtras && window.WebExtras.onGamePlayWindowOpen) {
+        window.WebExtras.onGamePlayWindowOpen(windowElement);
+      }
+      return;
+    }
     if (presetName === "credits-content") {
       if (window.WebCredits && window.WebCredits.bindToWindow) {
         window.WebCredits.bindToWindow(windowElement);

@@ -445,13 +445,34 @@
                     <div class="extras-view" id="extrasViewGames">
                       <ul class="extras-list" id="extrasGamesList"></ul>
                     </div>
-                    <div class="extras-view" id="extrasViewGame" hidden>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="os-window extras-content-window extras-game-window os-window--closed"
+              data-wm-preset="extras-game" data-wm-order="5.5" aria-labelledby="extrasGamePlayTitle">
+              <div class="os-window-chrome">
+                <div class="os-window-controls">
+                  <button type="button" class="os-window-dot os-window-control" data-wm-action="minimize"
+                    aria-label="Minimize window"></button>
+                  <button type="button" class="os-window-dot os-window-control" data-wm-action="maximize"
+                    aria-label="Maximize window"></button>
+                  <button type="button" class="os-window-dot os-window-control" data-wm-action="close"
+                    aria-label="Close window"></button>
+                </div>
+                <p class="os-window-title terminal-text--dim" id="extrasGamePlayTitle">Game</p>
+              </div>
+              <div class="os-window-body os-window-body--terminal">
+                <div class="menu-v-scroll-clip">
+                  <div class="extras-scroll extras-scroll--game menu-v-scroll-view" role="region" aria-label="Game">
+                    <div class="extras-view extras-view--game" id="extrasViewGamePlay">
                       <div class="extras-game-toolbar">
-                        <button type="button" class="term-row extras-game-back" id="btnExtrasGameBack">
+                        <button type="button" class="term-row extras-game-back" id="btnExtrasGamePlayBack">
                           <span class="term-row-label terminal-text" data-locale-key="web.extras.game.back">Back to
                             games</span>
                         </button>
-                        <button type="button" class="extras-game-desktop-link-option" id="btnExtrasGameDesktopLinkSwitch"
+                        <button type="button" class="extras-game-desktop-link-option" id="btnExtrasGamePlayDesktopLinkSwitch"
                           aria-pressed="false">
                           <span class="settings-switch extras-game-desktop-link-switch-visual" aria-hidden="true">
                             <span class="settings-switch-track"><span class="settings-switch-thumb"></span></span>
@@ -460,9 +481,9 @@
                             data-locale-key="web.extras.game.link-on-desktop">Link on Desktop</span>
                         </button>
                       </div>
-                      <div id="extrasGameKeyboardFocus" tabindex="0" aria-hidden="true"
+                      <div id="extrasGamePlayKeyboardFocus" tabindex="0" aria-hidden="true"
                         class="extras-game-keyboard-focus"></div>
-                      <iframe class="extras-game-frame" id="extrasGameFrame" title="Extras game"></iframe>
+                      <iframe class="extras-game-frame" id="extrasGamePlayFrame" title="Extras game"></iframe>
                     </div>
                   </div>
                 </div>

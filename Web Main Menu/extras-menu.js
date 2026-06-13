@@ -20,6 +20,7 @@
   var NAV_LINKS_FALLBACK = "Links";
   var GAMES_WINDOW_TITLE_SEPARATOR = " - ";
   var PRESET_EXTRAS_GAMES = "extras-games";
+  var PRESET_EXTRAS_GAME = "extras-game";
   var PRESET_EXTRAS_ART = "extras-art";
   var PRESET_EXTRAS_LINKS = "extras-links";
   var GAME_FRAME_BOUND_ATTR = "data-game-frame-bound";
@@ -27,21 +28,6 @@
   var GAMES_SCROLL_HTML =
     '<div class="extras-view" id="extrasViewGames">' +
     '<ul class="extras-list" id="extrasGamesList"></ul>' +
-    "</div>" +
-    '<div class="extras-view" id="extrasViewGame" hidden>' +
-    '<div class="extras-game-toolbar">' +
-    '<button type="button" class="term-row extras-game-back" id="btnExtrasGameBack">' +
-    '<span class="term-row-label terminal-text" data-locale-key="web.extras.game.back">Back to games</span>' +
-    "</button>" +
-    '<button type="button" class="extras-game-desktop-link-option" id="btnExtrasGameDesktopLinkSwitch" aria-pressed="false">' +
-    '<span class="settings-switch extras-game-desktop-link-switch-visual" aria-hidden="true">' +
-    '<span class="settings-switch-track"><span class="settings-switch-thumb"></span></span>' +
-    "</span>" +
-    '<span class="extras-game-desktop-link-label terminal-text" data-locale-key="web.extras.game.link-on-desktop">Link on Desktop</span>' +
-    "</button>" +
-    "</div>" +
-    '<div id="extrasGameKeyboardFocus" tabindex="0" aria-hidden="true" class="extras-game-keyboard-focus"></div>' +
-    '<iframe class="extras-game-frame" id="extrasGameFrame" title="Extras game"></iframe>' +
     "</div>";
   var ART_SCROLL_HTML =
     '<div class="extras-view" id="extrasViewArt">' +
@@ -55,6 +41,7 @@
 
   var currentView = VIEW_GAMES;
   var activeExtrasWindow = null;
+  var activeGamePlayWindow = null;
   var pendingExternalUrl = "";
   var pendingExternalLabel = "";
   var artViewerOpen = false;
@@ -88,13 +75,13 @@
   var contentRoot = document.getElementById("extrasContent");
   var viewArt = document.getElementById("extrasViewArt");
   var viewGames = document.getElementById("extrasViewGames");
-  var viewGame = document.getElementById("extrasViewGame");
+  var viewGame = document.getElementById("extrasViewGamePlay");
   var viewLinks = document.getElementById("extrasViewLinks");
   var gamesListRoot = document.getElementById("extrasGamesList");
   var artGridRoot = document.getElementById("extrasArtGrid");
   var linksListRoot = document.getElementById("extrasLinksList");
-  var gameFrame = document.getElementById("extrasGameFrame");
-  var gameKeyboardFocus = document.getElementById("extrasGameKeyboardFocus");
+  var gameFrame = document.getElementById("extrasGamePlayFrame");
+  var gameKeyboardFocus = document.getElementById("extrasGamePlayKeyboardFocus");
   var contentPromptPath = document.getElementById("extrasContentPromptPath");
   var contentPromptCommand = document.getElementById("extrasContentPromptCommand");
   var extrasNav = document.getElementById("extrasNav");
@@ -108,7 +95,176 @@
   var artViewerImage = document.getElementById("extrasArtViewerImage");
   var artViewerImageBox = document.getElementById("extrasArtViewerImageBox");
   var artViewerTitle = document.getElementById("extrasArtViewerTitle");
-  var btnExtrasGameDesktopLinkSwitch = document.getElementById("btnExtrasGameDesktopLinkSwitch");
+  var btnExtrasGameDesktopLinkSwitch = document.getElementById("btnExtrasGamePlayDesktopLinkSwitch");
+
+  function getGamePlayWindow() {
+    return document.querySelector('#desktopSurface .os-window[data-wm-preset="' + PRESET_EXTRAS_GAME + '"]');
+  }
+
+  function isGamePlayWindowVisible() {
+    var gameWindow = getGamePlayWindow();
+    if (!gameWindow) return false;
+    return !gameWindow.classList.contains("os-window--closed");
+  }
+
+  function getGamePlayWindowGameId(windowElement) {
+    if (!windowElement) return "";
+    return windowElement.getAttribute("data-extras-game-id") || "";
+  }
+
+  function isGameFrameLoadedInWindow(windowElement) {
+    var frame;
+    var frameSrc;
+    if (!windowElement) return false;
+    frame = windowElement.querySelector(".extras-game-frame");
+    if (!frame) return false;
+    frameSrc = frame.getAttribute("src") || "";
+    if (!frameSrc || frameSrc === "about:blank") return false;
+    return true;
+  }
+
+  function setActiveGamePlayWindow(windowElement) {
+    activeGamePlayWindow = windowElement || null;
+    if (!windowElement) {
+      return;
+    }
+    viewGame = windowElement.querySelector(".extras-view--game");
+    gameFrame = windowElement.querySelector(".extras-game-frame");
+    gameKeyboardFocus = windowElement.querySelector(".extras-game-keyboard-focus");
+    btnExtrasGameDesktopLinkSwitch = windowElement.querySelector(".extras-game-desktop-link-option");
+    activeGameId = getGamePlayWindowGameId(windowElement);
+    bindGameFrameInteraction(gameFrame, gameKeyboardFocus);
+    if (activeGameId) {
+      currentView = VIEW_GAME;
+      updateGameDesktopLinkSwitch(VIEW_GAME);
+    }
+  }
+
+  function showGamePlayWindow() {
+    var gameWindow = getGamePlayWindow();
+    if (!gameWindow) return null;
+    if (window.WebDesktop && window.WebDesktop.openWindow) {
+      window.WebDesktop.openWindow(PRESET_EXTRAS_GAME, true);
+      gameWindow = getGamePlayWindow();
+    } else {
+      gameWindow.classList.remove("os-window--closed");
+      gameWindow.style.visibility = "visible";
+    }
+    return gameWindow;
+  }
+
+  function getGamePlayWindowTitleIconSrc(gameId) {
+    var game;
+    if (!gameId) {
+      if (window.WebDesktopAppIcons && window.WebDesktopAppIcons.getDesktopIconSrc) {
+        return window.WebDesktopAppIcons.getDesktopIconSrc("games");
+      }
+      return "";
+    }
+    game = findGameById(gameId);
+    if (!game) return "";
+    if (game.desktopIcon) return game.desktopIcon;
+    if (game.image) return game.image;
+    return "";
+  }
+
+  function updateGamePlayWindowTitle(windowElement, gameId) {
+    var titleElement;
+    var textElement;
+    var titleText;
+    var game;
+    if (!windowElement) return;
+    titleElement = windowElement.querySelector("#extrasGamePlayTitle");
+    if (!titleElement) return;
+    game = findGameById(gameId);
+    titleText = game ? getGameDisplayTitle(game) : getLocalized(LOCALE_KEY_NAV_GAMES, NAV_GAMES_FALLBACK);
+    if (window.WebDesktopAppIcons) {
+      if (window.WebDesktopAppIcons.ensureWindowTitleStructure) {
+        window.WebDesktopAppIcons.ensureWindowTitleStructure(titleElement);
+      }
+      if (window.WebDesktopAppIcons.setWindowTitleIconSrc) {
+        window.WebDesktopAppIcons.setWindowTitleIconSrc(titleElement, getGamePlayWindowTitleIconSrc(gameId));
+      }
+    }
+    textElement = titleElement.querySelector(".os-window-title-text");
+    if (textElement) {
+      textElement.textContent = titleText;
+      return;
+    }
+    titleElement.textContent = titleText;
+  }
+
+  function releaseGamePlayContent(windowElement, keepGameId) {
+    var frame;
+    if (!windowElement) return;
+    if (activeGamePlayWindow === windowElement) {
+      stopExtrasGameStartMusic();
+      setGameInputForwarding(false);
+      activeGameId = "";
+      activeGamePlayWindow = null;
+      currentView = VIEW_GAMES;
+    }
+    frame = windowElement.querySelector(".extras-game-frame");
+    if (frame) {
+      frame.src = "about:blank";
+    }
+    windowElement.wmGameNeedsReload = true;
+    if (!keepGameId) {
+      windowElement.removeAttribute("data-extras-game-id");
+      updateGamePlayWindowTitle(windowElement, "");
+    }
+  }
+
+  function loadGameIntoWindow(windowElement, gameId) {
+    var game;
+    var frame;
+    if (!windowElement || !gameId) return;
+    game = findGameById(gameId);
+    if (!game) return;
+    windowElement.setAttribute("data-extras-game-id", gameId);
+    updateGamePlayWindowTitle(windowElement, gameId);
+    setActiveGamePlayWindow(windowElement);
+    frame = gameFrame;
+    if (!frame) return;
+    setExtrasGameMusicPaths(gameId);
+    if (window.WebDesktop && window.WebDesktop.ensureGameDesktopLinkIcon) {
+      window.WebDesktop.ensureGameDesktopLinkIcon(gameId);
+    }
+    setGameInputProfile(gameId);
+    setGameInputForwarding(true);
+    frame.addEventListener("load", onGameFrameLoaded, { once: true });
+    frame.src = game.path;
+    scheduleRefreshGameDesktopLinkSwitchState();
+    focusGameKeyboardTarget();
+    windowElement.wmGameNeedsReload = false;
+  }
+
+  function releaseGameWindow(windowElement) {
+    releaseGamePlayContent(windowElement, true);
+  }
+
+  function restoreGameWindow(windowElement) {
+    var gameId;
+    if (!windowElement) return;
+    if (windowElement.classList.contains("os-window--closed")) return;
+    gameId = getGamePlayWindowGameId(windowElement);
+    if (!gameId) return;
+    if (!windowElement.wmGameNeedsReload && isGameFrameLoadedInWindow(windowElement)) {
+      setActiveGamePlayWindow(windowElement);
+      setGameInputForwarding(true);
+      focusGameKeyboardTarget();
+      return;
+    }
+    loadGameIntoWindow(windowElement, gameId);
+  }
+
+  function onGamePlayWindowOpen(windowElement) {
+    if (!windowElement) return;
+    if (window.WebLocale && window.WebLocale.applyDom) {
+      window.WebLocale.applyDom();
+    }
+    restoreGameWindow(windowElement);
+  }
 
   function getLocalized(key, fallback) {
     if (window.WebLocale) {
@@ -176,17 +332,7 @@
     activeExtrasWindow = windowElement || null;
     if (windowElement) {
       viewGames = windowElement.querySelector("#extrasViewGames");
-      viewGame = windowElement.querySelector("#extrasViewGame");
-      if (viewGame) {
-        btnExtrasGameDesktopLinkSwitch = viewGame.querySelector("#btnExtrasGameDesktopLinkSwitch");
-        if (!btnExtrasGameDesktopLinkSwitch) {
-          btnExtrasGameDesktopLinkSwitch = viewGame.querySelector(".extras-game-desktop-link-option");
-        }
-      }
       gamesListRoot = windowElement.querySelector(".extras-list");
-      gameFrame = windowElement.querySelector(".extras-game-frame");
-      gameKeyboardFocus = windowElement.querySelector(".extras-game-keyboard-focus");
-      bindGameFrameInteraction(gameFrame, gameKeyboardFocus);
     }
     if (!skipLinkSwitchUpdate && currentView === VIEW_GAME && activeGameId) {
       updateGameDesktopLinkSwitch(VIEW_GAME);
@@ -234,6 +380,18 @@
     if (viewGame && windowElement.contains(viewGame)) {
       viewGame = null;
     }
+    if (gameFrame && windowElement.contains(gameFrame)) {
+      gameFrame = null;
+    }
+    if (gameKeyboardFocus && windowElement.contains(gameKeyboardFocus)) {
+      gameKeyboardFocus = null;
+    }
+    if (btnExtrasGameDesktopLinkSwitch && windowElement.contains(btnExtrasGameDesktopLinkSwitch)) {
+      btnExtrasGameDesktopLinkSwitch = null;
+    }
+    if (activeGamePlayWindow === windowElement) {
+      activeGamePlayWindow = null;
+    }
     if (viewArt && windowElement.contains(viewArt)) {
       viewArt = null;
     }
@@ -246,26 +404,13 @@
     if (linksListRoot && windowElement.contains(linksListRoot)) {
       linksListRoot = null;
     }
-    if (btnExtrasGameDesktopLinkSwitch && windowElement.contains(btnExtrasGameDesktopLinkSwitch)) {
-      btnExtrasGameDesktopLinkSwitch = null;
-    }
     if (activeExtrasWindow === windowElement) {
       activeExtrasWindow = null;
     }
   }
 
   function releaseGamesWindowContent(windowElement) {
-    var frame = windowElement.querySelector(".extras-game-frame");
     var scrollRoot;
-    if (currentView === VIEW_GAME) {
-      stopExtrasGameStartMusic();
-      activeGameId = "";
-      setGameInputForwarding(false);
-      currentView = VIEW_GAMES;
-    }
-    if (frame) {
-      frame.src = "about:blank";
-    }
     clearExtrasModuleRefsForWindow(windowElement);
     scrollRoot = windowElement.querySelector(".extras-scroll");
     if (scrollRoot) {
@@ -564,19 +709,20 @@
     if (viewId !== VIEW_ART && artViewerOpen) {
       closeArtViewer();
     }
-    if (viewId !== VIEW_GAME) activeGameId = "";
+    if (viewId !== VIEW_GAME) {
+      activeGameId = "";
+    }
     currentView = viewId;
 
-    if (viewId === VIEW_GAMES || viewId === VIEW_GAME) {
-      if (viewGames) viewGames.hidden = viewId === VIEW_GAME;
-      if (viewGame) viewGame.hidden = viewId !== VIEW_GAME;
+    if (viewId === VIEW_GAMES) {
+      if (viewGames) viewGames.hidden = false;
     }
 
     updateGameDesktopLinkSwitch(viewId);
 
     setNavTabActive(getTabForView(viewId));
 
-    if (viewId === VIEW_GAMES || viewId === VIEW_GAME) {
+    if (viewId === VIEW_GAMES) {
       updateAllGamesWindowTitles();
     }
     if (playContentOpen !== false && viewChanged && activeExtrasWindow) {
@@ -665,30 +811,10 @@
   }
 
   function buildGamesWindowTitle(gameId) {
-    var gamesLabel = getGamesNavLabel();
-    if (!gameId || currentView !== VIEW_GAME) {
-      return gamesLabel;
-    }
-    var game = findGameById(gameId);
-    if (!game) return gamesLabel;
-    var gameTitle = getGameDisplayTitle(game);
-    if (!gameTitle) return gamesLabel;
-    return gamesLabel + GAMES_WINDOW_TITLE_SEPARATOR + gameTitle;
+    return getGamesNavLabel();
   }
 
   function getGamesWindowTitleIconSrc() {
-    var game;
-    if (currentView === VIEW_GAME && activeGameId) {
-      game = findGameById(activeGameId);
-      if (game) {
-        if (game.desktopIcon) {
-          return game.desktopIcon;
-        }
-        if (game.image) {
-          return game.image;
-        }
-      }
-    }
     if (window.WebDesktopAppIcons && window.WebDesktopAppIcons.getDesktopIconSrc) {
       return window.WebDesktopAppIcons.getDesktopIconSrc("games");
     }
@@ -945,26 +1071,15 @@
   function getGameDesktopLinkSwitchElements() {
     var switchButton = null;
     var switchVisual;
-    var gamesWindow;
-    var gameView = viewGame;
-    gamesWindow = getOpenExtrasGamesWindow();
-    if (gamesWindow) {
-      setActiveExtrasWindow(gamesWindow, true);
-      gameView = gamesWindow.querySelector("#extrasViewGame");
-    } else if (activeExtrasWindow) {
-      gameView = activeExtrasWindow.querySelector("#extrasViewGame");
-    }
-    if (!gameView) {
-      gameView = document.getElementById("extrasViewGame");
-    }
-    if (gameView) {
-      switchButton = gameView.querySelector("#btnExtrasGameDesktopLinkSwitch");
-      if (!switchButton) {
-        switchButton = gameView.querySelector(".extras-game-desktop-link-option");
-      }
+    var gameWindow = activeGamePlayWindow || getGamePlayWindow();
+    if (!gameWindow || gameWindow.classList.contains("os-window--closed")) {
+      switchButton = btnExtrasGameDesktopLinkSwitch;
+    } else {
+      setActiveGamePlayWindow(gameWindow);
+      switchButton = btnExtrasGameDesktopLinkSwitch;
     }
     if (!switchButton) {
-      switchButton = document.getElementById("btnExtrasGameDesktopLinkSwitch");
+      switchButton = document.getElementById("btnExtrasGamePlayDesktopLinkSwitch");
     }
     if (!switchButton) return null;
     switchVisual = switchButton.querySelector(".settings-switch");
@@ -1087,25 +1202,17 @@
   }
 
   function forEachGameDesktopLinkSwitch(callback) {
-    var windows;
-    var windowIndex;
-    var gamesWindow;
-    var gameView;
+    var gameWindow;
     var switchButton;
     var switchVisual;
     if (!callback) return;
-    windows = document.querySelectorAll('.os-window[data-wm-preset="extras-games"]');
-    for (windowIndex = 0; windowIndex < windows.length; windowIndex++) {
-      gamesWindow = windows[windowIndex];
-      if (!gamesWindow || gamesWindow.classList.contains("os-window--closed")) continue;
-      gameView = gamesWindow.querySelector("#extrasViewGame");
-      if (!gameView || gameView.hidden) continue;
-      switchButton = gameView.querySelector(".extras-game-desktop-link-option");
-      if (!switchButton) continue;
-      switchVisual = switchButton.querySelector(".settings-switch");
-      if (!switchVisual) continue;
-      callback(switchButton, switchVisual);
-    }
+    gameWindow = getGamePlayWindow();
+    if (!gameWindow || gameWindow.classList.contains("os-window--closed")) return;
+    switchButton = gameWindow.querySelector(".extras-game-desktop-link-option");
+    if (!switchButton) return;
+    switchVisual = switchButton.querySelector(".settings-switch");
+    if (!switchVisual) return;
+    callback(switchButton, switchVisual);
   }
 
   function hasActiveGameDesktopLink() {
@@ -1200,7 +1307,7 @@
 
   function onGameDesktopLinkSwitchClick(event) {
     var switchButton;
-    var gamesWindow;
+    var gamePlayWindow;
     var nextLinked;
     var isOn;
     if (event && event[GAME_DESKTOP_LINK_SWITCH_HANDLED_FLAG]) {
@@ -1215,9 +1322,9 @@
       event.stopPropagation();
       event.stopImmediatePropagation();
     }
-    gamesWindow = switchButton.closest('.os-window[data-wm-preset="extras-games"]');
-    if (gamesWindow) {
-      setActiveExtrasWindow(gamesWindow, true);
+    gamePlayWindow = switchButton.closest('.os-window[data-wm-preset="extras-game"]');
+    if (gamePlayWindow) {
+      setActiveGamePlayWindow(gamePlayWindow);
     }
     if (!activeGameId) return;
     nextLinked = !hasActiveGameDesktopLink();
@@ -1239,37 +1346,43 @@
 
   function openGame(gameId) {
     var game;
+    var gameWindow;
     var gamesWindow;
+    var currentGameId;
+    game = findGameById(gameId);
+    if (!game) return;
     gamesWindow = getOpenExtrasGamesWindow();
     if (!gamesWindow) {
-      gamesWindow = getActiveExtrasWindowForPreset("extras-games");
+      gamesWindow = getActiveExtrasWindowForPreset(PRESET_EXTRAS_GAMES);
     }
     if (gamesWindow) {
       setActiveExtrasWindow(gamesWindow);
+      showView(VIEW_GAMES, false);
     }
-    game = findGameById(gameId);
-    if (!game || !gameFrame) return;
-    activeGameId = gameId;
-    setExtrasGameMusicPaths(gameId);
-    if (window.WebDesktop && window.WebDesktop.ensureGameDesktopLinkIcon) {
-      window.WebDesktop.ensureGameDesktopLinkIcon(gameId);
+    gameWindow = showGamePlayWindow();
+    if (!gameWindow) return;
+    currentGameId = getGamePlayWindowGameId(gameWindow);
+    if (gameWindow.wmGameNeedsReload || currentGameId !== gameId || !isGameFrameLoadedInWindow(gameWindow)) {
+      loadGameIntoWindow(gameWindow, gameId);
+      return;
     }
-    setGameInputProfile(gameId);
+    setActiveGamePlayWindow(gameWindow);
     setGameInputForwarding(true);
-    gameFrame.addEventListener("load", onGameFrameLoaded, { once: true });
-    gameFrame.src = game.path;
-    showView(VIEW_GAME);
-    scheduleRefreshGameDesktopLinkSwitchState();
     focusGameKeyboardTarget();
   }
 
   function closeGame() {
-    stopExtrasGameStartMusic();
-    activeGameId = "";
+    var gameWindow = getGamePlayWindow();
     suppressGamePickerClickUntil = Date.now() + 350;
-    setGameInputForwarding(false);
-    if (gameFrame) gameFrame.src = "about:blank";
-    showView(VIEW_GAMES);
+    releaseGamePlayContent(gameWindow, false);
+    if (window.WebDesktop && window.WebDesktop.closeWindow) {
+      window.WebDesktop.closeWindow(PRESET_EXTRAS_GAME);
+    } else if (gameWindow) {
+      gameWindow.classList.add("os-window--closed");
+    }
+    if (window.WebDesktop && window.WebDesktop.openGamesDesktop) {
+      window.WebDesktop.openGamesDesktop();
+    }
   }
 
   function openArtById(artId) {
@@ -1440,9 +1553,6 @@
       pendingExtrasRouteTab = "";
       return;
     }
-    if (currentView === VIEW_GAME && activeGameId) {
-      return;
-    }
     showView(VIEW_GAMES);
   }
 
@@ -1477,9 +1587,7 @@
     if (artViewerOpen) {
       updateArtBackgroundSwitchState();
     }
-    if (currentView === VIEW_GAME) {
-      showView(VIEW_GAME, false);
-    } else if (currentView) {
+    if (currentView) {
       showView(currentView, false);
     }
   }
@@ -1695,10 +1803,8 @@
   }
 
   function onExtrasBackMenuClick() {
-    stopExtrasGameStartMusic();
     suppressGamePickerClickUntil = Date.now() + 350;
-    setGameInputForwarding(false);
-    if (gameFrame) gameFrame.src = "about:blank";
+    closeGame();
     if (window.WebMenu && window.WebMenu.goToIndexPage) {
       window.WebMenu.goToIndexPage();
     }
@@ -1725,9 +1831,7 @@
     }
     currentView = "";
     closeArtViewer();
-    stopExtrasGameStartMusic();
-    setGameInputForwarding(false);
-    if (gameFrame) gameFrame.src = "about:blank";
+    closeGame();
     renderExtras();
     showTab(VIEW_GAMES);
   }
@@ -1771,6 +1875,10 @@
           onGamesListClick(event);
           return;
         }
+      }
+      var gamePlayWindow = event.target.closest('.os-window[data-wm-preset="extras-game"]');
+      if (gamePlayWindow) {
+        setActiveGamePlayWindow(gamePlayWindow);
         if (event.target.closest(".extras-game-back")) {
           closeGame();
           return;
@@ -1793,7 +1901,7 @@
     });
   }
 
-  var btnExtrasGameBack = document.getElementById("btnExtrasGameBack");
+  var btnExtrasGameBack = document.getElementById("btnExtrasGamePlayBack");
   if (btnExtrasGameBack) btnExtrasGameBack.addEventListener("click", closeGame);
 
   var btnLinkOverlayConfirm = document.getElementById("extrasLinkOverlayConfirm");
@@ -1835,13 +1943,19 @@
   function getRouteSegments() {
     if (!isExtrasPageVisible()) return null;
     var segments = ["extras"];
+    var gameId;
     if (currentView === VIEW_LINKS) {
       segments.push("links");
       return segments;
     }
     if (currentView === VIEW_GAMES || currentView === VIEW_GAME) {
       segments.push("games");
-      if (currentView === VIEW_GAME && activeGameId) {
+      if (isGamePlayWindowVisible()) {
+        gameId = getGamePlayWindowGameId(getGamePlayWindow());
+        if (gameId) {
+          segments.push(gameId);
+        }
+      } else if (currentView === VIEW_GAME && activeGameId) {
         segments.push(activeGameId);
       }
       return segments;
@@ -1886,8 +2000,8 @@
 
   function getTabForRoute(windowPreset) {
     if (windowPreset === "extras-games") {
-      if (currentView === VIEW_GAME && activeGameId) {
-        return activeGameId;
+      if (isGamePlayWindowVisible()) {
+        return getGamePlayWindowGameId(getGamePlayWindow());
       }
       if (currentView === VIEW_LINKS) {
         return VIEW_LINKS;
@@ -1970,6 +2084,10 @@
     openGame: openGame,
     bindToWindow: bindToWindow,
     releaseContent: releaseContent,
+    releaseGamePlayContent: releaseGamePlayContent,
+    releaseGameWindow: releaseGameWindow,
+    restoreGameWindow: restoreGameWindow,
+    onGamePlayWindowOpen: onGamePlayWindowOpen,
     openGamesPanel: openGamesPanel,
     openArtPanel: openArtPanel,
     openLinksPanel: openLinksPanel,
@@ -1993,7 +2111,7 @@
         closeLinkOverlay();
         return true;
       }
-      if (currentView === VIEW_GAME) {
+      if (currentView === VIEW_GAME || isGamePlayWindowVisible()) {
         closeGame();
         return true;
       }
