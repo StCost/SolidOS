@@ -767,7 +767,6 @@ var WebWindowManager = (function () {
     for (index = 0; index < windows.length; index++) {
       applySavedOpenStateToWindow(windows[index]);
     }
-    detachAllClosedDesktopWindowBodies();
     syncDesktopTabOrder();
     syncScreenEffectsState();
   }
@@ -2063,6 +2062,12 @@ var WebWindowManager = (function () {
     applyDesktopWindowVisibilityFromSaved();
   }
 
+  function releaseWindowPointerInteractionState() {
+    if (activeDrag || activeResize) {
+      onPointerUp(null);
+    }
+  }
+
   function syncDesktopFocusAfterClose() {
     var topWindowElement = applySavedWindowStackOrder();
     if (!topWindowElement) {
@@ -2678,6 +2683,7 @@ var WebWindowManager = (function () {
   function prepareWindowForOpen(windowElement) {
     if (!windowElement) return;
     restoreClosedWindowBody(windowElement);
+    ensureWindowStructure(windowElement);
   }
 
   function restoreMinimizedWindowContent(windowElement) {
@@ -2695,7 +2701,6 @@ var WebWindowManager = (function () {
     clearWindowChromeStates(windowElement);
     clearClosedWindowDynamicContent(windowElement);
     windowElement.classList.add("os-window--closed");
-    detachClosedWindowBody(windowElement);
     if (windowElement.classList.contains("os-window--focused")) {
       windowElement.classList.remove("os-window--focused");
     }
@@ -2708,6 +2713,7 @@ var WebWindowManager = (function () {
     }
     syncDesktopTabOrder();
     if (wasDesktopWindow) {
+      releaseWindowPointerInteractionState();
       syncDesktopFocusAfterClose();
       window.dispatchEvent(
         new CustomEvent("web-desktop-window-closed", {
@@ -3453,6 +3459,7 @@ var WebWindowManager = (function () {
     clearSavedWindowMinimizedState: clearSavedWindowMinimizedState,
     ensureWindowStructure: ensureWindowStructure,
     prepareWindowForOpen: prepareWindowForOpen,
+    releaseWindowPointerInteractionState: releaseWindowPointerInteractionState,
     centerWindowInContainer: centerOverlayWindow,
     applyWindowRect: applyWindowRect,
     removeSavedLayout: removeSavedLayout,

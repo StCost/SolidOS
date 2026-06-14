@@ -101,6 +101,9 @@
   setUnityHostClass();
 
   if (isUnityHost()) {
+    window.addEventListener("web-menu-boot-dismissed", function () {
+      setActiveLayer(LAYER_MENU);
+    });
     return;
   }
 

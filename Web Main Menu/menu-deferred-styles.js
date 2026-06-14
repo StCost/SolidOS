@@ -7,7 +7,7 @@
     "extras-art": ["extras-menu.css"],
     "extras-links": ["extras-menu.css"],
     "extras-game": ["extras-menu.css"],
-    "web-fake-connect-demo": ["menu-web-fake-connect-demo.css"]
+    "web-fake-connect-demo": ["menu-web-fake-connect-demo.css", "extras-menu.css"]
   };
 
   var LAYER_STYLE_PATHS = {

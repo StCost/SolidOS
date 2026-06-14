@@ -454,6 +454,7 @@ html.menu-unity-host:not(.menu-unity-custom-cursor) .os-wm-resize--se {
   inset: 0;
   overflow: hidden;
   background: transparent;
+  pointer-events: none;
   -webkit-mask-image: radial-gradient(ellipse 82% 72% at 50% 44%,
       rgba(0, 0, 0, 0) 0%,
       rgba(0, 0, 0, 0.06) 32%,
@@ -530,6 +531,16 @@ html.menu-unity-host:not(.menu-unity-custom-cursor) .os-wm-resize--se {
   inset: 0;
   z-index: 2;
   min-height: 0;
+  pointer-events: auto;
+}
+
+#device.menu-mode--menu:not(.menu-boot-pending) {
+  pointer-events: auto;
+  visibility: visible;
+}
+
+html.menu-layouts-pending #device.menu-mode--menu:not(.menu-boot-pending) {
+  pointer-events: auto;
 }
 
 .menu-page[hidden] {
