@@ -2,6 +2,12 @@
   --menu-web-layer-fade-duration: 0.28s;
 }
 
+#gameHudRoot:not(.game-hud--layer-active) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 #menuWelcomeBoot,
 #device,
 #device .menu-page,

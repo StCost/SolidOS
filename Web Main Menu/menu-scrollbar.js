@@ -190,11 +190,49 @@
     scrollView.__menuOverlayMutationObserver = mutationObserver;
   }
 
+  function isSplashScrollView(scrollView) {
+    return scrollView.classList && scrollView.classList.contains("term-splash-scroll");
+  }
+
+  function clearSplashScrollOverlay(scrollView, clip) {
+    var bar;
+    var index;
+    if (!scrollView) {
+      return;
+    }
+    bar = scrollView.__menuOverlayBar;
+    if (bar && bar.parentNode) {
+      bar.parentNode.removeChild(bar);
+    }
+    scrollView.__menuOverlayBar = null;
+    scrollView.__menuOverlayTrack = null;
+    scrollView.__menuOverlayThumb = null;
+    scrollView.removeAttribute(ATTR_OVERLAY_BOUND);
+    scrollView.classList.remove(CLASS_SCROLL_OVERLAY);
+    if (clip) {
+      clip.classList.remove(CLASS_CLIP_OVERLAY);
+    }
+    if (scrollView.__menuOverlayResizeObserver) {
+      scrollView.__menuOverlayResizeObserver.disconnect();
+      scrollView.__menuOverlayResizeObserver = null;
+    }
+    if (scrollView.__menuOverlayMutationObserver) {
+      scrollView.__menuOverlayMutationObserver.disconnect();
+      scrollView.__menuOverlayMutationObserver = null;
+    }
+    for (index = 0; index < boundScrollViews.length; index += 1) {
+      if (boundScrollViews[index] === scrollView) {
+        boundScrollViews.splice(index, 1);
+        break;
+      }
+    }
+  }
+
   function bindOverlayBar(scrollView, clip) {
     if (!scrollView || scrollView.getAttribute(ATTR_OVERLAY_BOUND) === "true") {
       return;
     }
-    if (scrollView.classList.contains("term-splash-scroll")) {
+    if (isSplashScrollView(scrollView)) {
       return;
     }
     scrollView.setAttribute(ATTR_OVERLAY_BOUND, "true");
@@ -233,6 +271,10 @@
   function scanClip(clip) {
     var scrollView = getScrollChildFromClip(clip);
     if (!scrollView) {
+      return;
+    }
+    if (isSplashScrollView(scrollView)) {
+      clearSplashScrollOverlay(scrollView, clip);
       return;
     }
     bindOverlayBar(scrollView, clip);
