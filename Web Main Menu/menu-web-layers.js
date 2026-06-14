@@ -43,6 +43,10 @@
     activeLayer = layer;
     setHtmlLayerClass(layer);
 
+    if (window.WebMenuScreenEffects && window.WebMenuScreenEffects.sync) {
+      window.WebMenuScreenEffects.sync();
+    }
+
     if (layer === LAYER_LOADING) {
       var bootRoot = document.getElementById("menuWelcomeBoot");
       if (bootRoot) {
@@ -80,6 +84,21 @@
       return activeLayer;
     }
   };
+
+  function setUnityHostClass() {
+    var html = document.documentElement;
+    if (!html) {
+      return;
+    }
+    if (isUnityHost()) {
+      html.classList.add("menu-unity-host");
+      return;
+    }
+    html.classList.remove("menu-unity-host");
+    html.classList.remove("menu-unity-custom-cursor");
+  }
+
+  setUnityHostClass();
 
   if (isUnityHost()) {
     return;

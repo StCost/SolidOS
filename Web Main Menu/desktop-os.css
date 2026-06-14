@@ -306,9 +306,11 @@
 }
 
 .os-window--closed {
+  display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
   opacity: 0 !important;
+  content-visibility: hidden;
 }
 
 .os-window-control {

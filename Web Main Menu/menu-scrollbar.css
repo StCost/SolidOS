@@ -22,6 +22,7 @@
   box-sizing: border-box;
   overflow-y: scroll;
   overflow-x: hidden;
+  overscroll-behavior: contain;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb, rgba(255, 128, 0, 0.35)) var(--scrollbar-track, rgba(4, 6, 9, 0.5));
@@ -45,6 +46,7 @@
   box-sizing: border-box;
   overflow-x: scroll;
   overflow-y: hidden;
+  overscroll-behavior: contain;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb, rgba(255, 128, 0, 0.35)) var(--scrollbar-track, rgba(4, 6, 9, 0.5));
@@ -121,20 +123,20 @@
   display: none;
 }
 
-.menu-v-scroll-clip:has(> .menu-v-scroll-bar) {
+.menu-v-scroll-clip--overlay-bar {
   display: flex;
   flex-direction: row;
   align-items: stretch;
   gap: var(--scrollbar-gap, 6px);
 }
 
-.menu-v-scroll-clip:has(> .menu-v-scroll-bar) > .menu-v-scroll-view,
-.menu-v-scroll-clip:has(> .menu-v-scroll-bar) > .worlds-list,
-.menu-v-scroll-clip:has(> .menu-v-scroll-bar) > .settings-scroll,
-.menu-v-scroll-clip:has(> .menu-v-scroll-bar) > .extras-scroll,
-.menu-v-scroll-clip:has(> .menu-v-scroll-bar) > .credits-scroll,
-.menu-v-scroll-clip:has(> .menu-v-scroll-bar) > .settings-tabs,
-.menu-v-scroll-clip:has(> .menu-v-scroll-bar) > .game-hud-chat-log {
+.menu-v-scroll-clip--overlay-bar > .menu-v-scroll-view,
+.menu-v-scroll-clip--overlay-bar > .worlds-list,
+.menu-v-scroll-clip--overlay-bar > .settings-scroll,
+.menu-v-scroll-clip--overlay-bar > .extras-scroll,
+.menu-v-scroll-clip--overlay-bar > .credits-scroll,
+.menu-v-scroll-clip--overlay-bar > .settings-tabs,
+.menu-v-scroll-clip--overlay-bar > .game-hud-chat-log {
   flex: 1 1 auto;
   width: auto;
   min-width: 0;
@@ -157,18 +159,6 @@
   pointer-events: none;
 }
 
-.os-window--opening:not(.os-window--open-done) .menu-v-scroll-bar:not(.menu-v-scroll-bar--idle) .menu-v-scroll-bar-track,
-.os-window--opening-body-only:not(.os-window--open-done) .menu-v-scroll-bar:not(.menu-v-scroll-bar--idle) .menu-v-scroll-bar-track {
-  background: transparent;
-}
-
-.os-window--opening:not(.os-window--open-done) .menu-v-scroll-bar:not(.menu-v-scroll-bar--idle) .menu-v-scroll-bar-thumb,
-.os-window--opening-body-only:not(.os-window--open-done) .menu-v-scroll-bar:not(.menu-v-scroll-bar--idle) .menu-v-scroll-bar-thumb,
-.os-window--opening:not(.os-window--open-done) .menu-v-scroll-bar:not(.menu-v-scroll-bar--idle) .menu-v-scroll-bar-thumb:hover,
-.os-window--opening-body-only:not(.os-window--open-done) .menu-v-scroll-bar:not(.menu-v-scroll-bar--idle) .menu-v-scroll-bar-thumb:hover {
-  background: transparent;
-}
-
 .menu-v-scroll-bar-track {
   position: absolute;
   top: 0;
@@ -177,7 +167,6 @@
   height: 100%;
   pointer-events: none;
   background: var(--scrollbar-track, rgba(4, 6, 9, 0.5));
-  transition: background-color 0.2s ease;
 }
 
 .menu-v-scroll-bar-thumb {
@@ -190,35 +179,40 @@
   background: var(--scrollbar-thumb, rgba(255, 128, 0, 0.35));
   touch-action: none;
   cursor: var(--cursor-scroll, url("cursor-scroll.svg?v=1") 11.2 11.2, default);
-  transition: background-color 0.2s ease;
 }
 
 .menu-v-scroll-bar-thumb:hover {
   background: var(--scrollbar-thumb-hover, rgba(255, 128, 0, 0.55));
 }
 
-.menu-screen.terminal-animations-off .os-window--opening:not(.os-window--open-done) .menu-v-scroll-bar:not(.menu-v-scroll-bar--idle) .menu-v-scroll-bar-track {
-  background: var(--scrollbar-track, rgba(4, 6, 9, 0.5));
-}
-
-.menu-screen.terminal-animations-off .os-window--opening:not(.os-window--open-done) .menu-v-scroll-bar:not(.menu-v-scroll-bar--idle) .menu-v-scroll-bar-thumb {
-  background: var(--scrollbar-thumb, rgba(255, 128, 0, 0.35));
-}
-
-.menu-screen.terminal-animations-off .os-window--opening:not(.os-window--open-done) .menu-v-scroll-bar:not(.menu-v-scroll-bar--idle) .menu-v-scroll-bar-thumb:hover {
-  background: var(--scrollbar-thumb-hover, rgba(255, 128, 0, 0.55));
-}
-
-html:not(:has(.menu-screen.menu-screen--system-cursor)) .menu-v-scroll-bar-track,
-html:not(:has(.menu-screen.menu-screen--system-cursor)) .menu-v-scroll-bar-thumb,
-html:not(:has(.menu-screen.menu-screen--system-cursor)) .menu-v-scroll-bar-thumb:hover {
+html:not(.menu-unity-host) .menu-v-scroll-bar-track,
+html:not(.menu-unity-host) .menu-v-scroll-bar-thumb,
+html:not(.menu-unity-host) .menu-v-scroll-bar-thumb:hover,
+html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-bar-track,
+html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-bar-thumb,
+html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-bar-thumb:hover {
   cursor: var(--cursor-scroll, url("cursor-scroll.svg?v=1") 11.2 11.2, default);
 }
 
-html:not(:has(.menu-screen.menu-screen--system-cursor)) .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar,
-html:not(:has(.menu-screen.menu-screen--system-cursor)) .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-track,
-html:not(:has(.menu-screen.menu-screen--system-cursor)) .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb,
-html:not(:has(.menu-screen.menu-screen--system-cursor)) .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb:hover,
-html:not(:has(.menu-screen.menu-screen--system-cursor)) .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb:active {
+html:not(.menu-unity-host) .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar,
+html:not(.menu-unity-host) .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-track,
+html:not(.menu-unity-host) .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb,
+html:not(.menu-unity-host) .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb:hover,
+html:not(.menu-unity-host) .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb:active,
+html.menu-unity-host.menu-unity-custom-cursor .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar,
+html.menu-unity-host.menu-unity-custom-cursor .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-track,
+html.menu-unity-host.menu-unity-custom-cursor .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb,
+html.menu-unity-host.menu-unity-custom-cursor .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb:hover,
+html.menu-unity-host.menu-unity-custom-cursor .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb:active {
   cursor: var(--cursor-scroll-h, url("cursor-scroll-h.svg?v=1") 11.2 11.2, ew-resize);
+}
+
+html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .menu-v-scroll-view,
+html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .settings-scroll,
+html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .extras-scroll,
+html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .credits-scroll,
+html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .worlds-list,
+html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .settings-tabs,
+html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .game-hud-chat-log {
+  overflow: hidden !important;
 }

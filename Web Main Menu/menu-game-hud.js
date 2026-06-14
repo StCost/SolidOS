@@ -682,6 +682,9 @@
   function setGameplayHudLayerActive(active) {
     var hudRoot = gameHudRootElement || document.getElementById("gameHudRoot");
     var layerActive = active === true && (isGameMenuMode() || isWebFakeConnectHud());
+    if (layerActive && window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.ensureForLayer) {
+      window.WebMenuDeferredStyles.ensureForLayer("hud");
+    }
     if (hudRoot) {
       hudRoot.classList.toggle("game-hud--layer-active", layerActive);
       hudRoot.setAttribute("aria-hidden", layerActive ? "false" : "true");

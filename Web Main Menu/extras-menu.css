@@ -19,6 +19,13 @@
   min-height: 0;
 }
 
+.extras-content-window .menu-v-scroll-clip--overlay-bar > .extras-scroll {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  height: 100%;
+}
+
 .extras-scroll {
   flex: none;
   height: 100%;

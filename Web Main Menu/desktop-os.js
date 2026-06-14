@@ -260,6 +260,12 @@ var WebDesktop = (function () {
     return !windowElement.classList.contains("os-window--closed");
   }
 
+  function syncScreenEffectsState() {
+    if (window.WebMenuScreenEffects && window.WebMenuScreenEffects.sync) {
+      window.WebMenuScreenEffects.sync();
+    }
+  }
+
   function runWindowOpenHooks(windowElement, presetName) {
     if (presetName === "connect-col-0" || presetName === "connect-col-1" || presetName === "connect-col-2") {
       if (window.WebStartMenu && window.WebStartMenu.renderAllLists) {
@@ -300,57 +306,78 @@ var WebDesktop = (function () {
   function showWindowElement(windowElement, playOpenAnimation) {
     if (!windowElement) return null;
     var presetName = windowElement.getAttribute("data-wm-preset");
-    windowElement.classList.remove("os-window--closed");
-    windowElement.style.visibility = "visible";
 
-    var windowManager = getWindowManager();
-    if (!windowManager) {
+    function finishShowWindowElement() {
+      var windowManager = getWindowManager();
+      if (windowManager && windowManager.prepareWindowForOpen) {
+        windowManager.prepareWindowForOpen(windowElement);
+      }
+      windowElement.classList.remove("os-window--closed");
+
+      if (!windowManager) {
+        runWindowOpenHooks(windowElement, presetName);
+        syncScreenEffectsState();
+        return windowElement;
+      }
+
+      if (windowManager.setSavedWindowOpen) {
+        windowManager.setSavedWindowOpen(windowElement, true);
+      }
+
+      if (windowManager.clearSavedWindowMinimizedState) {
+        windowManager.clearSavedWindowMinimizedState(windowElement);
+      }
+
+      if (windowElement.classList.contains("os-window--minimized") && windowManager.restoreWindow) {
+        windowManager.restoreWindow(windowElement);
+      }
+
+      if (windowManager.ensureWindowStructure) {
+        windowManager.ensureWindowStructure(windowElement);
+      }
+      if (windowManager.syncWindowLayout) {
+        windowManager.syncWindowLayout(windowElement);
+      }
+      if (windowManager.clampManagedWindowToContainer) {
+        windowManager.clampManagedWindowToContainer(windowElement);
+      }
+
+      if (playOpenAnimation !== false && windowManager.playWindowOpen) {
+        windowManager.playWindowOpen(windowElement, 0);
+      }
+
       runWindowOpenHooks(windowElement, presetName);
+
+      if (window.WebMenuScrollbar && window.WebMenuScrollbar.refresh) {
+        window.WebMenuScrollbar.refresh();
+      }
+
+      if (windowManager.focusWindow) {
+        windowManager.focusWindow(windowElement);
+      }
+      if (windowManager.setWindowKeyboardFocus) {
+        windowManager.setWindowKeyboardFocus(windowElement);
+      }
+
+      if (windowManager.scheduleWindowLayoutsSave) {
+        windowManager.scheduleWindowLayoutsSave();
+      }
+
+      updateDesktopTabOrder();
+      syncScreenEffectsState();
       return windowElement;
     }
 
-    if (windowManager.setSavedWindowOpen) {
-      windowManager.setSavedWindowOpen(windowElement, true);
+    if (window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.ensureForPreset) {
+      window.WebMenuDeferredStyles.ensureForPreset(presetName, finishShowWindowElement);
+      return windowElement;
     }
 
-    if (windowManager.clearSavedWindowMinimizedState) {
-      windowManager.clearSavedWindowMinimizedState(windowElement);
-    }
+    return finishShowWindowElement();
+  }
 
-    if (windowElement.classList.contains("os-window--minimized") && windowManager.restoreWindow) {
-      windowManager.restoreWindow(windowElement);
-    }
-
-    if (windowManager.ensureWindowStructure) {
-      windowManager.ensureWindowStructure(windowElement);
-    }
-    if (windowManager.syncWindowLayout) {
-      windowManager.syncWindowLayout(windowElement);
-    }
-    if (windowManager.clampManagedWindowToContainer) {
-      windowManager.clampManagedWindowToContainer(windowElement);
-    }
-
-    if (playOpenAnimation !== false && windowManager.playWindowOpen) {
-      windowManager.playWindowOpen(windowElement, 0);
-    }
-
-    runWindowOpenHooks(windowElement, presetName);
-
-    if (windowManager.focusWindow) {
-      windowManager.focusWindow(windowElement);
-    }
-    if (windowManager.setWindowKeyboardFocus) {
-      windowManager.setWindowKeyboardFocus(windowElement);
-    }
-
-    if (windowManager.scheduleWindowLayoutsSave) {
-      windowManager.scheduleWindowLayoutsSave();
-    }
-
-    updateDesktopTabOrder();
-
-    return windowElement;
+  function openWindowElement(windowElement, playOpenAnimation) {
+    return showWindowElement(windowElement, playOpenAnimation);
   }
 
   function hideWindowElement(windowElement) {
@@ -1298,6 +1325,9 @@ var WebDesktop = (function () {
     // This makes desktop-icon-layouts-bootstrap.js able to place icons correctly on first paint.
     window.__cmIconLayoutsPayload = payload;
     writeIconLayoutsToStorage(payload);
+    if (window.WebMenuLocalStorageBridge && window.WebMenuLocalStorageBridge.scheduleSaveToUnity) {
+      window.WebMenuLocalStorageBridge.scheduleSaveToUnity();
+    }
   }
 
   function scheduleIconLayoutsSave() {
@@ -2440,8 +2470,10 @@ var WebDesktop = (function () {
       if (!windowElement) continue;
       if (windowManager.shouldDesktopWindowBeOpen(presetName)) {
         if (!isWindowVisible(windowElement)) {
+          if (windowManager.prepareWindowForOpen) {
+            windowManager.prepareWindowForOpen(windowElement);
+          }
           windowElement.classList.remove("os-window--closed");
-          windowElement.style.visibility = "visible";
           if (windowManager.ensureWindowStructure) {
             windowManager.ensureWindowStructure(windowElement);
           }
@@ -2452,6 +2484,7 @@ var WebDesktop = (function () {
             windowManager.clampManagedWindowToContainer(windowElement);
           }
           runWindowOpenHooks(windowElement, presetName);
+          syncScreenEffectsState();
         }
       } else if (isWindowVisible(windowElement)) {
         closeWindowVisualOnly(presetName);
@@ -2628,19 +2661,28 @@ var WebDesktop = (function () {
   }
 
   function onDesktopWindowsRestored() {
-    var index = 0;
-    for (index = 0; index < APP_WINDOW_PRESETS.length; index++) {
-      var presetName = APP_WINDOW_PRESETS[index];
-      var windowElement = getWindowByPreset(presetName);
-      if (isWindowVisible(windowElement)) {
-        runWindowOpenHooks(windowElement, presetName);
+    function runDesktopWindowOpenHooks() {
+      var index = 0;
+      for (index = 0; index < APP_WINDOW_PRESETS.length; index++) {
+        var presetName = APP_WINDOW_PRESETS[index];
+        var windowElement = getWindowByPreset(presetName);
+        if (isWindowVisible(windowElement)) {
+          runWindowOpenHooks(windowElement, presetName);
+        }
       }
+      var titleWindow = getWindowByPreset(WINDOW_PRESET_TITLE);
+      if (isWindowVisible(titleWindow)) {
+        runWindowOpenHooks(titleWindow, WINDOW_PRESET_TITLE);
+      }
+      updateDesktopTabOrder();
     }
-    var titleWindow = getWindowByPreset(WINDOW_PRESET_TITLE);
-    if (isWindowVisible(titleWindow)) {
-      runWindowOpenHooks(titleWindow, WINDOW_PRESET_TITLE);
+
+    if (window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.preloadVisibleDesktopWindowStyles) {
+      window.WebMenuDeferredStyles.preloadVisibleDesktopWindowStyles(runDesktopWindowOpenHooks);
+      return;
     }
-    updateDesktopTabOrder();
+
+    runDesktopWindowOpenHooks();
   }
 
   function isWindowOpen(presetName) {
@@ -3102,6 +3144,7 @@ var WebDesktop = (function () {
 
   return {
     openWindow: openWindow,
+    openWindowElement: openWindowElement,
     toggleWindow: toggleWindow,
     closeWindow: closeWindow,
     showDesktopHome: showDesktopHome,

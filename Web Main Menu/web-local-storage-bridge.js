@@ -1,6 +1,8 @@
 (function () {
   var EVENT_SAVE = "web-ui-local-storage-save";
   var SAVE_DEBOUNCE_MS = 200;
+  var HOOK_RETRY_MS = 100;
+  var HOOK_RETRY_MAX = 200;
   var saveTimer = 0;
   var hooksInstalled = false;
   var nativeSetItem = Storage.prototype.setItem;
@@ -31,14 +33,24 @@
     return JSON.stringify(snapshot);
   }
 
-  function flushSaveToUnity() {
-    saveTimer = 0;
+  function postSaveToUnity(localStorageRaw) {
     if (!isUnityHost() || isRestoring()) return;
-    window.dispatchEvent(
-      new CustomEvent(EVENT_SAVE, {
-        detail: { localStorageRaw: serializeLocalStorage() }
+    if (!localStorageRaw) {
+      localStorageRaw = serializeLocalStorage();
+    }
+    if (!localStorageRaw) return;
+
+    window.vuplex.postMessage(
+      JSON.stringify({
+        eventName: EVENT_SAVE,
+        localStorageRaw: localStorageRaw
       })
     );
+  }
+
+  function flushSaveToUnity() {
+    saveTimer = 0;
+    postSaveToUnity("");
   }
 
   function scheduleSaveToUnity() {
@@ -47,8 +59,8 @@
     saveTimer = window.setTimeout(flushSaveToUnity, SAVE_DEBOUNCE_MS);
   }
 
-  function installStorageHooks() {
-    if (hooksInstalled || !isUnityHost()) return;
+  function tryInstallStorageHooks() {
+    if (hooksInstalled || !isUnityHost()) return false;
     hooksInstalled = true;
     Storage.prototype.setItem = function (key, value) {
       nativeSetItem.call(this, key, value);
@@ -62,11 +74,25 @@
       nativeClear.call(this);
       scheduleSaveToUnity();
     };
+    return true;
   }
 
-  installStorageHooks();
+  function beginStorageHookInstallRetry() {
+    if (tryInstallStorageHooks()) return;
+    var attempts = 0;
+    var retryTimer = window.setInterval(function () {
+      attempts = attempts + 1;
+      if (tryInstallStorageHooks() || attempts >= HOOK_RETRY_MAX) {
+        window.clearInterval(retryTimer);
+      }
+    }, HOOK_RETRY_MS);
+  }
+
+  beginStorageHookInstallRetry();
 
   window.WebMenuLocalStorageBridge = {
-    flushSave: flushSaveToUnity
+    flushSave: flushSaveToUnity,
+    scheduleSaveToUnity: scheduleSaveToUnity,
+    serializeSnapshot: serializeLocalStorage
   };
 })();

@@ -231,6 +231,7 @@
 }
 
 .os-window-body-shell {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
@@ -242,19 +243,10 @@
   min-height: 0;
 }
 
-.os-window--splash.os-window--managed .os-window-body-shell {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: auto;
-}
-
 .os-window--splash.os-window--managed .os-window-body--terminal {
   flex: 1 1 auto;
   width: 100%;
-  min-width: var(--splash-body-min-width, 560px);
-  min-height: max(var(--splash-body-min-height, 400px), 100%);
+  min-height: 0;
   box-sizing: border-box;
 }
 
@@ -272,31 +264,33 @@
   overflow: hidden;
 }
 
-.os-window--opening .os-window-chrome,
-.os-window--opening .os-window-chrome--drag {
-  overflow: hidden;
-  transform: scaleX(0);
-  transform-origin: left center;
-  animation: wm-chrome-open 0.3s ease-out forwards;
+.os-window-open-reveal {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 100%;
+  z-index: 6;
+  pointer-events: none;
+  background: var(--ink-screen, #040506);
+  transform: translate3d(0, 100%, 0);
+  visibility: hidden;
+  will-change: transform;
 }
 
-.os-window--opening.os-window--open-done .os-window-chrome,
-.os-window--opening.os-window--open-done .os-window-chrome--drag {
-  animation: none;
-  transform: none;
-  overflow: visible;
+.os-window--opening .os-window-open-reveal,
+.os-window--opening-body-only .os-window-open-reveal {
+  visibility: visible;
+  animation: wm-content-reveal 0.32s ease-out forwards;
 }
 
-.os-window--opening-body-only .os-window-chrome,
-.os-window--opening-body-only .os-window-chrome--drag {
-  transform: none;
-  animation: none;
-  overflow: visible;
-}
+@keyframes wm-content-reveal {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
 
-@keyframes wm-chrome-open {
   to {
-    transform: scaleX(1);
+    transform: translate3d(0, 100%, 0);
   }
 }
 
@@ -430,11 +424,10 @@ body[data-wm-resize="se"] {
 
 @media (prefers-reduced-motion: reduce) {
 
-  .os-window--opening .os-window-chrome,
-  .os-window--opening .os-window-chrome--drag,
-  .os-window--opening-body-only .os-window-chrome,
-  .os-window--opening-body-only .os-window-chrome--drag {
+  .os-window--opening .os-window-open-reveal,
+  .os-window--opening-body-only .os-window-open-reveal {
     animation: none;
-    transform: none;
+    visibility: hidden;
+    transform: translate3d(0, 100%, 0);
   }
 }
