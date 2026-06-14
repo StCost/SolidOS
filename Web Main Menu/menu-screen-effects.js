@@ -32,20 +32,6 @@
     return false;
   }
 
-  function hasOpenDesktopWindow() {
-    var desktopSurface = document.getElementById("desktopSurface");
-    var windows;
-    var index;
-    if (!desktopSurface) return false;
-    windows = desktopSurface.querySelectorAll(".os-window[data-wm-preset]");
-    for (index = 0; index < windows.length; index += 1) {
-      if (!windows[index].classList.contains("os-window--closed")) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   function shouldPauseScreenEffects() {
     bindElements();
     if (deviceElement && deviceElement.classList.contains(CLASS_DEFER_ANIMATIONS)) {
@@ -60,10 +46,21 @@
     if (!isMenuLayerActive()) {
       return true;
     }
-    if (!hasOpenDesktopWindow()) {
-      return true;
-    }
     return false;
+  }
+
+  function isBootScreenDismissed() {
+    if (!welcomeBootElement) return true;
+    if (welcomeBootElement.hidden) return true;
+    if (welcomeBootElement.classList.contains("menu-boot-dismissed")) return true;
+    return false;
+  }
+
+  function ensureDismissedBootScreenHidden() {
+    if (!welcomeBootElement) return;
+    if (!isBootScreenDismissed()) return;
+    welcomeBootElement.hidden = true;
+    welcomeBootElement.classList.add("menu-boot-dismissed");
   }
 
   function setScreenEffectsPaused(screenElement, paused) {
@@ -78,8 +75,9 @@
   function syncScreenEffectsAnimationState() {
     var paused = shouldPauseScreenEffects();
     bindElements();
+    ensureDismissedBootScreenHidden();
     setScreenEffectsPaused(deviceElement, paused);
-    if (welcomeBootElement && !welcomeBootElement.hidden) {
+    if (welcomeBootElement && !welcomeBootElement.hidden && !isBootScreenDismissed()) {
       setScreenEffectsPaused(welcomeBootElement, paused);
       return;
     }
@@ -90,6 +88,7 @@
     bindElements();
     syncScreenEffectsAnimationState();
     window.addEventListener("web-desktop-window-closed", syncScreenEffectsAnimationState);
+    window.addEventListener("web-desktop-window-focused", syncScreenEffectsAnimationState);
     window.addEventListener("web-menu-boot-dismissed", syncScreenEffectsAnimationState);
     window.addEventListener("web-menu-canvas-shown", syncScreenEffectsAnimationState);
     window.addEventListener("resize", syncScreenEffectsAnimationState);

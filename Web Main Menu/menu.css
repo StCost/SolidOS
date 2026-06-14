@@ -23,8 +23,6 @@
 .os-window--splash .term-splash-scroll.menu-v-scroll-view {
   overflow-x: auto;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .os-window--splash .term-splash-scroll-content {

@@ -752,6 +752,7 @@ var WebWindowManager = (function () {
       shouldOpen = getInitialDesktopOpenDefault(presetName);
     }
     if (shouldOpen) {
+      prepareWindowForOpen(windowElement);
       windowElement.classList.remove("os-window--closed");
     } else {
       windowElement.classList.add("os-window--closed");

@@ -5,7 +5,9 @@
   transition: opacity 0.48s ease, visibility 0.48s ease;
 }
 
+#menuWelcomeBoot[hidden],
 #menuWelcomeBoot.menu-boot-dismissed {
+  display: none !important;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;

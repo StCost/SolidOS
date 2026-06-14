@@ -679,19 +679,36 @@
     return !!deviceElement && deviceElement.classList.contains("menu-mode--web-fake-connect");
   }
 
-  function setGameplayHudLayerActive(active) {
+  function setGameplayHudVisibility(layerActive) {
     var hudRoot = gameHudRootElement || document.getElementById("gameHudRoot");
-    var layerActive = active === true && (isGameMenuMode() || isWebFakeConnectHud());
-    if (layerActive && window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.ensureForLayer) {
-      window.WebMenuDeferredStyles.ensureForLayer("hud");
+    if (!hudRoot) {
+      return;
     }
-    if (hudRoot) {
-      hudRoot.classList.toggle("game-hud--layer-active", layerActive);
-      hudRoot.setAttribute("aria-hidden", layerActive ? "false" : "true");
-    }
-    if (layerActive && !isUnityHost()) {
+    hudRoot.classList.toggle("game-hud--layer-active", layerActive);
+    hudRoot.setAttribute("aria-hidden", layerActive ? "false" : "true");
+    hudRoot.hidden = !layerActive;
+  }
+
+  function showGameplayHudLayer() {
+    buildHotbar();
+    bindHotbarClicks();
+    setGameplayHudVisibility(true);
+    if (!isUnityHost()) {
       enableStandaloneChatInputCapture();
     }
+  }
+
+  function setGameplayHudLayerActive(active) {
+    var layerActive = active === true && (isGameMenuMode() || isWebFakeConnectHud());
+    if (!layerActive) {
+      setGameplayHudVisibility(false);
+      return;
+    }
+    if (window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.ensureForLayer) {
+      window.WebMenuDeferredStyles.ensureForLayer("hud", showGameplayHudLayer);
+      return;
+    }
+    showGameplayHudLayer();
   }
 
   function onMenuModeChanged() {
@@ -1610,15 +1627,14 @@
 
   function bindDom() {
     loadCommandHistoryFromStorage();
-    buildHotbar();
+    gameHudRootElement = document.getElementById("gameHudRoot");
+    setGameplayHudVisibility(false);
     healthBarElement = document.getElementById("healthBar");
     bindFpsCounterDom();
     bindChatDom();
     applyDefaultSlotTheme();
     if (pendingInventoryState) applyInventoryState(pendingInventoryState);
-    else applyDefaultInventoryState();
     if (pendingHealthState) applyHealthState(pendingHealthState);
-    else applyDefaultHealthState();
     if (pendingIconUpdates) applyIconUpdates(pendingIconUpdates);
     initStandaloneWebMode();
   }

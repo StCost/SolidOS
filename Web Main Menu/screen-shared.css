@@ -902,9 +902,8 @@ html.menu-unity-host:not(.menu-unity-custom-cursor) .os-wm-resize--se {
   will-change: auto;
 }
 
-.os-window-body--terminal {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 12rem;
+.os-window--managed:not(.os-window--closed) .os-window-body--terminal {
+  content-visibility: visible;
 }
 
 .menu-mode--game.menu-screen {
