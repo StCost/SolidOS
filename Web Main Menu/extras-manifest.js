@@ -56,8 +56,9 @@
         image: "Extras/games/airbot/airbot-preview.jpg",
         desktopIcon: "Extras/games/airbot/airbot-desktop-icon.png",
         difficulty: 4,
-        startMusicPath: "ui-robot-start-music.wav",
-        gameplayMusicPath: "ui-robot-game-music.wav"
+        startMusicPath: "ui-airbot-start-music.wav",
+        gameplayMusicPath: "ui-airbot-game-music.wav",
+        gameOverMusicPath: "ui-airbot-gameover-music.wav"
       },
       {
         id: "orbital-golf",
