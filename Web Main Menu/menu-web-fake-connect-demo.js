@@ -17,6 +17,8 @@
   var DEMO_HOTBAR_ICON_TK = DEMO_HOTBAR_ICON_PATH_PREFIX + "tk.png";
   var DEMO_HOTBAR_ICON_GR = DEMO_HOTBAR_ICON_PATH_PREFIX + "gr.png";
   var DEMO_HOTBAR_ICON_BT = DEMO_HOTBAR_ICON_PATH_PREFIX + "bt.png";
+  var DEMO_HEALTH = 63;
+  var DEMO_MAX_HEALTH = 100;
 
   var demoHostElement = null;
   var demoWorkspaceElement = null;
@@ -99,12 +101,28 @@
     });
   }
 
+  function applyDemoHealthPreview() {
+    if (!window.WebGameHud || !window.WebGameHud.applyHealthState) return;
+    window.WebGameHud.applyHealthState({
+      health: DEMO_HEALTH,
+      maxHealth: DEMO_MAX_HEALTH
+    });
+  }
+
   function clearDemoInventoryPreview() {
     if (!window.WebGameHud || !window.WebGameHud.applyInventoryState) return;
     window.WebGameHud.applyInventoryState({
       selectedIndex: -1,
       lastSelectedIndex: -1,
       slots: buildEmptyDemoSlots()
+    });
+  }
+
+  function clearDemoHealthPreview() {
+    if (!window.WebGameHud || !window.WebGameHud.applyHealthState) return;
+    window.WebGameHud.applyHealthState({
+      health: DEMO_MAX_HEALTH,
+      maxHealth: DEMO_MAX_HEALTH
     });
   }
 
@@ -323,6 +341,7 @@
     setMenuLayer(LAYER_HUD);
     setHudLayerActive(true);
     applyDemoInventoryPreview();
+    applyDemoHealthPreview();
 
     window.setTimeout(function () {
       showDemoTerminal();
@@ -334,6 +353,7 @@
 
     hideDemoTerminal();
     clearDemoInventoryPreview();
+    clearDemoHealthPreview();
     document.documentElement.classList.remove("web-fake-connect-active");
     setHudLayerActive(false);
     setWebFakeConnectHudMode(false);

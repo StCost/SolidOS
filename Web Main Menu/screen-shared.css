@@ -111,6 +111,11 @@
   padding: 0;
 }
 
+:focus,
+:focus-visible {
+  outline: none;
+}
+
 html {
   width: 100%;
   height: 100%;
