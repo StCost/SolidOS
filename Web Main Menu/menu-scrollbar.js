@@ -31,6 +31,8 @@
       element.classList.contains("settings-scroll") ||
       element.classList.contains("extras-scroll") ||
       element.classList.contains("credits-scroll") ||
+      element.classList.contains("changelog-list") ||
+      element.classList.contains("changelog-detail") ||
       element.classList.contains("worlds-list") ||
       element.classList.contains("game-hud-chat-log") ||
       element.classList.contains("settings-tabs")

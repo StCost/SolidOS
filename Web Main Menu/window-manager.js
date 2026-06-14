@@ -19,6 +19,7 @@ var WebWindowManager = (function () {
     "settings-nav": { minWidth: MIN_WIDTH, minHeight: 0 },
     "credits-content": { minWidth: MIN_WIDTH, minHeight: 0 },
     "credits-nav": { minWidth: MIN_WIDTH, minHeight: 0 },
+    "changelog-content": { minWidth: MIN_WIDTH, minHeight: 0 },
     "extras-content": { minWidth: MIN_WIDTH, minHeight: 0 },
     "extras-nav": { minWidth: MIN_WIDTH, minHeight: 0 },
     "extras-games": { minWidth: MIN_WIDTH, minHeight: 0 },
@@ -122,6 +123,14 @@ var WebWindowManager = (function () {
       centerOffsetY: -260,
       width: 640,
       height: 520,
+      open: false
+    },
+    "changelog-content": {
+      anchor: "center",
+      centerOffsetX: -340,
+      centerOffsetY: -270,
+      width: 680,
+      height: 540,
       open: false
     }
   };
@@ -2642,6 +2651,10 @@ var WebWindowManager = (function () {
     }
     if (presetName === "credits-content" && window.WebCredits && window.WebCredits.releaseContent) {
       window.WebCredits.releaseContent(windowElement);
+      return;
+    }
+    if (presetName === "changelog-content" && window.WebChangelog && window.WebChangelog.releaseContent) {
+      window.WebChangelog.releaseContent(windowElement);
       return;
     }
     if (presetName === "extras-game" && window.WebExtras && window.WebExtras.releaseGamePlayContent) {

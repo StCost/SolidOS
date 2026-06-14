@@ -11,6 +11,7 @@ var WebDesktopAppIcons = (function () {
     "extras-art": "art",
     "extras-links": "links",
     "credits-content": "credits",
+    "changelog-content": "changelog",
     "modal-center": "links"
   };
 

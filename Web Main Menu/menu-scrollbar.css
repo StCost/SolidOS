@@ -12,6 +12,8 @@
 .menu-v-scroll-clip > .settings-scroll,
 .menu-v-scroll-clip > .extras-scroll,
 .menu-v-scroll-clip > .credits-scroll,
+.menu-v-scroll-clip > .changelog-list,
+.menu-v-scroll-clip > .changelog-detail,
 .menu-v-scroll-clip > .settings-tabs,
 .menu-v-scroll-clip > .game-hud-chat-log {
   width: 100%;
@@ -73,6 +75,8 @@
 .menu-v-scroll-clip > .settings-scroll::-webkit-scrollbar,
 .menu-v-scroll-clip > .extras-scroll::-webkit-scrollbar,
 .menu-v-scroll-clip > .credits-scroll::-webkit-scrollbar,
+.menu-v-scroll-clip > .changelog-list::-webkit-scrollbar,
+.menu-v-scroll-clip > .changelog-detail::-webkit-scrollbar,
 .menu-v-scroll-clip > .settings-tabs:not(.settings-tabs--toolbar)::-webkit-scrollbar,
 .menu-v-scroll-clip > .game-hud-chat-log::-webkit-scrollbar,
 .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar {
@@ -86,6 +90,8 @@
 .menu-v-scroll-clip > .settings-scroll::-webkit-scrollbar-track,
 .menu-v-scroll-clip > .extras-scroll::-webkit-scrollbar-track,
 .menu-v-scroll-clip > .credits-scroll::-webkit-scrollbar-track,
+.menu-v-scroll-clip > .changelog-list::-webkit-scrollbar-track,
+.menu-v-scroll-clip > .changelog-detail::-webkit-scrollbar-track,
 .menu-v-scroll-clip > .settings-tabs:not(.settings-tabs--toolbar)::-webkit-scrollbar-track,
 .menu-v-scroll-clip > .game-hud-chat-log::-webkit-scrollbar-track,
 .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-track {
@@ -98,6 +104,8 @@
 .menu-v-scroll-clip > .settings-scroll::-webkit-scrollbar-thumb,
 .menu-v-scroll-clip > .extras-scroll::-webkit-scrollbar-thumb,
 .menu-v-scroll-clip > .credits-scroll::-webkit-scrollbar-thumb,
+.menu-v-scroll-clip > .changelog-list::-webkit-scrollbar-thumb,
+.menu-v-scroll-clip > .changelog-detail::-webkit-scrollbar-thumb,
 .menu-v-scroll-clip > .settings-tabs:not(.settings-tabs--toolbar)::-webkit-scrollbar-thumb,
 .menu-v-scroll-clip > .game-hud-chat-log::-webkit-scrollbar-thumb,
 .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb {
@@ -113,6 +121,8 @@
 .menu-v-scroll-clip > .settings-scroll::-webkit-scrollbar-thumb:hover,
 .menu-v-scroll-clip > .extras-scroll::-webkit-scrollbar-thumb:hover,
 .menu-v-scroll-clip > .credits-scroll::-webkit-scrollbar-thumb:hover,
+.menu-v-scroll-clip > .changelog-list::-webkit-scrollbar-thumb:hover,
+.menu-v-scroll-clip > .changelog-detail::-webkit-scrollbar-thumb:hover,
 .menu-v-scroll-clip > .settings-tabs:not(.settings-tabs--toolbar)::-webkit-scrollbar-thumb:hover,
 .menu-v-scroll-clip > .game-hud-chat-log::-webkit-scrollbar-thumb:hover,
 .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb:hover {
@@ -124,6 +134,8 @@
 .menu-v-scroll-clip > .settings-scroll.menu-v-scroll-view--overlay-bar,
 .menu-v-scroll-clip > .extras-scroll.menu-v-scroll-view--overlay-bar,
 .menu-v-scroll-clip > .credits-scroll.menu-v-scroll-view--overlay-bar,
+.menu-v-scroll-clip > .changelog-list.menu-v-scroll-view--overlay-bar,
+.menu-v-scroll-clip > .changelog-detail.menu-v-scroll-view--overlay-bar,
 .menu-v-scroll-clip > .settings-tabs.menu-v-scroll-view--overlay-bar,
 .menu-v-scroll-clip > .game-hud-chat-log.menu-v-scroll-view--overlay-bar {
   scrollbar-width: none;
@@ -135,6 +147,8 @@
 .menu-v-scroll-clip > .settings-scroll.menu-v-scroll-view--overlay-bar::-webkit-scrollbar,
 .menu-v-scroll-clip > .extras-scroll.menu-v-scroll-view--overlay-bar::-webkit-scrollbar,
 .menu-v-scroll-clip > .credits-scroll.menu-v-scroll-view--overlay-bar::-webkit-scrollbar,
+.menu-v-scroll-clip > .changelog-list.menu-v-scroll-view--overlay-bar::-webkit-scrollbar,
+.menu-v-scroll-clip > .changelog-detail.menu-v-scroll-view--overlay-bar::-webkit-scrollbar,
 .menu-v-scroll-clip > .settings-tabs.menu-v-scroll-view--overlay-bar:not(.settings-tabs--toolbar)::-webkit-scrollbar,
 .menu-v-scroll-clip > .game-hud-chat-log.menu-v-scroll-view--overlay-bar::-webkit-scrollbar {
   width: 0;
@@ -184,6 +198,8 @@ html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-clip > .term-splash
 .menu-v-scroll-clip--overlay-bar > .settings-scroll,
 .menu-v-scroll-clip--overlay-bar > .extras-scroll,
 .menu-v-scroll-clip--overlay-bar > .credits-scroll,
+.menu-v-scroll-clip--overlay-bar > .changelog-list,
+.menu-v-scroll-clip--overlay-bar > .changelog-detail,
 .menu-v-scroll-clip--overlay-bar > .settings-tabs,
 .menu-v-scroll-clip--overlay-bar > .game-hud-chat-log {
   flex: 1 1 auto;
@@ -261,6 +277,8 @@ html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window
 html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .settings-scroll,
 html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .extras-scroll,
 html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .credits-scroll,
+html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .changelog-list,
+html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .changelog-detail,
 html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .worlds-list,
 html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .settings-tabs,
 html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .game-hud-chat-log {

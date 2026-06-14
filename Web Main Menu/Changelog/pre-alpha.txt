@@ -1,0 +1,36 @@
+Pre-Alpha
+
+Major Features
+- Infinite world generation (40 million km)
+- Closing interior on vehicles: drive while physical objects stay placed inside; outside physics do not affect interior items — unique interactive vehicle interior while another player drives in the open world
+- NPC agents (patrol, idle, faction ally or enemy, flee, chase, die, ragdoll, dismemberment, inventory, melee attack, gun attack, grenade, heal)
+- Networked co-op multiplayer (no player limit)
+- Voxel terrain: add, remove, and mix materials
+- Persistent world (entities, health, position, opened doors, destroyed objects, dead enemies, terrain operations, and more)
+- Boxes to store items physically (throw item inside, close box, take box with you). No UI
+- Infinite forever saved painting on entities. Temporary painting on large static world geometry (planned to make infinite too)
+- Drag physical objects in world space to relocate them. Weight affects how easy it is to move small or large entities
+
+Other Features
+- Day-night cycle
+- Player character controller (walk, sprint, crouch, coyote time, step up)
+- Player controls NPC agent, so behaves similarly to NPCs
+- Player inventory with 12 slots (keys 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, -, =)
+- Interactable items: take (E), throw (Q), put down (hold Q), rotate (hold Q + scroll)
+- Items holstered on body when small enough
+- Holstered glowing items (lamp) illuminate the environment
+- Level of detail (LODs)
+- First person view and third person view (toggle F5)
+- Drivable heavy cargo vehicle with walkable interior
+- Weather, randomized or localized (wind, rain, thunder, lightning)
+- Energy fuel consumption and refilling. Repair tower station catches lightning to charge battery. Use battery to power vehicle or weapon fabricator
+- Water physics and effects
+- Moving platforms: lift, elevator, door, beam, or any object
+- Seat to control vehicle or sit on chair
+- Loot generation in openable containers
+- Spawn NPCs at location
+- Discord and Steam rich presence; Steam friends join UI
+- Cloth collider provider and consumer for cloth–world collision
+- Dropped items stack with similar items nearby
+- Take small creatures as items
+- Friendly NPC companion can follow you

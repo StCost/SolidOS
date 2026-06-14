@@ -2,7 +2,7 @@
   var TOKEN_SCROLL = "scroll";
   var TOKEN_SCROLL_H = "scroll-h";
   var SCROLL_VIEW_SELECTOR =
-    ".menu-v-scroll-view, .menu-h-scroll-view, .term-splash-scroll, .settings-scroll, .extras-scroll, .credits-scroll, .worlds-list, .game-hud-chat-log, .settings-tabs";
+    ".menu-v-scroll-view, .menu-h-scroll-view, .term-splash-scroll, .settings-scroll, .extras-scroll, .credits-scroll, .changelog-list, .changelog-detail, .worlds-list, .game-hud-chat-log, .settings-tabs";
   var DEFAULT_SCROLLBAR_SIZE = 8;
   var SCROLLBAR_THUMB_MIN_SIZE = 24;
   var SCROLLBAR_HIT_SLOP = 4;

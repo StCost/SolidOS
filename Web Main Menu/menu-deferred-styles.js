@@ -3,6 +3,7 @@
     "menu-splash": ["menu-title-fx.css"],
     "settings-content": ["settings-menu.css"],
     "credits-content": ["credits-menu.css"],
+    "changelog-content": ["changelog-menu.css"],
     "extras-games": ["extras-menu.css"],
     "extras-art": ["extras-menu.css"],
     "extras-links": ["extras-menu.css"],

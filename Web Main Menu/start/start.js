@@ -544,10 +544,12 @@
 
     var entry = event.target.closest(".worlds-entry");
     if (!entry) return;
+    if (entry.closest('.os-window[data-wm-preset="changelog-content"]')) return;
     if (isGameMode()) return;
     if (entry.disabled) return;
 
     var kind = entry.getAttribute("data-world-kind");
+    if (!kind) return;
     var name = entry.getAttribute("data-name");
     var seed = entry.getAttribute("data-seed");
     var ip = entry.getAttribute("data-ip");
