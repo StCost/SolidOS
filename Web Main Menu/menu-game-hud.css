@@ -115,11 +115,11 @@ html.terminal-animations-off .game-hud-fps-cluster {
 }
 
 html.terminal-animations-off .game-hud-chat.os-window.is-open,
-html.terminal-animations-off #gameHudRoot.game-hud--chat-focused .game-hud-chat.os-window.is-open {
+html.terminal-animations-off .game-hud-chat.os-window.is-open:focus-within {
   transition: none !important;
 }
 
-#gameHudRoot.game-hud--chat-focused .game-hud-chat.os-window.is-open {
+.game-hud-chat.os-window.is-open:focus-within {
   opacity: 1;
 }
 
@@ -148,7 +148,7 @@ html.terminal-animations-off #gameHudRoot.game-hud--chat-focused .game-hud-chat.
   overflow: hidden;
 }
 
-.game-hud--chat-interactive .game-hud-chat.is-open {
+#gameHudRoot.game-hud--layer-active .game-hud-chat.is-open {
   pointer-events: auto;
 }
 
@@ -156,7 +156,7 @@ html.terminal-animations-off #gameHudRoot.game-hud--chat-focused .game-hud-chat.
   pointer-events: auto;
 }
 
-#gameHudRoot.game-hud--chat-focused .game-hud-chat.os-window {
+.game-hud-chat.os-window.is-open:focus-within {
   --wm-border: rgba(255, 168, 88, 0.72);
   --wm-border-inset: rgba(255, 168, 88, 0.14);
   --wm-chrome-edge: rgba(255, 168, 88, 0.35);

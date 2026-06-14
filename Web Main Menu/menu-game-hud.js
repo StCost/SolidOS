@@ -18,6 +18,8 @@
   var CHAT_EVENT_SLOT_SELECT = "web-hud-slot-select";
   var CHAT_MAX_LINES = 200;
   var CHAT_IDLE_HIDE_MS = 12000;
+  var STANDALONE_SCROLL_COOLDOWN_MS = 25;
+  var STANDALONE_SETTINGS_STORAGE_KEY = "web-settings-preview";
 
   var pendingInventoryState = null;
   var pendingHealthState = null;
@@ -54,6 +56,8 @@
   var chatBindingsReady = false;
   var hotbarBindingsReady = false;
   var standaloneWebBindingsReady = false;
+  var standaloneHotbarInputReady = false;
+  var standaloneScrollLastTimestamp = 0;
   var slotElements = [];
   var slotIconCache = [];
   var slotIconClearTimers = [];
@@ -146,7 +150,11 @@
     var slotIndex = parseInt(slotIndexValue, 10);
     if (isNaN(slotIndex)) return;
     event.preventDefault();
-    postSlotSelect(slotIndex);
+    if (isUnityHost()) {
+      postSlotSelect(slotIndex);
+      return;
+    }
+    selectStandaloneInventorySlot(slotIndex);
   }
 
   function bindHotbarClicks() {
@@ -390,6 +398,146 @@
     }
 
     slotStateTrackingReady = true;
+  }
+
+  function getStandaloneInventoryState() {
+    if (pendingInventoryState) {
+      return pendingInventoryState;
+    }
+    return {
+      selectedIndex: -1,
+      lastSelectedIndex: -1,
+      selectedColor: DEFAULT_SLOT_SELECTED,
+      unselectedColor: DEFAULT_SLOT_BG,
+      holsteredColor: DEFAULT_SLOT_HOLSTERED,
+      slots: []
+    };
+  }
+
+  function cloneStandaloneInventorySlots(slots) {
+    var clonedSlots = [];
+    var slotIndex = 0;
+    for (slotIndex = 0; slotIndex < SLOT_COUNT; slotIndex += 1) {
+      var slotState = slots && slots[slotIndex] ? slots[slotIndex] : {};
+      clonedSlots.push({
+        hasItem: !!slotState.hasItem,
+        stack: typeof slotState.stack === "number" ? slotState.stack : 0,
+        maxStack: typeof slotState.maxStack === "number" ? slotState.maxStack : 0,
+        iconDataUrl: slotState.iconDataUrl || ""
+      });
+    }
+    return clonedSlots;
+  }
+
+  function buildStandaloneInventoryPayload(selectedIndex, lastSelectedIndex, sourceState) {
+    var inventoryState = sourceState || getStandaloneInventoryState();
+    return {
+      selectedIndex: selectedIndex,
+      lastSelectedIndex: lastSelectedIndex,
+      selectedColor: inventoryState.selectedColor || DEFAULT_SLOT_SELECTED,
+      unselectedColor: inventoryState.unselectedColor || DEFAULT_SLOT_BG,
+      holsteredColor: inventoryState.holsteredColor || DEFAULT_SLOT_HOLSTERED,
+      slots: cloneStandaloneInventorySlots(inventoryState.slots)
+    };
+  }
+
+  function getStandaloneInventoryScrollClamp() {
+    try {
+      var rawSettings = localStorage.getItem(STANDALONE_SETTINGS_STORAGE_KEY);
+      if (!rawSettings) return false;
+      var parsedSettings = JSON.parse(rawSettings);
+      if (!parsedSettings || parsedSettings.inventoryScrollClamp !== true) return false;
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function isStandaloneInventoryInputEnabled() {
+    if (isUnityHost()) return false;
+    var hudRoot = gameHudRootElement || document.getElementById("gameHudRoot");
+    if (!hudRoot || !hudRoot.classList.contains("game-hud--layer-active")) return false;
+    return true;
+  }
+
+  function selectStandaloneInventorySlot(slotIndex) {
+    if (isUnityHost() || !isStandaloneInventoryInputEnabled()) return;
+    if (slotIndex < 0 || slotIndex >= SLOT_COUNT) return;
+
+    var inventoryState = getStandaloneInventoryState();
+    var selectedIndex = typeof inventoryState.selectedIndex === "number" ? inventoryState.selectedIndex : -1;
+    if (selectedIndex === slotIndex) return;
+
+    var lastSelectedIndex = typeof inventoryState.lastSelectedIndex === "number" ? inventoryState.lastSelectedIndex : -1;
+    if (selectedIndex >= 0 && selectedIndex < SLOT_COUNT) {
+      lastSelectedIndex = selectedIndex;
+    }
+
+    applyInventoryState(buildStandaloneInventoryPayload(slotIndex, lastSelectedIndex, inventoryState));
+  }
+
+  function scrollStandaloneInventory(direction) {
+    if (isUnityHost() || !isStandaloneInventoryInputEnabled()) return;
+    if (!direction) return;
+
+    var inventoryState = getStandaloneInventoryState();
+    var selectedIndex = typeof inventoryState.selectedIndex === "number" ? inventoryState.selectedIndex : -1;
+    var lastSelectedIndex = typeof inventoryState.lastSelectedIndex === "number" ? inventoryState.lastSelectedIndex : -1;
+    var minSlotIndex = 0;
+    var maxSlotIndex = SLOT_COUNT - 1;
+    var currentIndex = selectedIndex === -1
+      ? (lastSelectedIndex >= 0 ? lastSelectedIndex : 0)
+      : selectedIndex;
+
+    if (currentIndex < minSlotIndex) currentIndex = minSlotIndex;
+    if (currentIndex > maxSlotIndex) currentIndex = maxSlotIndex;
+
+    var newIndex = currentIndex + direction;
+    if (getStandaloneInventoryScrollClamp()) {
+      if (newIndex < minSlotIndex) newIndex = minSlotIndex;
+      if (newIndex > maxSlotIndex) newIndex = maxSlotIndex;
+    } else {
+      if (newIndex < minSlotIndex) newIndex = maxSlotIndex;
+      else if (newIndex > maxSlotIndex) newIndex = minSlotIndex;
+    }
+
+    if (newIndex === selectedIndex) return;
+    selectStandaloneInventorySlot(newIndex);
+  }
+
+  function onStandaloneHotbarWheel(event) {
+    if (isUnityHost() || !event) return;
+    if (!isStandaloneInventoryInputEnabled()) return;
+
+    var target = event.target;
+    if (target && target.closest) {
+      if (target.closest(".game-hud-chat-log")) return;
+      if (target.closest(".menu-v-scroll-view")) return;
+    }
+
+    var deltaY = event.deltaY;
+    if (!deltaY) return;
+
+    var nowTimestamp = Date.now();
+    if (nowTimestamp - standaloneScrollLastTimestamp < STANDALONE_SCROLL_COOLDOWN_MS) {
+      event.preventDefault();
+      return;
+    }
+    standaloneScrollLastTimestamp = nowTimestamp;
+
+    event.preventDefault();
+    scrollStandaloneInventory(deltaY > 0 ? -1 : 1);
+  }
+
+  function bindStandaloneHotbarInput() {
+    if (isUnityHost() || standaloneHotbarInputReady) return;
+    buildHotbar();
+    if (!gameHudRootElement) {
+      gameHudRootElement = document.getElementById("gameHudRoot");
+    }
+    if (!gameHudRootElement) return;
+    standaloneHotbarInputReady = true;
+    gameHudRootElement.addEventListener("wheel", onStandaloneHotbarWheel, { passive: false });
   }
 
   function setSlotIcon(slotIndex, iconDataUrl) {
@@ -928,13 +1076,9 @@
       chatPanelElement.classList.remove("is-open");
       chatPanelElement.setAttribute("aria-hidden", "true");
       clearChatIdleHideTimer();
-    }
-    if (chatFocused || chatInputSession) {
-      gameHudRootElement.classList.add("game-hud--chat-focused");
-      gameHudRootElement.classList.add("game-hud--chat-interactive");
-    } else {
-      gameHudRootElement.classList.remove("game-hud--chat-focused");
-      gameHudRootElement.classList.remove("game-hud--chat-interactive");
+      if (chatPanelElement.blur) {
+        chatPanelElement.blur();
+      }
     }
   }
 
@@ -1217,6 +1361,52 @@
     setChatInputSession(true);
   }
 
+  function onChatPanelMouseDown(event) {
+    if (!event || !chatPanelElement || !chatInputElement) return;
+    var target = event.target;
+    if (!target) return;
+    if (target === chatInputElement) return;
+    if (isUnityHost()) {
+      chatPanelElement.focus();
+      return;
+    }
+    if (!chatInputCaptureEnabled) {
+      enableStandaloneChatInputCapture();
+    }
+    if (chatInputSession) {
+      setChatInputSession(false);
+    }
+    chatInputElement.blur();
+    chatPanelElement.focus();
+  }
+
+  function onDocumentMouseDownForChat(event) {
+    if (isUnityHost() || !event || !chatPanelElement || !chatOpen) return;
+    var target = event.target;
+    if (target && chatPanelElement.contains(target)) return;
+    if (!chatInputSession && document.activeElement !== chatPanelElement) return;
+    setChatInputSession(false);
+    chatPanelElement.blur();
+    if (chatInputElement) {
+      chatInputElement.blur();
+    }
+  }
+
+  function onChatInputBlur(event) {
+    if (isUnityHost()) {
+      refocusChatInputIfSession();
+      return;
+    }
+    window.setTimeout(function () {
+      if (!chatInputSession) return;
+      var activeElement = document.activeElement;
+      if (chatPanelElement && activeElement && chatPanelElement.contains(activeElement)) {
+        return;
+      }
+      setChatInputSession(false);
+    }, 0);
+  }
+
   function onChatInputFocusIn() {
     if (isUnityHost()) return;
     if (!chatInputCaptureEnabled) {
@@ -1265,12 +1455,15 @@
     chatInputRowElement = chatInputElement ? chatInputElement.parentElement : null;
     if (!chatPanelElement || !chatLogElement || !chatInputElement) return;
     chatBindingsReady = true;
+    chatPanelElement.setAttribute("tabindex", "-1");
     setChatInputCaptureEnabled(false);
+    chatPanelElement.addEventListener("mousedown", onChatPanelMouseDown);
+    document.addEventListener("mousedown", onDocumentMouseDownForChat, true);
     chatInputElement.addEventListener("keydown", onChatInputKeyDown);
     chatInputElement.addEventListener("mousedown", onChatInputMouseDown);
     chatInputElement.addEventListener("focusin", onChatInputFocusIn);
     chatInputElement.addEventListener("focus", onChatInputFocused);
-    chatInputElement.addEventListener("blur", refocusChatInputIfSession);
+    chatInputElement.addEventListener("blur", onChatInputBlur);
     if (chatInputRowElement) {
       chatInputRowElement.addEventListener("mousedown", onChatInputMouseDown);
     }
@@ -1281,6 +1474,7 @@
     standaloneWebBindingsReady = true;
     document.documentElement.classList.add("web-standalone");
     document.addEventListener("keydown", onStandaloneDocumentKeyDown);
+    bindStandaloneHotbarInput();
     openChatByDefault();
     addChatMessage("<color=yellow>[Web preview]</color> Press Enter to type. / for commands.");
   }
