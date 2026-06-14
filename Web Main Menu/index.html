@@ -17,20 +17,13 @@
   </style>
   <link rel="stylesheet" href="screen-shared.css" />
   <link rel="stylesheet" href="menu.css" />
-  <link rel="stylesheet" href="menu-title-fx.css" />
   <link rel="stylesheet" href="start/start.css" />
   <link rel="stylesheet" href="window-manager.css" />
   <link rel="stylesheet" href="menu-scrollbar.css" />
-  <link rel="stylesheet" href="settings-menu.css" />
-  <link rel="stylesheet" href="credits-menu.css" />
-  <link rel="stylesheet" href="extras-menu.css" />
   <link rel="stylesheet" href="desktop-os.css" />
-  <link rel="stylesheet" href="menu-new-player-hints.css" />
   <link rel="stylesheet" href="menu-loading.css" />
   <link rel="stylesheet" href="menu-welcome-boot.css" />
-  <link rel="stylesheet" href="menu-game-hud.css" />
   <link rel="stylesheet" href="menu-web-layers.css" />
-  <link rel="stylesheet" href="menu-web-fake-connect-demo.css" />
   <script src="web-local-storage-bootstrap.js"></script>
   <script src="web-local-storage-bridge.js"></script>
   <script src="menu-background.js"></script>
@@ -40,6 +33,8 @@
   <script src="menu-locale.js"></script>
   <script src="menu-locale-loader.js"></script>
   <script src="menu-welcome-boot.js"></script>
+  <script src="menu-deferred-styles.js"></script>
+  <script src="menu-screen-effects.js"></script>
   <script src="menu-web-layers.js"></script>
   <script src="menu-web-fake-connect-demo.js"></script>
   <script src="menu-block-context-menu.js"></script>
@@ -53,6 +48,7 @@
   <script src="credits-menu.js" defer></script>
   <script src="extras-manifest.js" defer></script>
   <script src="extras-links-data.js" defer></script>
+  <script src="menu-unity-scroll.js" defer></script>
   <script src="menu-scrollbar.js" defer></script>
   <script src="menu-scrollbar-cursor.js" defer></script>
   <script src="menu-cursor-bridge.js" defer></script>
@@ -210,76 +206,82 @@
                   data-locale-key="web.desktop.icon.title">Title</p>
               </div>
               <div class="os-window-body os-window-body--terminal">
-                <div class="term-splash-main">
-                  <header class="term-header" id="titleBlock">
-                    <div class="term-header-title-group">
-                      <h1 class="term-title terminal-text" data-locale-key="web.game.title">COLLAPSE MACHINE</h1>
-                      <div class="term-divider" aria-hidden="true">
-                        <span class="term-divider-line"></span>
-                        <span class="term-divider-mark">////</span>
-                        <span class="term-divider-line"></span>
+                <div class="menu-v-scroll-clip">
+                  <div class="term-splash-scroll menu-v-scroll-view">
+                    <div class="term-splash-scroll-content">
+                      <div class="term-splash-main">
+                        <header class="term-header" id="titleBlock">
+                        <div class="term-header-title-group">
+                          <h1 class="term-title terminal-text" data-locale-key="web.game.title">COLLAPSE MACHINE</h1>
+                          <div class="term-divider" aria-hidden="true">
+                            <span class="term-divider-line"></span>
+                            <span class="term-divider-mark">////</span>
+                            <span class="term-divider-line"></span>
+                          </div>
+                        </div>
+                        <p class="term-credit">
+                          <button type="button" class="term-credit-button terminal-text" id="btnCredit"
+                            data-locale-key="web.menu.credit">by Dreaming Saints</button>
+                        </p>
+                      </header>
                       </div>
+                    <footer class="term-tech" aria-label="Technologies">
+                      <ul class="term-tech-list" id="titleTechList">
+                        <li class="term-tech-item">
+                          <button type="button" class="term-tech-link term-tech-link--unity"
+                            data-tech-href="https://unity.com" data-tech-label="Unity">
+                            <span class="term-tech-glyph term-tech-glyph--plate">
+                              <img src="title-tech-logos/unity-logo.png" alt="Unity" width="88" height="24"
+                                decoding="async" />
+                            </span>
+                          </button>
+                        </li>
+                        <li class="term-tech-sep" aria-hidden="true">•</li>
+                        <li class="term-tech-item">
+                          <button type="button" class="term-tech-link"
+                            data-tech-href="https://mirror-networking.com" data-tech-label="Mirror">
+                            <span class="term-tech-glyph term-tech-glyph--plate">
+                              <img src="title-tech-logos/mirror-logo.png" alt="Mirror" width="88" height="24"
+                                decoding="async" />
+                            </span>
+                          </button>
+                        </li>
+                        <li class="term-tech-sep" aria-hidden="true">•</li>
+                        <li class="term-tech-item">
+                          <button type="button" class="term-tech-link term-tech-link--text"
+                            data-tech-href="https://blackhorizonstudios.com/" data-tech-label="Emerald">
+                            <span class="term-tech-glyph term-tech-glyph--text term-tech-glyph--plate">Emerald</span>
+                          </button>
+                        </li>
+                        <li class="term-tech-sep" aria-hidden="true">•</li>
+                        <li class="term-tech-item">
+                          <button type="button" class="term-tech-link term-tech-link--fmod"
+                            data-tech-href="https://fmod.com/" data-tech-label="FMOD Studio">
+                            <span class="term-tech-glyph term-tech-glyph--plate">
+                              <img src="title-tech-logos/fmod-logo.svg" alt="FMOD Studio" width="72" height="24"
+                                decoding="async" />
+                            </span>
+                          </button>
+                        </li>
+                        <li class="term-tech-sep" aria-hidden="true">•</li>
+                        <li class="term-tech-item">
+                          <button type="button" class="term-tech-link term-tech-link--text"
+                            data-tech-href="https://github.com/ofux/uTerrainsDoc" data-tech-label="uTerrains">
+                            <span class="term-tech-glyph term-tech-glyph--text term-tech-glyph--plate">uTerrains</span>
+                          </button>
+                        </li>
+                        <li class="term-tech-sep" aria-hidden="true">•</li>
+                        <li class="term-tech-item">
+                          <button type="button" class="term-tech-link term-tech-link--text"
+                            data-tech-href="https://html.spec.whatwg.org/" data-tech-label="HTML">
+                            <span class="term-tech-glyph term-tech-glyph--text term-tech-glyph--plate">HTML</span>
+                          </button>
+                        </li>
+                      </ul>
+                    </footer>
                     </div>
-                    <p class="term-credit">
-                      <button type="button" class="term-credit-button terminal-text" id="btnCredit"
-                        data-locale-key="web.menu.credit">by Dreaming Saints</button>
-                    </p>
-                  </header>
+                  </div>
                 </div>
-                <footer class="term-tech" aria-label="Technologies">
-                  <ul class="term-tech-list" id="titleTechList">
-                    <li class="term-tech-item">
-                      <button type="button" class="term-tech-link term-tech-link--unity"
-                        data-tech-href="https://unity.com" data-tech-label="Unity">
-                        <span class="term-tech-glyph term-tech-glyph--plate">
-                          <img src="title-tech-logos/unity-logo.png" alt="Unity" width="88" height="24"
-                            decoding="async" />
-                        </span>
-                      </button>
-                    </li>
-                    <li class="term-tech-sep" aria-hidden="true">•</li>
-                    <li class="term-tech-item">
-                      <button type="button" class="term-tech-link"
-                        data-tech-href="https://mirror-networking.com" data-tech-label="Mirror">
-                        <span class="term-tech-glyph term-tech-glyph--plate">
-                          <img src="title-tech-logos/mirror-logo.png" alt="Mirror" width="88" height="24"
-                            decoding="async" />
-                        </span>
-                      </button>
-                    </li>
-                    <li class="term-tech-sep" aria-hidden="true">•</li>
-                    <li class="term-tech-item">
-                      <button type="button" class="term-tech-link term-tech-link--text"
-                        data-tech-href="https://blackhorizonstudios.com/" data-tech-label="Emerald">
-                        <span class="term-tech-glyph term-tech-glyph--text term-tech-glyph--plate">Emerald</span>
-                      </button>
-                    </li>
-                    <li class="term-tech-sep" aria-hidden="true">•</li>
-                    <li class="term-tech-item">
-                      <button type="button" class="term-tech-link term-tech-link--fmod"
-                        data-tech-href="https://fmod.com/" data-tech-label="FMOD Studio">
-                        <span class="term-tech-glyph term-tech-glyph--plate">
-                          <img src="title-tech-logos/fmod-logo.svg" alt="FMOD Studio" width="72" height="24"
-                            decoding="async" />
-                        </span>
-                      </button>
-                    </li>
-                    <li class="term-tech-sep" aria-hidden="true">•</li>
-                    <li class="term-tech-item">
-                      <button type="button" class="term-tech-link term-tech-link--text"
-                        data-tech-href="https://github.com/ofux/uTerrainsDoc" data-tech-label="uTerrains">
-                        <span class="term-tech-glyph term-tech-glyph--text term-tech-glyph--plate">uTerrains</span>
-                      </button>
-                    </li>
-                    <li class="term-tech-sep" aria-hidden="true">•</li>
-                    <li class="term-tech-item">
-                      <button type="button" class="term-tech-link term-tech-link--text"
-                        data-tech-href="https://html.spec.whatwg.org/" data-tech-label="HTML">
-                        <span class="term-tech-glyph term-tech-glyph--text term-tech-glyph--plate">HTML</span>
-                      </button>
-                    </li>
-                  </ul>
-                </footer>
               </div>
             </section>
 

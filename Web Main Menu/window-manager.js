@@ -1,8 +1,7 @@
 var WebWindowManager = (function () {
   var MIN_WIDTH = 200;
   var MIN_HEIGHT = 0;
-  var CHROME_OPEN_MS = 300;
-  var BODY_OPEN_MS = 320;
+  var OPEN_REVEAL_MS = 320;
   var OPEN_DONE_BUFFER_MS = 180;
   var STAGGER_MS = 90;
 
@@ -42,6 +41,7 @@ var WebWindowManager = (function () {
   var savedLayoutTable = {};
   var layoutSaveTimer = 0;
   var desktopLayoutBootFinished = false;
+  var desktopBootOpenAnimationsPlayed = false;
   var LAYOUTS_STORAGE_KEY = "cm-menu-window-layouts";
   var DEFAULT_DESKTOP_WINDOW_LAYOUTS = {
     "menu-splash": {
@@ -665,9 +665,11 @@ var WebWindowManager = (function () {
           minWidth: minSize.minWidth,
           minHeight: minSize.minHeight
         };
-        applyWindowRect(windowElement);
         windowElement.wmHasInlineLayout = true;
-        clampManagedWindowToContainer(windowElement);
+        if (!isWindowClosed(windowElement)) {
+          applyWindowRect(windowElement);
+          clampManagedWindowToContainer(windowElement);
+        }
         return;
       }
     }
@@ -687,8 +689,11 @@ var WebWindowManager = (function () {
       minWidth: minSize.minWidth,
       minHeight: minSize.minHeight
     };
-    applyWindowRect(windowElement);
     windowElement.wmHasInlineLayout = true;
+    if (isWindowClosed(windowElement)) {
+      return;
+    }
+    applyWindowRect(windowElement);
     clampManagedWindowToContainer(windowElement);
   }
 
@@ -761,7 +766,9 @@ var WebWindowManager = (function () {
     for (index = 0; index < windows.length; index++) {
       applySavedOpenStateToWindow(windows[index]);
     }
+    detachAllClosedDesktopWindowBodies();
     syncDesktopTabOrder();
+    syncScreenEffectsState();
   }
 
   function getWindowDefaultStackOrder(windowElement) {
@@ -1401,15 +1408,51 @@ var WebWindowManager = (function () {
     mergePersistedWindowLayoutPayload(getPersistedLayoutsPayload());
   }
 
+  function isDesktopBootScreenVisible() {
+    var device = document.getElementById("device");
+    if (!device) return true;
+    if (device.classList.contains("menu-boot-pending")) return false;
+    return true;
+  }
+
+  function canPlayInitialDesktopOpenAnimations() {
+    if (desktopBootOpenAnimationsPlayed) return false;
+    if (!isDesktopBootScreenVisible()) return false;
+    if (document.documentElement && document.documentElement.classList.contains("menu-layouts-pending")) {
+      return false;
+    }
+    return true;
+  }
+
+  function tryPlayInitialDesktopOpenAnimations() {
+    var desktopWorkspace;
+    if (!canPlayInitialDesktopOpenAnimations()) return;
+    desktopWorkspace = document.getElementById("desktopWorkspace");
+    if (!desktopWorkspace || !isWorkspaceVisible(desktopWorkspace)) return;
+    desktopBootOpenAnimationsPlayed = true;
+    syncWorkspaceWindows(desktopWorkspace);
+    playWorkspaceOpenAnimations(desktopWorkspace);
+  }
+
+  function scheduleInitialDesktopOpenAnimations() {
+    window.requestAnimationFrame(function () {
+      window.requestAnimationFrame(function () {
+        tryPlayInitialDesktopOpenAnimations();
+      });
+    });
+  }
+
   function finishDesktopLayoutBoot() {
     if (desktopLayoutBootFinished) return;
     desktopLayoutBootFinished = true;
     if (!hasPersistedWindowLayouts()) {
       clearLayoutBootstrap();
       revealDesktopAfterLayoutsReady();
+      scheduleInitialDesktopOpenAnimations();
       return;
     }
     applyAllSavedLayoutsWhenReady(function () {
+      scheduleInitialDesktopOpenAnimations();
       window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
     });
   }
@@ -1466,6 +1509,9 @@ var WebWindowManager = (function () {
   function postWindowLayoutsSave() {
     var payload = collectWindowLayoutsPayload();
     syncWindowLayoutsPayloadToHost(payload);
+    if (window.WebMenuLocalStorageBridge && window.WebMenuLocalStorageBridge.scheduleSaveToUnity) {
+      window.WebMenuLocalStorageBridge.scheduleSaveToUnity();
+    }
   }
 
   function scheduleWindowLayoutsSave() {
@@ -1591,6 +1637,11 @@ var WebWindowManager = (function () {
     applySavedOpenStateToWindow(windowElement);
     if (windowElement.classList.contains("os-window--minimized")) {
       restoreManagedWindow(windowElement);
+    }
+
+    if (window.WebDesktop && window.WebDesktop.openWindowElement) {
+      window.WebDesktop.openWindowElement(windowElement, false);
+      return true;
     }
 
     ensureWindowStructure(windowElement);
@@ -1787,26 +1838,35 @@ var WebWindowManager = (function () {
     }
   }
 
-  function markOpenAnimationDone(windowElement) {
-    if (!windowElement || !windowElement.classList) return;
-    if (
-      !windowElement.classList.contains("os-window--opening") &&
-      !windowElement.classList.contains("os-window--opening-body-only")
-    ) {
-      return;
+  function syncScreenEffectsState() {
+    if (window.WebMenuScreenEffects && window.WebMenuScreenEffects.sync) {
+      window.WebMenuScreenEffects.sync();
     }
-    setChromeHeightVar(windowElement);
-    windowElement.classList.add("os-window--open-done");
   }
 
   function finishOpenAnimation(windowElement) {
     if (!windowElement || !windowElement.classList) return;
-    setChromeHeightVar(windowElement);
     windowElement.classList.remove("os-window--opening");
     windowElement.classList.remove("os-window--opening-body-only");
-    windowElement.classList.remove("os-window--open-done");
     setChromeHeightVar(windowElement);
+    if (window.WebMenuScrollbar && window.WebMenuScrollbar.refresh) {
+      window.WebMenuScrollbar.refresh();
+    }
     dispatchWorkspaceLayoutSettled(windowElement);
+  }
+
+  function ensureOpenRevealOverlay(windowElement) {
+    var bodyShellElement;
+    var revealElement;
+    if (!windowElement) return;
+    bodyShellElement = windowElement.querySelector(".os-window-body-shell");
+    if (!bodyShellElement) return;
+    revealElement = bodyShellElement.querySelector(".os-window-open-reveal");
+    if (revealElement) return;
+    revealElement = document.createElement("div");
+    revealElement.className = "os-window-open-reveal";
+    revealElement.setAttribute("aria-hidden", "true");
+    bodyShellElement.appendChild(revealElement);
   }
 
   function wrapWindowBody(windowElement) {
@@ -2473,11 +2533,97 @@ var WebWindowManager = (function () {
     buttonElement.appendChild(glyphElement);
   }
 
-  function clearClosedWindowDynamicContent(windowElement) {
+  function isWindowClosed(windowElement) {
+    if (!windowElement) return true;
+    return windowElement.classList.contains("os-window--closed");
+  }
+
+  function shouldInitWindowStructure(windowElement) {
+    var overlayElement;
+    var hiddenHostElement;
+    if (!windowElement || isWindowClosed(windowElement)) return false;
+    hiddenHostElement = windowElement.closest("[hidden]");
+    if (hiddenHostElement) return false;
+    overlayElement = windowElement.closest(".term-overlay");
+    if (overlayElement && !overlayElement.classList.contains("is-open")) return false;
+    return true;
+  }
+
+  function resetWindowInteractionState(windowElement) {
     if (!windowElement) return;
-    var presetName = windowElement.getAttribute("data-wm-preset") || "";
-    if (presetName === "settings-content" && window.WebSettings && window.WebSettings.releaseContent) {
-      window.WebSettings.releaseContent();
+    windowElement.wmStructureReady = false;
+    windowElement.wmDragBound = false;
+    windowElement.wmFocusBound = false;
+    windowElement.wmControlsReady = false;
+  }
+
+  function detachClosedWindowBody(windowElement) {
+    var chromeElement;
+    var siblingElement;
+    var nodesToRemove;
+    var markupParts;
+    var index;
+    if (!windowElement || windowElement.wmDetachedBodyMarkup) return;
+    chromeElement = windowElement.querySelector(".os-window-chrome");
+    if (!chromeElement) return;
+    siblingElement = chromeElement.nextElementSibling;
+    if (!siblingElement) return;
+    nodesToRemove = [];
+    while (siblingElement) {
+      nodesToRemove.push(siblingElement);
+      siblingElement = siblingElement.nextElementSibling;
+    }
+    markupParts = [];
+    for (index = 0; index < nodesToRemove.length; index += 1) {
+      markupParts.push(nodesToRemove[index].outerHTML);
+    }
+    windowElement.wmDetachedBodyMarkup = markupParts.join("");
+    for (index = 0; index < nodesToRemove.length; index += 1) {
+      nodesToRemove[index].parentNode.removeChild(nodesToRemove[index]);
+    }
+    resetWindowInteractionState(windowElement);
+  }
+
+  function restoreClosedWindowBody(windowElement) {
+    var chromeElement;
+    var containerElement;
+    if (!windowElement || !windowElement.wmDetachedBodyMarkup) return;
+    chromeElement = windowElement.querySelector(".os-window-chrome");
+    if (!chromeElement) return;
+    containerElement = document.createElement("div");
+    containerElement.innerHTML = windowElement.wmDetachedBodyMarkup;
+    while (containerElement.firstChild) {
+      windowElement.appendChild(containerElement.firstChild);
+    }
+    windowElement.wmDetachedBodyMarkup = "";
+    resetWindowInteractionState(windowElement);
+  }
+
+  function detachAllClosedDesktopWindowBodies() {
+    var desktopSurface = document.getElementById("desktopSurface");
+    var windows;
+    var index;
+    if (!desktopSurface) return;
+    windows = desktopSurface.querySelectorAll(".os-window[data-wm-preset]");
+    for (index = 0; index < windows.length; index += 1) {
+      if (!isWindowClosed(windows[index])) continue;
+      detachClosedWindowBody(windows[index]);
+    }
+  }
+
+  function releaseHeavyWindowContent(windowElement) {
+    var presetName;
+    var scrollSelector;
+    var scrollNodes;
+    var index;
+    var scrollNode;
+    var settingsTabs;
+    if (!windowElement) return;
+    presetName = windowElement.getAttribute("data-wm-preset") || "";
+    if (presetName === "settings-content") {
+      if (window.WebSettings && window.WebSettings.releaseContent) {
+        window.WebSettings.releaseContent();
+      }
       return;
     }
     if (
@@ -2496,28 +2642,41 @@ var WebWindowManager = (function () {
       window.WebExtras.releaseGamePlayContent(windowElement);
       return;
     }
-    var scrollSelector = ".menu-v-scroll-view, .settings-scroll, .extras-scroll, .worlds-list";
-    var scrollNodes = windowElement.querySelectorAll(scrollSelector);
-    var index;
+    if (presetName === "menu-splash") {
+      return;
+    }
+    scrollSelector = ".settings-scroll, .extras-scroll, .worlds-list";
+    scrollNodes = windowElement.querySelectorAll(scrollSelector);
     for (index = 0; index < scrollNodes.length; index += 1) {
-      var scrollNode = scrollNodes[index];
+      scrollNode = scrollNodes[index];
       scrollNode.textContent = "";
       if (scrollNode.classList.contains("settings-scroll")) {
         scrollNode.classList.add("is-empty");
       }
     }
-    var settingsTabs = windowElement.querySelector(".settings-tabs");
+    settingsTabs = windowElement.querySelector(".settings-tabs");
     if (settingsTabs) {
       settingsTabs.textContent = "";
     }
   }
 
+  function clearClosedWindowDynamicContent(windowElement) {
+    releaseHeavyWindowContent(windowElement);
+  }
+
   function releaseMinimizedWindowContent(windowElement) {
+    var presetName;
     if (!windowElement) return;
-    var presetName = windowElement.getAttribute("data-wm-preset") || "";
+    releaseHeavyWindowContent(windowElement);
+    presetName = windowElement.getAttribute("data-wm-preset") || "";
     if (presetName === "extras-game" && window.WebExtras && window.WebExtras.releaseGameWindow) {
       window.WebExtras.releaseGameWindow(windowElement);
     }
+  }
+
+  function prepareWindowForOpen(windowElement) {
+    if (!windowElement) return;
+    restoreClosedWindowBody(windowElement);
   }
 
   function restoreMinimizedWindowContent(windowElement) {
@@ -2535,6 +2694,7 @@ var WebWindowManager = (function () {
     clearWindowChromeStates(windowElement);
     clearClosedWindowDynamicContent(windowElement);
     windowElement.classList.add("os-window--closed");
+    detachClosedWindowBody(windowElement);
     if (windowElement.classList.contains("os-window--focused")) {
       windowElement.classList.remove("os-window--focused");
     }
@@ -2553,6 +2713,7 @@ var WebWindowManager = (function () {
           detail: { preset: presetName }
         })
       );
+      syncScreenEffectsState();
     }
   }
 
@@ -2642,6 +2803,7 @@ var WebWindowManager = (function () {
     if (!containerElement) return;
 
     if (windowElement.classList.contains("os-window--closed")) {
+      prepareWindowForOpen(windowElement);
       windowElement.classList.remove("os-window--closed");
     }
 
@@ -2681,6 +2843,7 @@ var WebWindowManager = (function () {
     if (!containerElement) return;
 
     if (windowElement.classList.contains("os-window--closed")) {
+      prepareWindowForOpen(windowElement);
       windowElement.classList.remove("os-window--closed");
     }
 
@@ -2899,6 +3062,7 @@ var WebWindowManager = (function () {
       bindWindowControls(windowElement);
     }
 
+    ensureOpenRevealOverlay(windowElement);
     windowElement.wmStructureReady = true;
   }
 
@@ -2908,6 +3072,7 @@ var WebWindowManager = (function () {
     var windows = getWorkspaceWindows(workspaceElement);
     var index = 0;
     for (index = 0; index < windows.length; index++) {
+      if (isWindowClosed(windows[index])) continue;
       ensureWindowStructure(windows[index]);
       syncWindowLayout(windows[index]);
     }
@@ -2942,32 +3107,33 @@ var WebWindowManager = (function () {
   }
 
   function playOpenAnimation(windowElement, delayMs) {
-    var openDoneMs = delayMs + CHROME_OPEN_MS + BODY_OPEN_MS + OPEN_DONE_BUFFER_MS;
+    var openDoneMs = delayMs + OPEN_REVEAL_MS + OPEN_DONE_BUFFER_MS;
+
+    if (isWindowClosed(windowElement)) return;
 
     if (!windowElement.wmState) {
       syncWindowLayout(windowElement);
     }
 
+    ensureOpenRevealOverlay(windowElement);
+
     if (reducedMotion) {
       windowElement.classList.remove("os-window--opening");
+      windowElement.classList.remove("os-window--opening-body-only");
       setChromeHeightVar(windowElement);
       dispatchWorkspaceLayoutSettled(windowElement);
       return;
     }
 
     clearOpenAnimationTimers(windowElement);
-    windowElement.classList.remove("os-window--open-done");
     windowElement.classList.remove("os-window--opening");
+    windowElement.classList.remove("os-window--opening-body-only");
     void windowElement.offsetHeight;
     windowElement.classList.add("os-window--opening");
     setChromeHeightVar(windowElement);
-
-    trackOpenAnimationTimer(
-      windowElement,
-      window.setTimeout(function () {
-        markOpenAnimationDone(windowElement);
-      }, delayMs + CHROME_OPEN_MS + BODY_OPEN_MS + 40)
-    );
+    if (window.WebMenuScrollbar && window.WebMenuScrollbar.refresh) {
+      window.WebMenuScrollbar.refresh();
+    }
 
     trackOpenAnimationTimer(
       windowElement,
@@ -2978,18 +3144,23 @@ var WebWindowManager = (function () {
   }
 
   function playBodyOpenAnimation(windowElement, delayMs) {
+    var openDoneMs;
     if (delayMs == null) delayMs = 0;
-    var openDoneMs = delayMs + BODY_OPEN_MS + OPEN_DONE_BUFFER_MS;
+    openDoneMs = delayMs + OPEN_REVEAL_MS + OPEN_DONE_BUFFER_MS;
+
+    if (isWindowClosed(windowElement)) return;
 
     ensureWindowStructure(windowElement);
     if (!windowElement.wmState) {
       syncWindowLayout(windowElement);
     }
 
+    ensureOpenRevealOverlay(windowElement);
+
     if (reducedMotion) {
       clearOpenAnimationTimers(windowElement);
       windowElement.classList.remove("os-window--opening-body-only");
-      windowElement.classList.remove("os-window--open-done");
+      windowElement.classList.remove("os-window--opening");
       setChromeHeightVar(windowElement);
       dispatchWorkspaceLayoutSettled(windowElement);
       return;
@@ -2998,17 +3169,12 @@ var WebWindowManager = (function () {
     clearOpenAnimationTimers(windowElement);
     windowElement.classList.remove("os-window--opening");
     windowElement.classList.remove("os-window--opening-body-only");
-    windowElement.classList.remove("os-window--open-done");
     void windowElement.offsetHeight;
     windowElement.classList.add("os-window--opening-body-only");
     setChromeHeightVar(windowElement);
-
-    trackOpenAnimationTimer(
-      windowElement,
-      window.setTimeout(function () {
-        markOpenAnimationDone(windowElement);
-      }, delayMs + BODY_OPEN_MS + 40)
-    );
+    if (window.WebMenuScrollbar && window.WebMenuScrollbar.refresh) {
+      window.WebMenuScrollbar.refresh();
+    }
 
     trackOpenAnimationTimer(
       windowElement,
@@ -3041,6 +3207,7 @@ var WebWindowManager = (function () {
     var windows = getWorkspaceWindows(workspaceElement);
     var index = 0;
     for (index = 0; index < windows.length; index++) {
+      if (!shouldInitWindowStructure(windows[index])) continue;
       ensureWindowStructure(windows[index]);
     }
 
@@ -3050,8 +3217,11 @@ var WebWindowManager = (function () {
   function playWorkspaceOpenAnimations(workspaceElement) {
     var windows = getWorkspaceWindows(workspaceElement);
     var index = 0;
+    var staggerIndex = 0;
     for (index = 0; index < windows.length; index++) {
-      playOpenAnimation(windows[index], index * STAGGER_MS);
+      if (isWindowClosed(windows[index])) continue;
+      playOpenAnimation(windows[index], staggerIndex * STAGGER_MS);
+      staggerIndex += 1;
     }
   }
 
@@ -3062,6 +3232,10 @@ var WebWindowManager = (function () {
       applyAllSavedLayoutsInDocument();
     }
     syncWorkspaceWindows(workspaceElement);
+    if (workspaceElement.id === "desktopWorkspace") {
+      scheduleInitialDesktopOpenAnimations();
+      return;
+    }
     playWorkspaceOpenAnimations(workspaceElement);
   }
 
@@ -3135,9 +3309,9 @@ var WebWindowManager = (function () {
     var windows = document.querySelectorAll(".os-window[data-wm-preset]");
     var index = 0;
     for (index = 0; index < windows.length; index++) {
+      if (!shouldInitWindowStructure(windows[index])) continue;
       ensureWindowStructure(windows[index]);
     }
-    initOverlayWindow();
   }
 
   function initAll() {
@@ -3199,6 +3373,9 @@ var WebWindowManager = (function () {
     if (!device) return;
     device.classList.remove("menu-defer-animations");
     device.classList.add("menu-animations-start");
+    if (window.WebMenuScreenEffects && window.WebMenuScreenEffects.sync) {
+      window.WebMenuScreenEffects.sync();
+    }
   }
 
   function onMainMenuCanvasShown() {
@@ -3233,7 +3410,11 @@ var WebWindowManager = (function () {
 
   window.addEventListener("web-menu-canvas-shown", onMainMenuCanvasShown);
   window.addEventListener("web-desktop-icons-ready", onDesktopIconsReadyForLayoutBoot);
-  window.addEventListener("web-menu-boot-dismiss", finishDesktopLayoutBoot);
+  window.addEventListener("web-menu-boot-dismiss", function () {
+    finishDesktopLayoutBoot();
+    scheduleInitialDesktopOpenAnimations();
+  });
+  window.addEventListener("web-menu-boot-dismissed", scheduleInitialDesktopOpenAnimations);
   window.addEventListener("web-page-changed", function () {
     syncActivePageWindows();
   });
@@ -3270,6 +3451,7 @@ var WebWindowManager = (function () {
     setSavedWindowOpen: setSavedWindowOpen,
     clearSavedWindowMinimizedState: clearSavedWindowMinimizedState,
     ensureWindowStructure: ensureWindowStructure,
+    prepareWindowForOpen: prepareWindowForOpen,
     centerWindowInContainer: centerOverlayWindow,
     applyWindowRect: applyWindowRect,
     removeSavedLayout: removeSavedLayout,

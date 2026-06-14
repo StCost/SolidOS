@@ -5,6 +5,7 @@
   var CLASS_OVERLAY_THUMB = "menu-v-scroll-bar-thumb";
   var CLASS_OVERLAY_IDLE = "menu-v-scroll-bar--idle";
   var CLASS_SCROLL_OVERLAY = "menu-v-scroll-view--overlay-bar";
+  var CLASS_CLIP_OVERLAY = "menu-v-scroll-clip--overlay-bar";
   var THUMB_MIN_HEIGHT = 24;
   var CLIP_SELECTOR = ".menu-v-scroll-clip";
   var pendingUpdateFrame = 0;
@@ -26,6 +27,7 @@
     }
     if (
       element.classList.contains("menu-v-scroll-view") ||
+      element.classList.contains("term-splash-scroll") ||
       element.classList.contains("settings-scroll") ||
       element.classList.contains("extras-scroll") ||
       element.classList.contains("credits-scroll") ||
@@ -192,6 +194,9 @@
     if (!scrollView || scrollView.getAttribute(ATTR_OVERLAY_BOUND) === "true") {
       return;
     }
+    if (scrollView.classList.contains("term-splash-scroll")) {
+      return;
+    }
     scrollView.setAttribute(ATTR_OVERLAY_BOUND, "true");
     scrollView.classList.add(CLASS_SCROLL_OVERLAY);
 
@@ -210,6 +215,7 @@
     track.appendChild(thumb);
     bar.appendChild(track);
     clip.appendChild(bar);
+    clip.classList.add(CLASS_CLIP_OVERLAY);
 
     scrollView.__menuOverlayBar = bar;
     scrollView.__menuOverlayTrack = track;

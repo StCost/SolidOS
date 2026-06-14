@@ -302,15 +302,22 @@
     bindDemoElements();
     bindDemoEvents();
     if (!demoHostElement) return;
-    demoHostElement.hidden = false;
-    demoHostElement.classList.add("is-open");
-    populateDemoLinks();
-    if (window.WebLocale && window.WebLocale.applyDom) {
-      window.WebLocale.applyDom();
+    function finishShowDemoTerminal() {
+      demoHostElement.hidden = false;
+      demoHostElement.classList.add("is-open");
+      populateDemoLinks();
+      if (window.WebLocale && window.WebLocale.applyDom) {
+        window.WebLocale.applyDom();
+      }
+      prepareDemoWindowLayout();
+      document.documentElement.classList.add("web-fake-connect-demo-open");
+      demoVisible = true;
     }
-    prepareDemoWindowLayout();
-    document.documentElement.classList.add("web-fake-connect-demo-open");
-    demoVisible = true;
+    if (window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.ensureForPreset) {
+      window.WebMenuDeferredStyles.ensureForPreset("web-fake-connect-demo", finishShowDemoTerminal);
+      return;
+    }
+    finishShowDemoTerminal();
   }
 
   function hideDemoTerminal() {

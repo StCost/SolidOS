@@ -144,13 +144,19 @@
   }
 
   function ensureSettingsUiRoots() {
-    if (contentRoot && tabsRoot) return true;
     var windowElement = getSettingsContentWindowElement();
     if (!windowElement) return false;
-    contentRoot = windowElement.querySelector(".settings-scroll");
-    tabsRoot = windowElement.querySelector(".settings-tabs");
-    if (!contentRoot || !tabsRoot) return false;
-    ensureSettingsScrollBound();
+    var nextContentRoot = windowElement.querySelector(".settings-scroll");
+    var nextTabsRoot = windowElement.querySelector(".settings-tabs");
+    if (!nextContentRoot || !nextTabsRoot) return false;
+    if (contentRoot !== nextContentRoot) {
+      releaseSettingsScrollBound();
+      contentRoot = nextContentRoot;
+      ensureSettingsScrollBound();
+    } else {
+      contentRoot = nextContentRoot;
+    }
+    tabsRoot = nextTabsRoot;
     return true;
   }
 
@@ -167,13 +173,8 @@
     }
     settingsResetFooterElement = null;
     releaseSettingsScrollBound();
-    if (tabsRoot) {
-      tabsRoot.textContent = "";
-    }
-    if (contentRoot) {
-      contentRoot.textContent = "";
-      contentRoot.classList.add("is-empty");
-    }
+    contentRoot = null;
+    tabsRoot = null;
   }
 
   function setSettingsLoadingVisible(visible) {
@@ -1120,6 +1121,9 @@
     if (window.WebNewPlayerHints && window.WebNewPlayerHints.syncLanguageHint) {
       window.WebNewPlayerHints.syncLanguageHint();
     }
+    if (window.WebMenuScrollbar && window.WebMenuScrollbar.refresh) {
+      window.WebMenuScrollbar.refresh();
+    }
   }
 
   function appendFieldLabel(labelBox, field) {
@@ -1376,6 +1380,9 @@
       window.WebSettingsControls.openControlsTab();
     }
     refreshAllSliderFillVisuals();
+    if (window.WebMenuScrollbar && window.WebMenuScrollbar.refresh) {
+      window.WebMenuScrollbar.refresh();
+    }
   }
 
   function refreshAllSliderFillVisuals() {
@@ -1429,12 +1436,17 @@
   function applyCustomCursorMode(enabled) {
     var screen = document.querySelector(".menu-screen");
     if (!screen) return;
+    var html = document.documentElement;
     var useCustomCursor = enabled !== false;
     var useUnityCursor = useCustomCursor && isUnityMenuHost();
     if (useUnityCursor) screen.classList.add("menu-screen--unity-cursor");
     else screen.classList.remove("menu-screen--unity-cursor");
     if (useCustomCursor) screen.classList.remove("menu-screen--system-cursor");
     else screen.classList.add("menu-screen--system-cursor");
+    if (html) {
+      if (useUnityCursor) html.classList.add("menu-unity-custom-cursor");
+      else html.classList.remove("menu-unity-custom-cursor");
+    }
     if (window.WebMenuCursorBridge) {
       window.WebMenuCursorBridge.setUnityCursorEnabled(useUnityCursor);
     }
@@ -1868,16 +1880,14 @@
     var detail = event && event.detail;
     if (!detail || detail.preset !== "settings-content") return;
     activeTabId = "interface";
-    releaseSettingsContent();
+    releaseSettingsScrollBound();
+    contentRoot = null;
+    tabsRoot = null;
   }
 
   function bindToWindow(windowElement) {
     if (!windowElement) return;
-    contentRoot = windowElement.querySelector(".settings-scroll");
-    tabsRoot = windowElement.querySelector(".settings-tabs");
-    if (!contentRoot || !tabsRoot) return;
-
-    ensureSettingsScrollBound();
+    if (!ensureSettingsUiRoots()) return;
     if (isUnityMenuHost() && !settingsHostStateReady) {
       setSettingsLoadingVisible(true);
     } else {

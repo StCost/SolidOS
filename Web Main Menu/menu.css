@@ -15,13 +15,19 @@
   --splash-body-min-height: 350px;
 }
 
-.os-window--splash .os-window-body-shell {
-  overflow: auto;
+.os-window--splash .os-window-body--terminal {
+  padding: 0;
+  overflow: hidden;
+}
+
+.os-window--splash .term-splash-scroll.menu-v-scroll-view {
+  overflow-x: auto;
+  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
-.os-window--splash .os-window-body--terminal {
+.os-window--splash .term-splash-scroll-content {
   --term-tech-size: clamp(11px, 1.65vmin, 15px);
   --term-tech-logo-filter: sepia(1) saturate(5.2) hue-rotate(322deg) brightness(0.9);
   --term-tech-logo-filter-hover: sepia(1) saturate(6.8) hue-rotate(322deg) brightness(1.16);
@@ -29,7 +35,6 @@
   padding-bottom: clamp(6px, 1vmin, 10px);
   width: 100%;
   min-width: var(--splash-body-min-width);
-  height: auto;
   min-height: max(var(--splash-body-min-height), 100%);
   box-sizing: border-box;
   display: flex;

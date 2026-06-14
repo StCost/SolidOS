@@ -461,14 +461,13 @@
     ensureExtrasScrollBuilt(windowElement);
     if (presetName === PRESET_EXTRAS_GAMES) {
       openGamesPanel(windowElement);
-      return;
-    }
-    if (presetName === PRESET_EXTRAS_ART) {
+    } else if (presetName === PRESET_EXTRAS_ART) {
       openArtPanel(windowElement);
-      return;
-    }
-    if (presetName === PRESET_EXTRAS_LINKS) {
+    } else if (presetName === PRESET_EXTRAS_LINKS) {
       openLinksPanel(windowElement);
+    }
+    if (window.WebMenuScrollbar && window.WebMenuScrollbar.refresh) {
+      window.WebMenuScrollbar.refresh();
     }
   }
 
@@ -1639,22 +1638,29 @@
 
   function openArtViewer(src, title, card, artId) {
     if (!artViewer || !artViewerImage || !src) return;
-    activeArtId = artId || "";
-    activeArtSrc = src;
-    artViewerImage.src = src;
-    artViewerImage.alt = title || "";
-    if (artViewerTitle) {
-      artViewerTitle.textContent =
-        title || getLocalized("web.extras.nav.art", "Art");
+    function finishOpenArtViewer() {
+      activeArtId = artId || "";
+      activeArtSrc = src;
+      artViewerImage.src = src;
+      artViewerImage.alt = title || "";
+      if (artViewerTitle) {
+        artViewerTitle.textContent =
+          title || getLocalized("web.extras.nav.art", "Art");
+      }
+      artViewer.setAttribute("aria-hidden", "false");
+      artViewer.classList.remove("is-open");
+      void artViewer.offsetWidth;
+      artViewer.classList.add("is-open");
+      artViewerOpen = true;
+      setActiveArtCard(card);
+      updateArtBackgroundSwitchState();
+      notifyRouteChanged();
     }
-    artViewer.setAttribute("aria-hidden", "false");
-    artViewer.classList.remove("is-open");
-    void artViewer.offsetWidth;
-    artViewer.classList.add("is-open");
-    artViewerOpen = true;
-    setActiveArtCard(card);
-    updateArtBackgroundSwitchState();
-    notifyRouteChanged();
+    if (window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.ensureForPreset) {
+      window.WebMenuDeferredStyles.ensureForPreset(PRESET_EXTRAS_ART, finishOpenArtViewer);
+      return;
+    }
+    finishOpenArtViewer();
   }
 
   function onArtGridClick(event) {
@@ -1737,20 +1743,27 @@
 
   function openLinkOverlay(url, label) {
     if (!linkOverlay || !url) return;
-    pendingExternalUrl = url;
-    pendingExternalLabel = label || url;
-    if (linkOverlayUrl) linkOverlayUrl.textContent = url;
-    if (linkOverlayText) {
-      linkOverlayText.textContent = getLocalized(
-        "web.extras.link.confirm-message",
-        "Open this link in your browser?"
-      );
+    function finishOpenLinkOverlay() {
+      pendingExternalUrl = url;
+      pendingExternalLabel = label || url;
+      if (linkOverlayUrl) linkOverlayUrl.textContent = url;
+      if (linkOverlayText) {
+        linkOverlayText.textContent = getLocalized(
+          "web.extras.link.confirm-message",
+          "Open this link in your browser?"
+        );
+      }
+      linkOverlay.classList.add("is-open");
+      linkOverlay.setAttribute("aria-hidden", "false");
+      if (window.WebWindowManager && window.WebWindowManager.relayoutOverlayWindow) {
+        window.WebWindowManager.relayoutOverlayWindow();
+      }
     }
-    linkOverlay.classList.add("is-open");
-    linkOverlay.setAttribute("aria-hidden", "false");
-    if (window.WebWindowManager && window.WebWindowManager.relayoutOverlayWindow) {
-      window.WebWindowManager.relayoutOverlayWindow();
+    if (window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.ensureForPreset) {
+      window.WebMenuDeferredStyles.ensureForPreset(PRESET_EXTRAS_LINKS, finishOpenLinkOverlay);
+      return;
     }
+    finishOpenLinkOverlay();
   }
 
   function onGamesListClick(event) {

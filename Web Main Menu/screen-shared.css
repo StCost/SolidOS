@@ -263,7 +263,7 @@ textarea::selection {
   cursor: none !important;
 }
 
-html:has(.menu-screen.menu-screen--system-cursor) {
+html.menu-unity-host:not(.menu-unity-custom-cursor) {
   --cursor-default: default;
   --cursor-text: text;
   --cursor-pointer: pointer;
@@ -277,44 +277,44 @@ html:has(.menu-screen.menu-screen--system-cursor) {
   --cursor-scroll-h: ew-resize;
 }
 
-html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar,
-html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-track,
-html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-thumb,
-html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-thumb:hover,
-html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-thumb:active,
-html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-corner {
+html.menu-unity-host:not(.menu-unity-custom-cursor) *::-webkit-scrollbar,
+html.menu-unity-host:not(.menu-unity-custom-cursor) *::-webkit-scrollbar-track,
+html.menu-unity-host:not(.menu-unity-custom-cursor) *::-webkit-scrollbar-thumb,
+html.menu-unity-host:not(.menu-unity-custom-cursor) *::-webkit-scrollbar-thumb:hover,
+html.menu-unity-host:not(.menu-unity-custom-cursor) *::-webkit-scrollbar-thumb:active,
+html.menu-unity-host:not(.menu-unity-custom-cursor) *::-webkit-scrollbar-corner {
   cursor: default !important;
 }
 
-html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-thumb:horizontal,
-html:has(.menu-screen.menu-screen--system-cursor) *::-webkit-scrollbar-track:horizontal {
+html.menu-unity-host:not(.menu-unity-custom-cursor) *::-webkit-scrollbar-thumb:horizontal,
+html.menu-unity-host:not(.menu-unity-custom-cursor) *::-webkit-scrollbar-track:horizontal {
   cursor: ew-resize !important;
 }
 
-html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .os-window--managed .os-window-body--terminal::-webkit-scrollbar-thumb:vertical,
-html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .settings-scroll::-webkit-scrollbar-thumb:vertical,
-html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .settings-tabs:not(.settings-tabs--toolbar)::-webkit-scrollbar-thumb:vertical,
-html:has(.menu-screen.menu-screen--system-cursor) .menu-screen .worlds-column .worlds-list::-webkit-scrollbar-thumb:vertical {
+html.menu-unity-host:not(.menu-unity-custom-cursor) .menu-screen .os-window--managed .os-window-body--terminal::-webkit-scrollbar-thumb:vertical,
+html.menu-unity-host:not(.menu-unity-custom-cursor) .menu-screen .settings-scroll::-webkit-scrollbar-thumb:vertical,
+html.menu-unity-host:not(.menu-unity-custom-cursor) .menu-screen .settings-tabs:not(.settings-tabs--toolbar)::-webkit-scrollbar-thumb:vertical,
+html.menu-unity-host:not(.menu-unity-custom-cursor) .menu-screen .worlds-column .worlds-list::-webkit-scrollbar-thumb:vertical {
   cursor: default !important;
 }
 
-html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--n,
-html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--s {
+html.menu-unity-host:not(.menu-unity-custom-cursor) .os-wm-resize--n,
+html.menu-unity-host:not(.menu-unity-custom-cursor) .os-wm-resize--s {
   cursor: ns-resize !important;
 }
 
-html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--e,
-html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--w {
+html.menu-unity-host:not(.menu-unity-custom-cursor) .os-wm-resize--e,
+html.menu-unity-host:not(.menu-unity-custom-cursor) .os-wm-resize--w {
   cursor: ew-resize !important;
 }
 
-html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--ne,
-html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--sw {
+html.menu-unity-host:not(.menu-unity-custom-cursor) .os-wm-resize--ne,
+html.menu-unity-host:not(.menu-unity-custom-cursor) .os-wm-resize--sw {
   cursor: nwse-resize !important;
 }
 
-html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--nw,
-html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--se {
+html.menu-unity-host:not(.menu-unity-custom-cursor) .os-wm-resize--nw,
+html.menu-unity-host:not(.menu-unity-custom-cursor) .os-wm-resize--se {
   cursor: nesw-resize !important;
 }
 
@@ -833,13 +833,11 @@ html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--se {
   text-transform: none;
 }
 
-.menu-screen.terminal-animations-off .os-window--opening .os-window-chrome,
-.menu-screen.terminal-animations-off .os-window--opening .os-window-chrome--drag,
-.menu-screen.terminal-animations-off .os-window--opening-body-only .os-window-chrome,
-.menu-screen.terminal-animations-off .os-window--opening-body-only .os-window-chrome--drag {
+.menu-screen.terminal-animations-off .os-window--opening .os-window-open-reveal,
+.menu-screen.terminal-animations-off .os-window--opening-body-only .os-window-open-reveal {
   animation: none !important;
-  transform: none;
-  overflow: visible;
+  visibility: hidden !important;
+  transform: translate3d(0, 100%, 0) !important;
 }
 
 .menu-screen.terminal-animations-off,
@@ -890,6 +888,23 @@ html:has(.menu-screen.menu-screen--system-cursor) .os-wm-resize--se {
 
 #device.menu-defer-animations .screen-hazard-track {
   animation: none;
+}
+
+.menu-screen.menu-screen-effects-paused .screen-backdrop::before,
+#menuWelcomeBoot.menu-screen-effects-paused .screen-backdrop::before {
+  animation: none !important;
+  will-change: auto;
+}
+
+.menu-screen.menu-screen-effects-paused .screen-hazard-track,
+#menuWelcomeBoot.menu-screen-effects-paused .screen-hazard-track {
+  animation: none !important;
+  will-change: auto;
+}
+
+.os-window-body--terminal {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 12rem;
 }
 
 .menu-mode--game.menu-screen {

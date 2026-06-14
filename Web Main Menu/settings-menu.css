@@ -32,6 +32,13 @@
   box-sizing: border-box;
 }
 
+.settings-content-window .menu-v-scroll-clip--overlay-bar > .settings-scroll {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  height: 100%;
+}
+
 .settings-tabs {
   display: flex;
   flex-direction: column;
