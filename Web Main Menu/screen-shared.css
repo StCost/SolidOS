@@ -215,7 +215,6 @@ button:disabled,
 }
 
 .os-window-title,
-.term-title,
 .term-line-heading {
   white-space: nowrap;
   overflow: hidden;
