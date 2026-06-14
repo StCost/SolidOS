@@ -9,6 +9,7 @@
   <script src="../iframe-game-input.js"></script>
   <script src="../extras-game-ui-audio-paths.js"></script>
   <script src="../iframe-game-audio-volume.js"></script>
+  <script src="../../../web-ui-seamless-loop-audio.js"></script>
   <script src="../extras-game-synth-audio.js"></script>
   <style>
     * {
@@ -2902,15 +2903,23 @@
       return VEHICLE_BRAKES_AUDIO_PATH;
     }
 
+    function createVehicleLoopAudio(path) {
+      if (window.WebUiSeamlessLoopAudio && window.WebUiSeamlessLoopAudio.create) {
+        return window.WebUiSeamlessLoopAudio.create(path);
+      }
+      var fallbackAudio = new Audio(path);
+      fallbackAudio.loop = true;
+      fallbackAudio.preload = "auto";
+      return fallbackAudio;
+    }
+
     function ensureVehicleRunAudio() {
       var path;
       if (vehicleRunAudioElement) {
         return true;
       }
       path = getVehicleRunSoundPath();
-      vehicleRunAudioElement = new Audio(path);
-      vehicleRunAudioElement.loop = true;
-      vehicleRunAudioElement.preload = "auto";
+      vehicleRunAudioElement = createVehicleLoopAudio(path);
       if (vehicleRunAudioElement.preservesPitch !== undefined) {
         vehicleRunAudioElement.preservesPitch = false;
       }
@@ -2923,9 +2932,7 @@
         return true;
       }
       path = getVehicleBrakesSoundPath();
-      vehicleBrakesAudioElement = new Audio(path);
-      vehicleBrakesAudioElement.loop = true;
-      vehicleBrakesAudioElement.preload = "auto";
+      vehicleBrakesAudioElement = createVehicleLoopAudio(path);
       return true;
     }
 

@@ -41,8 +41,12 @@
 
   function ensureMusicAudio() {
     if (musicAudio) return musicAudio;
-    musicAudio = new Audio(getMusicPath());
-    musicAudio.loop = true;
+    if (window.WebUiSeamlessLoopAudio && window.WebUiSeamlessLoopAudio.create) {
+      musicAudio = window.WebUiSeamlessLoopAudio.create(getMusicPath());
+    } else {
+      musicAudio = new Audio(getMusicPath());
+      musicAudio.loop = true;
+    }
     musicAudio.preload = "auto";
     musicAudio.volume = 0;
     return musicAudio;
