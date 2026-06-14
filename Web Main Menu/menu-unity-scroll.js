@@ -1,6 +1,6 @@
 (function () {
   var SCROLL_VIEW_SELECTOR =
-    ".menu-v-scroll-view, .settings-scroll, .extras-scroll, .credits-scroll, .worlds-list, .game-hud-chat-log, .settings-tabs:not(.settings-tabs--toolbar), .menu-h-scroll-view, .term-splash-scroll";
+    ".menu-v-scroll-view, .settings-scroll, .extras-scroll, .credits-scroll, .changelog-list, .changelog-detail, .worlds-list, .game-hud-chat-log, .settings-tabs:not(.settings-tabs--toolbar), .menu-h-scroll-view, .term-splash-scroll";
   var WINDOW_SELECTOR = ".os-window--managed:not(.os-window--closed):not(.os-window--minimized)";
 
   function isScrollView(element) {

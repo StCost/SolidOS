@@ -57,13 +57,6 @@
       iconUrl: "https://cdn.simpleicons.org/gmail/EA4335"
     },
     {
-      href: "https://dreamingsaints.github.io/blog/implemented-collapse-machine-game-features",
-      title: "Implemented Features",
-      labelKey: "web.extras.link.implemented-features",
-      labelFallback: "Implemented Features",
-      iconUrl: "https://cdn.simpleicons.org/rss/FF6600"
-    },
-    {
       href: "https://dreamingsaints.github.io/blog/game-design",
       title: "Design Guide Lines",
       labelKey: "web.extras.link.design-guide",

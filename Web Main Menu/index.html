@@ -52,6 +52,8 @@
   <script src="menu-help-tooltip.js" defer></script>
   <script src="settings-menu.js" defer></script>
   <script src="credits-menu.js" defer></script>
+  <script src="changelog-manifest.js" defer></script>
+  <script src="changelog-menu.js" defer></script>
   <script src="extras-manifest.js" defer></script>
   <script src="extras-links-data.js" defer></script>
   <script src="menu-unity-scroll.js" defer></script>
@@ -181,6 +183,11 @@
               <button type="button" class="os-desktop-icon" data-desktop-icon="links">
                 <span class="os-desktop-icon-glyph" aria-hidden="true"></span>
                 <span class="os-desktop-icon-label terminal-text" data-locale-key="web.extras.nav.links">Links</span>
+              </button>
+              <button type="button" class="os-desktop-icon" data-desktop-icon="changelog">
+                <span class="os-desktop-icon-glyph" aria-hidden="true"></span>
+                <span class="os-desktop-icon-label terminal-text"
+                  data-locale-key="web.desktop.icon.changelog">Changelog</span>
               </button>
               <button type="button" class="os-desktop-icon" data-desktop-icon="credits">
                 <span class="os-desktop-icon-glyph" aria-hidden="true"></span>
@@ -582,6 +589,24 @@
                       aria-label="Credits list"></div>
                   </div>
                 </div>
+              </div>
+            </section>
+
+            <section class="os-window changelog-content-window os-window--closed" data-wm-preset="changelog-content"
+              data-wm-order="9" aria-labelledby="changelogContentTitle">
+              <div class="os-window-chrome">
+                <div class="os-window-controls">
+                  <button type="button" class="os-window-dot os-window-control" data-wm-action="minimize"
+                    aria-label="Minimize window"></button>
+                  <button type="button" class="os-window-dot os-window-control" data-wm-action="maximize"
+                    aria-label="Maximize window"></button>
+                  <button type="button" class="os-window-dot os-window-control" data-wm-action="close"
+                    aria-label="Close window"></button>
+                </div>
+                <p class="os-window-title terminal-text--dim" id="changelogContentTitle"
+                  data-locale-key="web.desktop.icon.changelog">Changelog</p>
+              </div>
+              <div class="os-window-body os-window-body--terminal changelog-content-body">
               </div>
             </section>
           </div>

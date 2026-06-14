@@ -30,6 +30,7 @@ var WebDesktop = (function () {
     art: "extras-art",
     links: "extras-links",
     credits: "credits-content",
+    changelog: "changelog-content",
     title: WINDOW_PRESET_TITLE
   };
 
@@ -41,7 +42,8 @@ var WebDesktop = (function () {
     "extras-games",
     "extras-art",
     "extras-links",
-    "credits-content"
+    "credits-content",
+    "changelog-content"
   ];
 
   var ICON_ACTION_DISCONNECT = "disconnect";
@@ -53,6 +55,7 @@ var WebDesktop = (function () {
     steam: { centerOffsetX: 46, centerOffsetY: 245 },
     title: { centerOffsetX: -500, centerOffsetY: 365 },
     credits: { centerOffsetX: -410, centerOffsetY: 365 },
+    changelog: { centerOffsetX: -500, centerOffsetY: 255 },
     links: { centerOffsetX: -315, centerOffsetY: 365 },
     settings: { centerOffsetX: -135, centerOffsetY: 365 },
     quit: { centerOffsetX: -45, centerOffsetY: 365 },
@@ -68,6 +71,7 @@ var WebDesktop = (function () {
     settings: { centerOffsetX: -45, centerOffsetY: -155 },
     games: { centerOffsetX: 70, centerOffsetY: -45 },
     links: { centerOffsetX: -155, centerOffsetY: 65 },
+    changelog: { centerOffsetX: -45, centerOffsetY: -45 },
     credits: { centerOffsetX: 70, centerOffsetY: 65 },
     art: { centerOffsetX: -45, centerOffsetY: 65 },
     disconnect: { centerOffsetX: -155, centerOffsetY: 180 },
@@ -82,6 +86,7 @@ var WebDesktop = (function () {
     "settings",
     "games",
     "links",
+    "changelog",
     "credits",
     "art",
     "disconnect",
@@ -307,6 +312,12 @@ var WebDesktop = (function () {
     if (presetName === "credits-content") {
       if (window.WebCredits && window.WebCredits.bindToWindow) {
         window.WebCredits.bindToWindow(windowElement);
+      }
+      return;
+    }
+    if (presetName === "changelog-content") {
+      if (window.WebChangelog && window.WebChangelog.bindToWindow) {
+        window.WebChangelog.bindToWindow(windowElement);
       }
     }
   }
@@ -606,6 +617,10 @@ var WebDesktop = (function () {
 
   function openCreditsDesktop() {
     return openWindow("credits-content", true);
+  }
+
+  function openChangelogDesktop() {
+    return openWindow("changelog-content", true);
   }
 
   function openExtrasDesktop() {
@@ -3173,6 +3188,7 @@ var WebDesktop = (function () {
     openSettingsDesktop: openSettingsDesktop,
     openExtrasDesktop: openExtrasDesktop,
     openCreditsDesktop: openCreditsDesktop,
+    openChangelogDesktop: openChangelogDesktop,
     openGamesDesktop: openGamesDesktop,
     openArtDesktop: openArtDesktop,
     openLinksDesktop: openLinksDesktop,
