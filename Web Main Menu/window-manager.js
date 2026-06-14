@@ -3418,10 +3418,14 @@ var WebWindowManager = (function () {
   window.addEventListener("web-menu-canvas-shown", onMainMenuCanvasShown);
   window.addEventListener("web-desktop-icons-ready", onDesktopIconsReadyForLayoutBoot);
   window.addEventListener("web-menu-boot-dismiss", function () {
+    if (isGameMenuMode()) return;
     finishDesktopLayoutBoot();
     scheduleInitialDesktopOpenAnimations();
   });
-  window.addEventListener("web-menu-boot-dismissed", scheduleInitialDesktopOpenAnimations);
+  window.addEventListener("web-menu-boot-dismissed", function () {
+    if (isGameMenuMode()) return;
+    scheduleInitialDesktopOpenAnimations();
+  });
   window.addEventListener("web-page-changed", function () {
     syncActivePageWindows();
   });
