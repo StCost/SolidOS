@@ -192,14 +192,28 @@
     };
   }
 
-  function createLoopAudio(audioPath) {
-    if (window.AudioContext || window.webkitAudioContext) {
-      return createSeamlessLoopAudio(audioPath);
-    }
+  function createStandardLoopAudio(audioPath) {
     var fallbackAudio = new Audio(audioPath);
     fallbackAudio.loop = true;
     fallbackAudio.preload = "auto";
     return fallbackAudio;
+  }
+
+  function canUseSeamlessLoopLoader() {
+    if (!(window.AudioContext || window.webkitAudioContext)) {
+      return false;
+    }
+    if (window.location.protocol === "file:") {
+      return false;
+    }
+    return true;
+  }
+
+  function createLoopAudio(audioPath) {
+    if (canUseSeamlessLoopLoader()) {
+      return createSeamlessLoopAudio(audioPath);
+    }
+    return createStandardLoopAudio(audioPath);
   }
 
   window.WebUiSeamlessLoopAudio = {
