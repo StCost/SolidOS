@@ -1,12 +1,6 @@
-html,
-body {
-  margin: 0;
-  height: 100%;
-  overflow: hidden;
-  background: transparent;
+html.menu-web-layer-hud,
+html.menu-web-layer-hud body {
   pointer-events: none;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
 .game-hud {

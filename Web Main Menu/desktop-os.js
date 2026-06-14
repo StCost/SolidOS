@@ -260,6 +260,14 @@ var WebDesktop = (function () {
     return !windowElement.classList.contains("os-window--closed");
   }
 
+  function releaseDesktopPointerInteractionState() {
+    endMarqueeSelect();
+    if (activeIconDrag) {
+      endIconDrag();
+    }
+    pendingIconPress = null;
+  }
+
   function syncScreenEffectsState() {
     if (window.WebMenuScreenEffects && window.WebMenuScreenEffects.sync) {
       window.WebMenuScreenEffects.sync();
@@ -363,8 +371,21 @@ var WebDesktop = (function () {
         windowManager.scheduleWindowLayoutsSave();
       }
 
+      releaseDesktopPointerInteractionState();
+      if (windowManager.releaseWindowPointerInteractionState) {
+        windowManager.releaseWindowPointerInteractionState();
+      }
+
       updateDesktopTabOrder();
       syncScreenEffectsState();
+      if (window.WebMenuScreenEffects && window.WebMenuScreenEffects.ensureBootHidden) {
+        window.WebMenuScreenEffects.ensureBootHidden();
+      }
+      window.dispatchEvent(
+        new CustomEvent("web-desktop-window-opened", {
+          detail: { preset: presetName || "" }
+        })
+      );
       return windowElement;
     }
 
@@ -3204,7 +3225,8 @@ var WebDesktop = (function () {
     updateMenuLayoutPhoneMode: updateMenuLayoutPhoneMode,
     getDesktopIconScalePercent: getDesktopIconScalePercent,
     setDesktopIconScalePercent: setDesktopIconScalePercent,
-    getDesktopIconImagePixelSize: getDesktopIconImagePixelSize
+    getDesktopIconImagePixelSize: getDesktopIconImagePixelSize,
+    releaseDesktopPointerInteractionState: releaseDesktopPointerInteractionState
   };
 })();
 

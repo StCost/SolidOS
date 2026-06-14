@@ -587,9 +587,17 @@
 
   function dismiss() {
 
+    bindElements();
+
     if (dismissed) {
 
       setDeviceBootPending(false);
+
+      if (rootElement) {
+        rootElement.hidden = true;
+        rootElement.classList.add("menu-boot-dismissed");
+        rootElement.classList.remove("menu-welcome-boot--loading-mode");
+      }
 
       return;
 
@@ -641,24 +649,31 @@
     if (window.WebWindowManager && window.WebWindowManager.removeSavedLayout) {
       window.WebWindowManager.removeSavedLayout(LINKS_PRESET);
     }
-    if (window.WebDesktop && window.WebDesktop.openLinksDesktop) {
-      window.WebDesktop.openLinksDesktop();
-    }
-    var linksWindow = null;
-    if (window.WebDesktop && window.WebDesktop.getWindowByPreset) {
-      linksWindow = window.WebDesktop.getWindowByPreset(LINKS_PRESET);
-    }
-    if (linksWindow && window.WebWindowManager) {
-      if (window.WebWindowManager.syncWindowLayout) {
-        window.WebWindowManager.syncWindowLayout(linksWindow);
+    function finishOpenLinksAfterFakeConnect() {
+      var linksWindow = null;
+      if (window.WebDesktop && window.WebDesktop.openLinksDesktop) {
+        linksWindow = window.WebDesktop.openLinksDesktop();
       }
-      if (window.WebWindowManager.focusWindow) {
-        window.WebWindowManager.focusWindow(linksWindow);
+      if (!linksWindow && window.WebDesktop && window.WebDesktop.getWindowByPreset) {
+        linksWindow = window.WebDesktop.getWindowByPreset(LINKS_PRESET);
+      }
+      if (linksWindow && window.WebWindowManager) {
+        if (window.WebWindowManager.syncWindowLayout) {
+          window.WebWindowManager.syncWindowLayout(linksWindow);
+        }
+        if (window.WebWindowManager.focusWindow) {
+          window.WebWindowManager.focusWindow(linksWindow);
+        }
+      }
+      if (window.WebExtras && window.WebExtras.openLinksPanel) {
+        window.WebExtras.openLinksPanel(linksWindow);
       }
     }
-    if (window.WebExtras && window.WebExtras.openLinksPanel) {
-      window.WebExtras.openLinksPanel(linksWindow);
+    if (window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.ensureForPreset) {
+      window.WebMenuDeferredStyles.ensureForPreset(LINKS_PRESET, finishOpenLinksAfterFakeConnect);
+      return;
     }
+    finishOpenLinksAfterFakeConnect();
   }
 
 
@@ -833,7 +848,11 @@
 
     isContentReady: isContentReady,
 
-    syncReadinessFromDom: syncReadinessFromDom
+    syncReadinessFromDom: syncReadinessFromDom,
+
+    isDismissed: function () {
+      return dismissed;
+    }
 
   };
 

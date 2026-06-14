@@ -8,6 +8,11 @@
   pointer-events: none !important;
 }
 
+html.menu-unity-host #device:not(.menu-boot-pending) {
+  pointer-events: auto;
+  visibility: visible;
+}
+
 #menuWelcomeBoot,
 #device,
 #device .menu-page,

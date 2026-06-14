@@ -43,13 +43,19 @@
     if (deviceElement && deviceElement.hidden) {
       return true;
     }
-    if (!isMenuLayerActive()) {
+    if (!isMenuLayerActive() && !isUnityMainMenuReady()) {
       return true;
     }
     return false;
   }
 
+  function isBootDismissedByController() {
+    if (!window.WebMenuBoot || !window.WebMenuBoot.isDismissed) return false;
+    return window.WebMenuBoot.isDismissed() === true;
+  }
+
   function isBootScreenDismissed() {
+    if (isBootDismissedByController()) return true;
     if (!welcomeBootElement) return true;
     if (welcomeBootElement.hidden) return true;
     if (welcomeBootElement.classList.contains("menu-boot-dismissed")) return true;
@@ -57,10 +63,23 @@
   }
 
   function ensureDismissedBootScreenHidden() {
+    bindElements();
     if (!welcomeBootElement) return;
     if (!isBootScreenDismissed()) return;
     welcomeBootElement.hidden = true;
     welcomeBootElement.classList.add("menu-boot-dismissed");
+    welcomeBootElement.classList.remove("menu-welcome-boot--loading-mode");
+    if (deviceElement) {
+      deviceElement.classList.remove(CLASS_BOOT_PENDING);
+    }
+  }
+
+  function isUnityMainMenuReady() {
+    bindElements();
+    if (!isUnityHost()) return false;
+    if (!deviceElement || deviceElement.hidden) return false;
+    if (deviceElement.classList.contains(CLASS_BOOT_PENDING)) return false;
+    return isBootScreenDismissed();
   }
 
   function setScreenEffectsPaused(screenElement, paused) {
@@ -89,13 +108,16 @@
     syncScreenEffectsAnimationState();
     window.addEventListener("web-desktop-window-closed", syncScreenEffectsAnimationState);
     window.addEventListener("web-desktop-window-focused", syncScreenEffectsAnimationState);
+    window.addEventListener("web-desktop-window-opened", syncScreenEffectsAnimationState);
+    window.addEventListener("web-desktop-windows-restored", syncScreenEffectsAnimationState);
     window.addEventListener("web-menu-boot-dismissed", syncScreenEffectsAnimationState);
     window.addEventListener("web-menu-canvas-shown", syncScreenEffectsAnimationState);
     window.addEventListener("resize", syncScreenEffectsAnimationState);
   }
 
   window.WebMenuScreenEffects = {
-    sync: syncScreenEffectsAnimationState
+    sync: syncScreenEffectsAnimationState,
+    ensureBootHidden: ensureDismissedBootScreenHidden
   };
 
   if (document.readyState === "loading") {

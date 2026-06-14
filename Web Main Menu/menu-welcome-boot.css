@@ -2,7 +2,12 @@
   position: fixed;
   inset: 0;
   z-index: 200000;
+  pointer-events: none;
   transition: opacity 0.48s ease, visibility 0.48s ease;
+}
+
+#menuWelcomeBoot.menu-welcome-boot--loading-mode:not(.menu-boot-dismissed):not([hidden]) {
+  pointer-events: auto;
 }
 
 #menuWelcomeBoot[hidden],
