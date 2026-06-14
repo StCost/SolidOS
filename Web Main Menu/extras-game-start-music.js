@@ -114,8 +114,12 @@
       startMusicPath = getDefaultStartMusicPath();
     }
     if (startMusicAudio) return startMusicAudio;
-    startMusicAudio = new Audio(startMusicPath);
-    startMusicAudio.loop = true;
+    if (window.WebUiSeamlessLoopAudio && window.WebUiSeamlessLoopAudio.create) {
+      startMusicAudio = window.WebUiSeamlessLoopAudio.create(startMusicPath);
+    } else {
+      startMusicAudio = new Audio(startMusicPath);
+      startMusicAudio.loop = true;
+    }
     startMusicAudio.preload = "auto";
     startMusicAudio.volume = 0;
     return startMusicAudio;
@@ -126,8 +130,12 @@
       gameplayMusicPath = getDefaultGameplayMusicPath();
     }
     if (gameplayMusicAudio) return gameplayMusicAudio;
-    gameplayMusicAudio = new Audio(gameplayMusicPath);
-    gameplayMusicAudio.loop = true;
+    if (window.WebUiSeamlessLoopAudio && window.WebUiSeamlessLoopAudio.create) {
+      gameplayMusicAudio = window.WebUiSeamlessLoopAudio.create(gameplayMusicPath);
+    } else {
+      gameplayMusicAudio = new Audio(gameplayMusicPath);
+      gameplayMusicAudio.loop = true;
+    }
     gameplayMusicAudio.preload = "auto";
     gameplayMusicAudio.volume = 0;
     return gameplayMusicAudio;
@@ -138,8 +146,12 @@
       return null;
     }
     if (gameOverMusicAudio) return gameOverMusicAudio;
-    gameOverMusicAudio = new Audio(gameOverMusicPath);
-    gameOverMusicAudio.loop = true;
+    if (window.WebUiSeamlessLoopAudio && window.WebUiSeamlessLoopAudio.create) {
+      gameOverMusicAudio = window.WebUiSeamlessLoopAudio.create(gameOverMusicPath);
+    } else {
+      gameOverMusicAudio = new Audio(gameOverMusicPath);
+      gameOverMusicAudio.loop = true;
+    }
     gameOverMusicAudio.preload = "auto";
     gameOverMusicAudio.volume = 0;
     return gameOverMusicAudio;
