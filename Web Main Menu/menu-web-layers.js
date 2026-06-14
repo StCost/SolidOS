@@ -9,6 +9,14 @@
     return !!(window.vuplex && window.vuplex.postMessage);
   }
 
+  function isGameMode() {
+    if (window.WebMenuMode === "game") {
+      return true;
+    }
+    var device = document.getElementById("device");
+    return !!(device && device.classList.contains("menu-mode--game"));
+  }
+
   function setHtmlLayerClass(layer) {
     var html = document.documentElement;
     if (!html) return;
@@ -102,6 +110,10 @@
 
   if (isUnityHost()) {
     window.addEventListener("web-menu-boot-dismissed", function () {
+      if (isGameMode()) {
+        setActiveLayer(LAYER_HUD);
+        return;
+      }
       setActiveLayer(LAYER_MENU);
     });
     return;
