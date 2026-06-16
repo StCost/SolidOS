@@ -1478,7 +1478,10 @@
     var index;
     for (index = 0; index < links.length; index++) {
       var link = links[index];
-      var label = getLocalized(link.labelKey, link.labelFallback || link.title);
+      var label = link.labelFallback || link.title || "";
+      if (link.labelKey === "web.extras.link.main-menu") {
+        label = getLocalized(link.labelKey, label);
+      }
       html +=
         '<button type="button" class="extras-link-row" data-extras-href="' +
         escapeHtml(link.href) +

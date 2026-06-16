@@ -50,18 +50,32 @@
       iconUrl: "https://cdn.simpleicons.org/instagram/E4405F"
     },
     {
+      href: "https://t.me/collapsemachine",
+      title: "Telegram",
+      labelKey: "web.extras.link.telegram",
+      labelFallback: "Telegram",
+      iconUrl: "https://cdn.simpleicons.org/telegram"
+    },
+    {
+      href: "https://www.facebook.com/groups/2216398175431222",
+      title: "Facebook",
+      labelKey: "web.extras.link.facebook",
+      labelFallback: "Facebook",
+      iconUrl: "https://cdn.simpleicons.org/facebook"
+    },
+    {
+      href: "https://bsky.app/profile/collapsemachine.bsky.social",
+      title: "Bluesky",
+      labelKey: "web.extras.link.bluesky",
+      labelFallback: "Bluesky",
+      iconUrl: "https://cdn.simpleicons.org/bluesky"
+    },
+    {
       href: "mailto:dreamingsaints@gmail.com",
       title: "Email",
       labelKey: "web.extras.link.email",
       labelFallback: "Email",
       iconUrl: "https://cdn.simpleicons.org/gmail/EA4335"
-    },
-    {
-      href: "https://dreamingsaints.github.io/blog/game-design",
-      title: "Design Guide Lines",
-      labelKey: "web.extras.link.design-guide",
-      labelFallback: "Design Guide Lines",
-      iconUrl: "https://cdn.simpleicons.org/rss/FF6600"
     },
     {
       href: "https://stcost.github.io/collapse-machine-main-menu/",
