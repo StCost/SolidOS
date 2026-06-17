@@ -36,10 +36,9 @@ StreamingAssets/Web UI/
     menu-music.js         menu music loop + fade
     backgrounds/          background-01.png … (cycles without repeat)
     screen-shared.css
+    menu-welcome-boot.js    integrated loading / boot overlay
+    menu-loading.css
     …
-  Web Loading/
-    index.html
-    loading.css
 ```
 
 In-game HUD (hotbar, health, chat) is embedded in `Web Main Menu/index.html` (`menu-game-hud.js`, `menu-game-hud.css`, `menu-game-hud-layer.css`).
