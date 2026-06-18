@@ -764,6 +764,7 @@ var WebWindowManager = (function () {
       prepareWindowForOpen(windowElement);
       windowElement.classList.remove("os-window--closed");
     } else {
+      clearWindowVisualOnlyCloseState(windowElement);
       windowElement.classList.add("os-window--closed");
     }
   }
@@ -809,6 +810,9 @@ var WebWindowManager = (function () {
     if (inlineZIndex <= 0) return;
     var previous = savedLayoutTable[layoutKey];
     if (!previous) {
+      if (isWindowClosedVisualOnly(windowElement)) {
+        return;
+      }
       savedLayoutTable[layoutKey] = {
         open: !windowElement.classList.contains("os-window--closed"),
         zIndex: inlineZIndex
@@ -868,6 +872,22 @@ var WebWindowManager = (function () {
     return topWindowElement;
   }
 
+  function clearWindowVisualOnlyCloseState(windowElement) {
+    if (windowElement) {
+      windowElement.wmClosedVisualOnly = false;
+    }
+  }
+
+  function setWindowVisualOnlyCloseState(windowElement) {
+    if (windowElement) {
+      windowElement.wmClosedVisualOnly = true;
+    }
+  }
+
+  function isWindowClosedVisualOnly(windowElement) {
+    return !!(windowElement && windowElement.wmClosedVisualOnly);
+  }
+
   function syncSavedLayoutFromWindow(windowElement) {
     if (!shouldPersistWindowLayout(windowElement)) return;
     var layoutKey = getLayoutKey(windowElement);
@@ -896,14 +916,22 @@ var WebWindowManager = (function () {
     if (inlineZIndex > 0) {
       entry.zIndex = inlineZIndex;
     }
-    if (windowElement.classList.contains("os-window--closed") && previous) {
-      previous.open = false;
-      previous.minimized = false;
-      previous.maximized = false;
-      if (entry.zIndex !== undefined) {
-        previous.zIndex = entry.zIndex;
+    if (windowElement.classList.contains("os-window--closed")) {
+      if (isWindowClosedVisualOnly(windowElement)) {
+        if (previous && entry.zIndex !== undefined) {
+          previous.zIndex = entry.zIndex;
+        }
+        return;
       }
-      return;
+      if (previous) {
+        previous.open = false;
+        previous.minimized = false;
+        previous.maximized = false;
+        if (entry.zIndex !== undefined) {
+          previous.zIndex = entry.zIndex;
+        }
+        return;
+      }
     }
     if (isMinimized) {
       restoreState = windowElement.wmBeforeMinimizeState;
@@ -2695,6 +2723,7 @@ var WebWindowManager = (function () {
 
   function prepareWindowForOpen(windowElement) {
     if (!windowElement) return;
+    clearWindowVisualOnlyCloseState(windowElement);
     restoreClosedWindowBody(windowElement);
     ensureWindowStructure(windowElement);
   }
@@ -2718,8 +2747,11 @@ var WebWindowManager = (function () {
       windowElement.classList.remove("os-window--focused");
     }
     if (persistLayout) {
+      clearWindowVisualOnlyCloseState(windowElement);
       syncSavedLayoutFromWindow(windowElement);
       scheduleWindowLayoutsSave();
+    } else {
+      setWindowVisualOnlyCloseState(windowElement);
     }
     if (containerElement) {
       layoutMinimizedWindowsInContainer(containerElement, null);
