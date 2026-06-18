@@ -7,6 +7,8 @@
   <title>Deep Collapse</title>
   <script src="../iframe-game-locale.js"></script>
   <script src="../iframe-game-input.js"></script>
+  <script src="../extras-game-ui-audio-paths.js"></script>
+  <script src="../iframe-game-audio-volume.js"></script>
   <script src="../extras-game-synth-audio.js"></script>
   <style>
     * {
@@ -309,6 +311,154 @@
   <script>
     (function () {
       function getSynth() { return window.WebExtrasGameSynthAudio; }
+
+      var COLLAPSE_AUDIO_FILE = "ui-deep-collapse-collapse.wav";
+      var COLLAPSE_AUDIO_PATH = "../../../../audio/ui-deep-collapse-collapse.wav";
+      var collapseAudioElement = null;
+
+      function getCollapseSoundPath() {
+        if (window.WebExtrasGameUiAudioPaths && window.WebExtrasGameUiAudioPaths.getUiSoundPath) {
+          return window.WebExtrasGameUiAudioPaths.getUiSoundPath(COLLAPSE_AUDIO_FILE);
+        }
+        return COLLAPSE_AUDIO_PATH;
+      }
+
+      function getArcadeGamesOutputVolume() {
+        if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume) {
+          return window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume();
+        }
+        return 0.5;
+      }
+
+      function ensureCollapseAudio() {
+        if (collapseAudioElement) {
+          return true;
+        }
+        collapseAudioElement = new Audio(getCollapseSoundPath());
+        collapseAudioElement.preload = "auto";
+        return true;
+      }
+
+      function playCollapseSound() {
+        var audio;
+        var playPromise;
+        if (!ensureCollapseAudio()) {
+          return;
+        }
+        audio = collapseAudioElement.cloneNode();
+        audio.volume = getArcadeGamesOutputVolume();
+        playPromise = audio.play();
+        if (playPromise && playPromise.catch) {
+          playPromise.catch(function () {});
+        }
+      }
+
+      var CRYSTAL_AUDIO_COUNT = 3;
+      var CRYSTAL_AUDIO_FILES = [
+        "ui-deep-collapse-crystal-01.wav",
+        "ui-deep-collapse-crystal-02.wav",
+        "ui-deep-collapse-crystal-03.wav"
+      ];
+      var CRYSTAL_AUDIO_PATHS = [
+        "../../../../audio/ui-deep-collapse-crystal-01.wav",
+        "../../../../audio/ui-deep-collapse-crystal-02.wav",
+        "../../../../audio/ui-deep-collapse-crystal-03.wav"
+      ];
+      var CRYSTAL_COLLECT_BOOST_DB_MIN = 2;
+      var CRYSTAL_COLLECT_BOOST_DB_MAX = 5;
+      var crystalAudioElements = null;
+
+      function getCrystalSoundPath(soundIndex) {
+        if (window.WebExtrasGameUiAudioPaths && window.WebExtrasGameUiAudioPaths.getUiSoundPath) {
+          return window.WebExtrasGameUiAudioPaths.getUiSoundPath(CRYSTAL_AUDIO_FILES[soundIndex]);
+        }
+        return CRYSTAL_AUDIO_PATHS[soundIndex];
+      }
+
+      function ensureCrystalAudio() {
+        var soundIndex;
+        var audioElement;
+        if (crystalAudioElements) {
+          return true;
+        }
+        crystalAudioElements = [];
+        for (soundIndex = 0; soundIndex < CRYSTAL_AUDIO_COUNT; soundIndex += 1) {
+          audioElement = new Audio(getCrystalSoundPath(soundIndex));
+          audioElement.preload = "auto";
+          crystalAudioElements.push(audioElement);
+        }
+        return true;
+      }
+
+      function getCrystalCollectBoostDb(soundCount) {
+        if (soundCount <= 1) {
+          return 0;
+        }
+        if (soundCount === 2) {
+          return CRYSTAL_COLLECT_BOOST_DB_MIN;
+        }
+        return CRYSTAL_COLLECT_BOOST_DB_MAX;
+      }
+
+      function getCrystalSoundVolume(soundCount) {
+        var baseVolume;
+        var boostDb;
+        var combinedGain;
+        var perSoundVolume;
+        baseVolume = getArcadeGamesOutputVolume();
+        if (soundCount <= 1) {
+          return baseVolume;
+        }
+        boostDb = getCrystalCollectBoostDb(soundCount);
+        combinedGain = Math.pow(10, boostDb / 20);
+        perSoundVolume = baseVolume * combinedGain / Math.sqrt(soundCount);
+        if (perSoundVolume > 1) {
+          perSoundVolume = 1;
+        }
+        return perSoundVolume;
+      }
+
+      function playCrystalSoundAtIndex(soundIndex, soundVolume) {
+        var audio;
+        var playPromise;
+        if (!ensureCrystalAudio()) {
+          return;
+        }
+        audio = crystalAudioElements[soundIndex].cloneNode();
+        audio.volume = soundVolume;
+        playPromise = audio.play();
+        if (playPromise && playPromise.catch) {
+          playPromise.catch(function () {});
+        }
+      }
+
+      function playCrystalCollectSounds(clusterCount) {
+        var soundIndex;
+        var randomIndex;
+        var playIndex;
+        var playCount;
+        var soundVolume;
+        if (!clusterCount || clusterCount < 1) {
+          return;
+        }
+        if (!ensureCrystalAudio()) {
+          return;
+        }
+        if (clusterCount >= CRYSTAL_AUDIO_COUNT) {
+          playCount = CRYSTAL_AUDIO_COUNT;
+          soundVolume = getCrystalSoundVolume(playCount);
+          for (soundIndex = 0; soundIndex < CRYSTAL_AUDIO_COUNT; soundIndex += 1) {
+            playCrystalSoundAtIndex(soundIndex, soundVolume);
+          }
+          return;
+        }
+        playCount = clusterCount;
+        soundVolume = getCrystalSoundVolume(playCount);
+        for (playIndex = 0; playIndex < clusterCount; playIndex += 1) {
+          randomIndex = Math.floor(rand() * CRYSTAL_AUDIO_COUNT);
+          playCrystalSoundAtIndex(randomIndex, soundVolume);
+        }
+      }
 
       var canvas = document.getElementById("gameCanvas");
       var ctx = canvas.getContext("2d");
@@ -1013,6 +1163,8 @@
           getSynth().ensureContext();
           getSynth().playGameStart();
         }
+        ensureCollapseAudio();
+        ensureCrystalAudio();
       }
 
       function placeSurfaceCrystal(col, row, cellType, clusterId) {
@@ -2241,6 +2393,7 @@
               collectResult = collectCrystal(clusterPickup);
               totalBoostGain = collectResult.boostGain;
               totalScoreEarned = collectResult.earned;
+              playCrystalCollectSounds(1);
             }
             effectSumX = clusterPickup.worldX * clusterPickup.pixelCount;
             effectSumY = clusterPickup.worldY * clusterPickup.pixelCount;
@@ -2415,6 +2568,7 @@
                 effectSumX += clusterPickup.worldX * clusterPickup.pixelCount;
                 effectSumY += clusterPickup.worldY * clusterPickup.pixelCount;
                 effectWeight += clusterPickup.pixelCount;
+                playCrystalCollectSounds(1);
               }
             } else if (isDiagonal) {
               spreadHeat = burnHeat * BURN_DIAGONAL_PASS_HEAT_MULT;
@@ -2556,9 +2710,7 @@
 
         screenShake = Math.min(6, 2.2 + radius * 0.02);
 
-        if (getSynth()) {
-          getSynth().playCollapse(radius);
-        }
+        playCollapseSound();
 
         pushImplodeRing(collapseX, collapseY, radius, 1.15, 200, 80, 255);
         pushImplodeRing(collapseX, collapseY, radius * 0.82, 1, 255, 140, 220);
@@ -2627,14 +2779,19 @@
 
         var crystalIndex;
         var collectResult;
+        var collectedClusterCount = 0;
         for (crystalIndex = 0; crystalIndex < crystalsFound.length; crystalIndex += 1) {
           crystal = crystalsFound[crystalIndex];
           if (crystal.pixelCount < 1) {
             continue;
           }
+          collectedClusterCount += 1;
           collectResult = collectCrystal(crystal);
           totalBoostGain += collectResult.boostGain;
           totalScoreEarned += collectResult.earned;
+        }
+        if (collectedClusterCount > 0) {
+          playCrystalCollectSounds(collectedClusterCount);
         }
 
         if (totalBoostGain > 0.001 || totalScoreEarned > 0) {
@@ -2747,9 +2904,6 @@
         var startX;
         var startY;
         var travelTime;
-        if (getSynth()) {
-          getSynth().playCollect();
-        }
         score += earned;
         setBestScoreIfHigher(score);
         updateHudDisplay();

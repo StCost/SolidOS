@@ -324,6 +324,135 @@
     return window.WebExtrasGameSynthAudio;
   }
 
+  var CRYSTAL_AUDIO_COUNT = 3;
+  var CRYSTAL_AUDIO_FILES = [
+    "ui-deep-collapse-crystal-01.wav",
+    "ui-deep-collapse-crystal-02.wav",
+    "ui-deep-collapse-crystal-03.wav"
+  ];
+  var CRYSTAL_AUDIO_PATHS = [
+    "../../../../audio/ui-deep-collapse-crystal-01.wav",
+    "../../../../audio/ui-deep-collapse-crystal-02.wav",
+    "../../../../audio/ui-deep-collapse-crystal-03.wav"
+  ];
+  var CRYSTAL_COLLECT_BOOST_DB_MIN = 2;
+  var CRYSTAL_COLLECT_BOOST_DB_MAX = 5;
+  var crystalAudioElements = null;
+  var pendingCrystalCollectSoundCount = 0;
+
+  function getArcadeGamesOutputVolume() {
+    if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume) {
+      return window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume();
+    }
+    return 0.5;
+  }
+
+  function getCrystalSoundPath(soundIndex) {
+    if (window.WebExtrasGameUiAudioPaths && window.WebExtrasGameUiAudioPaths.getUiSoundPath) {
+      return window.WebExtrasGameUiAudioPaths.getUiSoundPath(CRYSTAL_AUDIO_FILES[soundIndex]);
+    }
+    return CRYSTAL_AUDIO_PATHS[soundIndex];
+  }
+
+  function ensureCrystalAudio() {
+    var soundIndex;
+    var audioElement;
+    if (crystalAudioElements) {
+      return true;
+    }
+    crystalAudioElements = [];
+    for (soundIndex = 0; soundIndex < CRYSTAL_AUDIO_COUNT; soundIndex += 1) {
+      audioElement = new Audio(getCrystalSoundPath(soundIndex));
+      audioElement.preload = "auto";
+      crystalAudioElements.push(audioElement);
+    }
+    return true;
+  }
+
+  function getCrystalCollectBoostDb(soundCount) {
+    if (soundCount <= 1) {
+      return 0;
+    }
+    if (soundCount === 2) {
+      return CRYSTAL_COLLECT_BOOST_DB_MIN;
+    }
+    return CRYSTAL_COLLECT_BOOST_DB_MAX;
+  }
+
+  function getCrystalSoundVolume(soundCount) {
+    var baseVolume;
+    var boostDb;
+    var combinedGain;
+    var perSoundVolume;
+    baseVolume = getArcadeGamesOutputVolume();
+    if (soundCount <= 1) {
+      return baseVolume;
+    }
+    boostDb = getCrystalCollectBoostDb(soundCount);
+    combinedGain = Math.pow(10, boostDb / 20);
+    perSoundVolume = baseVolume * combinedGain / Math.sqrt(soundCount);
+    if (perSoundVolume > 1) {
+      perSoundVolume = 1;
+    }
+    return perSoundVolume;
+  }
+
+  function playCrystalSoundAtIndex(soundIndex, soundVolume) {
+    var audio;
+    var playPromise;
+    if (!ensureCrystalAudio()) {
+      return;
+    }
+    audio = crystalAudioElements[soundIndex].cloneNode();
+    audio.volume = soundVolume;
+    playPromise = audio.play();
+    if (playPromise && playPromise.catch) {
+      playPromise.catch(function () {});
+    }
+  }
+
+  function playCrystalCollectSounds(collectCount) {
+    var soundIndex;
+    var randomIndex;
+    var playIndex;
+    var playCount;
+    var soundVolume;
+    if (!collectCount || collectCount < 1) {
+      return;
+    }
+    if (!ensureCrystalAudio()) {
+      return;
+    }
+    if (collectCount >= CRYSTAL_AUDIO_COUNT) {
+      playCount = CRYSTAL_AUDIO_COUNT;
+      soundVolume = getCrystalSoundVolume(playCount);
+      for (soundIndex = 0; soundIndex < CRYSTAL_AUDIO_COUNT; soundIndex += 1) {
+        playCrystalSoundAtIndex(soundIndex, soundVolume);
+      }
+      return;
+    }
+    playCount = collectCount;
+    soundVolume = getCrystalSoundVolume(playCount);
+    for (playIndex = 0; playIndex < collectCount; playIndex += 1) {
+      randomIndex = Math.floor(Math.random() * CRYSTAL_AUDIO_COUNT);
+      playCrystalSoundAtIndex(randomIndex, soundVolume);
+    }
+  }
+
+  function queueCrystalCollectSound() {
+    pendingCrystalCollectSoundCount += 1;
+  }
+
+  function flushCrystalCollectSounds() {
+    var collectCount;
+    if (pendingCrystalCollectSoundCount < 1) {
+      return;
+    }
+    collectCount = pendingCrystalCollectSoundCount;
+    pendingCrystalCollectSoundCount = 0;
+    playCrystalCollectSounds(collectCount);
+  }
+
   function getLocaleApi() {
     if (window.WebLocale) {
       return window.WebLocale;
@@ -2255,6 +2384,7 @@
     simulationFrameIndex = 0;
     distanceTraveled = 0;
     crystalCount = 0;
+    pendingCrystalCollectSoundCount = 0;
     scrollSpeed = SCROLL_SPEED_BASE;
     enemySpawnTimer = 2.5;
     minefieldSpawnTimer = 11;
@@ -2399,6 +2529,7 @@
     if (getSynth()) {
       getSynth().ensureContext();
     }
+    ensureCrystalAudio();
     if (getSynth()) {
       getSynth().playGameStart();
     }
@@ -5003,9 +5134,7 @@
     crystals.splice(index, 1);
     tryAutoSpawnEscorts();
     syncPlayingHud();
-    if (getSynth()) {
-      getSynth().playCollect();
-    }
+    queueCrystalCollectSound();
   }
 
   function getUnitCrystalCollectRadius(unit) {
@@ -5673,6 +5802,7 @@
     updateCrystalAutoCollect(deltaSeconds);
     updateCrystalCollection();
     updateUnitCrystalCollection();
+    flushCrystalCollectSounds();
     updateCamera(deltaSeconds);
     updateDistanceTraveledFromTruck(truckXBeforeScroll, scrollMove);
     cleanupOffScreenUnits();
