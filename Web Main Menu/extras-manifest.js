@@ -15,7 +15,8 @@
         path: "Extras/games/deep-collapse/index.html",
         image: "Extras/games/deep-collapse/deep-collapse-preview.jpg",
         desktopIcon: "Extras/games/deep-collapse/deep-collapse-desktop-icon.png",
-        difficulty: 2
+        difficulty: 2,
+        startMusicPath: "ui-deep-collapse-start-music.wav"
       },
       {
         id: "citrus-slice",

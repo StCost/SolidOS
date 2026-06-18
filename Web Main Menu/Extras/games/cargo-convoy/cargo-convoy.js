@@ -335,8 +335,6 @@
     "../../../../audio/ui-deep-collapse-crystal-02.wav",
     "../../../../audio/ui-deep-collapse-crystal-03.wav"
   ];
-  var CRYSTAL_COLLECT_BOOST_DB_MIN = 2;
-  var CRYSTAL_COLLECT_BOOST_DB_MAX = 5;
   var crystalAudioElements = null;
   var pendingCrystalCollectSoundCount = 0;
 
@@ -369,32 +367,8 @@
     return true;
   }
 
-  function getCrystalCollectBoostDb(soundCount) {
-    if (soundCount <= 1) {
-      return 0;
-    }
-    if (soundCount === 2) {
-      return CRYSTAL_COLLECT_BOOST_DB_MIN;
-    }
-    return CRYSTAL_COLLECT_BOOST_DB_MAX;
-  }
-
-  function getCrystalSoundVolume(soundCount) {
-    var baseVolume;
-    var boostDb;
-    var combinedGain;
-    var perSoundVolume;
-    baseVolume = getArcadeGamesOutputVolume();
-    if (soundCount <= 1) {
-      return baseVolume;
-    }
-    boostDb = getCrystalCollectBoostDb(soundCount);
-    combinedGain = Math.pow(10, boostDb / 20);
-    perSoundVolume = baseVolume * combinedGain / Math.sqrt(soundCount);
-    if (perSoundVolume > 1) {
-      perSoundVolume = 1;
-    }
-    return perSoundVolume;
+  function getCrystalSoundVolume() {
+    return getArcadeGamesOutputVolume();
   }
 
   function playCrystalSoundAtIndex(soundIndex, soundVolume) {
@@ -415,7 +389,6 @@
     var soundIndex;
     var randomIndex;
     var playIndex;
-    var playCount;
     var soundVolume;
     if (!collectCount || collectCount < 1) {
       return;
@@ -424,15 +397,13 @@
       return;
     }
     if (collectCount >= CRYSTAL_AUDIO_COUNT) {
-      playCount = CRYSTAL_AUDIO_COUNT;
-      soundVolume = getCrystalSoundVolume(playCount);
+      soundVolume = getCrystalSoundVolume();
       for (soundIndex = 0; soundIndex < CRYSTAL_AUDIO_COUNT; soundIndex += 1) {
         playCrystalSoundAtIndex(soundIndex, soundVolume);
       }
       return;
     }
-    playCount = collectCount;
-    soundVolume = getCrystalSoundVolume(playCount);
+    soundVolume = getCrystalSoundVolume();
     for (playIndex = 0; playIndex < collectCount; playIndex += 1) {
       randomIndex = Math.floor(Math.random() * CRYSTAL_AUDIO_COUNT);
       playCrystalSoundAtIndex(randomIndex, soundVolume);

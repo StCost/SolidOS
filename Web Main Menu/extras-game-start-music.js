@@ -18,6 +18,8 @@
   var gameplayMusicActive = false;
   var gameOverMusicActive = false;
   var usesStartScreenMusic = false;
+  var waitingForStartMusicBeforeGameplay = false;
+  var GAMEPLAY_OVERLAP_SECONDS = 0.12;
 
   function getMusicVolumeFromSettings() {
     if (window.WebMenuAudioVolume && window.WebMenuAudioVolume.getMusicOutputVolume) {
@@ -28,10 +30,13 @@
 
   function resetStartMusicAudio() {
     if (startMusicAudio) {
+      startMusicAudio.removeEventListener("ended", onStartMusicEnded);
+      startMusicAudio.removeEventListener("timeupdate", onStartMusicTimeUpdate);
       startMusicAudio.pause();
       startMusicAudio = null;
     }
     startMusicStarted = false;
+    waitingForStartMusicBeforeGameplay = false;
   }
 
   function resetGameplayMusicAudio() {
@@ -109,19 +114,87 @@
     setMusicPaths("", "", "");
   }
 
+  function preloadGameplayMusic() {
+    if (window.WebUiSeamlessLoopAudio && window.WebUiSeamlessLoopAudio.resumeContext) {
+      window.WebUiSeamlessLoopAudio.resumeContext();
+    }
+    ensureGameplayMusicAudio();
+  }
+
+  function clearStartMusicTransitionListeners() {
+    if (!startMusicAudio) {
+      return;
+    }
+    startMusicAudio.removeEventListener("timeupdate", onStartMusicTimeUpdate);
+  }
+
+  function onStartMusicTimeUpdate() {
+    var audio;
+    var remaining;
+    if (!waitingForStartMusicBeforeGameplay || !startMusicAudio) {
+      return;
+    }
+    audio = startMusicAudio;
+    if (!isFinite(audio.duration) || audio.duration <= 0) {
+      return;
+    }
+    remaining = audio.duration - audio.currentTime;
+    if (remaining > GAMEPLAY_OVERLAP_SECONDS) {
+      return;
+    }
+    clearStartMusicTransitionListeners();
+    finishTransitionToGameplayMusic();
+  }
+
+  function checkStartMusicNearEnd() {
+    onStartMusicTimeUpdate();
+  }
+
+  function finishTransitionToGameplayMusic() {
+    if (!waitingForStartMusicBeforeGameplay) {
+      return;
+    }
+    waitingForStartMusicBeforeGameplay = false;
+    clearStartMusicTransitionListeners();
+    stopGameOverMusicOnly();
+    pauseMenuMusic();
+    gameplayMusicActive = true;
+    var audio = ensureGameplayMusicAudio();
+    applyGameplayMusicVolume();
+    if (!gameplayMusicStarted) {
+      gameplayMusicStarted = true;
+      playAudioElement(audio, onGameplayMusicPlayFailed);
+    } else if (audio.paused) {
+      playAudioElement(audio, onResumeMusicPlayFailed);
+    }
+    stopStartMusicOnly();
+  }
+
+  function onStartMusicEnded() {
+    startMusicActive = false;
+    finishTransitionToGameplayMusic();
+  }
+
+  function isStartMusicStillPlaying() {
+    if (!startMusicAudio || !startMusicStarted) {
+      return false;
+    }
+    if (startMusicAudio.ended) {
+      return false;
+    }
+    return !startMusicAudio.paused;
+  }
+
   function ensureStartMusicAudio() {
     if (!startMusicPath) {
       startMusicPath = getDefaultStartMusicPath();
     }
     if (startMusicAudio) return startMusicAudio;
-    if (window.WebUiSeamlessLoopAudio && window.WebUiSeamlessLoopAudio.create) {
-      startMusicAudio = window.WebUiSeamlessLoopAudio.create(startMusicPath);
-    } else {
-      startMusicAudio = new Audio(startMusicPath);
-      startMusicAudio.loop = true;
-    }
+    startMusicAudio = new Audio(startMusicPath);
+    startMusicAudio.loop = true;
     startMusicAudio.preload = "auto";
     startMusicAudio.volume = 0;
+    startMusicAudio.addEventListener("ended", onStartMusicEnded);
     return startMusicAudio;
   }
 
@@ -213,6 +286,7 @@
   function stopStartMusicOnly() {
     startMusicActive = false;
     if (!startMusicAudio) return;
+    startMusicAudio.loop = true;
     startMusicAudio.pause();
     startMusicAudio.currentTime = 0;
   }
@@ -235,9 +309,12 @@
     stopGameplayMusicOnly();
     stopGameOverMusicOnly();
     pauseMenuMusic();
+    waitingForStartMusicBeforeGameplay = false;
     startMusicActive = true;
     var audio = ensureStartMusicAudio();
+    audio.loop = true;
     applyStartMusicVolume();
+    preloadGameplayMusic();
     if (!startMusicStarted) {
       startMusicStarted = true;
       playAudioElement(audio, onStartMusicPlayFailed);
@@ -296,18 +373,33 @@
     startStartMusic();
   }
 
-  function stop() {
-    stopStartMusicOnly();
-    stopGameOverMusicOnly();
-    if (usesStartScreenMusic) {
+  function transitionFromStartMusicToGameplay() {
+    if (!isStartMusicStillPlaying()) {
+      stopStartMusicOnly();
       startGameplayMusic();
       return;
     }
+    waitingForStartMusicBeforeGameplay = true;
+    startMusicAudio.loop = false;
+    preloadGameplayMusic();
+    startMusicAudio.addEventListener("timeupdate", onStartMusicTimeUpdate);
+    checkStartMusicNearEnd();
+  }
+
+  function stop() {
+    stopGameOverMusicOnly();
+    if (usesStartScreenMusic) {
+      transitionFromStartMusicToGameplay();
+      return;
+    }
+    stopStartMusicOnly();
     resumeMenuMusic();
   }
 
   function forceStop() {
     usesStartScreenMusic = false;
+    waitingForStartMusicBeforeGameplay = false;
+    clearStartMusicTransitionListeners();
     stopStartMusicOnly();
     stopGameplayMusicOnly();
     stopGameOverMusicOnly();
