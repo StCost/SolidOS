@@ -2,6 +2,30 @@
 <html lang="en" class="menu-layouts-pending menu-has-integrated-hud">
 
 <head>
+  <script>
+    (function () {
+      var pageHref = window.location.href;
+      var baseHref;
+      if (/^file:/.test(pageHref) || window.vuplex) {
+        baseHref = pageHref.substring(0, pageHref.lastIndexOf("/") + 1);
+      } else {
+        var path = window.location.pathname || "/";
+        if (path.endsWith("/")) {
+          baseHref = window.location.origin + path;
+        } else {
+          var segment = path.slice(path.lastIndexOf("/") + 1);
+          if (segment.indexOf(".") >= 0) {
+            baseHref = window.location.origin + path.substring(0, path.lastIndexOf("/") + 1);
+          } else {
+            baseHref = window.location.origin + path + "/";
+          }
+        }
+      }
+      var baseElement = document.createElement("base");
+      baseElement.href = baseHref;
+      document.head.appendChild(baseElement);
+    })();
+  </script>
   <meta charset="UTF-8" />
   <meta name="transparent" content="true" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />

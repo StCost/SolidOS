@@ -433,6 +433,7 @@ var WebDesktop = (function () {
       return;
     }
     windowElement.classList.add("os-window--closed");
+    windowElement.wmClosedVisualOnly = true;
   }
 
   function openWindow(presetName, playOpenAnimation) {
