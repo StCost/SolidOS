@@ -313,6 +313,12 @@
   content-visibility: hidden;
 }
 
+html.menu-desktop-boot-open-pending #desktopSurface > .os-window {
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
 .os-window-control {
   width: 42px;
   min-width: 42px;

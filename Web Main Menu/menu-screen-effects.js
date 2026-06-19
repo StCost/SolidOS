@@ -70,7 +70,12 @@
     welcomeBootElement.classList.add("menu-boot-dismissed");
     welcomeBootElement.classList.remove("menu-welcome-boot--loading-mode");
     if (deviceElement) {
-      deviceElement.classList.remove(CLASS_BOOT_PENDING);
+      if (deviceElement.classList.contains(CLASS_BOOT_PENDING)) {
+        deviceElement.classList.remove(CLASS_BOOT_PENDING);
+        if (window.WebWindowManager && window.WebWindowManager.onDesktopBootDeviceVisible) {
+          window.WebWindowManager.onDesktopBootDeviceVisible();
+        }
+      }
     }
   }
 
