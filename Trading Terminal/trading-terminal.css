@@ -43,7 +43,7 @@ html.term-unity-cursor * {
   margin-left: -2px;
   margin-top: 0;
   pointer-events: none;
-  z-index: 100000;
+  z-index: 100002;
 }
 
 .term-crosshair-cursor-img {
@@ -136,6 +136,12 @@ html.term-unity-cursor * {
 .term-value {
   color: var(--term-orange);
   font-size: 13px;
+}
+
+.trade-col-name,
+#handshakeTitle {
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .term-button {
@@ -621,6 +627,12 @@ html.term-unity-cursor * {
   margin-bottom: 16px;
 }
 
+.term-statusbar.os-statusbar--bottom {
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 0;
+}
+
 .term-statusbar {
   flex-shrink: 0;
 }
@@ -632,7 +644,7 @@ html.term-unity-cursor * {
 }
 
 .term-statusbar-segment--right {
-  padding-right: 0;
+  padding-right: clamp(12px, 2vmin, 20px);
 }
 
 .term-os-clock {
