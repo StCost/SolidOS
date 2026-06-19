@@ -42,7 +42,9 @@ var WebWindowManager = (function () {
   var savedLayoutTable = {};
   var layoutSaveTimer = 0;
   var desktopLayoutBootFinished = false;
+  var desktopBootLayoutsReady = false;
   var desktopBootOpenAnimationsPlayed = false;
+  var desktopBootWindowsRestoredDispatched = false;
   var LAYOUTS_STORAGE_KEY = "cm-menu-window-layouts";
   var DEFAULT_DESKTOP_WINDOW_LAYOUTS = {
     "menu-splash": {
@@ -265,6 +267,9 @@ var WebWindowManager = (function () {
     if (layout.restoreCenterOffsetY !== undefined) {
       merged.restoreCenterOffsetY = layout.restoreCenterOffsetY;
     }
+    if (layout.gameId) {
+      merged.gameId = layout.gameId;
+    }
     return merged;
   }
 
@@ -327,6 +332,13 @@ var WebWindowManager = (function () {
       savedLayoutTable[layoutKey].restoreHeight = previous.restoreHeight;
       savedLayoutTable[layoutKey].restoreCenterOffsetX = previous.restoreCenterOffsetX;
       savedLayoutTable[layoutKey].restoreCenterOffsetY = previous.restoreCenterOffsetY;
+    }
+    if (mergedLayout.gameId) {
+      savedLayoutTable[layoutKey].gameId = mergedLayout.gameId;
+    } else if (layoutKey === "extras-game" && !open) {
+      delete savedLayoutTable[layoutKey].gameId;
+    } else if (previous && previous.gameId) {
+      savedLayoutTable[layoutKey].gameId = previous.gameId;
     }
   }
 
@@ -424,14 +436,61 @@ var WebWindowManager = (function () {
     applySavedChromeStatesFromSaved();
     clearLayoutBootstrap();
     syncWindowLayoutsPayloadToHost(payload);
-    revealDesktopAfterLayoutsReady();
-    window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
+    setDesktopBootLayoutsReady();
+    dispatchDesktopWindowsRestored(true);
   }
 
-  function revealDesktopAfterLayoutsReady() {
+  function dispatchDesktopWindowsRestored(forceDispatch) {
+    if (!forceDispatch && desktopBootWindowsRestoredDispatched) return;
+    if (!forceDispatch) {
+      desktopBootWindowsRestoredDispatched = true;
+    }
+    window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
+    clearDesktopBootOpenAnimFlags();
+  }
+
+  function clearDesktopBootOpenAnimFlags() {
+    var desktopSurface = document.getElementById("desktopSurface");
+    var windows;
+    var index;
+    if (!desktopSurface) return;
+    windows = desktopSurface.querySelectorAll(".os-window[data-wm-preset]");
+    for (index = 0; index < windows.length; index++) {
+      windows[index].wmBootOpenAnimStarted = false;
+    }
+  }
+
+  function revealDesktopBootWindows() {
+    if (document.documentElement) {
+      document.documentElement.classList.remove("menu-desktop-boot-open-pending");
+    }
+  }
+
+  function setDesktopBootLayoutsReady() {
+    if (desktopBootLayoutsReady) return;
+    desktopBootLayoutsReady = true;
     if (document.documentElement) {
       document.documentElement.classList.remove("menu-layouts-pending");
     }
+    tryPlayInitialDesktopOpenAnimations();
+  }
+
+  function onDesktopBootDeviceVisible() {
+    tryPlayInitialDesktopOpenAnimations();
+  }
+
+  function tryPlayInitialDesktopOpenAnimations() {
+    var desktopWorkspace;
+    if (desktopBootOpenAnimationsPlayed) return;
+    if (!desktopBootLayoutsReady || !isDesktopBootScreenVisible()) return;
+    desktopWorkspace = document.getElementById("desktopWorkspace");
+    if (!desktopWorkspace || !isWorkspaceVisible(desktopWorkspace)) return;
+    desktopBootOpenAnimationsPlayed = true;
+    beginMainMenuScreenAnimations();
+    revealDesktopBootWindows();
+    syncWorkspaceWindows(desktopWorkspace);
+    playWorkspaceBootOpenAnimations(desktopWorkspace);
+    dispatchDesktopWindowsRestored(false);
   }
 
   function isNearMaximizedRestoreState(windowElement, restoreState) {
@@ -762,6 +821,9 @@ var WebWindowManager = (function () {
     }
     if (shouldOpen) {
       prepareWindowForOpen(windowElement);
+      if (presetName === "extras-game" && savedLayout && savedLayout.gameId) {
+        windowElement.setAttribute("data-extras-game-id", savedLayout.gameId);
+      }
       windowElement.classList.remove("os-window--closed");
     } else {
       clearWindowVisualOnlyCloseState(windowElement);
@@ -888,6 +950,31 @@ var WebWindowManager = (function () {
     return !!(windowElement && windowElement.wmClosedVisualOnly);
   }
 
+  function applySavedGameIdToLayoutRecord(entry, layoutRecord) {
+    if (!entry || !layoutRecord) return;
+    if (entry.gameId) {
+      layoutRecord.gameId = entry.gameId;
+    }
+  }
+
+  function syncSavedGameIdFromWindow(windowElement, entry, previous) {
+    var presetName;
+    var gameId;
+    if (!windowElement || !entry) return;
+    presetName = windowElement.getAttribute("data-wm-preset") || "";
+    if (presetName !== "extras-game") return;
+    if (!windowElement.classList.contains("os-window--closed")) {
+      gameId = windowElement.getAttribute("data-extras-game-id") || "";
+      if (gameId) {
+        entry.gameId = gameId;
+        return;
+      }
+    }
+    if (previous && previous.gameId && entry.open !== false) {
+      entry.gameId = previous.gameId;
+    }
+  }
+
   function syncSavedLayoutFromWindow(windowElement) {
     if (!shouldPersistWindowLayout(windowElement)) return;
     var layoutKey = getLayoutKey(windowElement);
@@ -930,9 +1017,11 @@ var WebWindowManager = (function () {
         if (entry.zIndex !== undefined) {
           previous.zIndex = entry.zIndex;
         }
+        delete previous.gameId;
         return;
       }
     }
+    syncSavedGameIdFromWindow(windowElement, entry, previous);
     if (isMinimized) {
       restoreState = windowElement.wmBeforeMinimizeState;
       if (!restoreState || isNearMinimizedRestoreState(windowElement, restoreState)) {
@@ -948,6 +1037,7 @@ var WebWindowManager = (function () {
         if (restoreState) {
           setSavedLayoutRestoreGeometry(layoutKey, windowElement, restoreState);
         }
+        applySavedGameIdToLayoutRecord(entry, previous);
         return;
       }
       containerElement = getLayoutContainer(windowElement);
@@ -964,6 +1054,7 @@ var WebWindowManager = (function () {
         if (entry.zIndex !== undefined) {
           previous.zIndex = entry.zIndex;
         }
+        applySavedGameIdToLayoutRecord(entry, previous);
         return;
       }
       containerElement = getLayoutContainer(windowElement);
@@ -1058,6 +1149,9 @@ var WebWindowManager = (function () {
       payloadEntry = coords.exportWindowPayloadEntry(layout, presetName);
       if (!payloadEntry) continue;
       payloadEntry.open = isSavedLayoutOpen(layout);
+      if (presetName === "extras-game" && layout.gameId) {
+        payloadEntry.gameId = layout.gameId;
+      }
       layouts.push(payloadEntry);
     }
     return { layouts: layouts };
@@ -1435,7 +1529,7 @@ var WebWindowManager = (function () {
     applySavedChromeStatesFromSaved();
     clearLayoutBootstrap();
     syncWindowLayoutsPayloadToHost(null);
-    revealDesktopAfterLayoutsReady();
+    setDesktopBootLayoutsReady();
     if (onComplete) onComplete();
   }
 
@@ -1452,58 +1546,31 @@ var WebWindowManager = (function () {
     return true;
   }
 
-  function canPlayInitialDesktopOpenAnimations() {
-    if (desktopBootOpenAnimationsPlayed) return false;
-    if (!isDesktopBootScreenVisible()) return false;
-    if (document.documentElement && document.documentElement.classList.contains("menu-layouts-pending")) {
-      return false;
-    }
-    return true;
-  }
-
-  function tryPlayInitialDesktopOpenAnimations() {
-    var desktopWorkspace;
-    if (!canPlayInitialDesktopOpenAnimations()) return;
-    desktopWorkspace = document.getElementById("desktopWorkspace");
-    if (!desktopWorkspace || !isWorkspaceVisible(desktopWorkspace)) return;
-    desktopBootOpenAnimationsPlayed = true;
-    syncWorkspaceWindows(desktopWorkspace);
-    playWorkspaceOpenAnimations(desktopWorkspace);
-  }
-
-  function scheduleInitialDesktopOpenAnimations() {
-    window.requestAnimationFrame(function () {
-      window.requestAnimationFrame(function () {
-        tryPlayInitialDesktopOpenAnimations();
-      });
-    });
-  }
-
-  function finishDesktopLayoutBoot() {
-    if (desktopLayoutBootFinished) return;
-    desktopLayoutBootFinished = true;
-    if (!hasPersistedWindowLayouts()) {
-      clearLayoutBootstrap();
-      revealDesktopAfterLayoutsReady();
-      scheduleInitialDesktopOpenAnimations();
-      return;
-    }
-    applyAllSavedLayoutsWhenReady(function () {
-      scheduleInitialDesktopOpenAnimations();
-      window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
-    });
-  }
-
-  function onDesktopIconsReadyForLayoutBoot() {
+  function applyRouteBootDesktopVisibilityFromLocation() {
     var routePreset = "";
     if (!isUnityHost()) {
       if (window.WebMenuRoute && window.WebMenuRoute.getInitialWindowPreset) {
         routePreset = window.WebMenuRoute.getInitialWindowPreset();
       }
-      if (routePreset && setRouteBootDesktopVisibility) {
-        setRouteBootDesktopVisibility(routePreset);
-      }
     }
+    if (routePreset) {
+      setRouteBootDesktopVisibility(routePreset);
+    }
+  }
+
+  function finishDesktopLayoutBoot() {
+    if (desktopLayoutBootFinished) return;
+    desktopLayoutBootFinished = true;
+    applyRouteBootDesktopVisibilityFromLocation();
+    if (!hasPersistedWindowLayouts()) {
+      clearLayoutBootstrap();
+      setDesktopBootLayoutsReady();
+      return;
+    }
+    applyAllSavedLayoutsWhenReady();
+  }
+
+  function onDesktopIconsReadyForLayoutBoot() {
     finishDesktopLayoutBoot();
   }
 
@@ -1885,6 +1952,9 @@ var WebWindowManager = (function () {
     if (!windowElement || !windowElement.classList) return;
     windowElement.classList.remove("os-window--opening");
     windowElement.classList.remove("os-window--opening-body-only");
+    if (desktopBootWindowsRestoredDispatched) {
+      windowElement.wmBootOpenAnimStarted = false;
+    }
     setChromeHeightVar(windowElement);
     if (window.WebMenuScrollbar && window.WebMenuScrollbar.refresh) {
       window.WebMenuScrollbar.refresh();
@@ -3162,17 +3232,20 @@ var WebWindowManager = (function () {
     var openDoneMs = delayMs + OPEN_REVEAL_MS + OPEN_DONE_BUFFER_MS;
 
     if (isWindowClosed(windowElement)) return;
+    if (windowElement.wmBootOpenAnimStarted) return;
 
     if (!windowElement.wmState) {
       syncWindowLayout(windowElement);
     }
 
     ensureOpenRevealOverlay(windowElement);
+    windowElement.wmBootOpenAnimStarted = true;
 
     if (reducedMotion) {
       windowElement.classList.remove("os-window--opening");
       windowElement.classList.remove("os-window--opening-body-only");
       setChromeHeightVar(windowElement);
+      windowElement.wmBootOpenAnimStarted = false;
       dispatchWorkspaceLayoutSettled(windowElement);
       return;
     }
@@ -3201,6 +3274,7 @@ var WebWindowManager = (function () {
     openDoneMs = delayMs + OPEN_REVEAL_MS + OPEN_DONE_BUFFER_MS;
 
     if (isWindowClosed(windowElement)) return;
+    if (windowElement.wmBootOpenAnimStarted) return;
 
     ensureWindowStructure(windowElement);
     if (!windowElement.wmState) {
@@ -3208,12 +3282,14 @@ var WebWindowManager = (function () {
     }
 
     ensureOpenRevealOverlay(windowElement);
+    windowElement.wmBootOpenAnimStarted = true;
 
     if (reducedMotion) {
       clearOpenAnimationTimers(windowElement);
       windowElement.classList.remove("os-window--opening-body-only");
       windowElement.classList.remove("os-window--opening");
       setChromeHeightVar(windowElement);
+      windowElement.wmBootOpenAnimStarted = false;
       dispatchWorkspaceLayoutSettled(windowElement);
       return;
     }
@@ -3266,6 +3342,15 @@ var WebWindowManager = (function () {
     workspaceElement.wmWorkspaceInitialized = true;
   }
 
+  function playWorkspaceBootOpenAnimations(workspaceElement) {
+    var windows = getWorkspaceWindows(workspaceElement);
+    var index = 0;
+    for (index = 0; index < windows.length; index++) {
+      if (isWindowClosed(windows[index])) continue;
+      playOpenAnimation(windows[index], 0);
+    }
+  }
+
   function playWorkspaceOpenAnimations(workspaceElement) {
     var windows = getWorkspaceWindows(workspaceElement);
     var index = 0;
@@ -3285,7 +3370,6 @@ var WebWindowManager = (function () {
     }
     syncWorkspaceWindows(workspaceElement);
     if (workspaceElement.id === "desktopWorkspace") {
-      scheduleInitialDesktopOpenAnimations();
       return;
     }
     playWorkspaceOpenAnimations(workspaceElement);
@@ -3423,6 +3507,7 @@ var WebWindowManager = (function () {
   function beginMainMenuScreenAnimations() {
     var device = document.getElementById("device");
     if (!device) return;
+    if (device.classList.contains("menu-animations-start")) return;
     device.classList.remove("menu-defer-animations");
     device.classList.add("menu-animations-start");
     if (window.WebMenuScreenEffects && window.WebMenuScreenEffects.sync) {
@@ -3439,18 +3524,16 @@ var WebWindowManager = (function () {
 
   function initOnReady() {
     var pageMenuElement = document.getElementById("pageMenu");
-    var device = document.getElementById("device");
-    if (device && shouldDeferMainMenuOpenAnimations()) {
-      device.classList.add("menu-defer-animations");
-    }
     cancelPendingLayoutSave();
     loadPersistedLayouts();
     initAll();
+    if (hasPersistedWindowLayouts()) {
+      finishDesktopLayoutBoot();
+    }
     if (shouldDeferMainMenuOpenAnimations()) {
       if (mainMenuCanvasShown) {
         onMainMenuCanvasShown();
       } else if (!isUnityHost()) {
-        beginMainMenuScreenAnimations();
         if (pageMenuElement && !pageMenuElement.hidden) activatePage(pageMenuElement);
       }
     } else if (pageMenuElement && !pageMenuElement.hidden) {
@@ -3462,14 +3545,10 @@ var WebWindowManager = (function () {
 
   window.addEventListener("web-menu-canvas-shown", onMainMenuCanvasShown);
   window.addEventListener("web-desktop-icons-ready", onDesktopIconsReadyForLayoutBoot);
+  window.addEventListener("web-menu-device-visible", onDesktopBootDeviceVisible);
   window.addEventListener("web-menu-boot-dismiss", function () {
     if (isGameMenuMode()) return;
     finishDesktopLayoutBoot();
-    scheduleInitialDesktopOpenAnimations();
-  });
-  window.addEventListener("web-menu-boot-dismissed", function () {
-    if (isGameMenuMode()) return;
-    scheduleInitialDesktopOpenAnimations();
   });
   window.addEventListener("web-page-changed", function () {
     syncActivePageWindows();
@@ -3522,6 +3601,7 @@ var WebWindowManager = (function () {
     hasSavedLayouts: hasSavedLayouts,
     hasPersistedWindowLayouts: hasPersistedWindowLayouts,
     setRouteBootDesktopVisibility: setRouteBootDesktopVisibility,
+    onDesktopBootDeviceVisible: onDesktopBootDeviceVisible,
     clearDesktopWindowFocus: clearDesktopWindowFocus,
     resetAllLayouts: resetAllWindowLayouts,
     logLayoutDiffFromDefaults: logWindowLayoutsDiffFromDefaults,

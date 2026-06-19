@@ -40,6 +40,7 @@ var WebDesktop = (function () {
     "connect-col-2",
     "settings-content",
     "extras-games",
+    "extras-game",
     "extras-art",
     "extras-links",
     "credits-content",
@@ -397,11 +398,6 @@ var WebDesktop = (function () {
           detail: { preset: presetName || "" }
         })
       );
-      return windowElement;
-    }
-
-    if (window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.ensureForPreset) {
-      window.WebMenuDeferredStyles.ensureForPreset(presetName, finishShowWindowElement);
       return windowElement;
     }
 
@@ -2684,17 +2680,14 @@ var WebDesktop = (function () {
       } else if (shouldOpenTitleWindowFromSaved()) {
         openWindow(WINDOW_PRESET_TITLE, false);
       }
-      window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
       return;
     }
     closeAllAppWindowsVisualOnly();
     if (menuLayoutPhoneVertical) {
       hideWindowElementVisualOnly(getWindowByPreset(WINDOW_PRESET_TITLE));
-      window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
       return;
     }
     openWindow(WINDOW_PRESET_TITLE, false);
-    window.dispatchEvent(new CustomEvent("web-desktop-windows-restored"));
   }
 
   function onDesktopWindowsRestored() {
@@ -2712,11 +2705,6 @@ var WebDesktop = (function () {
         runWindowOpenHooks(titleWindow, WINDOW_PRESET_TITLE);
       }
       updateDesktopTabOrder();
-    }
-
-    if (window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.preloadVisibleDesktopWindowStyles) {
-      window.WebMenuDeferredStyles.preloadVisibleDesktopWindowStyles(runDesktopWindowOpenHooks);
-      return;
     }
 
     runDesktopWindowOpenHooks();
