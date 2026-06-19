@@ -55,6 +55,23 @@
     return text;
   }
 
+  var ENTITY_NAME_KEY_PREFIX = "entity.";
+  var ENTITY_NAME_KEY_SUFFIX = ".name";
+
+  function getEntityDisplayName(entityId, fallbackDisplayName) {
+    var localeKey;
+    var localized;
+    if (!entityId) {
+      if (fallbackDisplayName) return fallbackDisplayName;
+      return "";
+    }
+    localeKey = ENTITY_NAME_KEY_PREFIX + entityId + ENTITY_NAME_KEY_SUFFIX;
+    localized = t(localeKey, "");
+    if (localized && localized !== localeKey) return localized;
+    if (fallbackDisplayName) return fallbackDisplayName;
+    return entityId;
+  }
+
   function applyLocaleDom() {
     if (window.WebLocale && window.WebLocale.applyDom) {
       window.WebLocale.applyDom();
@@ -288,7 +305,7 @@
     }(contract.id));
 
     row.appendChild(createIconCell(contract, contract.kind === KIND_WILDCARD));
-    row.appendChild(createTableCell("trade-col-name", contract.displayName || contract.entityId || t("trading.terminal.contract-fallback", "CONTRACT")));
+    row.appendChild(createTableCell("trade-col-name", getEntityDisplayName(contract.entityId, contract.displayName) || t("trading.terminal.contract-fallback", "CONTRACT")));
     row.appendChild(createLockCell(contract));
     row.appendChild(createTableCell("trade-col-type " + getContractTypeClass(contract), getContractTypeLabel(contract)));
     row.appendChild(createTableCell("trade-col-amount", formatAmount(contract)));
@@ -299,7 +316,8 @@
 
   function getSortValue(contract, column) {
     if (!contract) return "";
-    if (column === "name") return (contract.displayName || contract.entityId || "").toLowerCase();
+    if (column === "name") return getEntityDisplayName(contract.entityId, contract.displayName).toLowerCase();
+    if (column === "lock") return contract.pinned ? 1 : 0;
     if (column === "type") return contract.kind === KIND_BUY ? 0 : 1;
     if (column === "amount") return contract.kind === KIND_WILDCARD ? -1 : (contract.amount || 0);
     if (column === "price") return contract.unitPrice || 0;
@@ -413,7 +431,7 @@
     var lineTotal = item.lineTotal !== undefined ? item.lineTotal : (item.unitPrice || 0) * (item.count || 1);
 
     row.appendChild(createIconCell(item, false));
-    row.appendChild(createTableCell("trade-col-name", item.displayName || item.entityId || t("trading.terminal.item-fallback", "ITEM")));
+    row.appendChild(createTableCell("trade-col-name", getEntityDisplayName(item.entityId, item.displayName) || t("trading.terminal.item-fallback", "ITEM")));
     row.appendChild(createQtyControlsCell(item, itemIndex));
     row.appendChild(createTableCell("trade-col-type " + rowKind, rowKind === "is-buy" ? t("trading.terminal.buy", "BUY") : t("trading.terminal.sell", "SELL")));
     row.appendChild(createTableCell("trade-col-amount", formatItemAmount(item)));
@@ -489,7 +507,7 @@
     var statusMessage = document.getElementById("statusMessage");
     var contract = state.activeContract;
 
-    if (title) title.textContent = contract ? (contract.displayName || t("trading.terminal.contract-fallback", "CONTRACT")) : "—";
+    if (title) title.textContent = contract ? (getEntityDisplayName(contract.entityId, contract.displayName) || t("trading.terminal.contract-fallback", "CONTRACT")) : "—";
     if (detail) {
       if (!contract) detail.textContent = "—";
       else if (contract.kind === KIND_BUY) {
