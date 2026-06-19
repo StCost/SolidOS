@@ -57,19 +57,6 @@
 
   var ENTITY_NAME_KEY_PREFIX = "entity.";
   var ENTITY_NAME_KEY_SUFFIX = ".name";
-  var ENTITY_ID_PREFIXES = ["weapon_", "vehicle_", "heal_", "gib_", "fab_", "location_", "agent_"];
-
-  function humanizeEntityId(entityId) {
-    var prefixIndex;
-    if (!entityId) return "";
-    for (prefixIndex = 0; prefixIndex < ENTITY_ID_PREFIXES.length; prefixIndex++) {
-      if (entityId.indexOf(ENTITY_ID_PREFIXES[prefixIndex]) === 0) {
-        entityId = entityId.substring(ENTITY_ID_PREFIXES[prefixIndex].length);
-        break;
-      }
-    }
-    return entityId.replace(/_/g, " ").replace(/\d+$/, "").trim();
-  }
 
   function getEntityDisplayName(entityId, fallbackDisplayName) {
     var localeKey;
@@ -82,7 +69,7 @@
     localized = t(localeKey, "");
     if (localized && localized !== localeKey) return localized;
     if (fallbackDisplayName) return fallbackDisplayName;
-    return humanizeEntityId(entityId);
+    return entityId;
   }
 
   function applyLocaleDom() {
