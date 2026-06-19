@@ -704,10 +704,6 @@
       setGameplayHudVisibility(false);
       return;
     }
-    if (window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.ensureForLayer) {
-      window.WebMenuDeferredStyles.ensureForLayer("hud", showGameplayHudLayer);
-      return;
-    }
     showGameplayHudLayer();
   }
 

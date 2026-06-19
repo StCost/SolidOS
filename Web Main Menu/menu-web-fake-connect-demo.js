@@ -313,10 +313,6 @@
       document.documentElement.classList.add("web-fake-connect-demo-open");
       demoVisible = true;
     }
-    if (window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.ensureForPreset) {
-      window.WebMenuDeferredStyles.ensureForPreset("web-fake-connect-demo", finishShowDemoTerminal);
-      return;
-    }
     finishShowDemoTerminal();
   }
 

@@ -2,6 +2,8 @@
   var WINDOW_QUERY_KEY = "window";
   var TAB_QUERY_KEY = "tab";
   var LEGACY_ROUTE_QUERY_KEYS = ["route", "p"];
+  var ROUTE_WINDOW_EXTRAS_GAMES = "extras-games";
+  var ROUTE_WINDOW_EXTRAS_GAME = "extras-game";
   var applyingRoute = false;
   var routeBootComplete = false;
   var initialRouteWindow = "";
@@ -73,9 +75,17 @@
 
   function windowSupportsTabParam(presetName) {
     if (presetName === "settings-content") return true;
-    if (presetName === "extras-games") return true;
+    if (presetName === ROUTE_WINDOW_EXTRAS_GAMES) return true;
+    if (presetName === ROUTE_WINDOW_EXTRAS_GAME) return true;
     if (presetName === "extras-art") return true;
     return false;
+  }
+
+  function normalizeRouteWindowPreset(presetName) {
+    if (presetName === ROUTE_WINDOW_EXTRAS_GAME) {
+      return ROUTE_WINDOW_EXTRAS_GAMES;
+    }
+    return presetName || "";
   }
 
   function parseWindowPresetFromLocation() {
@@ -140,11 +150,24 @@
 
   function getRouteWindowPresetForUrl() {
     var focused = getFocusedDesktopWindowElement();
+    var presetName;
     if (!focused) return "";
     if (focused.classList.contains("os-window--minimized")) {
       return "";
     }
-    return focused.getAttribute("data-wm-preset") || "";
+    presetName = focused.getAttribute("data-wm-preset") || "";
+    return normalizeRouteWindowPreset(presetName);
+  }
+
+  function setGameUrlLink(gameId, enabled, useReplace) {
+    if (!isWebMode() || !gameId) return;
+    if (enabled) {
+      setLocationRoute(ROUTE_WINDOW_EXTRAS_GAMES, gameId, useReplace === true);
+      return;
+    }
+    if (readRouteFromLocation().tab === gameId) {
+      setLocationRoute(ROUTE_WINDOW_EXTRAS_GAMES, "", true);
+    }
   }
 
   function getTabForFocusedWindow(windowPreset) {
@@ -199,10 +222,12 @@
     if (window.WebDesktop && window.WebDesktop.openWindow) {
       window.WebDesktop.openWindow(presetName, false);
     }
-    if (tabValue && presetName !== "extras-games") {
+    if (tabValue && presetName === ROUTE_WINDOW_EXTRAS_GAME) {
+      applyTabForWindow(presetName, tabValue);
+    } else if (tabValue && presetName !== ROUTE_WINDOW_EXTRAS_GAMES) {
       applyTabForWindow(presetName, tabValue);
     }
-    if (tabValue && presetName === "extras-games" && window.WebExtras && window.WebExtras.applyPendingRouteTab) {
+    if (tabValue && presetName === ROUTE_WINDOW_EXTRAS_GAMES && window.WebExtras && window.WebExtras.applyPendingRouteTab) {
       window.WebExtras.applyPendingRouteTab(presetName);
     }
     return true;
@@ -289,7 +314,8 @@
       return initialRouteTab;
     },
     applyWindowPresetFromRoute: applyWindowPresetFromRoute,
-    syncFromFocusedWindow: syncRouteFromFocusedWindow
+    syncFromFocusedWindow: syncRouteFromFocusedWindow,
+    setGameUrlLink: setGameUrlLink
   };
 
   window.addEventListener("popstate", onLocationRouteChange);

@@ -266,9 +266,6 @@
   function init() {
     if (initialized) return;
     initialized = true;
-    if (window.WebMenuDeferredStyles && window.WebMenuDeferredStyles.ensureForLayer) {
-      window.WebMenuDeferredStyles.ensureForLayer("hints");
-    }
     ensureRoots();
     bindListeners();
     syncDesktopIconHints();
