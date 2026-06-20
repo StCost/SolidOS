@@ -5,6 +5,9 @@
   var CONTRACTS_PER_PAGE = 10;
   var ICON_LOCK_SRC = "icon-lock.svg";
   var ICON_UNLOCK_SRC = "icon-unlock.svg";
+  var ICON_BUY_SRC = "icon-buy.svg";
+  var ICON_SELL_SRC = "icon-sell.svg";
+  var ICON_MARKS_SRC = "icon-marks.svg";
   var SUCCESS_OVERLAY_MS = 5000;
 
   var state = {
@@ -25,6 +28,8 @@
     previewTotalPrice: 0,
     statusMessage: "",
     successOverlay: "",
+    successMarksChange: 0,
+    transit: null,
     contractPage: 0,
     sortColumn: "",
     sortDirection: 0,
@@ -34,10 +39,361 @@
   var crosshairCursorElement = null;
   var crosshairDefaultImage = null;
   var crosshairPointerImage = null;
+  var crosshairForbiddenImage = null;
   var pointerVisible = false;
   var lastPointerX = 0;
   var lastPointerY = 0;
   var successOverlayTimer = 0;
+
+  var TRANSIT_MODE_SEND = "send";
+  var TRANSIT_MODE_RECEIVE = "receive";
+  var TRANSIT_AUTO_STEPS = { cargo: true, send: true, receive: true };
+  var TRANSIT_RECEIVE_PHASE_TWO_START = "receive";
+  var TRANSIT_STEP_LOCALE_PREFIX = "trading.terminal.transit.step.";
+  var transitAutoOperate = false;
+  var transitAutoOperatePending = false;
+  var transitAutoOperateTimer = 0;
+  var transitStepListRevealKey = "";
+  var transitStepStructureKey = "";
+  var transitScrollStepId = "";
+  var transitAutoOperateTargetStepId = "";
+  var handshakeItemListRevealKey = "";
+
+  var TRANSIT_SEND_PHASE_ONE_END = "final-scan";
+  var TRANSIT_SEND_PHASE_TWO_START = "handshake";
+
+  var TRANSIT_STEP_ICON_MAP = {
+    "cargo": "transit-icon-cargo.svg",
+    "seal": "transit-icon-seal.svg",
+    "vacuum": "transit-icon-vacuum.svg",
+    "handshake": "transit-icon-handshake.svg",
+    "he3-fill": "transit-icon-he3-fill.svg",
+    "magnetic-trap": "transit-icon-magnetic-trap.svg",
+    "optical-trap": "transit-icon-optical-trap.svg",
+    "final-scan": "transit-icon-final-scan.svg",
+    "collapse": "transit-icon-collapse.svg",
+    "send": "transit-icon-send.svg",
+    "receive": "transit-icon-receive.svg",
+    "deflood": "transit-icon-deflood.svg",
+    "devacuum": "transit-icon-devacuum.svg",
+    "deseal": "transit-icon-deseal.svg"
+  };
+
+  function getTransitStepIconSrc(stepId) {
+    if (!stepId) return "";
+    return TRANSIT_STEP_ICON_MAP[stepId] || "transit-icon-step.svg";
+  }
+
+  function getTransitStepLabel(stepId) {
+    return t(TRANSIT_STEP_LOCALE_PREFIX + stepId, stepId.toUpperCase().replace(/-/g, " "));
+  }
+
+  function getTransitStepIndex(transit, stepId) {
+    if (!transit || !transit.stepOrder || !stepId) return -1;
+    var index;
+    for (index = 0; index < transit.stepOrder.length; index++) {
+      if (transit.stepOrder[index] === stepId) return index;
+    }
+    return -1;
+  }
+
+  function isTransitStepCompleted(transit, stepId) {
+    if (!transit || !stepId) return false;
+    if (transit.completedStepIds) {
+      var index;
+      for (index = 0; index < transit.completedStepIds.length; index++) {
+        if (transit.completedStepIds[index] === stepId) return true;
+      }
+    }
+    var activeStepId = transit.activeStepId || "";
+    if (!activeStepId) return false;
+    var stepIndex = getTransitStepIndex(transit, stepId);
+    var activeIndex = getTransitStepIndex(transit, activeStepId);
+    return stepIndex >= 0 && activeIndex >= 0 && stepIndex < activeIndex;
+  }
+
+  function getTransitStepDelaySeconds(transit, stepId) {
+    if (!transit || !transit.stepDelays) return 0;
+    var delays = transit.stepDelays;
+    if (stepId === "seal") return delays.sealSeconds || 0;
+    if (stepId === "vacuum") return delays.vacuumSeconds || 0;
+    if (stepId === "handshake") return delays.handshakeSeconds || 0;
+    if (stepId === "he3-fill") return delays.he3FillSeconds || 0;
+    if (stepId === "magnetic-trap") return delays.magneticTrapSeconds || 0;
+    if (stepId === "optical-trap") return delays.opticalTrapSeconds || 0;
+    if (stepId === "devacuum") return delays.devacuumSeconds || 0;
+    if (stepId === "deseal") return delays.desealSeconds || 0;
+    if (stepId === "deflood") return delays.defloodSeconds || 0;
+    if (stepId === "final-scan" || stepId === "collapse" || stepId === "send" || stepId === "receive") {
+      return delays.instantStepSeconds || 0;
+    }
+    return 0;
+  }
+
+  function getTransitPhaseLabel(transit) {
+    if (!transit || !transit.active) return "";
+    if (transit.mode === TRANSIT_MODE_RECEIVE) {
+      if (!isTransitStepCompleted(transit, "handshake")) {
+        return t("trading.terminal.transit.phase.prep", "PHASE I: PRE-LAUNCH PREPARATION");
+      }
+      if (!isTransitStepCompleted(transit, TRANSIT_RECEIVE_PHASE_TWO_START)) {
+        return t("trading.terminal.transit.phase.transit", "PHASE II: INCOMING TRANSIT");
+      }
+      return t("trading.terminal.transit.phase.receive", "PHASE III: RECEPTION");
+    }
+    var activeStepId = transit.activeStepId || "";
+    if (!isTransitStepCompleted(transit, TRANSIT_SEND_PHASE_TWO_START)) {
+      return t("trading.terminal.transit.phase.prep", "PHASE I: PRE-LAUNCH PREPARATION");
+    }
+    if (!isTransitStepCompleted(transit, "send")) {
+      return t("trading.terminal.transit.phase.transmit", "PHASE II: OUTGOING TRANSMIT PIPELINE");
+    }
+    return t("trading.terminal.transit.phase.receive", "PHASE III: RECEPTION AND DESEAL");
+  }
+
+  function isTransitStepButtonDisabled(button) {
+    if (!button || !button.classList || !button.classList.contains("trade-transit-step-button")) {
+      return false;
+    }
+
+    if (button.disabled) {
+      return true;
+    }
+
+    return button.classList.contains("is-complete")
+      || button.classList.contains("is-pending")
+      || button.classList.contains("is-auto")
+      || button.classList.contains("is-running");
+  }
+
+  function getTransitStepStructureKey(transit) {
+    if (!transit) return "";
+    return [
+      transit.activeStepId || "",
+      transit.activeStepRunning ? "1" : "0",
+      (transit.completedStepIds || []).join(","),
+      transit.canCancelTransit ? "1" : "0"
+    ].join("|");
+  }
+
+  function getTransitStepRuntimeState(transit, stepId) {
+    var isComplete = isTransitStepCompleted(transit, stepId);
+    var isActive = !isComplete && transit.activeStepId === stepId;
+    var isRunning = isActive && (transit.activeStepRunning || ((transit.activeStepProgress || 0) > 0 && (transit.activeStepProgress || 0) < 1));
+    var isAuto = !!TRANSIT_AUTO_STEPS[stepId];
+    var isInteractive = isActive && !isAuto && !isComplete && !isRunning;
+    return {
+      isComplete: isComplete,
+      isActive: isActive,
+      isRunning: isRunning,
+      isAuto: isAuto,
+      isInteractive: isInteractive
+    };
+  }
+
+  function updateTransitStepProgressDom(stepList, transit) {
+    var stepOrder = transit.stepOrder || [];
+    var stepIndex;
+    for (stepIndex = 0; stepIndex < stepOrder.length; stepIndex++) {
+      var stepId = stepOrder[stepIndex];
+      var stepWrap = stepList.querySelector('[data-step-id="' + stepId + '"]');
+      if (!stepWrap) return false;
+
+      var runtimeState = getTransitStepRuntimeState(transit, stepId);
+      var progress = stepWrap.querySelector(".trade-transit-progress");
+      var progressFill = stepWrap.querySelector(".trade-transit-progress-fill");
+      if (!progress || !progressFill) return false;
+
+      progress.classList.toggle("is-complete", runtimeState.isComplete);
+      var progressValue = 0;
+      if (runtimeState.isComplete) {
+        progressValue = 100;
+      } else if (runtimeState.isRunning) {
+        progressValue = Math.round((transit.activeStepProgress || 0) * 100);
+      }
+      progressFill.style.width = String(progressValue) + "%";
+    }
+    return true;
+  }
+
+  function scrollTransitActiveStepIntoView(stepList, transit, smooth) {
+    if (!stepList || !transit || !transit.activeStepId) return;
+    var activeStep = stepList.querySelector('[data-step-id="' + transit.activeStepId + '"]');
+    if (!activeStep) return;
+    var containerHeight = stepList.clientHeight;
+    if (containerHeight <= 0) return;
+    var stepTop = activeStep.offsetTop;
+    var stepHeight = activeStep.offsetHeight;
+    var targetScrollTop = stepTop - Math.max(0, (containerHeight - stepHeight) * 0.5);
+    var maxScrollTop = stepList.scrollHeight - containerHeight;
+    if (targetScrollTop < 0) targetScrollTop = 0;
+    if (targetScrollTop > maxScrollTop) targetScrollTop = maxScrollTop;
+    if (smooth && stepList.scrollTo) {
+      stepList.scrollTo({ top: targetScrollTop, behavior: "smooth" });
+    } else {
+      stepList.scrollTop = targetScrollTop;
+    }
+  }
+
+  function updateTransitToolbar(transit) {
+    var backButton = document.getElementById("transitBackButton");
+
+    if (backButton) {
+      var canCancel = !!(transit && transit.canCancelTransit);
+      backButton.disabled = !canCancel;
+      backButton.textContent = t("trading.terminal.back", "Back");
+    }
+  }
+
+  function renderTransitScreen() {
+    var stepList = document.getElementById("transitStepList");
+    var transit = state.transit;
+
+    if (!stepList) return;
+
+    if (!transit || !transit.active || state.screen !== "transit") {
+      stepList.innerHTML = "";
+      transitStepListRevealKey = "";
+      transitStepStructureKey = "";
+      transitScrollStepId = "";
+      clearTransitAutoOperateTimer();
+      updateTransitToolbar(null);
+      return;
+    }
+
+    updateWindowChrome();
+    updateTransitToolbar(transit);
+
+    var structureKey = getTransitStepStructureKey(transit);
+    if (structureKey === transitStepStructureKey && stepList.childElementCount > 0) {
+      if (updateTransitStepProgressDom(stepList, transit)) {
+        scrollTransitActiveStepIntoView(stepList, transit, false);
+        maybeAutoOperateTransitStep();
+        return;
+      }
+    }
+    transitStepStructureKey = structureKey;
+
+    var revealKey = "transit";
+    var animateRows = revealKey !== transitStepListRevealKey;
+    if (animateRows) {
+      transitStepListRevealKey = revealKey;
+    }
+
+    stepList.innerHTML = "";
+    var stepOrder = transit.stepOrder || [];
+    var stepIndex;
+    for (stepIndex = 0; stepIndex < stepOrder.length; stepIndex++) {
+      var stepId = stepOrder[stepIndex];
+      var runtimeState = getTransitStepRuntimeState(transit, stepId);
+      var isComplete = runtimeState.isComplete;
+      var isActive = runtimeState.isActive;
+      var isRunning = runtimeState.isRunning;
+      var isAuto = runtimeState.isAuto;
+      var isInteractive = runtimeState.isInteractive;
+
+      var stepWrap = document.createElement("div");
+      stepWrap.className = "trade-transit-step";
+      stepWrap.setAttribute("data-step-id", stepId);
+
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "term-button trade-transit-step-button";
+      if (isComplete) button.classList.add("is-complete");
+      else if (isRunning) button.classList.add("is-running");
+      else if (isActive && isAuto) button.classList.add("is-auto");
+      else if (isActive) button.classList.add("is-active");
+      else button.classList.add("is-pending");
+
+      if (!isInteractive) {
+        button.disabled = true;
+      }
+
+      var label = document.createElement("span");
+      label.className = "trade-transit-step-label";
+      label.textContent = getTransitStepLabel(stepId);
+
+      var icon = document.createElement("img");
+      icon.className = "trade-transit-step-icon";
+      icon.alt = "";
+      icon.src = getTransitStepIconSrc(stepId);
+
+      button.appendChild(icon);
+      button.appendChild(label);
+
+      if (isInteractive) {
+        button.addEventListener("click", function (clickedStepId) {
+          return function () {
+            postAction("transit-step", { stepId: clickedStepId });
+          };
+        }(stepId));
+      }
+
+      stepWrap.appendChild(button);
+
+      var progress = document.createElement("div");
+      progress.className = "trade-transit-progress";
+      if (isComplete) {
+        progress.classList.add("is-complete");
+      }
+      var progressFill = document.createElement("div");
+      progressFill.className = "trade-transit-progress-fill";
+      var progressValue = 0;
+      if (isComplete) {
+        progressValue = 100;
+      } else if (isRunning) {
+        progressValue = Math.round((transit.activeStepProgress || 0) * 100);
+      }
+      progressFill.style.width = String(progressValue) + "%";
+      progress.appendChild(progressFill);
+
+      stepWrap.appendChild(progress);
+      if (animateRows) {
+        setRowRevealAnimation(stepWrap, stepIndex);
+      }
+      stepList.appendChild(stepWrap);
+    }
+
+    var scrollStepId = transit.activeStepId || "";
+    var stepChanged = scrollStepId !== transitScrollStepId;
+    if (stepChanged) {
+      transitScrollStepId = scrollStepId;
+    }
+    scrollTransitActiveStepIntoView(stepList, transit, stepChanged);
+
+    maybeAutoOperateTransitStep();
+  }
+
+  function clearTransitAutoOperateTimer() {
+    if (transitAutoOperateTimer) {
+      window.clearTimeout(transitAutoOperateTimer);
+      transitAutoOperateTimer = 0;
+    }
+    transitAutoOperatePending = false;
+    transitAutoOperateTargetStepId = "";
+  }
+
+  function maybeAutoOperateTransitStep() {
+    if (!transitAutoOperate) return;
+    var transit = state.transit;
+    if (!transit || !transit.active || transit.activeStepRunning) return;
+
+    var stepId = transit.activeStepId;
+    if (!stepId || TRANSIT_AUTO_STEPS[stepId] || isTransitStepCompleted(transit, stepId)) return;
+    if (transitAutoOperatePending && transitAutoOperateTargetStepId === stepId) return;
+
+    transitAutoOperateTargetStepId = stepId;
+    transitAutoOperatePending = true;
+    transitAutoOperateTimer = window.setTimeout(function () {
+      transitAutoOperateTimer = 0;
+      transitAutoOperatePending = false;
+      postAction("transit-step", { stepId: stepId });
+    }, 0);
+  }
+
+  function isTransitActive() {
+    return !!(state.transit && state.transit.active);
+  }
 
   function t(key, fallback) {
     if (window.WebLocale && window.WebLocale.get) {
@@ -78,50 +434,40 @@
     }
     renderContracts();
     renderHandshake();
-    syncTypeColumnWidth();
-    var successOverlay = document.getElementById("tradeSuccessOverlay");
-    var successMessage = document.getElementById("tradeSuccessMessage");
-    if (successOverlay && successMessage && !successOverlay.classList.contains("term-hidden")) {
-      successMessage.textContent = t("trading.terminal.trade-complete", "TRADE COMPLETE");
+    if (state.screen === "success") {
+      renderSuccessScreen();
     }
+    renderTransitScreen();
+    updateWindowChrome();
   }
 
-  function syncTypeColumnWidth() {
-    var measureKeys = [
-      ["trading.terminal.col.type", "TYPE"],
-      ["trading.terminal.buy", "BUY"],
-      ["trading.terminal.sell", "SELL"],
-      ["trading.terminal.all", "ALL"]
-    ];
-
-    var probe = document.getElementById("tradeTypeColProbe");
-    if (!probe) {
-      probe = document.createElement("span");
-      probe.id = "tradeTypeColProbe";
-      probe.className = "trade-col trade-col-type trade-type-col-probe";
-      probe.setAttribute("aria-hidden", "true");
-      document.body.appendChild(probe);
+  function resolveScreen(nextState) {
+    if (nextState.transit && nextState.transit.active) return "transit";
+    if (nextState.successOverlay) return "success";
+    if (nextState.screen === "handshake" || (nextState.activeContractId !== undefined && nextState.activeContractId >= 0)) {
+      return "handshake";
     }
+    return "contracts";
+  }
 
-    var maxWidth = 0;
-    var index;
-    for (index = 0; index < measureKeys.length; index++) {
-      probe.textContent = t(measureKeys[index][0], measureKeys[index][1]);
-      var probeWidth = probe.getBoundingClientRect().width;
-      if (probeWidth > maxWidth) maxWidth = probeWidth;
-    }
+  function updateWindowChrome() {
+    var titleElement = document.getElementById("termWindowTitleText");
+    if (!titleElement) return;
 
-    var typeCells = document.querySelectorAll(".trade-contract-table .trade-col-type, .trade-item-table .trade-col-type");
-    for (index = 0; index < typeCells.length; index++) {
-      var cell = typeCells[index];
-      if (cell.id === "tradeTypeColProbe") continue;
-      var cellWidth = cell.scrollWidth;
-      if (cellWidth > maxWidth) maxWidth = cellWidth;
+    if (state.screen === "transit") {
+      var phaseLabel = getTransitPhaseLabel(state.transit);
+      titleElement.textContent = phaseLabel || t("trading.terminal.transit.title", "Mass-transit sequence");
+      return;
     }
-
-    if (maxWidth > 0) {
-      document.documentElement.style.setProperty("--term-type-col-width", Math.ceil(maxWidth) + "px");
+    if (state.screen === "success") {
+      titleElement.textContent = t("trading.terminal.success", "SUCCESS");
+      return;
     }
+    if (state.screen === "handshake" && state.activeContract) {
+      titleElement.textContent = getEntityDisplayName(state.activeContract.entityId, state.activeContract.displayName) || t("trading.terminal.contract-fallback", "CONTRACT");
+      return;
+    }
+    titleElement.textContent = t("trading.terminal.title", "TRADING TERMINAL");
   }
 
   function postAction(action, extraPayload) {
@@ -150,13 +496,94 @@
     state.screen = screenName;
     var contractsScreen = document.getElementById("contractsScreen");
     var handshakeScreen = document.getElementById("handshakeScreen");
+    var transitScreen = document.getElementById("transitScreen");
+    var successScreen = document.getElementById("successScreen");
+    var termFrame = document.querySelector(".term-frame");
     if (contractsScreen) contractsScreen.classList.toggle("term-hidden", screenName !== "contracts");
     if (handshakeScreen) handshakeScreen.classList.toggle("term-hidden", screenName !== "handshake");
+    if (transitScreen) transitScreen.classList.toggle("term-hidden", screenName !== "transit");
+    if (successScreen) successScreen.classList.toggle("term-hidden", screenName !== "success");
+    if (termFrame) termFrame.classList.toggle("is-transit-screen", screenName === "transit");
+    updateDockFooter();
+    updateWindowChrome();
+  }
+
+  var ROW_REVEAL_DELAY_MS = 40;
+
+  function setRowRevealAnimation(row, revealIndex) {
+    if (!row || revealIndex === undefined || revealIndex < 0) return;
+    row.classList.add("is-revealing");
+    row.style.animationDelay = String(revealIndex * ROW_REVEAL_DELAY_MS) + "ms";
+  }
+
+  function updateDockFooter() {
+    var dockFooter = document.getElementById("tradeDockFooter");
+    var dockPagination = document.getElementById("tradeDockPagination");
+    var showDock = state.screen === "contracts" || state.screen === "handshake";
+    if (dockFooter) dockFooter.classList.toggle("term-hidden", !showDock);
+    if (dockPagination) dockPagination.classList.toggle("term-hidden", state.screen !== "contracts");
   }
 
   function updateHeader() {
     var marksValue = document.getElementById("marksValue");
-    if (marksValue) marksValue.textContent = String(state.marks);
+    if (marksValue) setMarksAmountElement(marksValue, state.marks);
+  }
+
+  function createMarksIconElement(className) {
+    var icon = document.createElement("img");
+    icon.className = className || "trade-marks-icon";
+    icon.alt = "";
+    icon.src = ICON_MARKS_SRC;
+    return icon;
+  }
+
+  function setMarksAmountElement(element, amount, prefix) {
+    if (!element) return;
+    element.textContent = "";
+    var wrap = document.createElement("span");
+    wrap.className = "trade-marks-inline";
+    if (prefix) wrap.appendChild(document.createTextNode(prefix));
+    wrap.appendChild(document.createTextNode(String(amount)));
+    wrap.appendChild(createMarksIconElement());
+    element.appendChild(wrap);
+  }
+
+  function appendMarksAmountInline(parent, amount, prefix) {
+    if (!parent) return;
+    var wrap = document.createElement("span");
+    wrap.className = "trade-marks-inline";
+    if (prefix) wrap.appendChild(document.createTextNode(prefix));
+    wrap.appendChild(document.createTextNode(String(amount)));
+    wrap.appendChild(createMarksIconElement());
+    parent.appendChild(wrap);
+  }
+
+  function setTextWithMarksPrice(element, templateKey, fallback, amount, price) {
+    if (!element) return;
+    element.textContent = "";
+    var template = t(templateKey, fallback);
+    var priceMarker = "{1}";
+    var markerIndex = template.indexOf(priceMarker);
+    var beforePart = markerIndex >= 0 ? template.substring(0, markerIndex) : template;
+    var afterPart = markerIndex >= 0 ? template.substring(markerIndex + priceMarker.length) : "";
+    beforePart = beforePart.split("{0}").join(String(amount));
+    afterPart = afterPart.split("{0}").join(String(amount));
+    if (beforePart) element.appendChild(document.createTextNode(beforePart));
+    appendMarksAmountInline(element, price);
+    if (afterPart) element.appendChild(document.createTextNode(afterPart));
+  }
+
+  function setTextWithMarksAmount(element, templateKey, fallback, amount) {
+    if (!element) return;
+    element.textContent = "";
+    var template = t(templateKey, fallback);
+    var amountMarker = "{0}";
+    var markerIndex = template.indexOf(amountMarker);
+    var beforePart = markerIndex >= 0 ? template.substring(0, markerIndex) : template;
+    var afterPart = markerIndex >= 0 ? template.substring(markerIndex + amountMarker.length) : "";
+    if (beforePart) element.appendChild(document.createTextNode(beforePart));
+    appendMarksAmountInline(element, amount);
+    if (afterPart) element.appendChild(document.createTextNode(afterPart));
   }
 
   function getIconUrl(itemOrContract) {
@@ -166,34 +593,35 @@
     return state.iconMap[String(assetId)] || state.iconMap[assetId] || "";
   }
 
-  function getContractTypeLabel(contract) {
-    if (!contract) return "";
-    if (contract.kind === KIND_BUY) return t("trading.terminal.buy", "BUY");
-    return t("trading.terminal.sell", "SELL");
-  }
-
   function getContractTypeClass(contract) {
     if (!contract) return "";
     if (contract.kind === KIND_BUY) return "is-buy";
     return "is-sell";
   }
 
-  function formatPrice(value, wildcard) {
-    if (wildcard) return "50%";
-    return String(value) + " MK";
+  function createMarksAmountCell(className, value, wildcard) {
+    var cell = document.createElement("span");
+    cell.className = "trade-col " + className;
+    if (wildcard) {
+      cell.textContent = "50%";
+      return cell;
+    }
+    setMarksAmountElement(cell, value);
+    return cell;
+  }
+
+  function isContractDisabled(contract) {
+    if (!contract || contract.kind === KIND_WILDCARD) return false;
+    if (contract.selectable === false) return true;
+    return (contract.amount || 0) <= 0;
   }
 
   function formatAmount(contract) {
     if (!contract) return "—";
     if (contract.kind === KIND_WILDCARD) return t("trading.terminal.all", "ALL");
+    if (isContractDisabled(contract)) return "0";
     if (contract.amount > 0) return String(contract.amount);
     return "—";
-  }
-
-  function formatTotal(contract) {
-    if (!contract) return "—";
-    if (contract.kind === KIND_WILDCARD) return "—";
-    return String(contract.totalPrice) + " MK";
   }
 
   function formatItemAmount(item) {
@@ -208,6 +636,18 @@
     var cell = document.createElement("span");
     cell.className = "trade-col " + className;
     cell.textContent = text;
+    return cell;
+  }
+
+  function createTypeIconCell(typeClass, isBuy) {
+    var cell = document.createElement("span");
+    cell.className = "trade-col trade-col-type " + typeClass;
+
+    var icon = document.createElement("img");
+    icon.className = "trade-type-icon";
+    icon.alt = "";
+    icon.src = isBuy ? ICON_BUY_SRC : ICON_SELL_SRC;
+    cell.appendChild(icon);
     return cell;
   }
 
@@ -295,22 +735,26 @@
     return qtyCell;
   }
 
-  function appendContractRow(list, contract) {
+  function appendContractRow(list, contract, revealIndex) {
     var row = document.createElement("div");
     row.className = "trade-table-row trade-contract-row " + getContractTypeClass(contract);
     if (contract.pinned) row.classList.add("is-locked");
+    if (isContractDisabled(contract)) row.classList.add("is-disabled");
 
-    row.addEventListener("click", function (contractId) {
-      return function () { postAction("handshake", { contractId: contractId }); };
-    }(contract.id));
+    if (!isContractDisabled(contract)) {
+      row.addEventListener("click", function (contractId) {
+        return function () { postAction("handshake", { contractId: contractId }); };
+      }(contract.id));
+    }
 
     row.appendChild(createIconCell(contract, contract.kind === KIND_WILDCARD));
     row.appendChild(createTableCell("trade-col-name", getEntityDisplayName(contract.entityId, contract.displayName) || t("trading.terminal.contract-fallback", "CONTRACT")));
     row.appendChild(createLockCell(contract));
-    row.appendChild(createTableCell("trade-col-type " + getContractTypeClass(contract), getContractTypeLabel(contract)));
+    row.appendChild(createTypeIconCell(getContractTypeClass(contract), contract.kind === KIND_BUY));
     row.appendChild(createTableCell("trade-col-amount", formatAmount(contract)));
-    row.appendChild(createTableCell("trade-col-price", formatPrice(contract.unitPrice, contract.kind === KIND_WILDCARD)));
-    row.appendChild(createTableCell("trade-col-total", formatTotal(contract)));
+    row.appendChild(createMarksAmountCell("trade-col-price", contract.unitPrice, contract.kind === KIND_WILDCARD));
+    row.appendChild(createMarksAmountCell("trade-col-total", contract.totalPrice, contract.kind === KIND_WILDCARD));
+    setRowRevealAnimation(row, revealIndex);
     list.appendChild(row);
   }
 
@@ -415,12 +859,11 @@
     var startIndex = state.contractPage * CONTRACTS_PER_PAGE;
     var endIndex = Math.min(startIndex + CONTRACTS_PER_PAGE, sorted.length);
     for (var contractIndex = startIndex; contractIndex < endIndex; contractIndex++) {
-      appendContractRow(list, sorted[contractIndex]);
+      appendContractRow(list, sorted[contractIndex], contractIndex - startIndex);
     }
-    syncTypeColumnWidth();
   }
 
-  function appendItemRow(list, item, rowKind, itemIndex) {
+  function appendItemRow(list, item, rowKind, itemIndex, revealIndex) {
     var row = document.createElement("div");
     row.className = "trade-table-row trade-item-row " + rowKind;
 
@@ -433,10 +876,11 @@
     row.appendChild(createIconCell(item, false));
     row.appendChild(createTableCell("trade-col-name", getEntityDisplayName(item.entityId, item.displayName) || t("trading.terminal.item-fallback", "ITEM")));
     row.appendChild(createQtyControlsCell(item, itemIndex));
-    row.appendChild(createTableCell("trade-col-type " + rowKind, rowKind === "is-buy" ? t("trading.terminal.buy", "BUY") : t("trading.terminal.sell", "SELL")));
+    row.appendChild(createTypeIconCell(rowKind, rowKind === "is-buy"));
     row.appendChild(createTableCell("trade-col-amount", formatItemAmount(item)));
-    row.appendChild(createTableCell("trade-col-price", formatPrice(item.unitPrice || 0, false)));
-    row.appendChild(createTableCell("trade-col-total", formatPrice(lineTotal, false)));
+    row.appendChild(createMarksAmountCell("trade-col-price", item.unitPrice || 0, false));
+    row.appendChild(createMarksAmountCell("trade-col-total", lineTotal, false));
+    setRowRevealAnimation(row, revealIndex);
     list.appendChild(row);
   }
 
@@ -452,6 +896,7 @@
     if (state.screen !== "handshake" || !state.activeContract) {
       if (itemTable) itemTable.classList.add("term-hidden");
       totals.classList.add("term-hidden");
+      handshakeItemListRevealKey = "";
       return;
     }
 
@@ -475,18 +920,28 @@
 
     if (itemTable) itemTable.classList.remove("term-hidden");
 
+    var revealKey = String(state.activeContractId) + ":" + String(items.length);
+    var animateRows = revealKey !== handshakeItemListRevealKey;
+    if (animateRows) {
+      handshakeItemListRevealKey = revealKey;
+    }
+
     for (var itemIndex = 0; itemIndex < items.length; itemIndex++) {
-      appendItemRow(list, items[itemIndex], rowKind, itemIndex);
+      appendItemRow(list, items[itemIndex], rowKind, itemIndex, animateRows ? itemIndex : -1);
     }
 
     totals.textContent = "";
     totals.classList.add("term-hidden");
-    syncTypeColumnWidth();
   }
 
   function updateConfirmButton() {
     var confirmButton = document.getElementById("confirmButton");
     if (!confirmButton) return;
+
+    if (isTransitActive()) {
+      confirmButton.disabled = true;
+      return;
+    }
 
     var contract = state.activeContract;
     var canConfirm = true;
@@ -504,6 +959,7 @@
     var title = document.getElementById("handshakeTitle");
     var detail = document.getElementById("handshakeDetail");
     var scanButton = document.getElementById("scanButton");
+    var stopHandshakeButton = document.getElementById("stopHandshakeButton");
     var statusMessage = document.getElementById("statusMessage");
     var contract = state.activeContract;
 
@@ -511,17 +967,25 @@
     if (detail) {
       if (!contract) detail.textContent = "—";
       else if (contract.kind === KIND_BUY) {
-        detail.textContent = tFormat("trading.terminal.buy-detail", "BUY UP TO {0} FOR {1} MK", contract.amount, contract.totalPrice);
+        setTextWithMarksPrice(detail, "trading.terminal.buy-detail", "BUY UP TO {0} FOR {1}", contract.amount, contract.totalPrice);
       } else if (contract.kind === KIND_WILDCARD) {
-        detail.textContent = t("trading.terminal.sell-wildcard-detail", "SELL ALL TRADEABLE FOR MARKS (50%)");
+        detail.textContent = t("trading.terminal.sell-wildcard-detail", "SELL ALL TRADEABLE (50%)");
       } else {
-        detail.textContent = tFormat("trading.terminal.sell-detail", "SELL UP TO {0} FOR {1} MK", contract.amount, contract.totalPrice);
+        setTextWithMarksPrice(detail, "trading.terminal.sell-detail", "SELL UP TO {0} FOR {1}", contract.amount, contract.totalPrice);
       }
     }
 
     var isSell = contract && (contract.kind === KIND_SELL || contract.kind === KIND_WILDCARD);
     if (scanButton) scanButton.classList.toggle("term-hidden", !isSell);
-    if (statusMessage) statusMessage.textContent = state.statusMessage || "";
+    if (scanButton && isTransitActive()) scanButton.disabled = true;
+    else if (scanButton) scanButton.disabled = false;
+    if (stopHandshakeButton && isTransitActive()) stopHandshakeButton.disabled = true;
+    else if (stopHandshakeButton) stopHandshakeButton.disabled = false;
+    if (statusMessage) {
+      statusMessage.textContent = state.statusMessage
+        ? t(state.statusMessage, state.statusMessage)
+        : "";
+    }
 
     updateConfirmButton();
     renderItemList();
@@ -534,21 +998,62 @@
     }
   }
 
+  function resetSuccessProgressBar() {
+    var progressFill = document.getElementById("tradeSuccessProgressFill");
+    if (!progressFill) return;
+
+    progressFill.classList.remove("is-running");
+    progressFill.style.removeProperty("animation-duration");
+    void progressFill.offsetWidth;
+    progressFill.style.animationDuration = String(SUCCESS_OVERLAY_MS) + "ms";
+    progressFill.classList.add("is-running");
+  }
+
+  function clearSuccessProgressBar() {
+    var progressFill = document.getElementById("tradeSuccessProgressFill");
+    if (!progressFill) return;
+
+    progressFill.classList.remove("is-running");
+    progressFill.style.removeProperty("animation-duration");
+  }
+
+  function renderSuccessScreen() {
+    var messageElement = document.getElementById("tradeSuccessMessage");
+    var marksChangeElement = document.getElementById("tradeSuccessMarksChange");
+    var marksBalanceElement = document.getElementById("tradeSuccessMarksBalance");
+    if (!messageElement) return;
+
+    messageElement.textContent = t("trading.terminal.trade-complete", "TRADE COMPLETE");
+
+    if (marksChangeElement) {
+      marksChangeElement.textContent = "";
+      marksChangeElement.classList.remove("is-added", "is-removed");
+      var marksChange = state.successMarksChange || 0;
+      if (marksChange > 0) {
+        setTextWithMarksAmount(marksChangeElement, "trading.terminal.marks-added", "+{0}", marksChange);
+        marksChangeElement.classList.add("is-added");
+      } else if (marksChange < 0) {
+        setTextWithMarksAmount(marksChangeElement, "trading.terminal.marks-removed", "{0}", marksChange);
+        marksChangeElement.classList.add("is-removed");
+      }
+    }
+
+    if (marksBalanceElement) {
+      setTextWithMarksAmount(marksBalanceElement, "trading.terminal.marks-balance", "BALANCE {0}", state.marks);
+    }
+  }
+
   function hideSuccessOverlay(sendDismiss) {
     clearSuccessOverlayTimer();
-    var overlay = document.getElementById("tradeSuccessOverlay");
-    if (overlay) overlay.classList.add("term-hidden");
+    clearSuccessProgressBar();
     if (sendDismiss) postAction("dismiss-success");
   }
 
-  function showSuccessOverlay(message) {
-    var overlay = document.getElementById("tradeSuccessOverlay");
-    var messageElement = document.getElementById("tradeSuccessMessage");
-    if (!overlay || !messageElement) return;
-
-    messageElement.textContent = t("trading.terminal.trade-complete", "TRADE COMPLETE");
-    overlay.classList.remove("term-hidden");
+  function showSuccessOverlay() {
+    setScreen("success");
+    renderSuccessScreen();
     clearSuccessOverlayTimer();
+    resetSuccessProgressBar();
     successOverlayTimer = window.setTimeout(function () {
       hideSuccessOverlay(true);
     }, SUCCESS_OVERLAY_MS);
@@ -574,22 +1079,68 @@
     state.previewTotalPrice = nextState.previewTotalPrice || 0;
     state.statusMessage = nextState.statusMessage || "";
     state.successOverlay = nextState.successOverlay || "";
+    state.successMarksChange = nextState.successMarksChange || 0;
+    state.transit = nextState.transit || null;
 
-    if (nextState.screen === "handshake" || (nextState.activeContractId !== undefined && nextState.activeContractId >= 0)) {
-      setScreen("handshake");
-    } else {
-      setScreen("contracts");
+    var previousScreen = state.screen;
+    var nextScreen = resolveScreen(nextState);
+    if (nextScreen === "handshake" && previousScreen !== "handshake") {
+      handshakeItemListRevealKey = "";
     }
 
+    setScreen(nextScreen);
+
     if (state.successOverlay && state.successOverlay !== previousSuccessOverlay) {
-      showSuccessOverlay(state.successOverlay);
-    } else if (!state.successOverlay) {
+      showSuccessOverlay();
+    } else if (state.successOverlay) {
+      renderSuccessScreen();
+    } else if (previousSuccessOverlay) {
       hideSuccessOverlay(false);
     }
 
     updateHeader();
     renderContracts();
     renderHandshake();
+    renderTransitScreen();
+  }
+
+  function isInsideLockButton(element) {
+    var node = element;
+    while (node && node !== document.body) {
+      if (node.classList && node.classList.contains("trade-lock-button")) return true;
+      node = node.parentElement;
+    }
+    return false;
+  }
+
+  function isDisabledInteractiveElement(element) {
+    if (isInsideLockButton(element)) return false;
+
+    var node = element;
+    while (node && node !== document.body) {
+      if (node.classList) {
+        if (node.classList.contains("trade-contract-row") && node.classList.contains("is-disabled")) return true;
+        if (node.classList.contains("trade-transit-step-button") && isTransitStepButtonDisabled(node)) return true;
+        if (node.classList.contains("os-window-control") && node.disabled) return true;
+      }
+      if (node.tagName === "BUTTON" && node.disabled) return true;
+      node = node.parentElement;
+    }
+    return false;
+  }
+
+  function setCrosshairCursorMode(mode) {
+    if (!crosshairCursorElement) return;
+
+    crosshairCursorElement.classList.toggle("is-default", mode === "default");
+    crosshairCursorElement.classList.toggle("is-pointer", mode === "pointer");
+    crosshairCursorElement.classList.toggle("is-forbidden", mode === "forbidden");
+
+    if (crosshairDefaultImage && crosshairPointerImage && crosshairForbiddenImage) {
+      crosshairDefaultImage.classList.toggle("term-hidden", mode !== "default");
+      crosshairPointerImage.classList.toggle("term-hidden", mode !== "pointer");
+      crosshairForbiddenImage.classList.toggle("term-hidden", mode !== "forbidden");
+    }
   }
 
   function isClickableElement(element) {
@@ -603,6 +1154,8 @@
         if (node.classList.contains("trade-sort-header")) return true;
         if (node.classList.contains("trade-lock-button")) return true;
         if (node.classList.contains("trade-qty-button")) return true;
+        if (node.classList.contains("trade-transit-step-button")) return !isTransitStepButtonDisabled(node);
+        if (node.classList.contains("settings-switch")) return true;
         if (node.classList.contains("term-button")) return !node.disabled;
       }
       node = node.parentElement;
@@ -614,14 +1167,10 @@
     if (!crosshairCursorElement) return;
 
     var target = document.elementFromPoint(lastPointerX, lastPointerY);
-    var clickable = isClickableElement(target);
-    crosshairCursorElement.classList.toggle("is-pointer", clickable);
-    crosshairCursorElement.classList.toggle("is-default", !clickable);
-
-    if (crosshairDefaultImage && crosshairPointerImage) {
-      crosshairDefaultImage.classList.toggle("term-hidden", clickable);
-      crosshairPointerImage.classList.toggle("term-hidden", !clickable);
-    }
+    var disabled = isDisabledInteractiveElement(target);
+    var clickable = !disabled && isClickableElement(target);
+    var mode = disabled ? "forbidden" : (clickable ? "pointer" : "default");
+    setCrosshairCursorMode(mode);
   }
 
   function positionCrosshairCursor(clientX, clientY) {
@@ -640,6 +1189,7 @@
 
     crosshairDefaultImage = crosshairCursorElement.querySelector(".term-crosshair-cursor-img.is-default");
     crosshairPointerImage = crosshairCursorElement.querySelector(".term-crosshair-cursor-img.is-pointer");
+    crosshairForbiddenImage = crosshairCursorElement.querySelector(".term-crosshair-cursor-img.is-forbidden");
 
     if (window.vuplex) {
       document.documentElement.classList.add("term-unity-cursor");
@@ -695,6 +1245,14 @@
 
     var stopHandshakeButton = document.getElementById("stopHandshakeButton");
     if (stopHandshakeButton) stopHandshakeButton.addEventListener("click", function () { postAction("stop-handshake"); });
+
+    var transitBackButton = document.getElementById("transitBackButton");
+    if (transitBackButton) {
+      transitBackButton.addEventListener("click", function () {
+        if (transitBackButton.disabled) return;
+        postAction("cancel-transit");
+      });
+    }
 
     var successContinueButton = document.getElementById("tradeSuccessContinue");
     if (successContinueButton) {
@@ -753,6 +1311,10 @@
         padTimePart(hours) + ":" +
         padTimePart(minutes) + ":" +
         padTimePart(seconds);
+    },
+    setTransitAutoOperate: function (enabled) {
+      transitAutoOperate = !!enabled;
+      maybeAutoOperateTransitStep();
     }
   };
 
