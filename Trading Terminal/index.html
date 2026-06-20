@@ -36,145 +36,200 @@
 
 <body>
 
-  <div id="termCrosshairCursor" class="term-crosshair-cursor is-default term-hidden" aria-hidden="true">
-
-    <img class="term-crosshair-cursor-img is-default" src="cursor-default.svg" alt="" />
-
-    <img class="term-crosshair-cursor-img is-pointer term-hidden" src="cursor-pointer.svg" alt="" />
-
-  </div>
-
   <div class="term-device" id="tradeDevice">
 
-    <div class="term-frame">
+    <div class="term-frame term-window os-window os-window--focused">
+
+      <header class="os-window-chrome term-window-chrome">
+
+        <p class="os-window-title terminal-text--dim" id="termWindowTitle">
+
+          <img class="os-window-title-icon" id="termWindowIcon" src="../Web Main Menu/favicon.svg" alt="" />
+
+          <span class="os-window-title-text" id="termWindowTitleText" data-locale-key="trading.terminal.title">TRADING TERMINAL</span>
+
+        </p>
+
+        <div class="os-window-controls" aria-hidden="true">
+
+          <button type="button" class="os-window-dot os-window-control" data-wm-action="minimize" disabled tabindex="-1" aria-label="Minimize window">
+
+            <span class="os-window-control-glyph" aria-hidden="true"></span>
+
+          </button>
+
+          <button type="button" class="os-window-dot os-window-control" data-wm-action="maximize" disabled tabindex="-1" aria-label="Maximize window">
+
+            <span class="os-window-control-glyph" aria-hidden="true"></span>
+
+          </button>
+
+          <button type="button" class="os-window-dot os-window-control" data-wm-action="close" disabled tabindex="-1" aria-label="Close window">
+
+            <span class="os-window-control-glyph" aria-hidden="true"></span>
+
+          </button>
+
+        </div>
+
+      </header>
+
+
 
       <div class="term-content">
 
-      <div class="trade-header">
+        <div class="trade-layout">
 
-        <div class="term-row trade-header-row">
+          <div class="trade-ui-panel">
 
-          <span class="term-label" data-locale-key="trading.terminal.title">TRADING TERMINAL</span>
+            <div id="contractsScreen" class="trade-screen trade-screen--contracts">
 
-          <div class="trade-marks">
+              <div class="trade-table trade-contract-table">
 
-            <span class="term-label" data-locale-key="trading.terminal.marks">MARKS</span>
+                <div class="trade-table-header trade-table-row">
+
+                  <span class="trade-col trade-col-icon"></span>
+
+                  <button type="button" class="trade-col trade-col-name trade-sort-header" data-sort="name"><span data-locale-key="trading.terminal.col.name">NAME</span><span class="trade-sort-arrow"></span></button>
+
+                  <button type="button" class="trade-col trade-col-lock trade-sort-header" data-sort="lock"><span data-locale-key="trading.terminal.col.lock">LOCK</span><span class="trade-sort-arrow"></span></button>
+
+                  <button type="button" class="trade-col trade-col-type trade-sort-header" data-sort="type"><span data-locale-key="trading.terminal.col.type">TYPE</span><span class="trade-sort-arrow"></span></button>
+
+                  <button type="button" class="trade-col trade-col-amount trade-sort-header" data-sort="amount"><span data-locale-key="trading.terminal.col.amount">AMT</span><span class="trade-sort-arrow"></span></button>
+
+                  <button type="button" class="trade-col trade-col-price trade-sort-header" data-sort="price"><span data-locale-key="trading.terminal.col.price">PRICE</span><span class="trade-sort-arrow"></span></button>
+
+                  <button type="button" class="trade-col trade-col-total trade-sort-header" data-sort="total"><span data-locale-key="trading.terminal.col.total">TOTAL</span><span class="trade-sort-arrow"></span></button>
+
+                </div>
+
+                <div class="trade-contract-list" id="contractList"></div>
+
+              </div>
+
+            </div>
+
+
+
+            <div id="handshakeScreen" class="trade-screen trade-handshake term-hidden">
+
+              <div class="term-row trade-handshake-meta">
+
+                <span class="term-label" data-locale-key="trading.terminal.contract">CONTRACT</span>
+
+                <span class="term-value" id="handshakeTitle">—</span>
+
+              </div>
+
+              <div class="term-row trade-handshake-meta">
+
+                <span class="term-label" data-locale-key="trading.terminal.detail">DETAIL</span>
+
+                <span class="term-value" id="handshakeDetail">—</span>
+
+              </div>
+
+              <div class="term-row trade-controls-row">
+
+                <div class="trade-controls-row-left">
+                  <button type="button" class="term-button term-hidden" id="scanButton" data-locale-key="trading.terminal.rescan">RESCAN</button>
+                  <button type="button" class="term-button" id="confirmButton" data-locale-key="trading.terminal.confirm">CONFIRM</button>
+                </div>
+
+                <button type="button" class="term-button trade-handshake-back-button" id="stopHandshakeButton" data-locale-key="trading.terminal.back">BACK</button>
+
+              </div>
+
+              <div class="trade-table trade-item-table">
+
+                <div class="trade-table-header trade-table-row">
+
+                  <span class="trade-col trade-col-icon"></span>
+
+                  <span class="trade-col trade-col-name" data-locale-key="trading.terminal.col.name">NAME</span>
+
+                  <span class="trade-col trade-col-lock" data-locale-key="trading.terminal.col.qty">QTY</span>
+
+                  <span class="trade-col trade-col-type" data-locale-key="trading.terminal.col.type">TYPE</span>
+
+                  <span class="trade-col trade-col-amount" data-locale-key="trading.terminal.col.amount">AMT</span>
+
+                  <span class="trade-col trade-col-price" data-locale-key="trading.terminal.col.price">PRICE</span>
+
+                  <span class="trade-col trade-col-total" data-locale-key="trading.terminal.col.total">TOTAL</span>
+
+                </div>
+
+                <div class="trade-item-list" id="tradeItemList"></div>
+
+              </div>
+
+              <div class="trade-item-totals" id="tradeItemTotals"></div>
+
+              <div class="trade-status" id="statusMessage"></div>
+
+            </div>
+
+
+
+            <div id="transitScreen" class="trade-screen trade-transit-screen term-hidden" aria-labelledby="termWindowTitle">
+
+              <div class="trade-transit-toolbar">
+                <button type="button" class="term-button trade-transit-back-button" id="transitBackButton" data-locale-key="trading.terminal.back">Back</button>
+              </div>
+
+              <div class="trade-transit-steps" id="transitStepList"></div>
+
+            </div>
+
+
+
+            <div id="successScreen" class="trade-screen trade-success-screen term-hidden" aria-labelledby="termWindowTitle">
+
+              <div class="trade-success-content">
+
+                <div class="trade-success-title" data-locale-key="trading.terminal.success">SUCCESS</div>
+
+                <div class="trade-success-message" id="tradeSuccessMessage" data-locale-key="trading.terminal.trade-complete">TRADE COMPLETE</div>
+
+                <div class="trade-success-marks" id="tradeSuccessMarksChange"></div>
+
+                <div class="trade-success-balance" id="tradeSuccessMarksBalance"></div>
+
+                <button type="button" class="term-button" id="tradeSuccessContinue" data-locale-key="trading.terminal.continue">CONTINUE</button>
+
+                <div class="trade-success-progress" aria-hidden="true">
+                  <div class="trade-success-progress-fill" id="tradeSuccessProgressFill"></div>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div id="tradeDockFooter" class="trade-dock-footer term-hidden">
+
+          <div class="trade-marks-footer">
 
             <span class="term-value" id="marksValue">0</span>
 
           </div>
 
-        </div>
+          <div class="trade-pagination" id="tradeDockPagination">
 
-      </div>
+            <button type="button" class="term-button" id="contractPagePrev" data-locale-key="trading.terminal.prev">PREV</button>
 
+            <span class="trade-page-label" id="contractPageLabel">1 / 1</span>
 
-
-      <div class="trade-layout">
-
-        <div class="trade-ui-panel">
-
-          <div id="contractsScreen">
-
-            <div class="trade-table trade-contract-table">
-
-              <div class="trade-table-header trade-table-row">
-
-                <span class="trade-col trade-col-icon"></span>
-
-                <button type="button" class="trade-col trade-col-name trade-sort-header" data-sort="name"><span data-locale-key="trading.terminal.col.name">NAME</span><span class="trade-sort-arrow"></span></button>
-
-                <button type="button" class="trade-col trade-col-lock trade-sort-header" data-sort="lock"><span data-locale-key="trading.terminal.col.lock">LOCK</span><span class="trade-sort-arrow"></span></button>
-
-                <button type="button" class="trade-col trade-col-type trade-sort-header" data-sort="type"><span data-locale-key="trading.terminal.col.type">TYPE</span><span class="trade-sort-arrow"></span></button>
-
-                <button type="button" class="trade-col trade-col-amount trade-sort-header" data-sort="amount"><span data-locale-key="trading.terminal.col.amount">AMT</span><span class="trade-sort-arrow"></span></button>
-
-                <button type="button" class="trade-col trade-col-price trade-sort-header" data-sort="price"><span data-locale-key="trading.terminal.col.price">PRICE</span><span class="trade-sort-arrow"></span></button>
-
-                <button type="button" class="trade-col trade-col-total trade-sort-header" data-sort="total"><span data-locale-key="trading.terminal.col.total">TOTAL</span><span class="trade-sort-arrow"></span></button>
-
-              </div>
-
-              <div class="trade-contract-list" id="contractList"></div>
-
-            </div>
-
-            <div class="trade-pagination">
-
-              <button type="button" class="term-button" id="contractPagePrev" data-locale-key="trading.terminal.prev">PREV</button>
-
-              <span class="trade-page-label" id="contractPageLabel">1 / 1</span>
-
-              <button type="button" class="term-button" id="contractPageNext" data-locale-key="trading.terminal.next">NEXT</button>
-
-            </div>
-
-          </div>
-
-
-
-          <div id="handshakeScreen" class="trade-handshake term-hidden">
-
-            <div class="term-row trade-handshake-meta">
-
-              <span class="term-label" data-locale-key="trading.terminal.contract">CONTRACT</span>
-
-              <span class="term-value" id="handshakeTitle">—</span>
-
-            </div>
-
-            <div class="term-row trade-handshake-meta">
-
-              <span class="term-label" data-locale-key="trading.terminal.detail">DETAIL</span>
-
-              <span class="term-value" id="handshakeDetail">—</span>
-
-            </div>
-
-            <div class="term-row trade-controls-row">
-
-              <button type="button" class="term-button term-hidden" id="scanButton" data-locale-key="trading.terminal.rescan">RESCAN</button>
-
-              <button type="button" class="term-button" id="confirmButton" data-locale-key="trading.terminal.confirm">CONFIRM</button>
-
-              <button type="button" class="term-button" id="stopHandshakeButton" data-locale-key="trading.terminal.back">BACK</button>
-
-            </div>
-
-            <div class="trade-table trade-item-table">
-
-              <div class="trade-table-header trade-table-row">
-
-                <span class="trade-col trade-col-icon"></span>
-
-                <span class="trade-col trade-col-name" data-locale-key="trading.terminal.col.name">NAME</span>
-
-                <span class="trade-col trade-col-lock" data-locale-key="trading.terminal.col.qty">QTY</span>
-
-                <span class="trade-col trade-col-type" data-locale-key="trading.terminal.col.type">TYPE</span>
-
-                <span class="trade-col trade-col-amount" data-locale-key="trading.terminal.col.amount">AMT</span>
-
-                <span class="trade-col trade-col-price" data-locale-key="trading.terminal.col.price">PRICE</span>
-
-                <span class="trade-col trade-col-total" data-locale-key="trading.terminal.col.total">TOTAL</span>
-
-              </div>
-
-              <div class="trade-item-list" id="tradeItemList"></div>
-
-            </div>
-
-            <div class="trade-item-totals" id="tradeItemTotals"></div>
-
-            <div class="trade-status" id="statusMessage"></div>
+            <button type="button" class="term-button" id="contractPageNext" data-locale-key="trading.terminal.next">NEXT</button>
 
           </div>
 
         </div>
-
-      </div>
 
       </div>
 
@@ -198,22 +253,16 @@
 
 
 
-  <div id="tradeSuccessOverlay" class="trade-success-overlay term-hidden">
+  <div id="termCrosshairCursor" class="term-crosshair-cursor is-default term-hidden" aria-hidden="true">
 
-    <div class="trade-success-panel">
+    <img class="term-crosshair-cursor-img is-default" src="cursor-default.svg" alt="" />
 
-      <div class="trade-success-title" data-locale-key="trading.terminal.success">SUCCESS</div>
+    <img class="term-crosshair-cursor-img is-pointer term-hidden" src="cursor-pointer.svg" alt="" />
 
-      <div class="trade-success-message" id="tradeSuccessMessage" data-locale-key="trading.terminal.trade-complete">TRADE COMPLETE</div>
-
-      <button type="button" class="term-button" id="tradeSuccessContinue" data-locale-key="trading.terminal.continue">CONTINUE</button>
-
-    </div>
+    <img class="term-crosshair-cursor-img is-forbidden term-hidden" src="cursor-forbidden.svg" alt="" />
 
   </div>
 
 </body>
 
 </html>
-
-
