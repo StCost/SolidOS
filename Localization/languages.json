@@ -30,5 +30,11 @@
     "turkish",
     "ukrainian",
     "vietnamese"
-  ]
+  ],
+  "settings.help.trading-post-auto-operate": "Automatically advances trading post mass-transit steps after you confirm a trade",
+  "trading.terminal.status.buy-failed": "BUY FAILED",
+  "trading.terminal.status.insufficient-marks": "INSUFFICIENT MARKS",
+  "trading.terminal.status.nothing-to-buy": "NOTHING TO BUY",
+  "trading.terminal.status.nothing-to-sell": "NOTHING TO SELL",
+  "trading.terminal.status.scan-out-of-date": "SCAN OUT OF DATE"
 }
