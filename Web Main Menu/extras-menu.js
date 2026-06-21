@@ -233,7 +233,10 @@
     windowElement.setAttribute("data-extras-game-id", gameId);
     updateGamePlayWindowTitle(windowElement, gameId);
     setActiveGamePlayWindow(windowElement);
-    frame = gameFrame;
+    frame = windowElement.querySelector(".extras-game-frame");
+    if (!frame) {
+      frame = gameFrame;
+    }
     if (!frame) return;
     setExtrasGameMusicPaths(gameId);
     if (window.WebDesktop && window.WebDesktop.ensureGameDesktopLinkIcon) {
@@ -259,6 +262,13 @@
   function getBootRestoredGameId(windowElement) {
     var gameId = getGamePlayWindowGameId(windowElement);
     if (gameId) return gameId;
+    if (window.WebWindowManager && window.WebWindowManager.getSavedLayoutGameId) {
+      gameId = window.WebWindowManager.getSavedLayoutGameId(windowElement) || "";
+      if (gameId && findGameById(gameId)) {
+        windowElement.setAttribute("data-extras-game-id", gameId);
+        return gameId;
+      }
+    }
     if (window.WebMenuRoute) {
       if (window.WebMenuRoute.getInitialTab) {
         gameId = window.WebMenuRoute.getInitialTab() || "";

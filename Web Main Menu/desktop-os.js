@@ -3169,6 +3169,13 @@ var WebDesktop = (function () {
 
   return {
     openWindow: openWindow,
+    runWindowOpenHooks: function (windowElement) {
+      var presetName = "";
+      if (!windowElement) return;
+      presetName = windowElement.getAttribute("data-wm-preset") || "";
+      if (!presetName) return;
+      runWindowOpenHooks(windowElement, presetName);
+    },
     openWindowElement: openWindowElement,
     toggleWindow: toggleWindow,
     closeWindow: closeWindow,

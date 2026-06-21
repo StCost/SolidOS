@@ -975,6 +975,34 @@ var WebWindowManager = (function () {
     }
   }
 
+  function getWindowLiveGeometryState(windowElement) {
+    var containerElement;
+    var presetName;
+    if (!windowElement) return null;
+    if (windowElement.classList.contains("os-window--closed")) return null;
+    if (windowElement.classList.contains("os-window--minimized")) return null;
+    if (windowElement.classList.contains("os-window--maximized")) return null;
+    if (windowElement.wmState) {
+      return {
+        left: windowElement.wmState.left,
+        top: windowElement.wmState.top,
+        width: windowElement.wmState.width,
+        height: windowElement.wmState.height
+      };
+    }
+    containerElement = getLayoutContainer(windowElement);
+    presetName = windowElement.getAttribute("data-wm-preset");
+    if (!containerElement || !presetName) return null;
+    syncWindowStateFromLayout(windowElement, containerElement, presetName);
+    if (!windowElement.wmState) return null;
+    return {
+      left: windowElement.wmState.left,
+      top: windowElement.wmState.top,
+      width: windowElement.wmState.width,
+      height: windowElement.wmState.height
+    };
+  }
+
   function syncSavedLayoutFromWindow(windowElement) {
     if (!shouldPersistWindowLayout(windowElement)) return;
     var layoutKey = getLayoutKey(windowElement);
@@ -1063,15 +1091,7 @@ var WebWindowManager = (function () {
       return;
     }
 
-    restoreState = null;
-    if (windowElement.wmState) {
-      restoreState = {
-        left: windowElement.wmState.left,
-        top: windowElement.wmState.top,
-        width: windowElement.wmState.width,
-        height: windowElement.wmState.height
-      };
-    }
+    restoreState = getWindowLiveGeometryState(windowElement);
     if (previous) {
       if (previous.zIndex !== undefined && entry.zIndex === undefined) {
         entry.zIndex = previous.zIndex;
@@ -1472,7 +1492,11 @@ var WebWindowManager = (function () {
       window.clearTimeout(layoutSaveTimer);
       layoutSaveTimer = 0;
     }
-    postWindowLayoutsSave();
+    var payload = collectWindowLayoutsPayload();
+    syncWindowLayoutsPayloadToHost(payload);
+    if (window.WebMenuLocalStorageBridge && window.WebMenuLocalStorageBridge.flushSave) {
+      window.WebMenuLocalStorageBridge.flushSave();
+    }
   }
 
   function isUnityHost() {
@@ -2784,11 +2808,14 @@ var WebWindowManager = (function () {
   function releaseMinimizedWindowContent(windowElement) {
     var presetName;
     if (!windowElement) return;
-    releaseHeavyWindowContent(windowElement);
     presetName = windowElement.getAttribute("data-wm-preset") || "";
-    if (presetName === "extras-game" && window.WebExtras && window.WebExtras.releaseGameWindow) {
-      window.WebExtras.releaseGameWindow(windowElement);
+    if (presetName === "extras-game") {
+      if (window.WebExtras && window.WebExtras.releaseGameWindow) {
+        window.WebExtras.releaseGameWindow(windowElement);
+      }
+      return;
     }
+    releaseHeavyWindowContent(windowElement);
   }
 
   function prepareWindowForOpen(windowElement) {
@@ -2798,10 +2825,24 @@ var WebWindowManager = (function () {
     ensureWindowStructure(windowElement);
   }
 
+  function getSavedLayoutGameId(windowElement) {
+    var layoutKey;
+    var savedLayout;
+    if (!windowElement) return "";
+    layoutKey = getLayoutKey(windowElement);
+    if (!layoutKey) return "";
+    savedLayout = savedLayoutTable[layoutKey];
+    if (!savedLayout || !savedLayout.gameId) return "";
+    return savedLayout.gameId;
+  }
+
   function restoreMinimizedWindowContent(windowElement) {
     if (!windowElement) return;
-    var presetName = windowElement.getAttribute("data-wm-preset") || "";
-    if (presetName === "extras-game" && window.WebExtras && window.WebExtras.restoreGameWindow) {
+    if (window.WebDesktop && window.WebDesktop.runWindowOpenHooks) {
+      window.WebDesktop.runWindowOpenHooks(windowElement);
+      return;
+    }
+    if (window.WebExtras && window.WebExtras.restoreGameWindow) {
       window.WebExtras.restoreGameWindow(windowElement);
     }
   }
@@ -3604,6 +3645,7 @@ var WebWindowManager = (function () {
     onDesktopBootDeviceVisible: onDesktopBootDeviceVisible,
     clearDesktopWindowFocus: clearDesktopWindowFocus,
     resetAllLayouts: resetAllWindowLayouts,
+    getSavedLayoutGameId: getSavedLayoutGameId,
     logLayoutDiffFromDefaults: logWindowLayoutsDiffFromDefaults,
     buildLayoutDiffFromDefaultsPayload: buildWindowLayoutsDiffFromDefaultsPayload
   };
