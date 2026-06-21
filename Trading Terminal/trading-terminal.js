@@ -70,6 +70,7 @@
     "he3-fill": "transit-icon-he3-fill.svg",
     "magnetic-trap": "transit-icon-magnetic-trap.svg",
     "optical-trap": "transit-icon-optical-trap.svg",
+    "optical-detrap": "transit-icon-optical-trap.svg",
     "final-scan": "transit-icon-final-scan.svg",
     "collapse": "transit-icon-collapse.svg",
     "send": "transit-icon-send.svg",
@@ -121,6 +122,7 @@
     if (stepId === "he3-fill") return delays.he3FillSeconds || 0;
     if (stepId === "magnetic-trap") return delays.magneticTrapSeconds || 0;
     if (stepId === "optical-trap") return delays.opticalTrapSeconds || 0;
+    if (stepId === "optical-detrap") return delays.opticalDetrapSeconds || 0;
     if (stepId === "devacuum") return delays.devacuumSeconds || 0;
     if (stepId === "deseal") return delays.desealSeconds || 0;
     if (stepId === "deflood") return delays.defloodSeconds || 0;
@@ -624,7 +626,9 @@
     return "—";
   }
 
-  function formatItemAmount(item) {
+  function formatItemAmount(item, isBuy) {
+    var count = item.count || 0;
+    if (!isBuy) return String(count);
     var selectedCount = item.selectedCount !== undefined ? item.selectedCount : item.count;
     var maxCount = item.maxCount !== undefined ? item.maxCount : item.count;
     if (maxCount <= 0) maxCount = item.count || 1;
@@ -715,22 +719,31 @@
     return button;
   }
 
-  function createQtyControlsCell(item, itemIndex) {
+  function createQtyControlsCell(item, itemIndex, showControls) {
     var qtyCell = document.createElement("span");
     qtyCell.className = "trade-col trade-col-lock";
 
-    if (!item || (item.unitPrice || 0) <= 0) {
+    if (!showControls || !item || (item.unitPrice || 0) <= 0) {
       return qtyCell;
     }
 
     var controls = document.createElement("span");
     controls.className = "trade-qty-controls";
-    controls.appendChild(createQtyButton("0", "zero", itemIndex));
-    controls.appendChild(createQtyButton("-10", "minus-ten", itemIndex));
-    controls.appendChild(createQtyButton("-1", "minus-one", itemIndex));
-    controls.appendChild(createQtyButton("+1", "plus-one", itemIndex));
-    controls.appendChild(createQtyButton("+10", "plus-ten", itemIndex));
-    controls.appendChild(createQtyButton("MAX", "max", itemIndex));
+
+    var decreaseRow = document.createElement("span");
+    decreaseRow.className = "trade-qty-row trade-qty-row-decrease";
+    decreaseRow.appendChild(createQtyButton("0", "zero", itemIndex));
+    decreaseRow.appendChild(createQtyButton("-10", "minus-ten", itemIndex));
+    decreaseRow.appendChild(createQtyButton("-1", "minus-one", itemIndex));
+
+    var increaseRow = document.createElement("span");
+    increaseRow.className = "trade-qty-row trade-qty-row-increase";
+    increaseRow.appendChild(createQtyButton("+1", "plus-one", itemIndex));
+    increaseRow.appendChild(createQtyButton("+10", "plus-ten", itemIndex));
+    increaseRow.appendChild(createQtyButton("MAX", "max", itemIndex));
+
+    controls.appendChild(decreaseRow);
+    controls.appendChild(increaseRow);
     qtyCell.appendChild(controls);
     return qtyCell;
   }
@@ -866,6 +879,7 @@
   function appendItemRow(list, item, rowKind, itemIndex, revealIndex) {
     var row = document.createElement("div");
     row.className = "trade-table-row trade-item-row " + rowKind;
+    var isBuy = rowKind === "is-buy";
 
     var selectedCount = item.selectedCount !== undefined ? item.selectedCount : item.count;
     if (selectedCount <= 0) row.classList.add("is-skipped");
@@ -875,9 +889,9 @@
 
     row.appendChild(createIconCell(item, false));
     row.appendChild(createTableCell("trade-col-name", getEntityDisplayName(item.entityId, item.displayName) || t("trading.terminal.item-fallback", "ITEM")));
-    row.appendChild(createQtyControlsCell(item, itemIndex));
-    row.appendChild(createTypeIconCell(rowKind, rowKind === "is-buy"));
-    row.appendChild(createTableCell("trade-col-amount", formatItemAmount(item)));
+    row.appendChild(createQtyControlsCell(item, itemIndex, isBuy));
+    row.appendChild(createTypeIconCell(rowKind, isBuy));
+    row.appendChild(createTableCell("trade-col-amount", formatItemAmount(item, isBuy)));
     row.appendChild(createMarksAmountCell("trade-col-price", item.unitPrice || 0, false));
     row.appendChild(createMarksAmountCell("trade-col-total", lineTotal, false));
     setRowRevealAnimation(row, revealIndex);
