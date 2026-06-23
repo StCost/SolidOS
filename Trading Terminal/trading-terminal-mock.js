@@ -78,6 +78,7 @@
     he3FillSeconds: 3,
     magneticTrapSeconds: 0.5,
     opticalTrapSeconds: 0.5,
+    opticalDetrapSeconds: 0.2,
     devacuumSeconds: 1,
     desealSeconds: 1,
     defloodSeconds: 1,
@@ -86,7 +87,7 @@
 
   var mockSendStepOrder = [
     "cargo", "seal", "vacuum", "he3-fill", "magnetic-trap", "optical-trap", "final-scan",
-    "handshake", "collapse", "send", "deflood", "devacuum", "deseal"
+    "handshake", "collapse", "send", "optical-detrap", "deflood", "devacuum", "deseal"
   ];
 
   var mockReceiveStepOrder = ["seal", "vacuum", "handshake", "receive", "devacuum", "deseal"];
@@ -103,6 +104,7 @@
     if (stepId === "he3-fill") return mockTransitDelays.he3FillSeconds;
     if (stepId === "magnetic-trap") return mockTransitDelays.magneticTrapSeconds;
     if (stepId === "optical-trap") return mockTransitDelays.opticalTrapSeconds;
+    if (stepId === "optical-detrap") return mockTransitDelays.opticalDetrapSeconds;
     if (stepId === "devacuum") return mockTransitDelays.devacuumSeconds;
     if (stepId === "deseal") return mockTransitDelays.desealSeconds;
     if (stepId === "deflood") return mockTransitDelays.defloodSeconds;
