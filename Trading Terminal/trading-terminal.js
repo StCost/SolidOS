@@ -58,6 +58,7 @@
   var transitScrollStepId = "";
   var transitAutoOperateTargetStepId = "";
   var handshakeItemListRevealKey = "";
+  var contractListRevealKey = "";
 
   var TRANSIT_SEND_PHASE_ONE_END = "final-scan";
   var TRANSIT_SEND_PHASE_TWO_START = "handshake";
@@ -861,6 +862,23 @@
     if (nextButton) nextButton.disabled = state.contractPage >= pageCount - 1;
   }
 
+  function getContractListStructureKey() {
+    var keyParts = [];
+    var contracts = state.contracts || [];
+    var contractIndex;
+    for (contractIndex = 0; contractIndex < contracts.length; contractIndex++) {
+      var contract = contracts[contractIndex];
+      if (!contract) continue;
+      keyParts.push(
+        String(contract.id) + ":" +
+        String(contract.kind) + ":" +
+        String(contract.amount || 0) + ":" +
+        String(contract.assetId || contract.entityId || "")
+      );
+    }
+    return keyParts.join("|");
+  }
+
   function renderContracts() {
     var list = document.getElementById("contractList");
     if (!list) return;
@@ -869,10 +887,16 @@
     var sorted = getSortedContracts();
     renderPagination(sorted.length);
 
+    var structureKey = getContractListStructureKey();
+    var animateRows = structureKey !== contractListRevealKey;
+    if (animateRows) {
+      contractListRevealKey = structureKey;
+    }
+
     var startIndex = state.contractPage * CONTRACTS_PER_PAGE;
     var endIndex = Math.min(startIndex + CONTRACTS_PER_PAGE, sorted.length);
     for (var contractIndex = startIndex; contractIndex < endIndex; contractIndex++) {
-      appendContractRow(list, sorted[contractIndex], contractIndex - startIndex);
+      appendContractRow(list, sorted[contractIndex], animateRows ? (contractIndex - startIndex) : -1);
     }
   }
 
@@ -1100,6 +1124,9 @@
     var nextScreen = resolveScreen(nextState);
     if (nextScreen === "handshake" && previousScreen !== "handshake") {
       handshakeItemListRevealKey = "";
+    }
+    if (nextScreen === "contracts" && previousScreen !== "contracts") {
+      contractListRevealKey = "";
     }
 
     setScreen(nextScreen);
