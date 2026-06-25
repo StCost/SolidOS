@@ -190,7 +190,7 @@
     );
   }
 
-  function applyBackgroundPath(path, index, selection) {
+  function applyBackgroundPath(path, index, selection, notifyUnity) {
     if (!path) return false;
     var canonicalPath = normalizeBackgroundPath(path);
     var loadUrl = getBackgroundLoadUrl(canonicalPath);
@@ -206,7 +206,9 @@
       selection.path = canonicalPath;
       selection.index = window.WebMenuBackgroundIndex;
       writeSelectedBackground(selection);
-      postMenuBackgroundSave(selection.random ? "" : canonicalPath, selection.random);
+      if (notifyUnity === true) {
+        postMenuBackgroundSave(selection.random ? "" : canonicalPath, selection.random);
+      }
     }
     return true;
   }
@@ -250,7 +252,7 @@
         index: getIndexForPath(path),
         random: false
       };
-      return applyBackgroundPath(path, selection.index, selection);
+      return applyBackgroundPath(path, selection.index, selection, true);
     },
     setRandomBackground: function () {
       var randomIndex = chooseBackgroundIndex();
@@ -260,7 +262,7 @@
         index: randomIndex,
         random: true
       };
-      return applyBackgroundPath(path, randomIndex, selection);
+      return applyBackgroundPath(path, randomIndex, selection, true);
     },
     applySavedPreference: function (path, useRandom) {
       if (useRandom) {
@@ -270,7 +272,6 @@
           random: true
         };
         writeSelectedBackground(selection);
-        postMenuBackgroundSave("", true);
         var randomIndex = chooseBackgroundIndex();
         applyBackgroundPath(BACKGROUND_FILES[randomIndex], randomIndex);
         return;

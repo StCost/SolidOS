@@ -1,8 +1,6 @@
 (function () {
   var EVENT_SAVE = "web-ui-local-storage-save";
   var SAVE_DEBOUNCE_MS = 200;
-  var HOOK_RETRY_MS = 100;
-  var HOOK_RETRY_MAX = 200;
   var saveTimer = 0;
   var hooksInstalled = false;
   var nativeSetItem = Storage.prototype.setItem;
@@ -65,7 +63,8 @@
   }
 
   function scheduleSaveToUnity() {
-    if (!isUnityHost() || isRestoring() || window.__cmSkipUnityLocalStoragePostMessage === true) return;
+    if (!isUnityHost() || isRestoring()) return;
+    if (window.__cmSkipUnityLocalStoragePostMessage === true) return;
     if (saveTimer) window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(flushSaveToUnity, SAVE_DEBOUNCE_MS);
   }
@@ -89,8 +88,9 @@
     }
   }
 
-  function tryInstallStorageHooks() {
+  function installStorageHooks() {
     if (hooksInstalled || !isUnityHost()) return false;
+    installUnityPostMessageGuard();
     hooksInstalled = true;
     Storage.prototype.setItem = function (key, value) {
       nativeSetItem.call(this, key, value);
@@ -107,23 +107,11 @@
     return true;
   }
 
-  function beginStorageHookInstallRetry() {
-    if (tryInstallStorageHooks()) return;
-    var attempts = 0;
-    var retryTimer = window.setInterval(function () {
-      attempts = attempts + 1;
-      if (tryInstallStorageHooks() || attempts >= HOOK_RETRY_MAX) {
-        window.clearInterval(retryTimer);
-      }
-    }, HOOK_RETRY_MS);
-  }
-
-  beginStorageHookInstallRetry();
-
   window.WebMenuLocalStorageBridge = {
     flushSave: flushSaveToUnity,
     scheduleSaveToUnity: scheduleSaveToUnity,
     serializeSnapshot: serializeLocalStorage,
+    installStorageHooks: installStorageHooks,
     beginTearDownSkipUnityPostMessage: beginTearDownSkipUnityPostMessage
   };
 })();
