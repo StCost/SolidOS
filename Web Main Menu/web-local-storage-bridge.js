@@ -17,6 +17,17 @@
     return window.__cmWebLocalStorageRestoring === true;
   }
 
+  function installUnityPostMessageGuard() {
+    if (!isUnityHost()) return;
+    if (window.__cmUnityPostMessageGuardInstalled) return;
+    window.__cmUnityPostMessageGuardInstalled = true;
+    var originalPostMessage = window.vuplex.postMessage.bind(window.vuplex);
+    window.vuplex.postMessage = function (message) {
+      if (window.__cmSkipUnityLocalStoragePostMessage === true) return;
+      originalPostMessage(message);
+    };
+  }
+
   function serializeLocalStorage() {
     var snapshot = {};
     var index = 0;
@@ -54,9 +65,28 @@
   }
 
   function scheduleSaveToUnity() {
-    if (!isUnityHost() || isRestoring()) return;
+    if (!isUnityHost() || isRestoring() || window.__cmSkipUnityLocalStoragePostMessage === true) return;
     if (saveTimer) window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(flushSaveToUnity, SAVE_DEBOUNCE_MS);
+  }
+
+  function cancelPendingSave() {
+    if (saveTimer) {
+      window.clearTimeout(saveTimer);
+      saveTimer = 0;
+    }
+  }
+
+  function beginTearDownSkipUnityPostMessage() {
+    installUnityPostMessageGuard();
+    window.__cmSkipUnityLocalStoragePostMessage = true;
+    cancelPendingSave();
+    if (window.WebWindowManager && window.WebWindowManager.cancelPendingLayoutSave) {
+      window.WebWindowManager.cancelPendingLayoutSave();
+    }
+    if (window.WebDesktop && window.WebDesktop.cancelPendingIconLayoutSave) {
+      window.WebDesktop.cancelPendingIconLayoutSave();
+    }
   }
 
   function tryInstallStorageHooks() {
@@ -93,6 +123,7 @@
   window.WebMenuLocalStorageBridge = {
     flushSave: flushSaveToUnity,
     scheduleSaveToUnity: scheduleSaveToUnity,
-    serializeSnapshot: serializeLocalStorage
+    serializeSnapshot: serializeLocalStorage,
+    beginTearDownSkipUnityPostMessage: beginTearDownSkipUnityPostMessage
   };
 })();
