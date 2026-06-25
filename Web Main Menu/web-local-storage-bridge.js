@@ -64,7 +64,6 @@
 
   function scheduleSaveToUnity() {
     if (!isUnityHost() || isRestoring()) return;
-    if (window.__cmSkipUnityLocalStoragePostMessage === true) return;
     if (saveTimer) window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(flushSaveToUnity, SAVE_DEBOUNCE_MS);
   }
