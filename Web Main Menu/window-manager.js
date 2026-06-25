@@ -2118,7 +2118,7 @@ var WebWindowManager = (function () {
     clampManagedWindowToContainer(windowElement);
   }
 
-  function applyWindowRect(windowElement) {
+  function applyWindowRect(windowElement, positionOnly) {
     windowElement.style.left = String(Math.round(windowElement.wmState.left)) + "px";
     windowElement.style.top = String(Math.round(windowElement.wmState.top)) + "px";
     windowElement.style.width = String(Math.round(windowElement.wmState.width)) + "px";
@@ -2129,7 +2129,9 @@ var WebWindowManager = (function () {
     windowElement.style.marginTop = "";
     windowElement.style.transform = "none";
     windowElement.wmHasInlineLayout = true;
-    setChromeHeightVar(windowElement);
+    if (!positionOnly) {
+      setChromeHeightVar(windowElement);
+    }
   }
 
   function prepareWindowDragStart(windowElement) {
@@ -2278,6 +2280,7 @@ var WebWindowManager = (function () {
       activeDrag = {
         windowElement: windowElement,
         container: container,
+        bounds: getBounds(container),
         startX: clientX,
         startY: clientY,
         startLeft: windowElement.wmState.left,
@@ -2336,6 +2339,7 @@ var WebWindowManager = (function () {
         activeResize = {
           windowElement: windowElement,
           container: container,
+          bounds: getBounds(container),
           edge: edge,
           startX: clientX,
           startY: clientY,
@@ -2378,7 +2382,7 @@ var WebWindowManager = (function () {
 
     if (activeDrag) {
       var drag = activeDrag;
-      var bounds = getBounds(drag.container);
+      var bounds = drag.bounds;
       var deltaX = event.clientX - drag.startX;
       var deltaY = event.clientY - drag.startY;
       var nextLeft = drag.startLeft + deltaX;
@@ -2393,14 +2397,14 @@ var WebWindowManager = (function () {
 
       drag.windowElement.wmState.left = nextLeft;
       drag.windowElement.wmState.top = nextTop;
-      applyWindowRect(drag.windowElement);
+      applyWindowRect(drag.windowElement, true);
       return;
     }
 
     if (activeResize) {
       setBodyResizeCursor(activeResize.edge);
       var resize = activeResize;
-      var bounds = getBounds(resize.container);
+      var bounds = resize.bounds;
       var deltaX = event.clientX - resize.startX;
       var deltaY = event.clientY - resize.startY;
       var edge = resize.edge;
@@ -3504,8 +3508,6 @@ var WebWindowManager = (function () {
       initWorkspace(workspaces[index]);
     }
 
-    document.addEventListener("mousemove", onPointerMove);
-    document.addEventListener("mouseup", onPointerUp);
     document.addEventListener("pointermove", onPointerMove, { passive: false });
     document.addEventListener("pointerup", onPointerUp, { passive: false });
     document.addEventListener("pointercancel", onPointerUp, { passive: false });

@@ -3,6 +3,15 @@
   var eventCursorSet = "web-cursor-set";
   var lastToken = "";
   var unityCursorEnabled = false;
+  var hasLastPointerClient = false;
+  var lastPointerClientX = 0;
+  var lastPointerClientY = 0;
+
+  function rememberPointerClient(clientX, clientY) {
+    hasLastPointerClient = true;
+    lastPointerClientX = clientX;
+    lastPointerClientY = clientY;
+  }
 
   function postCursorToken(token) {
     if (!isUnityHost || !unityCursorEnabled) {
@@ -243,7 +252,42 @@
     return null;
   }
 
+  function getResizeTokenFromEdge(edge) {
+    if (edge === "n" || edge === "s") {
+      return "resize-ns";
+    }
+    if (edge === "e" || edge === "w") {
+      return "resize-ew";
+    }
+    if (edge === "ne" || edge === "sw") {
+      return "resize-nesw";
+    }
+    if (edge === "nw" || edge === "se") {
+      return "resize-nwse";
+    }
+    return "default";
+  }
+
+  function getActiveInteractionCursorToken() {
+    var body = document.body;
+    if (!body) {
+      return null;
+    }
+    if (body.hasAttribute("data-wm-drag") || body.hasAttribute("data-icon-drag")) {
+      return "drag";
+    }
+    if (body.hasAttribute("data-wm-resize")) {
+      return getResizeTokenFromEdge(body.getAttribute("data-wm-resize"));
+    }
+    return null;
+  }
+
   function getTokenForTarget(target, clientX, clientY) {
+    var activeToken = getActiveInteractionCursorToken();
+    if (activeToken) {
+      return activeToken;
+    }
+
     var pointTarget = getHitTargetAtPoint(clientX, clientY);
     if (!pointTarget) {
       pointTarget = target;
@@ -252,30 +296,6 @@
     var windowChromeDragToken = getWindowChromeDragToken(pointTarget);
     if (windowChromeDragToken) {
       return windowChromeDragToken;
-    }
-
-    var body = document.body;
-    if (
-      body &&
-      (body.hasAttribute("data-wm-drag") || body.hasAttribute("data-icon-drag"))
-    ) {
-      return "drag";
-    }
-
-    if (body && body.hasAttribute("data-wm-resize")) {
-      var edge = body.getAttribute("data-wm-resize");
-      if (edge === "n" || edge === "s") {
-        return "resize-ns";
-      }
-      if (edge === "e" || edge === "w") {
-        return "resize-ew";
-      }
-      if (edge === "ne" || edge === "sw") {
-        return "resize-nesw";
-      }
-      if (edge === "nw" || edge === "se") {
-        return "resize-nwse";
-      }
     }
 
     var overlayScrollbarToken = getOverlayScrollbarCursorToken(pointTarget);
@@ -341,6 +361,7 @@
   }
 
   function onPointerMove(event) {
+    rememberPointerClient(event.clientX, event.clientY);
     if (!unityCursorEnabled) {
       return;
     }
@@ -353,6 +374,9 @@
       return;
     }
     setUnityCursorEnabled(screen.classList.contains("menu-screen--unity-cursor"));
+    if (unityCursorEnabled && hasLastPointerClient) {
+      updateFromPoint(lastPointerClientX, lastPointerClientY);
+    }
   }
 
   window.WebMenuCursorBridge = {
