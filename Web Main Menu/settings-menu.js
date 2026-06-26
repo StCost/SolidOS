@@ -88,6 +88,7 @@
     graphicsVolumetricFog: true,
     graphicsTerrainDetails: true,
     graphicsTerrainGrass: true,
+    graphicsDistantTerrain: true,
     graphicsAntialiasingKey: "settings.graphics.aa-taa",
     graphicsLodBiasPercent: 100,
     graphicsFieldOfView: 60,
@@ -383,7 +384,8 @@
         { type: "toggle", key: "graphicsFog", labelKey: "settings.graphics.fog" },
         { type: "toggle", key: "graphicsVolumetricFog", labelKey: "settings.graphics.volumetric-fog" },
         { type: "toggle", key: "graphicsTerrainDetails", labelKey: "settings.graphics.terrain-details" },
-        { type: "toggle", key: "graphicsTerrainGrass", labelKey: "settings.graphics.terrain-grass" }
+        { type: "toggle", key: "graphicsTerrainGrass", labelKey: "settings.graphics.terrain-grass" },
+        { type: "toggle", key: "graphicsDistantTerrain", labelKey: "settings.graphics.distant-terrain" }
       ];
     }
 
