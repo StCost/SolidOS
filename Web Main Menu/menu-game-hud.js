@@ -1191,6 +1191,37 @@
     }, 0);
   }
 
+  function focusChatInputElement() {
+    bindChatDom();
+    if (!chatInputElement || !chatInputCaptureEnabled) return;
+    chatInputElement.focus({ preventScroll: true });
+    var length = chatInputElement.value.length;
+    chatInputElement.setSelectionRange(length, length);
+    applyChatOpenState();
+    syncUnityChatFocus();
+  }
+
+  function openChatInputSession(payload) {
+    payload = payload || {};
+    bindChatDom();
+    setChatInputCaptureEnabled(true);
+    chatInputSession = true;
+    suppressOpenEnterKey();
+    clearChatIdleHideTimer();
+    chatOpen = true;
+    if (payload.resetSession) {
+      resetCommandHistorySession();
+    }
+    if (payload.isDevSlash && chatInputElement) {
+      chatInputElement.value = "/";
+    }
+    focusChatInputElement();
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(focusChatInputElement);
+    }
+    window.setTimeout(focusChatInputElement, 0);
+  }
+
   function setChatState(payload) {
     if (!payload) return;
     if (payload.session === true || payload.session === false) {
@@ -1207,7 +1238,10 @@
       }
     }
     if (payload.focused === true) {
-      chatFocused = chatInputCaptureEnabled;
+      if (isUnityHost() && payload.session !== false) {
+        setChatInputCaptureEnabled(true);
+      }
+      chatFocused = true;
       if (chatInputSession && chatInputElement && chatInputCaptureEnabled) {
         chatInputElement.focus();
         var focusLength = chatInputElement.value.length;
@@ -1644,6 +1678,7 @@
     addChatMessage: addChatMessage,
     showCommandFeedback: showCommandFeedback,
     setChatState: setChatState,
+    openChatInputSession: openChatInputSession,
     suppressOpenEnterKey: suppressOpenEnterKey,
     openChatByDefault: openChatByDefault,
     setChatInputCaptureEnabled: setChatInputCaptureEnabled,
