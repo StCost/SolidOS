@@ -21,6 +21,10 @@
   var STANDALONE_SCROLL_COOLDOWN_MS = 25;
   var STANDALONE_SETTINGS_STORAGE_KEY = "web-settings-preview";
 
+  var HEALTH_CHANGE_DELAY_MS = 300;
+  var HEALTH_DAMAGE_DURATION_MS = 1100;
+  var HEALTH_HEAL_DURATION_MS = 1000;
+
   var pendingInventoryState = null;
   var pendingHealthState = null;
   var pendingIconUpdates = null;
@@ -63,6 +67,17 @@
   var slotIconClearTimers = [];
   var slotPreviousState = [];
   var slotStateTrackingReady = false;
+  var trackedMaxHealth = 0;
+  var trackedDisplayHealth = 0;
+  var trackedOverlayHealth = 0;
+  var healthOverlayMode = "none";
+  var healthAnimFrameId = 0;
+  var healthAnimStartTimestamp = 0;
+  var healthAnimAnimateStartTimestamp = 0;
+  var healthAnimPhase = "";
+  var healthAnimIsHeal = false;
+  var healthAnimStartValue = 0;
+  var healthAnimTargetValue = 0;
 
   function clamp01(value) {
     if (value < 0) return 0;
@@ -568,19 +583,45 @@
     return cell;
   }
 
-  function setPartialFillOnCell(cell, fillAmount) {
-    var partial = cell.querySelector(".game-hud-health-partial");
-    if (!partial) {
-      partial = document.createElement("div");
-      partial.className = "game-hud-health-partial";
-      cell.appendChild(partial);
-    }
-    partial.style.width = String(clamp01(fillAmount) * 100) + "%";
+  function getSegmentFill(health, segmentIndex, barHealth) {
+    var segmentStart = segmentIndex * barHealth;
+    var segmentEnd = segmentStart + barHealth;
+    if (health <= segmentStart) return 0;
+    if (health >= segmentEnd) return 1;
+    return (health - segmentStart) / barHealth;
   }
 
-  function buildHealthBar(maxHealth, health, healthFullColor, healthEmptyColor) {
+  function setLayerFillOnCell(cell, layerClassName, fillAmount, leftAmount) {
+    var layer = cell.querySelector("." + layerClassName);
+    if (!layer) {
+      layer = document.createElement("div");
+      layer.className = layerClassName;
+      cell.appendChild(layer);
+    }
+    var left = typeof leftAmount === "number" ? leftAmount : 0;
+    layer.style.left = String(clamp01(left) * 100) + "%";
+    layer.style.width = String(clamp01(fillAmount) * 100) + "%";
+    return layer;
+  }
+
+  function setOverlayDeltaOnCell(cell, displayFill, overlayFill, overlayMode) {
+    var overlayLayer = cell.querySelector(".game-hud-health-overlay");
+    if (overlayMode === "none" || overlayFill <= displayFill) {
+      if (overlayLayer) {
+        overlayLayer.style.width = "0%";
+        overlayLayer.className = "game-hud-health-overlay";
+      }
+      return;
+    }
+
+    var deltaFill = overlayFill - displayFill;
+    overlayLayer = setLayerFillOnCell(cell, "game-hud-health-overlay", deltaFill, displayFill);
+    overlayLayer.className = "game-hud-health-overlay " + (overlayMode === "heal" ? "is-heal" : "is-damage");
+  }
+
+  function ensureHealthBarStructure(maxHealth, healthFullColor, healthEmptyColor) {
     if (!healthBarElement) healthBarElement = document.getElementById("healthBar");
-    if (!healthBarElement) return;
+    if (!healthBarElement) return false;
 
     if (healthFullColor) {
       document.documentElement.style.setProperty("--health-full", healthFullColor);
@@ -589,49 +630,184 @@
       document.documentElement.style.setProperty("--health-empty", healthEmptyColor);
     }
 
-    healthBarElement.innerHTML = "";
-    healthBarElement.setAttribute("aria-valuemax", String(maxHealth));
-    healthBarElement.setAttribute("aria-valuenow", String(health));
+    if (maxHealth <= 0) {
+      healthBarElement.innerHTML = "";
+      healthBarElement.setAttribute("aria-valuemax", "0");
+      healthBarElement.setAttribute("aria-valuenow", "0");
+      return false;
+    }
 
-    if (maxHealth <= 0) return;
+    if (trackedMaxHealth === maxHealth && healthBarElement.children.length > 0) {
+      return true;
+    }
 
     var fullBarCount = Math.floor(maxHealth / BAR_HEALTH);
     var leftoverMax = maxHealth % BAR_HEALTH;
     var barIndex = 0;
     var barCount = fullBarCount + (leftoverMax > 0 ? 1 : 0);
 
+    healthBarElement.innerHTML = "";
+    healthBarElement.setAttribute("aria-valuemax", String(maxHealth));
+
     for (barIndex = 0; barIndex < fullBarCount; barIndex += 1) {
-      var fullCell = createHealthCell();
-      if (health >= (barIndex + 1) * BAR_HEALTH) {
-        fullCell.classList.add("is-filled");
-      }
-      healthBarElement.appendChild(fullCell);
+      healthBarElement.appendChild(createHealthCell());
     }
 
     if (leftoverMax > 0) {
       healthBarElement.appendChild(createHealthCell());
     }
 
-    if (health > 0 && barCount > 0) {
-      var activeIndex = Math.min(Math.floor(health / BAR_HEALTH), barCount - 1);
-      var activeCell = healthBarElement.children[activeIndex];
-      var fillAmount = (health % BAR_HEALTH) / BAR_HEALTH;
-      if (health === maxHealth && fillAmount === 0) {
-        fillAmount = 1;
-      }
-      if (activeCell && !activeCell.classList.contains("is-filled")) {
-        setPartialFillOnCell(activeCell, fillAmount);
-      }
+    trackedMaxHealth = maxHealth;
+    return barCount > 0;
+  }
+
+  function renderHealthFills() {
+    if (!healthBarElement || trackedMaxHealth <= 0) return;
+
+    var barCount = healthBarElement.children.length;
+    var barIndex = 0;
+
+    healthBarElement.setAttribute("aria-valuenow", String(Math.round(trackedDisplayHealth)));
+
+    for (barIndex = 0; barIndex < barCount; barIndex += 1) {
+      var cell = healthBarElement.children[barIndex];
+      if (!cell) continue;
+
+      var displayFill = getSegmentFill(trackedDisplayHealth, barIndex, BAR_HEALTH);
+      var overlayFill = getSegmentFill(trackedOverlayHealth, barIndex, BAR_HEALTH);
+
+      setLayerFillOnCell(cell, "game-hud-health-fill", displayFill, 0);
+      setOverlayDeltaOnCell(cell, displayFill, overlayFill, healthOverlayMode);
     }
+  }
+
+  function stopHealthAnimation() {
+    if (healthAnimFrameId) {
+      cancelAnimationFrame(healthAnimFrameId);
+      healthAnimFrameId = 0;
+    }
+    healthAnimPhase = "";
+  }
+
+  function easeOutCubic(t) {
+    var inverted = 1 - clamp01(t);
+    return 1 - inverted * inverted * inverted;
+  }
+
+  function tickHealthAnimation(timestamp) {
+    if (healthAnimPhase === "delay") {
+      var delayElapsedMs = timestamp - healthAnimStartTimestamp;
+      if (delayElapsedMs < HEALTH_CHANGE_DELAY_MS) {
+        healthAnimFrameId = requestAnimationFrame(tickHealthAnimation);
+        return;
+      }
+
+      healthAnimPhase = "animate";
+      healthAnimAnimateStartTimestamp = timestamp;
+    }
+
+    var animElapsedMs = timestamp - healthAnimAnimateStartTimestamp;
+    var durationMs = healthAnimIsHeal ? HEALTH_HEAL_DURATION_MS : HEALTH_DAMAGE_DURATION_MS;
+    var normalized = clamp01(animElapsedMs / durationMs);
+    var eased = easeOutCubic(normalized);
+    var interpolatedHealth = healthAnimStartValue + (healthAnimTargetValue - healthAnimStartValue) * eased;
+
+    if (healthAnimIsHeal) {
+      trackedDisplayHealth = interpolatedHealth;
+    } else {
+      trackedOverlayHealth = interpolatedHealth;
+    }
+
+    renderHealthFills();
+
+    if (normalized < 1) {
+      healthAnimFrameId = requestAnimationFrame(tickHealthAnimation);
+      return;
+    }
+
+    trackedDisplayHealth = healthAnimTargetValue;
+    trackedOverlayHealth = healthAnimTargetValue;
+    healthOverlayMode = "none";
+    renderHealthFills();
+    healthAnimFrameId = 0;
+    healthAnimPhase = "";
+  }
+
+  function startHealthChange(previousHealth, newHealth, isHeal) {
+    stopHealthAnimation();
+    healthAnimIsHeal = isHeal;
+    healthAnimStartValue = previousHealth;
+    healthAnimTargetValue = newHealth;
+    healthAnimPhase = "delay";
+
+    if (isHeal) {
+      trackedDisplayHealth = previousHealth;
+      trackedOverlayHealth = newHealth;
+      healthOverlayMode = "heal";
+    } else {
+      trackedDisplayHealth = newHealth;
+      trackedOverlayHealth = previousHealth;
+      healthOverlayMode = "damage";
+    }
+
+    renderHealthFills();
+    healthAnimStartTimestamp = performance.now();
+    healthAnimFrameId = requestAnimationFrame(tickHealthAnimation);
+  }
+
+  function buildHealthBar(maxHealth, health, healthFullColor, healthEmptyColor) {
+    if (!ensureHealthBarStructure(maxHealth, healthFullColor, healthEmptyColor)) {
+      trackedDisplayHealth = 0;
+      trackedOverlayHealth = 0;
+      healthOverlayMode = "none";
+      return;
+    }
+
+    stopHealthAnimation();
+    trackedDisplayHealth = health;
+    trackedOverlayHealth = health;
+    healthOverlayMode = "none";
+    renderHealthFills();
   }
 
   function applyHealthState(payload) {
     if (!payload) return;
     pendingHealthState = payload;
     buildHotbar();
+
     var health = typeof payload.health === "number" ? payload.health : 0;
     var maxHealth = typeof payload.maxHealth === "number" ? payload.maxHealth : 0;
-    buildHealthBar(maxHealth, health, payload.healthFullColor, payload.healthEmptyColor);
+
+    if (!ensureHealthBarStructure(maxHealth, payload.healthFullColor, payload.healthEmptyColor)) {
+      trackedDisplayHealth = 0;
+      trackedOverlayHealth = 0;
+      healthOverlayMode = "none";
+      return;
+    }
+
+    if (trackedDisplayHealth === 0 && trackedOverlayHealth === 0 && health > 0) {
+      trackedDisplayHealth = health;
+      trackedOverlayHealth = health;
+      healthOverlayMode = "none";
+      renderHealthFills();
+      return;
+    }
+
+    if (health === trackedDisplayHealth && health === trackedOverlayHealth && !healthAnimFrameId) {
+      return;
+    }
+
+    var previousDisplayHealth = trackedDisplayHealth;
+    var isHeal = health > previousDisplayHealth;
+
+    if (isHeal) {
+      startHealthChange(previousDisplayHealth, health, true);
+      return;
+    }
+
+    if (health < previousDisplayHealth) {
+      startHealthChange(previousDisplayHealth, health, false);
+    }
   }
 
   function applyDefaultSlotTheme() {
