@@ -33,6 +33,7 @@
   var scriptQueue = [
     base + "../Web Main Menu/menu-locale.js",
     base + "../Web Main Menu/menu-locale-loader.js",
+    base + "trading-terminal-ui-sounds.js",
     base + "trading-terminal-mock.js",
     base + "trading-terminal.js"
   ];
