@@ -54,7 +54,7 @@
       hoverPromise.then(function () {
         hoverAudio.pause();
         hoverAudio.currentTime = 0;
-      }).catch(function () {});
+      }).catch(function () { });
     }
   }
 
@@ -65,7 +65,7 @@
     audioElement.currentTime = 0;
     var playPromise = audioElement.play();
     if (playPromise && playPromise.catch) {
-      playPromise.catch(function () {});
+      playPromise.catch(function () { });
     }
   }
 
