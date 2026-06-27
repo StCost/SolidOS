@@ -90,6 +90,10 @@
     return t(TRANSIT_STEP_LOCALE_PREFIX + stepId, stepId.toUpperCase().replace(/-/g, " "));
   }
 
+  function getUiSounds() {
+    return window.TradingTerminalUiSounds;
+  }
+
   function getTransitStepIndex(transit, stepId) {
     if (!transit || !transit.stepOrder || !stepId) return -1;
     var index;
@@ -1212,6 +1216,10 @@
     var clickable = !disabled && isClickableElement(target);
     var mode = disabled ? "forbidden" : (clickable ? "pointer" : "default");
     setCrosshairCursorMode(mode);
+    var uiSounds = getUiSounds();
+    if (uiSounds && uiSounds.playHoverAtPoint) {
+      uiSounds.playHoverAtPoint(lastPointerX, lastPointerY, mode);
+    }
   }
 
   function positionCrosshairCursor(clientX, clientY) {
@@ -1248,6 +1256,16 @@
   }
 
   function wireUi() {
+    document.addEventListener("click", function (event) {
+      if (!isClickableElement(event.target)) {
+        return;
+      }
+      var uiSounds = getUiSounds();
+      if (uiSounds && uiSounds.playClick) {
+        uiSounds.playClick();
+      }
+    }, true);
+
     var sortHeaders = document.querySelectorAll(".trade-sort-header");
     var sortIndex;
     for (sortIndex = 0; sortIndex < sortHeaders.length; sortIndex++) {
@@ -1328,7 +1346,16 @@
       if (!crosshairCursorElement) return;
       crosshairCursorElement.classList.toggle("term-hidden", !pointerVisible);
       if (pointerVisible) {
+        var uiSounds = getUiSounds();
+        if (uiSounds && uiSounds.unlock) {
+          uiSounds.unlock();
+        }
         updateCrosshairCursorStyle();
+      } else {
+        var uiSounds = getUiSounds();
+        if (uiSounds && uiSounds.resetHover) {
+          uiSounds.resetHover();
+        }
       }
     },
     setPointer: function (normalizedX, normalizedY) {
