@@ -14,6 +14,69 @@ html.menu-web-layer-hud body {
   pointer-events: none;
 }
 
+.game-hud-crosshair {
+  --game-hud-crosshair-scale: 1;
+  --game-hud-crosshair-size: 14px;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: var(--game-hud-crosshair-size);
+  height: var(--game-hud-crosshair-size);
+  transform: translate(-50%, -50%) scale(var(--game-hud-crosshair-scale));
+  z-index: 110;
+  pointer-events: none;
+  visibility: hidden;
+  transition: visibility 0.12s ease;
+}
+
+.game-hud-crosshair.is-visible {
+  visibility: visible;
+}
+
+.game-hud-crosshair-svg {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  display: block;
+  width: var(--game-hud-crosshair-size);
+  height: var(--game-hud-crosshair-size);
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  visibility: hidden;
+  transition: visibility 0.1s ease, transform 0.12s ease;
+}
+
+.game-hud-crosshair.is-mode-normal .game-hud-crosshair-svg--normal,
+.game-hud-crosshair.is-mode-can-interact .game-hud-crosshair-svg--can-interact,
+.game-hud-crosshair.is-mode-interacting .game-hud-crosshair-svg--interacting {
+  visibility: visible;
+}
+
+.game-hud-crosshair.is-mode-can-interact .game-hud-crosshair-svg--can-interact {
+  animation: game-hud-crosshair-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes game-hud-crosshair-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+html.terminal-animations-off .game-hud-crosshair,
+html.terminal-animations-off .game-hud-crosshair-svg {
+  transition: none !important;
+}
+
+html.terminal-animations-off .game-hud-crosshair.is-mode-can-interact .game-hud-crosshair-svg--can-interact {
+  animation: none !important;
+}
+
 .game-hud-fps-cluster {
   position: fixed;
   top: clamp(8px, 1.5vmin, 16px);

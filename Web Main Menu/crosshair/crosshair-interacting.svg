@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="-1 -1 10 10">
+  <line x1="0" y1="0" x2="1.72" y2="1.72" stroke="rgba(0, 0, 0, 1)" stroke-width="1.55" stroke-linecap="square" />
+  <line x1="8" y1="0" x2="6.28" y2="1.72" stroke="rgba(0, 0, 0, 1)" stroke-width="1.55" stroke-linecap="square" />
+  <line x1="8" y1="8" x2="6.28" y2="6.28" stroke="rgba(0, 0, 0, 1)" stroke-width="1.55" stroke-linecap="square" />
+  <line x1="0" y1="8" x2="1.72" y2="6.28" stroke="rgba(0, 0, 0, 1)" stroke-width="1.55" stroke-linecap="square" />
+  <line x1="0" y1="0" x2="1.72" y2="1.72" stroke="rgba(255, 128, 64, 1)" stroke-width="0.85" stroke-linecap="square" />
+  <line x1="8" y1="0" x2="6.28" y2="1.72" stroke="rgba(255, 128, 64, 1)" stroke-width="0.85" stroke-linecap="square" />
+  <line x1="8" y1="8" x2="6.28" y2="6.28" stroke="rgba(255, 128, 64, 1)" stroke-width="0.85" stroke-linecap="square" />
+  <line x1="0" y1="8" x2="1.72" y2="6.28" stroke="rgba(255, 128, 64, 1)" stroke-width="0.85" stroke-linecap="square" />
+  <path fill="rgba(0, 0, 0, 1)" d="M4 0.5 L7.5 4 L4 7.5 L0.5 4 Z" />
+  <path fill="rgba(255, 128, 64, 1)" d="M4 1.25 L6.75 4 L4 6.75 L1.25 4 Z" />
+</svg>
