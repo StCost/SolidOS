@@ -62,6 +62,7 @@
     sprintInputMode: 0,
     crouchInputMode: 0,
     screenShakeIntensityPercent: 100,
+    crosshairSizePercent: 100,
     entityDistance: 2000,
     lookSensitivityPercent: 100,
     language: "english",
@@ -298,6 +299,7 @@
     if (tabId === "gameplay") {
       return [
         { type: "slider", key: "screenShakeIntensityPercent", labelKey: "settings.screen-shake", min: 0, max: 100, step: 1, format: percentFormat },
+        { type: "slider", key: "crosshairSizePercent", labelKey: "settings.crosshair-size", min: 50, max: 200, step: 5, format: percentFormat },
         { type: "toggle", key: "autoSelectPickup", labelKey: "settings.item-auto-select" },
         { type: "choice", key: "inventoryScrollClamp", labelKey: "settings.inventory-scroll", options: INVENTORY_SCROLL_OPTIONS, format: boolChoiceFormat },
         { type: "toggle", key: "optimisticTerrainOps", labelKey: "settings.optimistic-network-terrain-operations" },

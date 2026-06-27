@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8">
+  <g stroke-linecap="square" stroke-linejoin="miter">
+    <line x1="4" y1="0.5" x2="7.5" y2="4" stroke="rgba(0, 0, 0, 0.9)" stroke-width="0.85" />
+    <line x1="7.5" y1="4" x2="4" y2="7.5" stroke="rgba(0, 0, 0, 0.9)" stroke-width="0.85" />
+    <line x1="4" y1="7.5" x2="0.5" y2="4" stroke="rgba(0, 0, 0, 0.9)" stroke-width="0.85" />
+    <line x1="0.5" y1="4" x2="4" y2="0.5" stroke="rgba(0, 0, 0, 0.9)" stroke-width="0.85" />
+    <line x1="4" y1="1.25" x2="6.75" y2="4" stroke="rgba(255, 128, 64, 0.85)" stroke-width="0.7" />
+    <line x1="6.75" y1="4" x2="4" y2="6.75" stroke="rgba(255, 128, 64, 0.85)" stroke-width="0.7" />
+    <line x1="4" y1="6.75" x2="1.25" y2="4" stroke="rgba(255, 128, 64, 0.85)" stroke-width="0.7" />
+    <line x1="1.25" y1="4" x2="4" y2="1.25" stroke="rgba(255, 128, 64, 0.85)" stroke-width="0.7" />
+  </g>
+</svg>
