@@ -89,7 +89,8 @@
     graphicsTerrainDetails: true,
     graphicsTerrainGrass: true,
     graphicsDistantTerrain: true,
-    graphicsAntialiasingKey: "settings.graphics.aa-taa",
+    graphicsMotionVectors: false,
+    graphicsAntialiasingKey: "settings.graphics.aa-fxaa",
     graphicsLodBiasPercent: 100,
     graphicsFieldOfView: 60,
     graphicsFpsCapFps: 60,
@@ -379,6 +380,7 @@
         { type: "toggle", key: "graphicsBloom", labelKey: "settings.graphics.bloom" },
         { type: "toggle", key: "graphicsColorGrading", labelKey: "settings.graphics.color-grading" },
         { type: "choice", key: "graphicsAntialiasingKey", labelKey: "settings.graphics.antialiasing", options: AA_OPTIONS, format: stringChoiceFormat },
+        { type: "toggle", key: "graphicsMotionVectors", labelKey: "settings.graphics.motion-vectors" },
         { type: "toggle", key: "graphicsShadows", labelKey: "settings.graphics.shadows" },
         { type: "toggle", key: "graphicsAmbientOcclusion", labelKey: "settings.graphics.ambient-occlusion" },
         { type: "toggle", key: "graphicsFog", labelKey: "settings.graphics.fog" },
@@ -498,6 +500,16 @@
     setFieldValue(field, options[index].value, true);
   }
 
+  var AA_TAA_VALUE = "settings.graphics.aa-taa";
+
+  function enableMotionVectorsForTaaIfNeeded() {
+    if (state.graphicsAntialiasingKey !== AA_TAA_VALUE) return;
+    if (state.graphicsMotionVectors === true) return;
+    state.graphicsMotionVectors = true;
+    postChange("graphicsMotionVectors", "true");
+    refreshToggleRowUi({ type: "toggle", key: "graphicsMotionVectors" });
+  }
+
   function setFieldValue(field, wireValue, refreshChoiceRow) {
     if (field.type === "toggle") {
       state[field.key] = wireValue === true || wireValue === "true";
@@ -544,6 +556,11 @@
 
     state[field.key] = wireValue;
     postChange(field.key, wireValue);
+    if (field.key === "graphicsAntialiasingKey") {
+      enableMotionVectorsForTaaIfNeeded();
+      if (refreshChoiceRow) refreshChoiceRowUi(field);
+      return;
+    }
     if (field.key === "language") {
       if (refreshChoiceRow) refreshChoiceRowUi(field);
       notifyLanguageChanged();
