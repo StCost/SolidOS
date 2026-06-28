@@ -28,11 +28,6 @@
     { value: "false", labelKey: "no" }
   ];
 
-  var INVENTORY_SCROLL_OPTIONS = [
-    { value: "true", labelKey: "settings.inventory-scroll-clamp" },
-    { value: "false", labelKey: "settings.inventory-scroll-loop" }
-  ];
-
   var ENTITY_DISTANCE_OPTIONS = [
     2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000
   ];
@@ -301,7 +296,7 @@
       return [
         { type: "slider", key: "screenShakeIntensityPercent", labelKey: "settings.screen-shake", min: 0, max: 100, step: 1, format: percentFormat },
         { type: "toggle", key: "autoSelectPickup", labelKey: "settings.item-auto-select" },
-        { type: "choice", key: "inventoryScrollClamp", labelKey: "settings.inventory-scroll", options: INVENTORY_SCROLL_OPTIONS, format: boolChoiceFormat },
+        { type: "toggle", key: "inventoryScrollClamp", labelKey: "settings.inventory-scroll-clamp" },
         { type: "toggle", key: "inventoryScrollReverse", labelKey: "settings.inventory-scroll-reverse" },
         { type: "toggle", key: "optimisticTerrainOps", labelKey: "settings.optimistic-network-terrain-operations" },
         { type: "toggle", key: "tradingPostAutoOperate", labelKey: "settings.trading-post-auto-operate" },
