@@ -1,8 +1,6 @@
 (function () {
   var DEFAULT_START_MUSIC_FILE = "ui-extras-game-start-music.wav";
   var DEFAULT_GAMEPLAY_MUSIC_FILE = "ui-extras-game-music.wav";
-  var PARENT_SEGMENT = "..";
-  var AUDIO_FOLDER = "audio";
 
   var startMusicPath = "";
   var gameplayMusicPath = "";
@@ -50,18 +48,25 @@
     gameOverMusicStarted = false;
   }
 
+  function getStandaloneAudioPath(pathOrFileName) {
+    if (window.WebExtrasGameUiAudioPaths && window.WebExtrasGameUiAudioPaths.getUiSoundPath) {
+      return window.WebExtrasGameUiAudioPaths.getUiSoundPath(pathOrFileName);
+    }
+    return pathOrFileName;
+  }
+
   function getDefaultStartMusicPath() {
     if (window.WebMenuAudioPaths && window.WebMenuAudioPaths.getMenuAudioPath) {
       return window.WebMenuAudioPaths.getMenuAudioPath(DEFAULT_START_MUSIC_FILE);
     }
-    return PARENT_SEGMENT + "/" + AUDIO_FOLDER + "/" + DEFAULT_START_MUSIC_FILE;
+    return getStandaloneAudioPath(DEFAULT_START_MUSIC_FILE);
   }
 
   function getDefaultGameplayMusicPath() {
     if (window.WebMenuAudioPaths && window.WebMenuAudioPaths.getMenuAudioPath) {
       return window.WebMenuAudioPaths.getMenuAudioPath(DEFAULT_GAMEPLAY_MUSIC_FILE);
     }
-    return PARENT_SEGMENT + "/" + AUDIO_FOLDER + "/" + DEFAULT_GAMEPLAY_MUSIC_FILE;
+    return getStandaloneAudioPath(DEFAULT_GAMEPLAY_MUSIC_FILE);
   }
 
   function normalizeMusicPath(pathOrFileName, defaultFileName) {
@@ -74,7 +79,7 @@
     if (window.WebMenuAudioPaths && window.WebMenuAudioPaths.getMenuAudioPath) {
       return window.WebMenuAudioPaths.getMenuAudioPath(pathOrFileName);
     }
-    return pathOrFileName;
+    return getStandaloneAudioPath(pathOrFileName);
   }
 
   function normalizeGameOverMusicPath(pathOrFileName) {
@@ -84,7 +89,7 @@
     if (window.WebMenuAudioPaths && window.WebMenuAudioPaths.getMenuAudioPath) {
       return window.WebMenuAudioPaths.getMenuAudioPath(pathOrFileName);
     }
-    return pathOrFileName;
+    return getStandaloneAudioPath(pathOrFileName);
   }
 
   function setMusicPaths(nextStartMusicPath, nextGameplayMusicPath, nextGameOverMusicPath) {
