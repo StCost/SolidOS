@@ -6,6 +6,7 @@
   <title>Hackout</title>
   <script src="../iframe-game-locale.js"></script>
   <script src="../iframe-game-input.js"></script>
+  <script src="../extras-game-start-music-notify.js"></script>
   <script src="../extras-game-synth-audio.js"></script>
   <link rel="stylesheet" href="hackout.css" />
 </head>
@@ -50,6 +51,10 @@
         <h3 class="hack-sidebar-log-title" id="attemptLogTitle">ATTEMPT LOG</h3>
         <div class="hack-sidebar-log" id="attemptLogList" aria-live="polite"></div>
       </aside>
+    </div>
+    <div id="gameScreen">
+      <h1 id="screenTitle">HACKOUT</h1>
+      <p id="controlHint">Select a password. Brackets remove a dud. Symbols are noise.</p>
     </div>
   </div>
   <script src="hackout.js"></script>

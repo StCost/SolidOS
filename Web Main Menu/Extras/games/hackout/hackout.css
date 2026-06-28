@@ -394,3 +394,40 @@ body {
   color: #ff6a6a;
   text-shadow: 0 0 14px rgba(255, 80, 80, 0.55);
 }
+
+#gameScreen {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  pointer-events: auto;
+  background: rgba(2, 8, 4, 0.72);
+  cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+}
+
+#gameScreen.hidden {
+  display: none;
+}
+
+#screenTitle {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #7dffb0;
+  text-shadow: 0 0 18px rgba(61, 255, 122, 0.55);
+}
+
+#controlHint {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  color: rgba(61, 255, 122, 0.65);
+  text-align: center;
+  max-width: min(88vw, 22rem);
+  line-height: 1.45;
+}
