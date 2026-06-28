@@ -477,6 +477,18 @@
     }
   }
 
+  function getStandaloneInventoryScrollReverse() {
+    try {
+      var rawSettings = localStorage.getItem(STANDALONE_SETTINGS_STORAGE_KEY);
+      if (!rawSettings) return false;
+      var parsedSettings = JSON.parse(rawSettings);
+      if (!parsedSettings || parsedSettings.inventoryScrollReverse !== true) return false;
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   function isStandaloneInventoryInputEnabled() {
     if (isUnityHost()) return false;
     var hudRoot = gameHudRootElement || document.getElementById("gameHudRoot");
@@ -550,7 +562,9 @@
     standaloneScrollLastTimestamp = nowTimestamp;
 
     event.preventDefault();
-    scrollStandaloneInventory(deltaY > 0 ? -1 : 1);
+    var scrollDirection = deltaY > 0 ? 1 : -1;
+    if (getStandaloneInventoryScrollReverse()) scrollDirection = -scrollDirection;
+    scrollStandaloneInventory(scrollDirection);
   }
 
   function bindStandaloneHotbarInput() {
