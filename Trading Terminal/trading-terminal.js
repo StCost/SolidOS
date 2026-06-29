@@ -10,6 +10,8 @@
   var ICON_MARKS_SRC = "icon-marks.svg";
   var SUCCESS_OVERLAY_MS = 5000;
 
+  var STATUS_FOREIGN_OBJECT_INSIDE = "trading.terminal.status.foreign-object-inside";
+
   var state = {
     screen: "contracts",
     marks: 0,
@@ -27,6 +29,7 @@
     previewTotalCount: 0,
     previewTotalPrice: 0,
     statusMessage: "",
+    statusMessageArgs: [],
     successOverlay: "",
     successMarksChange: 0,
     transit: null,
@@ -635,25 +638,23 @@
   function isContractDisabled(contract) {
     if (!contract || contract.kind === KIND_WILDCARD) return false;
     if (contract.selectable === false) return true;
+    if (contract.kind === KIND_BUY && contract.fitsInChamber === false) return true;
     return (contract.amount || 0) <= 0;
   }
 
   function formatAmount(contract) {
     if (!contract) return "—";
     if (contract.kind === KIND_WILDCARD) return t("trading.terminal.all", "ALL");
-    if (isContractDisabled(contract)) return "0";
+    if ((contract.amount || 0) <= 0) return "0";
     if (contract.amount > 0) return String(contract.amount);
     return "—";
   }
 
   function formatItemAmount(item, isBuy) {
-    var count = item.count || 0;
-    if (!isBuy) return String(count);
-    var selectedCount = item.selectedCount !== undefined ? item.selectedCount : item.count;
-    var maxCount = item.maxCount !== undefined ? item.maxCount : item.count;
-    if (maxCount <= 0) maxCount = item.count || 1;
-    if (selectedCount >= maxCount) return String(maxCount);
-    return String(selectedCount) + "/" + String(maxCount);
+    var contractCount = item.count || 0;
+    if (!isBuy) return String(contractCount);
+    var selectedCount = item.selectedCount !== undefined ? item.selectedCount : 0;
+    return String(selectedCount) + "/" + String(contractCount);
   }
 
   function createTableCell(className, text) {
@@ -1032,6 +1033,13 @@
       var previewTotals = getPreviewSelectionTotals();
       var previewCount = previewTotals.count > 0 ? previewTotals.count : state.previewTotalCount;
       canConfirm = previewCount > 0;
+      if (canConfirm && state.previewItems && state.previewItems.length > 0) {
+        var previewItem = state.previewItems[0];
+        var fitMax = previewItem.maxCount !== undefined ? previewItem.maxCount : 0;
+        var selectedCount = previewItem.selectedCount !== undefined ? previewItem.selectedCount : 0;
+        if (selectedCount > fitMax) canConfirm = false;
+      }
+      if (canConfirm && state.statusMessage) canConfirm = false;
     }
 
     confirmButton.disabled = !canConfirm;
@@ -1059,15 +1067,21 @@
 
     var contractKind = getContractKind(contract);
     var isSell = contractKind === KIND_SELL || contractKind === KIND_WILDCARD;
-    if (scanButton) scanButton.classList.toggle("term-hidden", !isSell);
+    var showBuyRescan = contractKind === KIND_BUY && state.statusMessage === STATUS_FOREIGN_OBJECT_INSIDE;
+    if (scanButton) scanButton.classList.toggle("term-hidden", !isSell && !showBuyRescan);
     if (scanButton && isTransitActive()) scanButton.disabled = true;
     else if (scanButton) scanButton.disabled = false;
     if (stopHandshakeButton && isTransitActive()) stopHandshakeButton.disabled = true;
     else if (stopHandshakeButton) stopHandshakeButton.disabled = false;
     if (statusMessage) {
-      statusMessage.textContent = state.statusMessage
-        ? t(state.statusMessage, state.statusMessage)
-        : "";
+      if (state.statusMessage) {
+        var statusArgs = state.statusMessageArgs || [];
+        statusMessage.textContent = statusArgs.length > 0
+          ? tFormat.apply(null, [state.statusMessage, state.statusMessage].concat(statusArgs))
+          : t(state.statusMessage, state.statusMessage);
+      } else {
+        statusMessage.textContent = "";
+      }
     }
 
     updateConfirmButton();
@@ -1161,6 +1175,7 @@
     state.previewTotalCount = nextState.previewTotalCount || 0;
     state.previewTotalPrice = nextState.previewTotalPrice || 0;
     state.statusMessage = nextState.statusMessage || "";
+    state.statusMessageArgs = nextState.statusMessageArgs || [];
     state.successOverlay = nextState.successOverlay || "";
     state.successMarksChange = nextState.successMarksChange || 0;
     state.transit = nextState.transit || null;

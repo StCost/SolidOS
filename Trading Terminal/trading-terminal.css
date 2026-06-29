@@ -213,6 +213,16 @@ html.term-unity-cursor * {
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex: 1;
+}
+
+.trade-controls-status {
+  flex: 1;
+  min-width: 0;
+  color: #ff6666;
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 0;
 }
 
 .trade-handshake-back-button {
@@ -463,6 +473,13 @@ html.term-unity-cursor * {
   padding-left: 10px;
 }
 
+.trade-sort-header.trade-col-type {
+  padding-left: 6px;
+  padding-right: 4px;
+  overflow: visible;
+  white-space: nowrap;
+}
+
 .trade-transit-step.is-revealing,
 .trade-table-row.is-revealing {
   opacity: 0;
@@ -514,6 +531,10 @@ html.term-unity-cursor * {
 
 .trade-contract-table {
   flex: 0 1 auto;
+}
+
+.trade-contract-table .trade-table-row {
+  grid-template-columns: 40px minmax(0, 1fr) 56px 64px 56px 64px 72px;
 }
 
 .trade-contract-list {
