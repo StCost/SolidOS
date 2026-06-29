@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=768, height=768, initial-scale=1.0" />
+  <title>Trading Terminal Preview</title>
+  <link rel="stylesheet" href="trading-terminal.css" />
+  <style>
+    html,
+    body {
+      width: 768px;
+      height: 768px;
+      overflow: hidden;
+    }
+
+    .term-preview-page .trade-preview-screen {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .term-preview-page .term-statusbar-segment--right {
+      display: none;
+    }
+  </style>
+</head>
+<body class="term-preview-page">
+  <div class="term-device" id="tradeDevice">
+    <div class="term-frame term-window os-window os-window--focused">
+      <header class="os-window-chrome term-window-chrome">
+        <p class="os-window-title terminal-text--dim">
+          <img class="os-window-title-icon" src="../Web Main Menu/favicon.svg" alt="" />
+          <span class="os-window-title-text">TRADING TERMINAL</span>
+        </p>
+        <div class="os-window-controls" aria-hidden="true">
+          <button type="button" class="os-window-dot os-window-control" data-wm-action="minimize" disabled tabindex="-1" aria-label="Minimize window">
+            <span class="os-window-control-glyph" aria-hidden="true"></span>
+          </button>
+          <button type="button" class="os-window-dot os-window-control" data-wm-action="maximize" disabled tabindex="-1" aria-label="Maximize window">
+            <span class="os-window-control-glyph" aria-hidden="true"></span>
+          </button>
+          <button type="button" class="os-window-dot os-window-control" data-wm-action="close" disabled tabindex="-1" aria-label="Close window">
+            <span class="os-window-control-glyph" aria-hidden="true"></span>
+          </button>
+        </div>
+      </header>
+
+      <div class="term-content">
+        <div class="trade-layout">
+          <div class="trade-ui-panel">
+            <div class="trade-screen trade-preview-screen">
+              <div class="trade-preview-icons">
+                <img class="trade-preview-icon trade-preview-icon--sell" src="icon-sell.svg" alt="" />
+                <img class="trade-preview-icon trade-preview-icon--marks" src="icon-marks.svg" alt="" />
+                <img class="trade-preview-icon trade-preview-icon--buy" src="icon-buy.svg" alt="" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="term-statusbar os-statusbar os-statusbar--bottom" aria-hidden="true">
+        <span class="os-statusbar-segment term-statusbar-segment terminal-text--dim">SolidOS</span>
+        <span class="os-statusbar-segment os-statusbar-segment--right term-statusbar-segment term-statusbar-segment--right terminal-text--dim">
+          <span class="term-os-clock">00:00:00</span>
+        </span>
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

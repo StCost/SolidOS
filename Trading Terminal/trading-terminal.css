@@ -674,6 +674,39 @@ html.term-unity-cursor * {
   height: 16px;
 }
 
+.trade-marks-label {
+  color: var(--term-text-bright);
+  font-size: 13px;
+  text-shadow: 0 0 8px rgba(255, 200, 120, 0.35);
+}
+
+.trade-preview-icons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 56px;
+  width: 100%;
+  padding: 24px 16px;
+}
+
+.trade-preview-icon {
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.trade-preview-icon--sell,
+.trade-preview-icon--buy {
+  width: 72px;
+  height: 72px;
+  opacity: 0.9;
+}
+
+.trade-preview-icon--marks {
+  width: 88px;
+  height: 88px;
+}
+
 .trade-col-type.is-buy {
   color: #7fd4ff;
 }
