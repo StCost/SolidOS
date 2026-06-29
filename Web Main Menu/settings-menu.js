@@ -39,6 +39,12 @@
     { value: "settings.graphics.aa-taa", labelKey: "settings.graphics.aa-taa" }
   ];
 
+  var WINDOW_MODE_OPTIONS = [
+    { value: "settings.display.window-mode-windowed", labelKey: "settings.display.window-mode-windowed" },
+    { value: "settings.display.window-mode-borderless", labelKey: "settings.display.window-mode-borderless" },
+    { value: "settings.display.window-mode-fullscreen", labelKey: "settings.display.window-mode-fullscreen" }
+  ];
+
   var TABS = [
     { id: "interface", labelKey: "settings.title.interface" },
     { id: "gameplay", labelKey: "settings.title.gameplay" },
@@ -92,6 +98,9 @@
     graphicsFieldOfView: 60,
     graphicsFpsCapFps: 60,
     graphicsWebPixelDensityPercent: 100,
+    displayWindowModeKey: "settings.display.window-mode-windowed",
+    displayResolutionKey: "",
+    displayResolutionOptions: [],
     desktopIconScalePercent: 100,
     showFpsCounter: false,
     languageOptions: []
@@ -291,6 +300,21 @@
     return sortLanguageOptions(options);
   }
 
+  function getDisplayResolutionOptions() {
+    var source = state.displayResolutionOptions;
+    if (!source || !source.length) {
+      var fallbackKey = state.displayResolutionKey || "1920x1080";
+      return [{ value: fallbackKey, label: fallbackKey }];
+    }
+    var options = [];
+    var index;
+    for (index = 0; index < source.length; index++) {
+      var entry = source[index];
+      options.push({ value: entry.value, label: entry.label || entry.value });
+    }
+    return options;
+  }
+
   function getFieldsForTab(tabId) {
     if (tabId === "gameplay") {
       return [
@@ -359,6 +383,8 @@
 
     if (tabId === "graphics") {
       return [
+        { type: "choice", key: "displayWindowModeKey", labelKey: "settings.display.window-mode", options: WINDOW_MODE_OPTIONS, format: stringChoiceFormat },
+        { type: "choice", key: "displayResolutionKey", labelKey: "settings.display.resolution", options: getDisplayResolutionOptions, format: stringChoiceFormat },
         {
           type: "slider",
           key: "graphicsLodBiasPercent",
@@ -1784,6 +1810,10 @@
       if (!Object.prototype.hasOwnProperty.call(payload, key)) continue;
       if (key === "languageOptions" && payload.languageOptions) {
         state.languageOptions = payload.languageOptions;
+        continue;
+      }
+      if (key === "displayResolutionOptions" && payload.displayResolutionOptions) {
+        state.displayResolutionOptions = payload.displayResolutionOptions;
         continue;
       }
       if (key === "controlsSection" || key === "controlsRows" || key === "controlsListeningRowId") continue;
