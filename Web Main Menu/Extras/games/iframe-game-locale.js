@@ -101,13 +101,34 @@
   window.addEventListener("message", onMessage);
 
   function getStrings() {
-    return strings;
+    var copy = {};
+    var key;
+    for (key in strings) {
+      if (Object.prototype.hasOwnProperty.call(strings, key)) {
+        copy[key] = strings[key];
+      }
+    }
+    return copy;
+  }
+
+  function applyAll(map) {
+    applyStrings(map);
+  }
+
+  function flushPendingLocale() {
+    if (!window.__webPendingLocale) {
+      return;
+    }
+    applyAll(window.__webPendingLocale);
+    window.__webPendingLocale = null;
   }
 
   window.WebLocale = {
     get: get,
-    getStrings: getStrings
+    getStrings: getStrings,
+    applyAll: applyAll
   };
 
   requestLocaleFromHost();
+  flushPendingLocale();
 })();
