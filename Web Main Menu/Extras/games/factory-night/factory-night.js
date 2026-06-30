@@ -19,16 +19,18 @@
   var ALL_CAMERAS_REFRESH_MS = 9000;
   var CAM_CHANGE_FADE_MS = 1000;
   var CAMERA_CHANGE_AUDIO_FILE = "ui-factory-night-camera-change.wav";
+  var CAMERA_CHANGE_PITCH_MIN = 0.86;
+  var CAMERA_CHANGE_PITCH_MAX = 1.14;
   var POWER_OUT_SCARE_MIN_MS = 5000;
   var POWER_OUT_SCARE_MAX_MS = 12000;
-  var POWER_OUT_SCREAMER_FLASH_MS = 520;
+  var POWER_OUT_SCREAMER_HOLD_MS = 3200;
   var CAM_MAP_MARGIN_X = 8;
   var CAM_MAP_MARGIN_Y = 12;
   var CAM_MAP_SPAN_X = 84;
   var CAM_MAP_SPAN_Y = 76;
-  var CAM_MAP_NODE_HALF_W = 6;
-  var CAM_MAP_NODE_HALF_H = 5;
-  var CAM_MAP_NODE_GAP = 3;
+  var CAM_MAP_NODE_HALF_W = 9;
+  var CAM_MAP_NODE_HALF_H = 8;
+  var CAM_MAP_NODE_GAP = 4;
   var CAM_MAP_PLACE_TRIES = 80;
 
   var ROOM_NAME_KEYS = [
@@ -210,7 +212,17 @@
     }
   }
 
+  function ensureLocaleReadyWithFallbacks() {
+    if (document.documentElement.classList.contains("locale-ready")) {
+      return;
+    }
+    if (window.WebGameLocale && window.WebGameLocale.applyAll) {
+      window.WebGameLocale.applyAll({});
+    }
+  }
+
   function applyGameLocale() {
+    ensureLocaleReadyWithFallbacks();
     if (window.WebGameLocale && window.WebGameLocale.applyDom) {
       window.WebGameLocale.applyDom();
     }
@@ -1199,10 +1211,16 @@
     return cameraChangeAudio;
   }
 
+  function getCameraChangePlaybackRate() {
+    return CAMERA_CHANGE_PITCH_MIN + Math.random() * (CAMERA_CHANGE_PITCH_MAX - CAMERA_CHANGE_PITCH_MIN);
+  }
+
   function playCameraChangeSound() {
     var audio;
     var playPromise;
     audio = ensureCameraChangeAudio();
+    audio.preservesPitch = false;
+    audio.playbackRate = getCameraChangePlaybackRate();
     audio.volume = getCameraChangeOutputVolume();
     audio.currentTime = 0;
     playPromise = audio.play();
@@ -1409,6 +1427,17 @@
     );
   }
 
+  function finishPowerOutScreamer(screamerPath) {
+    powerOutScreamerTimer = 0;
+    if (gameRoot) {
+      gameRoot.classList.remove("is-power-out-screamer");
+    }
+    if (powerOutOverlayEl) {
+      powerOutOverlayEl.classList.add("is-hidden");
+    }
+    loseGame(screamerPath, true);
+  }
+
   function triggerPowerOutScreamer() {
     var screamerPath;
     if (!state.playing || state.gameOver || !state.powerOut) {
@@ -1425,16 +1454,8 @@
       getSynth().playJumpscare();
     }
     powerOutScreamerTimer = window.setTimeout(function () {
-      powerOutScreamerTimer = 0;
-      hideFullscreenScreamer();
-      if (gameRoot) {
-        gameRoot.classList.remove("is-power-out-screamer");
-      }
-      if (powerOutOverlayEl) {
-        powerOutOverlayEl.classList.add("is-hidden");
-      }
-      loseGame(screamerPath);
-    }, POWER_OUT_SCREAMER_FLASH_MS);
+      finishPowerOutScreamer(screamerPath);
+    }, POWER_OUT_SCREAMER_HOLD_MS);
   }
 
   function schedulePowerOutScare() {
@@ -1483,28 +1504,28 @@
     }
   }
 
-  function loseGame(screamerPath) {
+  function loseGame(screamerPath, jumpscareSoundAlreadyPlayed) {
     var facePath;
     if (state.gameOver) {
       return;
     }
     cancelPowerOutScare();
-    hideFullscreenScreamer();
-    state.gameOver = true;
-    state.playing = false;
-    stopTimers();
     facePath = screamerPath || getRandomScreamerPath();
     preloadImage(facePath);
     if (jumpscareFaceEl) {
       jumpscareFaceEl.style.backgroundImage = "url(\"" + facePath + "\")";
     }
+    hideFullscreenScreamer();
+    state.gameOver = true;
+    state.playing = false;
+    stopTimers();
     if (gameRoot) {
       gameRoot.classList.add("is-jumpscare");
     }
     if (gameOverOverlayEl) {
       gameOverOverlayEl.classList.remove("is-hidden");
     }
-    if (getSynth()) {
+    if (getSynth() && !jumpscareSoundAlreadyPlayed) {
       getSynth().playJumpscare();
     }
   }
