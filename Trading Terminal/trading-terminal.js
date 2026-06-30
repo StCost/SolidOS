@@ -245,6 +245,20 @@
     }
   }
 
+  function updateTransitAutoOperateUi() {
+    var switchButton = document.getElementById("transitAutoOperateSwitch");
+    if (!switchButton) return;
+    switchButton.classList.toggle("is-on", transitAutoOperate);
+    switchButton.setAttribute("aria-checked", transitAutoOperate ? "true" : "false");
+  }
+
+  function setTransitAutoOperateEnabled(enabled) {
+    transitAutoOperate = !!enabled;
+    updateTransitAutoOperateUi();
+    maybeAutoOperateTransitStep();
+    postAction("set-auto-operate", { tradingPostAutoOperate: transitAutoOperate });
+  }
+
   function updateTransitToolbar(transit) {
     var backButton = document.getElementById("transitBackButton");
 
@@ -253,6 +267,8 @@
       backButton.disabled = !canCancel;
       backButton.textContent = t("trading.terminal.back", "Back");
     }
+
+    updateTransitAutoOperateUi();
   }
 
   function renderTransitScreen() {
@@ -1371,6 +1387,14 @@
       });
     }
 
+    var transitAutoOperateSwitch = document.getElementById("transitAutoOperateSwitch");
+    if (transitAutoOperateSwitch) {
+      transitAutoOperateSwitch.addEventListener("click", function (event) {
+        event.stopPropagation();
+        setTransitAutoOperateEnabled(!transitAutoOperate);
+      });
+    }
+
     var successContinueButton = document.getElementById("tradeSuccessContinue");
     if (successContinueButton) {
       successContinueButton.addEventListener("click", function () {
@@ -1440,6 +1464,7 @@
     },
     setTransitAutoOperate: function (enabled) {
       transitAutoOperate = !!enabled;
+      updateTransitAutoOperateUi();
       maybeAutoOperateTransitStep();
     }
   };
