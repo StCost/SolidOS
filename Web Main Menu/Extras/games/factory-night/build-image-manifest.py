@@ -13,6 +13,8 @@ ASSETS_DIR = os.path.join(SCRIPT_DIR, "assets")
 SAFE_DIR = os.path.join(ASSETS_DIR, "safe")
 MONSTER_DIR = os.path.join(ASSETS_DIR, "monster")
 MANIFEST_PATH = os.path.join(ASSETS_DIR, "image-manifest.json")
+MANIFEST_JS_PATH = os.path.join(ASSETS_DIR, "image-manifest.js")
+MANIFEST_JS_GLOBAL = "FACTORY_NIGHT_IMAGE_MANIFEST"
 
 
 def list_feed_images(folder: str) -> list[str]:
@@ -37,7 +39,14 @@ def main() -> None:
     with open(MANIFEST_PATH, "w", encoding="utf-8") as handle:
         json.dump(manifest, handle, indent=2)
         handle.write("\n")
+    with open(MANIFEST_JS_PATH, "w", encoding="utf-8") as handle:
+        handle.write("window.")
+        handle.write(MANIFEST_JS_GLOBAL)
+        handle.write("=")
+        json.dump(manifest, handle, separators=(",", ":"))
+        handle.write(";\n")
     print("Wrote", MANIFEST_PATH)
+    print("Wrote", MANIFEST_JS_PATH)
     print("  safe:", len(manifest["safe"]))
     print("  monster:", len(manifest["monster"]))
 
