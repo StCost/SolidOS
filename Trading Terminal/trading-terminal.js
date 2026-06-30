@@ -713,10 +713,12 @@
     lockButton.className = "term-button trade-lock-button";
     if (contract.pinned) lockButton.classList.add("is-locked");
 
+    lockButton.setAttribute("aria-label", contract.pinned ? t("trading.terminal.locked", "LOCKED") : t("trading.terminal.unlocked", "UNLOCKED"));
+
     var lockIcon = document.createElement("img");
     lockIcon.className = "trade-lock-icon";
     lockIcon.src = contract.pinned ? ICON_LOCK_SRC : ICON_UNLOCK_SRC;
-    lockIcon.alt = contract.pinned ? t("trading.terminal.locked", "LOCKED") : t("trading.terminal.unlocked", "UNLOCKED");
+    lockIcon.alt = "";
     lockButton.appendChild(lockIcon);
 
     lockButton.addEventListener("click", function (event) {
@@ -781,13 +783,13 @@
       }(contract.id));
     }
 
+    row.appendChild(createTypeIconCell(getContractTypeClass(contract), contract.kind === KIND_BUY));
     row.appendChild(createIconCell(contract, contract.kind === KIND_WILDCARD));
     row.appendChild(createTableCell("trade-col-name", getEntityDisplayName(contract.entityId, contract.displayName) || t("trading.terminal.contract-fallback", "CONTRACT")));
-    row.appendChild(createLockCell(contract));
-    row.appendChild(createTypeIconCell(getContractTypeClass(contract), contract.kind === KIND_BUY));
     row.appendChild(createTableCell("trade-col-amount", formatAmount(contract)));
     row.appendChild(createMarksAmountCell("trade-col-price", contract.unitPrice, contract.kind === KIND_WILDCARD));
     row.appendChild(createMarksAmountCell("trade-col-total", contract.totalPrice, contract.kind === KIND_WILDCARD));
+    row.appendChild(createLockCell(contract));
     setRowRevealAnimation(row, revealIndex);
     list.appendChild(row);
   }
@@ -931,13 +933,13 @@
 
     var lineTotal = item.lineTotal !== undefined ? item.lineTotal : (item.unitPrice || 0) * (item.count || 1);
 
+    row.appendChild(createTypeIconCell(rowKind, isBuy));
     row.appendChild(createIconCell(item, false));
     row.appendChild(createTableCell("trade-col-name", getEntityDisplayName(item.entityId, item.displayName) || t("trading.terminal.item-fallback", "ITEM")));
-    row.appendChild(createQtyControlsCell(item, itemIndex, isBuy));
-    row.appendChild(createTypeIconCell(rowKind, isBuy));
     row.appendChild(createTableCell("trade-col-amount", formatItemAmount(item, isBuy)));
     row.appendChild(createMarksAmountCell("trade-col-price", item.unitPrice || 0, false));
     row.appendChild(createMarksAmountCell("trade-col-total", lineTotal, false));
+    row.appendChild(createQtyControlsCell(item, itemIndex, isBuy));
     setRowRevealAnimation(row, revealIndex);
     list.appendChild(row);
   }
