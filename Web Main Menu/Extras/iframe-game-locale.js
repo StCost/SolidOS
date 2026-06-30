@@ -66,9 +66,11 @@
     try {
       if (window.parent && window.parent !== window) {
         window.parent.postMessage({ eventName: EVENT_LOCALE_REQUEST }, "*");
+        return;
       }
     } catch (error) {
     }
+    applyAll({});
   }
 
   window.WebGameLocale = {
