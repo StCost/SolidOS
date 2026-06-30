@@ -761,8 +761,12 @@
     return isTrapMineBuilding(getBuildingAt(cellX, cellY));
   }
 
+  function shouldUnitIgnoreTrapMines(unit) {
+    return unit.kind === UNIT_DEMON || isFriendlyUnitKind(unit.kind);
+  }
+
   function isCellWalkableForUnit(unit, cellX, cellY) {
-    if (unit.kind === UNIT_DEMON && isTrapMineCell(cellX, cellY)) {
+    if (shouldUnitIgnoreTrapMines(unit) && isTrapMineCell(cellX, cellY)) {
       return true;
     }
     return isCellWalkable(cellX, cellY);
@@ -1110,7 +1114,7 @@
     }
     var blockX = unitCellX + stepX;
     var blockY = unitCellY + stepY;
-    var ignoreTrapMines = unit.kind === UNIT_DEMON;
+    var ignoreTrapMines = shouldUnitIgnoreTrapMines(unit);
     if (isCellBlockedForWalk(blockX, blockY, false, ignoreTrapMines)) {
       return { x: blockX, y: blockY };
     }
@@ -1141,8 +1145,12 @@
     }
   }
 
-  function findWalkableApproachCell(targetX, targetY, fromX, fromY) {
-    return findMineApproachCell(targetX, targetY, fromX, fromY);
+  function findPathForUnit(unit, startX, startY, goalX, goalY, allowBlocked, maxNodes) {
+    return findPath(startX, startY, goalX, goalY, allowBlocked, maxNodes, shouldUnitIgnoreTrapMines(unit));
+  }
+
+  function findWalkableApproachCell(targetX, targetY, fromX, fromY, unit) {
+    return findMineApproachCell(targetX, targetY, fromX, fromY, unit);
   }
 
   function findBuildingApproachCell(building, fromX, fromY) {
@@ -1233,7 +1241,11 @@
         if (isCellInsideFootprint(tryX, tryY, order.x, order.y, size)) {
           continue;
         }
-        if (!isCellWalkable(tryX, tryY)) {
+        if (unit) {
+          if (!isCellWalkableForUnit(unit, tryX, tryY)) {
+            continue;
+          }
+        } else if (!isCellWalkable(tryX, tryY)) {
           continue;
         }
         var entry = {
@@ -1264,7 +1276,7 @@
       return sorted;
     }
     var center = getBuildOrderCenter(order);
-    var centerApproach = findWalkableApproachCell(center.x, center.y, fromX, fromY);
+    var centerApproach = findWalkableApproachCell(center.x, center.y, fromX, fromY, unit);
     if (centerApproach) {
       return [{
         x: centerApproach.x,
@@ -1347,7 +1359,7 @@
         if (isCellInsideFootprint(tryX, tryY, footprintX, footprintY, footprintSize)) {
           continue;
         }
-        if (!isCellWalkable(tryX, tryY)) {
+        if (!isCellWalkableForUnit(unit, tryX, tryY)) {
           continue;
         }
         if (isCellOccupiedByOtherUnit(tryX, tryY, unit)) {
@@ -1402,7 +1414,7 @@
   function snapUnitToWalkableCell(unit) {
     var cellX = Math.floor(unit.x);
     var cellY = Math.floor(unit.y);
-    if (isCellWalkable(cellX, cellY)) {
+    if (isCellWalkableForUnit(unit, cellX, cellY)) {
       return false;
     }
     var bestX = -1;
@@ -1414,7 +1426,7 @@
       for (offsetX = -UNIT_SNAP_SEARCH_RADIUS; offsetX <= UNIT_SNAP_SEARCH_RADIUS; offsetX++) {
         var tryX = cellX + offsetX;
         var tryY = cellY + offsetY;
-        if (!isCellWalkable(tryX, tryY)) {
+        if (!isCellWalkableForUnit(unit, tryX, tryY)) {
           continue;
         }
         var distance = manhattanDistance(cellX, cellY, tryX, tryY);
@@ -1472,7 +1484,7 @@
   }
 
   function canUnitEnterCell(unit, cellX, cellY) {
-    if (unit.kind === UNIT_DEMON && isTrapMineCell(cellX, cellY)) {
+    if (shouldUnitIgnoreTrapMines(unit) && isTrapMineCell(cellX, cellY)) {
       return true;
     }
     if (unit.kind !== UNIT_DEMON && isCellOccupiedByOtherUnit(cellX, cellY, unit)) {
@@ -1487,7 +1499,7 @@
   function tryEscapeBlockedCell(unit, speed, deltaSeconds) {
     var currentCellX = Math.floor(unit.x);
     var currentCellY = Math.floor(unit.y);
-    if (isCellWalkable(currentCellX, currentCellY)) {
+    if (isCellWalkableForUnit(unit, currentCellX, currentCellY)) {
       return false;
     }
     var directionIndex;
@@ -1497,7 +1509,7 @@
     for (directionIndex = 0; directionIndex < ESCAPE_DIRECTIONS.length; directionIndex++) {
       var tryX = currentCellX + ESCAPE_DIRECTIONS[directionIndex][0];
       var tryY = currentCellY + ESCAPE_DIRECTIONS[directionIndex][1];
-      if (!isCellWalkable(tryX, tryY)) {
+      if (!isCellWalkableForUnit(unit, tryX, tryY)) {
         continue;
       }
       var score = manhattanDistance(tryX, tryY, currentCellX, currentCellY);
@@ -1548,7 +1560,8 @@
       targetX,
       targetY,
       Math.floor(unit.x),
-      Math.floor(unit.y)
+      Math.floor(unit.y),
+      unit
     );
     if (!approach) {
       clearUnitPath(unit);
@@ -1556,8 +1569,7 @@
     }
     var startX = Math.floor(unit.x);
     var startY = Math.floor(unit.y);
-    var ignoreTrapMines = unit.kind === UNIT_DEMON;
-    var path = findPath(startX, startY, approach.x, approach.y, false, null, ignoreTrapMines);
+    var path = findPathForUnit(unit, startX, startY, approach.x, approach.y, false);
     var storedGoalX = goalX != null ? goalX : approach.x;
     var storedGoalY = goalY != null ? goalY : approach.y;
     assignUnitPath(unit, path, storedGoalX, storedGoalY);
@@ -1739,7 +1751,7 @@
       return null;
     }
     if (treatTrapMinesOpen) {
-      if (!isCellWalkableForUnit({ kind: UNIT_DEMON, x: fromX, y: fromY }, fromX, fromY)) {
+      if (!isCellWalkable(fromX, fromY) && !isTrapMineCell(fromX, fromY)) {
         return null;
       }
     } else if (!isCellWalkable(fromX, fromY)) {
@@ -2200,7 +2212,7 @@
     var approachIndex;
     for (approachIndex = 0; approachIndex < approachCells.length; approachIndex++) {
       var approach = approachCells[approachIndex];
-      var path = findPath(startX, startY, approach.x, approach.y, false);
+      var path = findPathForUnit(unit, startX, startY, approach.x, approach.y, false);
       if (path) {
         assignUnitPath(unit, path, center.x, center.y);
         return;
@@ -2953,21 +2965,25 @@
     return false;
   }
 
-  function findMineApproachCell(mountainX, mountainY, fromX, fromY) {
-    var cells = collectMineApproachCells(mountainX, mountainY, fromX, fromY);
+  function findMineApproachCell(mountainX, mountainY, fromX, fromY, unit) {
+    var cells = collectMineApproachCells(mountainX, mountainY, fromX, fromY, unit);
     if (cells.length > 0) {
       return { x: cells[0].x, y: cells[0].y };
     }
     return null;
   }
 
-  function collectMineApproachCells(targetX, targetY, fromX, fromY) {
+  function collectMineApproachCells(targetX, targetY, fromX, fromY, unit) {
     var cells = [];
     var directionIndex;
     for (directionIndex = 0; directionIndex < DIRECTIONS.length; directionIndex++) {
       var approachX = targetX + DIRECTIONS[directionIndex][0];
       var approachY = targetY + DIRECTIONS[directionIndex][1];
-      if (!isCellWalkable(approachX, approachY)) {
+      if (unit) {
+        if (!isCellWalkableForUnit(unit, approachX, approachY)) {
+          continue;
+        }
+      } else if (!isCellWalkable(approachX, approachY)) {
         continue;
       }
       cells.push({
@@ -2996,7 +3012,7 @@
     var approachIndex;
     for (approachIndex = 0; approachIndex < approachCells.length; approachIndex++) {
       var approach = approachCells[approachIndex];
-      var path = findPath(startX, startY, approach.x, approach.y, false);
+      var path = findPathForUnit(unit, startX, startY, approach.x, approach.y, false);
       if (path) {
         assignUnitPath(unit, path, mountainX, mountainY);
         return true;
@@ -3024,6 +3040,56 @@
 
   function isOreReservedByWorker(cellX, cellY) {
     return isOreTargetedByWorker(cellX, cellY, null);
+  }
+
+  function getWorkerDigFocusCell(worker) {
+    if (worker.kind !== UNIT_WORKER) {
+      return null;
+    }
+    if (worker.buildOrderId >= 0) {
+      return null;
+    }
+    if (
+      worker.digCellX >= 0 &&
+      worker.digCellY >= 0 &&
+      inBounds(worker.digCellX, worker.digCellY) &&
+      (isMountain(worker.digCellX, worker.digCellY) || isPlayerWall(worker.digCellX, worker.digCellY))
+    ) {
+      return { x: worker.digCellX, y: worker.digCellY };
+    }
+    if (workerHasValidMineTarget(worker)) {
+      return { x: worker.targetCellX, y: worker.targetCellY };
+    }
+    return null;
+  }
+
+  function renderWorkerDigFocusMarkers(startCellX, startCellY, endCellX, endCellY, timeSeconds) {
+    var unitIndex;
+    var pulse = 0.55 + Math.sin(timeSeconds * 5.5) * 0.45;
+    var padding = Math.max(1, cellPixelSize * 0.08);
+    var drawSize = cellPixelSize - padding * 2;
+    for (unitIndex = 0; unitIndex < units.length; unitIndex += 1) {
+      var worker = units[unitIndex];
+      var focusCell = getWorkerDigFocusCell(worker);
+      if (!focusCell) {
+        continue;
+      }
+      if (
+        focusCell.x < startCellX ||
+        focusCell.x >= endCellX ||
+        focusCell.y < startCellY ||
+        focusCell.y >= endCellY
+      ) {
+        continue;
+      }
+      var screen = worldToScreen(focusCell.x, focusCell.y);
+      context.fillStyle = "rgba(90, 210, 255, " + String(0.2 + pulse * 0.32) + ")";
+      context.fillRect(screen.x + padding, screen.y + padding, drawSize, drawSize);
+      context.strokeStyle = "rgba(200, 245, 255, " + String(0.82 + pulse * 0.18) + ")";
+      context.lineWidth = Math.max(2, cellPixelSize * 0.14);
+      context.strokeRect(screen.x + padding, screen.y + padding, drawSize, drawSize);
+      context.lineWidth = 1;
+    }
   }
 
   function claimMineOrder(cellX, cellY) {
@@ -3227,25 +3293,25 @@
       unit.digCellY = -1;
     }
     if (keepDigTarget) {
-      var activeDigApproaches = collectMineApproachCells(unit.digCellX, unit.digCellY, startX, startY);
+      var activeDigApproaches = collectMineApproachCells(unit.digCellX, unit.digCellY, startX, startY, unit);
       if (setWorkerMinePathWithApproaches(unit, mountainX, mountainY, activeDigApproaches)) {
         return;
       }
       unit.digCellX = -1;
       unit.digCellY = -1;
     }
-    var approachCells = collectMineApproachCells(mountainX, mountainY, startX, startY);
+    var approachCells = collectMineApproachCells(mountainX, mountainY, startX, startY, unit);
     if (setWorkerMinePathWithApproaches(unit, mountainX, mountainY, approachCells)) {
       return;
     }
-    var blocker = findBlockingCellTowardGoal(startX, startY, mountainX, mountainY);
+    var blocker = findBlockingCellTowardGoal(startX, startY, mountainX, mountainY, true);
     if (!blocker) {
       clearUnitPath(unit);
       return;
     }
     unit.digCellX = blocker.x;
     unit.digCellY = blocker.y;
-    var digApproachCells = collectMineApproachCells(blocker.x, blocker.y, startX, startY);
+    var digApproachCells = collectMineApproachCells(blocker.x, blocker.y, startX, startY, unit);
     if (!setWorkerMinePathWithApproaches(unit, mountainX, mountainY, digApproachCells)) {
       clearUnitPath(unit);
     }
@@ -3264,8 +3330,7 @@
   function setUnitPath(unit, goalX, goalY, allowBlocked) {
     var startX = Math.floor(unit.x);
     var startY = Math.floor(unit.y);
-    var ignoreTrapMines = unit.kind === UNIT_DEMON;
-    var path = findPath(startX, startY, goalX, goalY, allowBlocked, null, ignoreTrapMines);
+    var path = findPathForUnit(unit, startX, startY, goalX, goalY, allowBlocked);
     assignUnitPath(unit, path, goalX, goalY);
   }
 
@@ -3305,10 +3370,10 @@
       var offsetY = randomInt(-WORKER_ROAM_RADIUS, WORKER_ROAM_RADIUS);
       var tryCellX = anchorCellX + offsetX;
       var tryCellY = anchorCellY + offsetY;
-      if (!isCellWalkable(tryCellX, tryCellY)) {
+      if (!isCellWalkableForUnit(unit, tryCellX, tryCellY)) {
         continue;
       }
-      var path = findPath(originCellX, originCellY, tryCellX, tryCellY, false);
+      var path = findPathForUnit(unit, originCellX, originCellY, tryCellX, tryCellY, false);
       if (path) {
         return { x: tryCellX, y: tryCellY, path: path };
       }
@@ -3329,7 +3394,7 @@
   }
 
   function moveUnitTowardWorldPoint(unit, targetX, targetY, speed, deltaSeconds) {
-    if (!isCellWalkable(Math.floor(unit.x), Math.floor(unit.y))) {
+    if (!isCellWalkableForUnit(unit, Math.floor(unit.x), Math.floor(unit.y))) {
       if (tryEscapeBlockedCell(unit, speed, deltaSeconds)) {
         return;
       }
@@ -3477,7 +3542,7 @@
     var isWandering = unit.targetCellX < 0 && unit.buildOrderId < 0;
     if (!isWandering) {
       resolveUnitWalkablePosition(unit, WORKER_SPEED, deltaSeconds);
-    } else if (!isCellWalkable(Math.floor(unit.x), Math.floor(unit.y))) {
+    } else if (!isCellWalkableForUnit(unit, Math.floor(unit.x), Math.floor(unit.y))) {
       if (!tryEscapeBlockedCell(unit, WORKER_SPEED, deltaSeconds)) {
         snapUnitToWalkableCell(unit);
       }
@@ -3801,10 +3866,10 @@
       }
       var tryCellX = guardCellX + offsetX;
       var tryCellY = guardCellY + offsetY;
-      if (!isCellWalkable(tryCellX, tryCellY)) {
+      if (!isCellWalkableForUnit(unit, tryCellX, tryCellY)) {
         continue;
       }
-      var path = findPath(startX, startY, tryCellX, tryCellY, false);
+      var path = findPathForUnit(unit, startX, startY, tryCellX, tryCellY, false);
       if (path) {
         assignUnitPath(unit, path, tryCellX, tryCellY);
         return true;
@@ -4511,6 +4576,35 @@
     return fitHeight;
   }
 
+  function getViewCellCountForCellPixelSize(pixelSize) {
+    return Math.ceil(canvasWidth / pixelSize) * Math.ceil(canvasHeight / pixelSize);
+  }
+
+  function isDetailedWorldRenderForCellPixelSize(pixelSize) {
+    if (pixelSize <= WORLD_SIMPLE_RENDER_CELL_PIXEL) {
+      return false;
+    }
+    return getViewCellCountForCellPixelSize(pixelSize) <= WORLD_SIMPLE_RENDER_MAX_CELLS;
+  }
+
+  function getDefaultCellPixelSizeForDetailedWorld() {
+    if (canvasWidth < 1 || canvasHeight < 1) {
+      return DEFAULT_CELL_PIXEL_SIZE;
+    }
+    var minCellPixelSize = getMinCellPixelSizeForWorldFit();
+    var pixelSize = WORLD_SIMPLE_RENDER_CELL_PIXEL + 1;
+    for (; pixelSize <= ZOOM_MAX_CELL_PIXEL_SIZE; pixelSize += 1) {
+      if (!isDetailedWorldRenderForCellPixelSize(pixelSize)) {
+        continue;
+      }
+      if (pixelSize < minCellPixelSize) {
+        return minCellPixelSize;
+      }
+      return pixelSize;
+    }
+    return ZOOM_MAX_CELL_PIXEL_SIZE;
+  }
+
   function updateViewCellsFromZoom() {
     if (canvasWidth < 1) {
       canvasWidth = 1;
@@ -4953,7 +5047,7 @@
   }
 
   function shouldUseSimpleWorldRender() {
-    return viewCellsX * viewCellsY > WORLD_SIMPLE_RENDER_MAX_CELLS || cellPixelSize <= WORLD_SIMPLE_RENDER_CELL_PIXEL;
+    return !isDetailedWorldRenderForCellPixelSize(cellPixelSize);
   }
 
   function getWorldCellFillColor(cellX, cellY) {
@@ -5755,6 +5849,7 @@
       var orderViewStartY = Math.floor(cameraY);
       var orderViewEndX = orderViewStartX + viewCellsX + 2;
       var orderViewEndY = orderViewStartY + viewCellsY + 2;
+      renderWorkerDigFocusMarkers(orderViewStartX, orderViewStartY, orderViewEndX, orderViewEndY, timestamp / 1000);
       renderReservedOreMarkers(orderViewStartX, orderViewStartY, orderViewEndX, orderViewEndY);
       renderBuildOrders();
       renderLaserBeams();
@@ -5979,7 +6074,7 @@
     selectedSpawnCorner = -1;
     nextSpawnPreviewWorldRevision = -1;
     selectedBuildId = BUILD_NONE;
-    cellPixelSize = DEFAULT_CELL_PIXEL_SIZE;
+    cellPixelSize = getDefaultCellPixelSizeForDetailedWorld();
     updateViewCellsFromZoom();
     createBuilding(BUILD_WORKSHOP, INITIAL_WORKSHOP_X, INITIAL_WORKSHOP_Y);
     refreshNextSpawnPreview();
