@@ -1777,12 +1777,45 @@
         addWall(endCapLeft.x, endCapLeft.y, endCapRight.x, endCapRight.y);
       }
 
-      function getTunnelFinishPosition() {
+      function getTunnelEndPosition() {
         if (tunnelPath.length < 1) {
-          return { x: 0, y: 0 };
+          return {
+            x: 0,
+            y: 0,
+            tangentX: 1,
+            tangentY: 0,
+            halfWidth: CORRIDOR_HALF_WIDTH_MAX * 0.92
+          };
         }
         var last = tunnelPath[tunnelPath.length - 1];
-        return { x: last.x, y: last.y };
+        var tangentX = 1;
+        var tangentY = 0;
+        if (tunnelPath.length >= 2) {
+          var previous = tunnelPath[tunnelPath.length - 2];
+          var segX = last.x - previous.x;
+          var segY = last.y - previous.y;
+          var segLength = Math.sqrt(segX * segX + segY * segY);
+          if (segLength >= 0.001) {
+            tangentX = segX / segLength;
+            tangentY = segY / segLength;
+          }
+        }
+        return {
+          x: last.x,
+          y: last.y,
+          tangentX: tangentX,
+          tangentY: tangentY,
+          halfWidth: last.halfWidth
+        };
+      }
+
+      function getTunnelFinishPosition() {
+        var end = getTunnelEndPosition();
+        var holeOffset = BLACK_HOLE_PULL_RADIUS;
+        return {
+          x: end.x - end.tangentX * holeOffset,
+          y: end.y - end.tangentY * holeOffset
+        };
       }
 
       function buildBlackHoles(seed) {
@@ -5240,29 +5273,7 @@
         };
       }
 
-      function getFinishLineGeometry() {
-        if (tunnelPath.length < 2) {
-          return null;
-        }
-        var lastIndex = tunnelPath.length - 1;
-        var previous = tunnelPath[lastIndex - 1];
-        var last = tunnelPath[lastIndex];
-        var segX = last.x - previous.x;
-        var segY = last.y - previous.y;
-        var segLength = Math.sqrt(segX * segX + segY * segY);
-        if (segLength < 0.001) {
-          return null;
-        }
-        return {
-          centerX: finishX,
-          centerY: finishY,
-          tangentX: segX / segLength,
-          tangentY: segY / segLength,
-          halfWidth: last.halfWidth
-        };
-      }
-
-      function drawCorridorLineMarker(centerX, centerY, tangentX, tangentY, corridorHalfWidth, markerKind) {
+      function drawCorridorLineMarker(centerX, centerY, tangentX, tangentY, corridorHalfWidth) {
         var perpX = -tangentY;
         var perpY = tangentX;
         var span = corridorHalfWidth * CORRIDOR_LINE_WIDTH_SCALE;
@@ -5271,12 +5282,6 @@
         var stripeWidth = (span * 2) / stripeCount;
         var lightColor = "rgba(235, 242, 228, 0.92)";
         var darkColor = "rgba(42, 48, 40, 0.88)";
-        var labelColor = "rgba(228, 236, 220, 0.95)";
-        if (markerKind === "finish") {
-          lightColor = "rgba(255, 236, 160, 0.94)";
-          darkColor = "rgba(175, 125, 28, 0.9)";
-          labelColor = "rgba(255, 248, 210, 0.96)";
-        }
         var stripeIndex;
         var halfDepth = depth * 0.5;
         for (stripeIndex = 0; stripeIndex < stripeCount; stripeIndex += 1) {
@@ -5306,16 +5311,6 @@
           ctx.lineTo(screenFour.x, screenFour.y);
           ctx.closePath();
           ctx.fill();
-        }
-        if (markerKind === "finish") {
-          var labelOffset = halfDepth + CORRIDOR_LINE_LABEL_OFFSET;
-          var labelX = centerX - tangentX * labelOffset;
-          var labelY = centerY - tangentY * labelOffset;
-          var labelScreen = worldToScreen(labelX, labelY);
-          var labelText = getLocalized(LOCALE_KEY_MARKER_FINISH, "FINISH");
-          ctx.fillStyle = labelColor;
-          ctx.font = "11px Courier New, Courier, monospace";
-          ctx.fillText(labelText, labelScreen.x - 22, labelScreen.y - 4);
         }
       }
 
@@ -5362,8 +5357,7 @@
             startLine.centerY,
             startLine.tangentX,
             startLine.tangentY,
-            startLine.halfWidth,
-            "start"
+            startLine.halfWidth
           );
           drawStartFloorLabel(
             startLine.centerX,
@@ -5371,17 +5365,6 @@
             startLine.tangentX,
             startLine.tangentY,
             startLine.halfWidth
-          );
-        }
-        var finishLine = getFinishLineGeometry();
-        if (finishLine) {
-          drawCorridorLineMarker(
-            finishLine.centerX,
-            finishLine.centerY,
-            finishLine.tangentX,
-            finishLine.tangentY,
-            finishLine.halfWidth,
-            "finish"
           );
         }
       }
@@ -5469,12 +5452,6 @@
         ctx.beginPath();
         ctx.arc(screen.x, screen.y, eventRadius * 0.18, 0, Math.PI * 2);
         ctx.fill();
-        var labelText = getLocalized(LOCALE_KEY_MARKER_FINISH, "FINISH");
-        ctx.fillStyle = "rgba(255, 248, 210, 0.96)";
-        ctx.font = "bold 11px Courier New, Courier, monospace";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(labelText, screen.x, screen.y - drawRadius * 1.15);
       }
 
       function isFinishVisibleOnScreen() {

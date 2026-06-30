@@ -286,25 +286,46 @@
     cameraFeedImg.src = nextSrc;
   }
 
+  function getEmbeddedImageManifest() {
+    var embedded = window.FACTORY_NIGHT_IMAGE_MANIFEST;
+    if (embedded && typeof embedded === "object") {
+      return embedded;
+    }
+    return null;
+  }
+
+  function setImageManifestFromData(data) {
+    if (data && typeof data === "object") {
+      imageManifest = data;
+    } else {
+      imageManifest = { safe: [], monster: [] };
+    }
+    buildImageMetaRegistry();
+  }
+
   function loadImageManifest(done) {
+    var embedded = getEmbeddedImageManifest();
+    if (embedded) {
+      setImageManifestFromData(embedded);
+      done();
+      return;
+    }
     var request = new XMLHttpRequest();
     request.open("GET", IMAGE_MANIFEST_URL, true);
     request.onload = function () {
       if (isSuccessfulXhr(request)) {
         try {
-          imageManifest = JSON.parse(request.responseText);
+          setImageManifestFromData(JSON.parse(request.responseText));
         } catch (error) {
-          imageManifest = { safe: [], monster: [] };
+          setImageManifestFromData(null);
         }
       } else {
-        imageManifest = { safe: [], monster: [] };
+        setImageManifestFromData(null);
       }
-      buildImageMetaRegistry();
       done();
     };
     request.onerror = function () {
-      imageManifest = { safe: [], monster: [] };
-      buildImageMetaRegistry();
+      setImageManifestFromData(null);
       done();
     };
     request.send();

@@ -1970,10 +1970,6 @@
       var gamePlayWindow = event.target.closest('.os-window[data-wm-preset="extras-game"]');
       if (gamePlayWindow) {
         setActiveGamePlayWindow(gamePlayWindow);
-        if (event.target.closest(".extras-game-back")) {
-          closeGame();
-          return;
-        }
         if (event.target.closest(".extras-game-desktop-link-option")) {
           onGameDesktopLinkSwitchClick(event);
           return;
@@ -1991,9 +1987,6 @@
       }
     });
   }
-
-  var btnExtrasGameBack = document.getElementById("btnExtrasGamePlayBack");
-  if (btnExtrasGameBack) btnExtrasGameBack.addEventListener("click", closeGame);
 
   bindGameDesktopLinkSwitch(btnExtrasGameDesktopLinkSwitch);
 
