@@ -110,7 +110,7 @@
     blipElement.id = "gameMapBlip";
     var blipImg = document.createElement("img");
     blipImg.className = "game-map-blip-img";
-    blipImg.src = "map-blip.svg";
+    blipImg.src = "map/map-blip.svg";
     blipImg.alt = "";
     blipImg.draggable = false;
     blipElement.appendChild(blipImg);
@@ -150,11 +150,11 @@
     pinnedRow.appendChild(panelPinnedElement);
 
     var actions = createDiv("game-map-panel-actions", panelElement);
-    panelSaveButton = document.createElement("button");
-    panelSaveButton.type = "button";
-    panelSaveButton.className = "game-map-panel-button game-map-panel-button--primary";
-    panelSaveButton.textContent = "Save";
-    actions.appendChild(panelSaveButton);
+    panelCancelButton = document.createElement("button");
+    panelCancelButton.type = "button";
+    panelCancelButton.className = "game-map-panel-button game-map-panel-button--lead";
+    panelCancelButton.textContent = "Cancel";
+    actions.appendChild(panelCancelButton);
 
     panelDeleteButton = document.createElement("button");
     panelDeleteButton.type = "button";
@@ -162,11 +162,11 @@
     panelDeleteButton.textContent = "Delete";
     actions.appendChild(panelDeleteButton);
 
-    panelCancelButton = document.createElement("button");
-    panelCancelButton.type = "button";
-    panelCancelButton.className = "game-map-panel-button";
-    panelCancelButton.textContent = "Cancel";
-    actions.appendChild(panelCancelButton);
+    panelSaveButton = document.createElement("button");
+    panelSaveButton.type = "button";
+    panelSaveButton.className = "game-map-panel-button game-map-panel-button--primary";
+    panelSaveButton.textContent = "Save";
+    actions.appendChild(panelSaveButton);
 
     panelSaveButton.addEventListener("click", onPanelSave);
     panelDeleteButton.addEventListener("click", onPanelDelete);
@@ -363,6 +363,7 @@
         if (mark.label) {
           var label = createDiv("game-map-pin-label", pin);
           label.textContent = mark.label;
+          label.style.color = mark.color || "#ff8040";
         }
         pinSignatures[markIndex] = signature;
       }

@@ -370,8 +370,11 @@
   outline: none;
 }
 
-.game-map-panel-button--primary {
+.game-map-panel-button--lead {
   margin-right: auto;
+}
+
+.game-map-panel-button--primary {
   border-color: rgba(255, 128, 0, 0.9);
   background: rgba(18, 10, 4, 0.98);
   color: rgba(255, 220, 170, 1);
