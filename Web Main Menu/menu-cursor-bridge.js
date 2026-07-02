@@ -181,6 +181,23 @@
         if (element.classList.contains("game-hud-slot")) {
           return "pointer";
         }
+        if (
+          element.classList.contains("game-map-panel-button") ||
+          element.classList.contains("game-map-shape-button") ||
+          element.classList.contains("game-map-color-button") ||
+          element.classList.contains("game-map-panel-switch")
+        ) {
+          if (element.disabled) {
+            return "forbidden";
+          }
+          return "pointer";
+        }
+        if (element.classList.contains("game-map-panel-input")) {
+          if (element.disabled) {
+            return "forbidden";
+          }
+          return "text";
+        }
       }
       element = element.parentElement;
     }
