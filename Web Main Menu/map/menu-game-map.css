@@ -91,7 +91,13 @@
 }
 
 .game-map-pin.is-edge-clamped {
-  opacity: 0.85;
+  opacity: 0.5;
+  transition: opacity 0.1s ease;
+}
+
+.game-map-pin.is-edge-clamped:hover,
+.game-map-pin.is-edge-clamped.is-hovered {
+  opacity: 1;
 }
 
 .game-map-pin-icon {

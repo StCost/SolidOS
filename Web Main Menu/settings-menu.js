@@ -1554,16 +1554,18 @@
     return number;
   }
 
-  function clampSliderTypedNumber(field, number) {
+  function clampSliderTypedNumber(field, number, skipStepSnap) {
     var min = Number(field.min);
     var max = Number(field.max);
     if (number < min) number = min;
     if (number > max) number = max;
-    var step = Number(field.step);
-    if (step > 0) {
-      number = Math.round(number / step) * step;
-      if (number < min) number = min;
-      if (number > max) number = max;
+    if (!skipStepSnap) {
+      var step = Number(field.step);
+      if (step > 0) {
+        number = Math.round(number / step) * step;
+        if (number < min) number = min;
+        if (number > max) number = max;
+      }
     }
     return number;
   }
@@ -1585,9 +1587,13 @@
       setSliderValueDisplay(valueInput, field, slider.value);
       return;
     }
-    var clampedNumber = clampSliderTypedNumber(field, typedNumber);
+    // typed input keeps the exact number (only clamped to range), no snapping to the drag step of 5
+    var clampedNumber = clampSliderTypedNumber(field, typedNumber, true);
     var wireValue = String(Math.round(clampedNumber));
+    var dragStep = slider.step;
+    slider.step = "any"; // let the slider hold the exact typed value instead of snapping it to the drag step
     slider.value = wireValue;
+    slider.step = dragStep;
     updateSliderDisplay(field, slider, valueInput);
     postChange(field.key, getSliderPostValue(field, wireValue));
     onAudioVolumeSliderInput(field);
@@ -1718,7 +1724,8 @@
     slider.className = "settings-slider";
     slider.min = String(field.min);
     slider.max = String(field.max);
-    slider.step = String(field.step);
+    // dragging/wheel snaps numeric sliders to steps of 5; typed input stays exact (see commitSliderValueInput)
+    slider.step = field.steppedOptions ? String(field.step) : "5";
 
     if (field.steppedOptions) {
       var steppedIndex = getSteppedOptionIndex(field.steppedOptions, state[field.key]);
