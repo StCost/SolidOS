@@ -162,6 +162,20 @@
     return gameWindow;
   }
 
+  function focusActiveGamePlayWindow() {
+    var gameWindow = getGamePlayWindow();
+    if (!gameWindow) return false;
+    if (gameWindow.classList.contains("os-window--closed")) return false;
+    if (window.WebWindowManager && window.WebWindowManager.focusWindow) {
+      window.WebWindowManager.focusWindow(gameWindow);
+    }
+    if (window.WebWindowManager && window.WebWindowManager.setWindowKeyboardFocus) {
+      window.WebWindowManager.setWindowKeyboardFocus(gameWindow);
+    }
+    focusGameKeyboardTarget();
+    return true;
+  }
+
   function getGamePlayWindowTitleIconSrc(gameId) {
     var game;
     if (!gameId) {
@@ -2191,6 +2205,7 @@
     releaseGameWindow: releaseGameWindow,
     restoreGameWindow: restoreGameWindow,
     onGamePlayWindowOpen: onGamePlayWindowOpen,
+    focusActiveGamePlayWindow: focusActiveGamePlayWindow,
     openGamesPanel: openGamesPanel,
     openArtPanel: openArtPanel,
     openLinksPanel: openLinksPanel,

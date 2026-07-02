@@ -230,6 +230,9 @@
     if (tabValue && presetName === ROUTE_WINDOW_EXTRAS_GAMES && window.WebExtras && window.WebExtras.applyPendingRouteTab) {
       window.WebExtras.applyPendingRouteTab(presetName);
     }
+    if (tabValue && window.WebExtras && window.WebExtras.focusActiveGamePlayWindow) {
+      window.WebExtras.focusActiveGamePlayWindow();
+    }
     return true;
   }
 
