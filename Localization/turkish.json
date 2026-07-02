@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Yetersiz mark",
   "trading.terminal.status.nothing-to-buy": "Alınacak bir şey yok",
   "trading.terminal.status.nothing-to-sell": "Satılacak bir şey yok",
+  "trading.terminal.status.partially-outside": "Nesne kısmen odanın dışında",
   "trading.terminal.status.scan-out-of-date": "Tarama güncel değil",
   "trading.terminal.success": "Başarılı",
   "trading.terminal.title": "Ticaret terminali",

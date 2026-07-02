@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Không đủ marks",
   "trading.terminal.status.nothing-to-buy": "Không có gì để mua",
   "trading.terminal.status.nothing-to-sell": "Không có gì để bán",
+  "trading.terminal.status.partially-outside": "Vật nằm một phần ngoài buồng",
   "trading.terminal.status.scan-out-of-date": "Quét đã cũ",
   "trading.terminal.success": "Thành công",
   "trading.terminal.title": "Thiết bị giao dịch",

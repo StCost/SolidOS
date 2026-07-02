@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "马克不足",
   "trading.terminal.status.nothing-to-buy": "无物品可购买",
   "trading.terminal.status.nothing-to-sell": "无物品可出售",
+  "trading.terminal.status.partially-outside": "物体部分伸出舱室",
   "trading.terminal.status.scan-out-of-date": "扫描已过期",
   "trading.terminal.success": "成功",
   "trading.terminal.title": "交易终端",

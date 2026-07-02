@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Onvoldoende marks",
   "trading.terminal.status.nothing-to-buy": "Niets te kopen",
   "trading.terminal.status.nothing-to-sell": "Niets te verkopen",
+  "trading.terminal.status.partially-outside": "Object gedeeltelijk buiten de kamer",
   "trading.terminal.status.scan-out-of-date": "Scan verouderd",
   "trading.terminal.success": "Gelukt",
   "trading.terminal.title": "Handelsterminal",

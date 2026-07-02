@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Недостатъчно марки",
   "trading.terminal.status.nothing-to-buy": "Няма какво да се купи",
   "trading.terminal.status.nothing-to-sell": "Няма какво да се продаде",
+  "trading.terminal.status.partially-outside": "Обект частично извън камерата",
   "trading.terminal.status.scan-out-of-date": "Сканирането е остаряло",
   "trading.terminal.success": "Успех",
   "trading.terminal.title": "Търговски терминал",

@@ -1057,8 +1057,10 @@
         var selectedCount = previewItem.selectedCount !== undefined ? previewItem.selectedCount : 0;
         if (selectedCount > fitMax) canConfirm = false;
       }
-      if (canConfirm && state.statusMessage) canConfirm = false;
     }
+
+    // any status message is an error/blocker, so the trade cannot be confirmed while one is shown
+    if (canConfirm && state.statusMessage) canConfirm = false;
 
     confirmButton.disabled = !canConfirm;
   }

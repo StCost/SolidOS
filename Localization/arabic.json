@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "علامات غير كافية",
   "trading.terminal.status.nothing-to-buy": "لا شيء للشراء",
   "trading.terminal.status.nothing-to-sell": "لا شيء للبيع",
+  "trading.terminal.status.partially-outside": "جسم خارج الحجر جزئيًا",
   "trading.terminal.status.scan-out-of-date": "المسح قديم",
   "trading.terminal.success": "نجاح",
   "trading.terminal.title": "محطة التداول",

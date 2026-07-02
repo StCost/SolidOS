@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Marks insuficientes",
   "trading.terminal.status.nothing-to-buy": "Nada que comprar",
   "trading.terminal.status.nothing-to-sell": "Nada que vender",
+  "trading.terminal.status.partially-outside": "Objeto parcialmente fuera de la cámara",
   "trading.terminal.status.scan-out-of-date": "Escaneo desactualizado",
   "trading.terminal.success": "Éxito",
   "trading.terminal.title": "Terminal comercial",

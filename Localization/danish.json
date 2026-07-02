@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Ikke nok marks",
   "trading.terminal.status.nothing-to-buy": "Intet at købe",
   "trading.terminal.status.nothing-to-sell": "Intet at sælge",
+  "trading.terminal.status.partially-outside": "Genstand delvist uden for kammeret",
   "trading.terminal.status.scan-out-of-date": "Scan forældet",
   "trading.terminal.success": "Succes",
   "trading.terminal.title": "Handelsterminal",

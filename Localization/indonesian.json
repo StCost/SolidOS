@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Marks tidak cukup",
   "trading.terminal.status.nothing-to-buy": "Tidak ada yang dibeli",
   "trading.terminal.status.nothing-to-sell": "Tidak ada yang dijual",
+  "trading.terminal.status.partially-outside": "Benda sebagian di luar ruang",
   "trading.terminal.status.scan-out-of-date": "Pemindaian kedaluwarsa",
   "trading.terminal.success": "Berhasil",
   "trading.terminal.title": "Terminal perdagangan",

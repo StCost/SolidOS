@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Nincs elég jel",
   "trading.terminal.status.nothing-to-buy": "Nincs mit venni",
   "trading.terminal.status.nothing-to-sell": "Nincs mit eladni",
+  "trading.terminal.status.partially-outside": "A tárgy részben a kamrán kívül van",
   "trading.terminal.status.scan-out-of-date": "Szkanelés elavult",
   "trading.terminal.success": "Siker",
   "trading.terminal.title": "Kereskedelmi terminál",

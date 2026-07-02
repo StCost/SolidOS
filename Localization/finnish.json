@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Ei tarpeeksi markkeja",
   "trading.terminal.status.nothing-to-buy": "Ei mitään ostettavaa",
   "trading.terminal.status.nothing-to-sell": "Ei mitään myytävää",
+  "trading.terminal.status.partially-outside": "Esine osittain kammion ulkopuolella",
   "trading.terminal.status.scan-out-of-date": "Skannaus vanhentunut",
   "trading.terminal.success": "Onnistui",
   "trading.terminal.title": "Kauppaterminaali",

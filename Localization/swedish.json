@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Inte tillräckligt med marks",
   "trading.terminal.status.nothing-to-buy": "Inget att köpa",
   "trading.terminal.status.nothing-to-sell": "Inget att sälja",
+  "trading.terminal.status.partially-outside": "Föremål delvis utanför kammaren",
   "trading.terminal.status.scan-out-of-date": "Skanning föråldrad",
   "trading.terminal.success": "Lyckades",
   "trading.terminal.title": "Handelsterminal",
