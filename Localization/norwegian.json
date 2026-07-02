@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Ikke nok marks",
   "trading.terminal.status.nothing-to-buy": "Ingenting å kjøpe",
   "trading.terminal.status.nothing-to-sell": "Ingenting å selge",
+  "trading.terminal.status.partially-outside": "Gjenstand delvis utenfor kammeret",
   "trading.terminal.status.scan-out-of-date": "Skann utdatert",
   "trading.terminal.success": "Suksess",
   "trading.terminal.title": "Handelsterminal",

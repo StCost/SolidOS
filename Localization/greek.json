@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Ανεπαρκεισ marks",
   "trading.terminal.status.nothing-to-buy": "Τιποτα να αγοραστει",
   "trading.terminal.status.nothing-to-sell": "Τιποτα να πουληθει",
+  "trading.terminal.status.partially-outside": "Αντικείμενο εν μέρει εκτός θαλάμου",
   "trading.terminal.status.scan-out-of-date": "Η σαρωση ειναι παλια",
   "trading.terminal.success": "Επιτυχια",
   "trading.terminal.title": "Εμπορικο τερματικο",

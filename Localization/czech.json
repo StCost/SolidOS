@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Nedostatek značek",
   "trading.terminal.status.nothing-to-buy": "Nic k nákupu",
   "trading.terminal.status.nothing-to-sell": "Nic k prodeji",
+  "trading.terminal.status.partially-outside": "Předmět částečně mimo komoru",
   "trading.terminal.status.scan-out-of-date": "Sken zastaralý",
   "trading.terminal.success": "Úspěch",
   "trading.terminal.title": "Obchodní terminál",

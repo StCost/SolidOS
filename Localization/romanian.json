@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Marks insuficiente",
   "trading.terminal.status.nothing-to-buy": "Nimic de cumpărat",
   "trading.terminal.status.nothing-to-sell": "Nimic de vândut",
+  "trading.terminal.status.partially-outside": "Obiect parțial în afara camerei",
   "trading.terminal.status.scan-out-of-date": "Scan învechit",
   "trading.terminal.success": "Succes",
   "trading.terminal.title": "Terminal comercial",

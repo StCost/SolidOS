@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "マーク不足",
   "trading.terminal.status.nothing-to-buy": "購入するものなし",
   "trading.terminal.status.nothing-to-sell": "売却するものなし",
+  "trading.terminal.status.partially-outside": "物体がチャンバーからはみ出しています",
   "trading.terminal.status.scan-out-of-date": "スキャンが古い",
   "trading.terminal.success": "成功",
   "trading.terminal.title": "取引端末",

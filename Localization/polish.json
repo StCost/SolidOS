@@ -271,6 +271,7 @@
   "trading.terminal.status.insufficient-marks": "Za mało marków",
   "trading.terminal.status.nothing-to-buy": "Brak towaru do kupienia",
   "trading.terminal.status.nothing-to-sell": "Brak towaru do sprzedania",
+  "trading.terminal.status.partially-outside": "Obiekt częściowo poza komorą",
   "trading.terminal.status.scan-out-of-date": "Skan nieaktualny",
   "trading.terminal.success": "Sukces",
   "trading.terminal.title": "Terminal handlowy",
