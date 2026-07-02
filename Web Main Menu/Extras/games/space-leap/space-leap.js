@@ -135,6 +135,8 @@
     captureStartWorldX: 0,
     captureStartWorldY: 0,
     captureStartAngle: 0,
+    captureStartRadius: 0,
+    captureMergeAngle: 0,
     captureOrbitDirection: 1,
     captureProgress: 0
   };
@@ -575,11 +577,13 @@
     satellite.captureStartWorldX = satellite.worldX;
     satellite.captureStartWorldY = satellite.worldY;
     satellite.captureStartAngle = Math.atan2(deltaY, deltaX);
+    satellite.captureStartRadius = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     satellite.captureOrbitDirection = getOrbitDirectionFromVelocity(
       satellite.velocityX,
       satellite.velocityY,
       satellite.captureStartAngle
     );
+    satellite.captureMergeAngle = satellite.captureStartAngle;
     satellite.captureProgress = 0;
     satellite.state = SATELLITE_STATE_CAPTURING;
     spawnAttachContactEffect(planet);
@@ -608,41 +612,6 @@
         delay: rippleIndex * 0.06
       });
     }
-  }
-
-  function spawnAttachBurstEffect(planet) {
-    var attachWorldX;
-    var attachWorldY;
-    var sparkIndex;
-    var angle;
-    var speed;
-    attachWorldX = getPlanetWorldX(planet) + Math.cos(satellite.orbitAngle) * planet.orbitRadius;
-    attachWorldY = planet.worldY + Math.sin(satellite.orbitAngle) * planet.orbitRadius;
-    spawnAttachRipple(attachWorldX, attachWorldY, planet.radius * 0.7, planet.palette.rim);
-    spawnAttachRipple(attachWorldX, attachWorldY, planet.orbitRadius * 0.55, planet.palette.core);
-    for (sparkIndex = 0; sparkIndex < ATTACH_SPARK_COUNT; sparkIndex += 1) {
-      angle = (sparkIndex / ATTACH_SPARK_COUNT) * TWO_PI + seededRandom(sparkIndex * 3.7 + planet.worldY) * 0.5;
-      speed = 70 + seededRandom(sparkIndex * 5.1 + attachWorldX) * 110;
-      attachEffects.push({
-        kind: "spark",
-        worldX: attachWorldX,
-        worldY: attachWorldY,
-        velocityX: Math.cos(angle) * speed,
-        velocityY: Math.sin(angle) * speed,
-        life: 1,
-        maxLife: 0.35 + seededRandom(sparkIndex * 2.3) * 0.25,
-        colorHex: planet.palette.rim
-      });
-    }
-    attachEffects.push({
-      kind: "flash",
-      worldX: attachWorldX,
-      worldY: attachWorldY,
-      radius: planet.orbitRadius * 0.9,
-      life: 1,
-      maxLife: 0.22,
-      colorHex: planet.palette.rim
-    });
   }
 
   function updateAttachEffects(deltaTime) {
@@ -724,8 +693,12 @@
       satellite.state = SATELLITE_STATE_FLYING;
       return;
     }
+    var finishDeltaX;
+    var finishDeltaY;
+    finishDeltaX = satellite.worldX - getPlanetWorldX(planet);
+    finishDeltaY = satellite.worldY - planet.worldY;
     satellite.planetIndex = satellite.capturePlanetIndex;
-    satellite.orbitAngle = satellite.captureStartAngle;
+    satellite.orbitAngle = Math.atan2(finishDeltaY, finishDeltaX);
     satellite.orbitDirection = satellite.captureOrbitDirection;
     satellite.state = SATELLITE_STATE_ORBITING;
     satellite.velocityX = 0;
@@ -735,7 +708,6 @@
     satellite.captureProgress = 0;
     launchCooldownTimer = LAUNCH_COOLDOWN;
     trail.length = 0;
-    spawnAttachBurstEffect(planet);
     onPlanetAttached(satellite.planetIndex);
     playCaptureSound();
   }
@@ -743,17 +715,10 @@
   function updateCapturing(deltaTime) {
     var planet;
     var easedProgress;
-    var targetWorldX;
-    var targetWorldY;
-    var pullBlend;
+    var planetWorldX;
+    var blendedRadius;
     var tangent;
     var orbitSpeed;
-    var targetVelocityX;
-    var targetVelocityY;
-    var velocityBlend;
-    var deltaX;
-    var deltaY;
-    var distanceToOrbit;
     planet = getPlanet(satellite.capturePlanetIndex);
     if (!planet) {
       satellite.state = SATELLITE_STATE_FLYING;
@@ -764,30 +729,22 @@
       satellite.captureProgress = 1;
     }
     easedProgress = getCaptureEase(satellite.captureProgress);
-    targetWorldX = getPlanetWorldX(planet) + Math.cos(satellite.captureStartAngle) * planet.orbitRadius;
-    targetWorldY = planet.worldY + Math.sin(satellite.captureStartAngle) * planet.orbitRadius;
-    satellite.worldX = satellite.captureStartWorldX + (targetWorldX - satellite.captureStartWorldX) * easedProgress;
-    satellite.worldY = satellite.captureStartWorldY + (targetWorldY - satellite.captureStartWorldY) * easedProgress;
-    pullBlend = 1 - Math.exp(-CAPTURE_PULL_STRENGTH * deltaTime);
-    deltaX = targetWorldX - satellite.worldX;
-    deltaY = targetWorldY - satellite.worldY;
-    satellite.worldX += deltaX * pullBlend;
-    satellite.worldY += deltaY * pullBlend;
-    tangent = getOrbitTangent(satellite.captureStartAngle, satellite.captureOrbitDirection);
+    planetWorldX = getPlanetWorldX(planet);
+    // Keep sliding along the orbit while easing the radius onto the ring, so the
+    // ship spirals smoothly into orbit instead of snapping to a fixed point.
+    satellite.captureMergeAngle += ORBIT_ANGULAR_SPEED * satellite.captureOrbitDirection * deltaTime;
+    blendedRadius = satellite.captureStartRadius + (planet.orbitRadius - satellite.captureStartRadius) * easedProgress;
+    satellite.worldX = planetWorldX + Math.cos(satellite.captureMergeAngle) * blendedRadius;
+    satellite.worldY = planet.worldY + Math.sin(satellite.captureMergeAngle) * blendedRadius;
+    tangent = getOrbitTangent(satellite.captureMergeAngle, satellite.captureOrbitDirection);
     orbitSpeed = ORBIT_ANGULAR_SPEED * planet.orbitRadius;
-    targetVelocityX = tangent.x * orbitSpeed;
-    targetVelocityY = tangent.y * orbitSpeed;
-    velocityBlend = 1 - Math.exp(-CAPTURE_PULL_STRENGTH * 0.7 * deltaTime);
-    satellite.velocityX += (targetVelocityX - satellite.velocityX) * velocityBlend;
-    satellite.velocityY += (targetVelocityY - satellite.velocityY) * velocityBlend;
-    deltaX = satellite.worldX - getPlanetWorldX(planet);
-    deltaY = satellite.worldY - planet.worldY;
-    distanceToOrbit = Math.abs(Math.sqrt(deltaX * deltaX + deltaY * deltaY) - planet.orbitRadius);
+    satellite.velocityX = tangent.x * orbitSpeed;
+    satellite.velocityY = tangent.y * orbitSpeed;
     if (checkMeteoroidCollision()) {
       triggerGameOver();
       return;
     }
-    if (satellite.captureProgress >= 1 || distanceToOrbit < 1.5) {
+    if (satellite.captureProgress >= 1) {
       finishCapture();
     }
   }
