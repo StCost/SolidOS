@@ -72,6 +72,11 @@
     return element;
   }
 
+  function localeText(key, fallback) {
+    if (window.WebLocale && window.WebLocale.get) return window.WebLocale.get(key, fallback);
+    return fallback;
+  }
+
   function buildIconMarkup(iconId, color) {
     var iconName = MARKER_ICON_IDS[iconId];
     if (!iconName) iconName = MARKER_ICON_IDS[0];
@@ -134,12 +139,14 @@
     panelInputElement.maxLength = 64;
     panelInputElement.autocomplete = "off";
     panelInputElement.spellcheck = false;
-    panelInputElement.placeholder = "Marker label...";
+    panelInputElement.setAttribute("data-locale-placeholder", "web.map.marker.label");
+    panelInputElement.placeholder = localeText("web.map.marker.label", "Marker label...");
     panelElement.appendChild(panelInputElement);
 
     var pinnedRow = createDiv("game-map-panel-pinned", panelElement);
     var pinnedLabel = createDiv("game-map-panel-pinned-label", pinnedRow);
-    pinnedLabel.textContent = "Pinned";
+    pinnedLabel.setAttribute("data-locale-key", "web.generic.pinned");
+    pinnedLabel.textContent = localeText("web.generic.pinned", "Pinned");
     panelPinnedElement = document.createElement("button");
     panelPinnedElement.type = "button";
     panelPinnedElement.className = "game-map-panel-switch";
@@ -153,19 +160,22 @@
     panelCancelButton = document.createElement("button");
     panelCancelButton.type = "button";
     panelCancelButton.className = "game-map-panel-button game-map-panel-button--lead";
-    panelCancelButton.textContent = "Cancel";
+    panelCancelButton.setAttribute("data-locale-key", "web.generic.cancel");
+    panelCancelButton.textContent = localeText("web.generic.cancel", "Cancel");
     actions.appendChild(panelCancelButton);
 
     panelDeleteButton = document.createElement("button");
     panelDeleteButton.type = "button";
     panelDeleteButton.className = "game-map-panel-button game-map-panel-button--danger";
-    panelDeleteButton.textContent = "Delete";
+    panelDeleteButton.setAttribute("data-locale-key", "web.generic.delete");
+    panelDeleteButton.textContent = localeText("web.generic.delete", "Delete");
     actions.appendChild(panelDeleteButton);
 
     panelSaveButton = document.createElement("button");
     panelSaveButton.type = "button";
     panelSaveButton.className = "game-map-panel-button game-map-panel-button--primary";
-    panelSaveButton.textContent = "Save";
+    panelSaveButton.setAttribute("data-locale-key", "web.generic.save");
+    panelSaveButton.textContent = localeText("web.generic.save", "Save");
     actions.appendChild(panelSaveButton);
 
     panelSaveButton.addEventListener("click", onPanelSave);
