@@ -89,6 +89,7 @@
 
   function installStorageHooks() {
     if (hooksInstalled || !isUnityHost()) return false;
+    window.__cmSkipUnityLocalStoragePostMessage = false;
     installUnityPostMessageGuard();
     hooksInstalled = true;
     Storage.prototype.setItem = function (key, value) {
