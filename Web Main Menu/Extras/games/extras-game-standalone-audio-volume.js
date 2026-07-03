@@ -2,9 +2,11 @@
   var SETTINGS_STORAGE_KEY = "web-settings-preview";
   var KEY_MASTER = "masterVolume";
   var KEY_MUSIC = "musicVolume";
+  var KEY_ARCADE_GAMES = "arcadeGamesVolume";
   var EVENT_AUDIO_VOLUME_CHANGED = "web-audio-volume-changed";
   var DEFAULT_MASTER = 0.5;
   var DEFAULT_MUSIC = 1;
+  var DEFAULT_ARCADE_GAMES = 1;
 
   if (window.WebMenuAudioVolume) {
     return;
@@ -53,10 +55,19 @@
     return clamp01(master * music);
   }
 
+  function getArcadeGamesOutputVolume() {
+    var settings = readSettingsObject();
+    var master = getSettingValue(settings, KEY_MASTER, DEFAULT_MASTER);
+    var arcadeGames = getSettingValue(settings, KEY_ARCADE_GAMES, DEFAULT_ARCADE_GAMES);
+    return clamp01(master * arcadeGames);
+  }
+
   window.WebMenuAudioVolume = {
     KEY_MASTER: KEY_MASTER,
     KEY_MUSIC: KEY_MUSIC,
+    KEY_ARCADE_GAMES: KEY_ARCADE_GAMES,
     EVENT_AUDIO_VOLUME_CHANGED: EVENT_AUDIO_VOLUME_CHANGED,
-    getMusicOutputVolume: getMusicOutputVolume
+    getMusicOutputVolume: getMusicOutputVolume,
+    getArcadeGamesOutputVolume: getArcadeGamesOutputVolume
   };
 })();
