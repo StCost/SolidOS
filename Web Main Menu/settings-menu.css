@@ -88,11 +88,17 @@
 .settings-tabs .settings-tab.is-active {
   position: relative;
   z-index: 1;
-  border-color: rgba(255, 128, 0, 0.85);
+  border-color: rgba(255, 128, 0, 0.35);
   border-bottom-color: transparent;
   background: rgba(18, 10, 4, 0.95);
   box-shadow: inset 0 0 12px rgba(255, 90, 40, 0.08);
   transform: translateY(0);
+}
+
+.settings-tabs .settings-tab.is-active:hover,
+.settings-tabs .settings-tab.is-active:focus-visible {
+  border-color: rgba(255, 128, 0, 0.7);
+  border-bottom-color: transparent;
 }
 
 .settings-tabs .settings-tab.is-active::after {
@@ -106,9 +112,9 @@
   pointer-events: none;
   box-sizing: border-box;
   z-index: 2;
-  border-left: 1px solid rgba(255, 128, 0, 0.85);
-  border-right: 1px solid rgba(255, 128, 0, 0.85);
-  border-bottom: 1px solid rgba(255, 128, 0, 0.85);
+  border-left: 1px solid rgba(255, 128, 0, 0.35);
+  border-right: 1px solid rgba(255, 128, 0, 0.35);
+  border-bottom: 1px solid rgba(255, 128, 0, 0.35);
   background-color: rgba(255, 128, 0, 0.06);
   background-image: url("hazard-tile.png");
   background-size: 16px 16px;
@@ -117,6 +123,13 @@
   animation:
     settings-tab-bump-slide 0.24s ease-out forwards,
     settings-tab-hazard-scroll 14s linear infinite;
+}
+
+.settings-tabs .settings-tab.is-active:hover::after,
+.settings-tabs .settings-tab.is-active:focus-visible::after {
+  border-left-color: rgba(255, 128, 0, 0.7);
+  border-right-color: rgba(255, 128, 0, 0.7);
+  border-bottom-color: rgba(255, 128, 0, 0.7);
 }
 
 @keyframes settings-tab-bump-slide {

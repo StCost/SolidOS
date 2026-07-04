@@ -9,6 +9,13 @@
   var DEFAULT_SLOT_SELECTED = "rgba(58, 26, 10, 0.94)";
   var DEFAULT_SLOT_BG = "rgba(6, 8, 11, 0.94)";
   var DEFAULT_SLOT_HOLSTERED = "rgba(255, 128, 64, 0.25)";
+  var DEFAULT_CROSSHAIR_BRAND_COLOR = "rgba(255, 128, 64, 0.502)";
+  var CROSSHAIR_MODE_NORMAL = "normal";
+  var CROSSHAIR_MODE_CAN_INTERACT = "canInteract";
+  var CROSSHAIR_MODE_INTERACTING = "interacting";
+  var CROSSHAIR_SIZE_MIN_PERCENT = 50;
+  var CROSSHAIR_SIZE_MAX_PERCENT = 200;
+  var CROSSHAIR_SIZE_DEFAULT_PERCENT = 100;
   var ICON_FADE_OUT_MS = 300;
   var ICON_POP_MS = 300;
   var STACK_PULSE_MS = 280;
@@ -27,8 +34,10 @@
 
   var pendingInventoryState = null;
   var pendingHealthState = null;
+  var pendingCrosshairState = null;
   var pendingIconUpdates = null;
   var hotbarElement = null;
+  var crosshairElement = null;
   var healthBarElement = null;
   var gameHudRootElement = null;
   var fpsClusterElement = null;
@@ -468,6 +477,18 @@
     }
   }
 
+  function getStandaloneInventoryScrollReverse() {
+    try {
+      var rawSettings = localStorage.getItem(STANDALONE_SETTINGS_STORAGE_KEY);
+      if (!rawSettings) return false;
+      var parsedSettings = JSON.parse(rawSettings);
+      if (!parsedSettings || parsedSettings.inventoryScrollReverse !== true) return false;
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   function isStandaloneInventoryInputEnabled() {
     if (isUnityHost()) return false;
     var hudRoot = gameHudRootElement || document.getElementById("gameHudRoot");
@@ -541,7 +562,9 @@
     standaloneScrollLastTimestamp = nowTimestamp;
 
     event.preventDefault();
-    scrollStandaloneInventory(deltaY > 0 ? -1 : 1);
+    var scrollDirection = deltaY > 0 ? 1 : -1;
+    if (getStandaloneInventoryScrollReverse()) scrollDirection = -scrollDirection;
+    scrollStandaloneInventory(scrollDirection);
   }
 
   function bindStandaloneHotbarInput() {
@@ -863,6 +886,7 @@
     hudRoot.classList.toggle("game-hud--layer-active", layerActive);
     hudRoot.setAttribute("aria-hidden", layerActive ? "false" : "true");
     hudRoot.hidden = !layerActive;
+    applyCrosshairVisibilityFromState();
   }
 
   function showGameplayHudLayer() {
@@ -899,6 +923,84 @@
       return;
     }
     setGameplayHudLayerActive(false);
+  }
+
+  function normalizeCrosshairMode(mode) {
+    if (mode === CROSSHAIR_MODE_CAN_INTERACT) return CROSSHAIR_MODE_CAN_INTERACT;
+    if (mode === CROSSHAIR_MODE_INTERACTING) return CROSSHAIR_MODE_INTERACTING;
+    return CROSSHAIR_MODE_NORMAL;
+  }
+
+  function normalizeCrosshairSizePercent(sizePercent) {
+    var parsed = parseInt(sizePercent, 10);
+    if (isNaN(parsed)) return CROSSHAIR_SIZE_DEFAULT_PERCENT;
+    if (parsed < CROSSHAIR_SIZE_MIN_PERCENT) return CROSSHAIR_SIZE_MIN_PERCENT;
+    if (parsed > CROSSHAIR_SIZE_MAX_PERCENT) return CROSSHAIR_SIZE_MAX_PERCENT;
+    return parsed;
+  }
+
+  function applyCrosshairSizeToElement() {
+    bindCrosshairDom();
+    if (!crosshairElement) return;
+    var sizePercent = CROSSHAIR_SIZE_DEFAULT_PERCENT;
+    if (pendingCrosshairState && pendingCrosshairState.sizePercent != null) {
+      sizePercent = normalizeCrosshairSizePercent(pendingCrosshairState.sizePercent);
+    }
+    crosshairElement.style.setProperty("--game-hud-crosshair-scale", String(sizePercent / 100));
+  }
+
+  function getCrosshairModeClassName(mode) {
+    var normalizedMode = normalizeCrosshairMode(mode);
+    if (normalizedMode === CROSSHAIR_MODE_CAN_INTERACT) return "is-mode-can-interact";
+    if (normalizedMode === CROSSHAIR_MODE_INTERACTING) return "is-mode-interacting";
+    return "is-mode-normal";
+  }
+
+  function bindCrosshairDom() {
+    if (crosshairElement) return;
+    crosshairElement = document.getElementById("gameHudCrosshair");
+  }
+
+  function applyCrosshairVisibilityFromState() {
+    bindCrosshairDom();
+    if (!crosshairElement) return;
+    var hudRoot = gameHudRootElement || document.getElementById("gameHudRoot");
+    var layerActive = !!(hudRoot && hudRoot.classList.contains("game-hud--layer-active"));
+    var state = pendingCrosshairState || {
+      visible: true,
+      mode: CROSSHAIR_MODE_NORMAL,
+      brandColor: DEFAULT_CROSSHAIR_BRAND_COLOR,
+      sizePercent: CROSSHAIR_SIZE_DEFAULT_PERCENT
+    };
+    var shouldShow = layerActive && state.visible === true;
+    crosshairElement.hidden = !shouldShow;
+    crosshairElement.setAttribute("aria-hidden", shouldShow ? "false" : "true");
+    crosshairElement.classList.toggle("is-visible", shouldShow);
+  }
+
+  function applyCrosshairState(payload) {
+    if (!payload) return;
+    pendingCrosshairState = {
+      visible: payload.visible !== false,
+      mode: normalizeCrosshairMode(payload.mode),
+      brandColor: payload.brandColor || DEFAULT_CROSSHAIR_BRAND_COLOR,
+      sizePercent: normalizeCrosshairSizePercent(payload.sizePercent)
+    };
+    bindCrosshairDom();
+    if (!crosshairElement) return;
+    crosshairElement.classList.remove("is-mode-normal", "is-mode-can-interact", "is-mode-interacting");
+    crosshairElement.classList.add(getCrosshairModeClassName(pendingCrosshairState.mode));
+    applyCrosshairSizeToElement();
+    applyCrosshairVisibilityFromState();
+  }
+
+  function applyDefaultCrosshairState() {
+    applyCrosshairState({
+      visible: true,
+      mode: CROSSHAIR_MODE_NORMAL,
+      brandColor: DEFAULT_CROSSHAIR_BRAND_COLOR,
+      sizePercent: CROSSHAIR_SIZE_DEFAULT_PERCENT
+    });
   }
 
   function escapeHtml(text) {
@@ -1838,9 +1940,11 @@
     healthBarElement = document.getElementById("healthBar");
     bindFpsCounterDom();
     bindChatDom();
+    applyDefaultCrosshairState();
     applyDefaultSlotTheme();
     if (pendingInventoryState) applyInventoryState(pendingInventoryState);
     if (pendingHealthState) applyHealthState(pendingHealthState);
+    if (pendingCrosshairState) applyCrosshairState(pendingCrosshairState);
     if (pendingIconUpdates) applyIconUpdates(pendingIconUpdates);
     initStandaloneWebMode();
   }
@@ -1849,6 +1953,7 @@
     applySlotTheme: applySlotThemeColors,
     applyInventoryState: applyInventoryState,
     applyHealthState: applyHealthState,
+    applyCrosshairState: applyCrosshairState,
     setSlotIcon: setSlotIcon,
     applyIconUpdates: applyIconUpdates,
     addChatMessage: addChatMessage,

@@ -310,7 +310,8 @@
   }
 
   function playReportCorrect() {
-    playOscillatorBurst("sine", 520, 780, 0.06, 0.12);
+    playOscillatorBurst("sawtooth", 92, 48, 0.072, 0.26);
+    playNoiseBurst(0.034, 0.14);
   }
 
   function playReportWrong() {
@@ -321,39 +322,57 @@
   function playJumpscare() {
     var context;
     var now;
-    var oscillator;
-    var gainNode;
+    var lowOscillator;
+    var lowGain;
+    var screechOscillator;
+    var screechGain;
     var noiseBuffer;
     var noiseSource;
     var noiseGain;
     var noiseData;
     var sampleIndex;
+    var noiseDuration;
     context = ensureContext();
     if (!context) {
       return;
     }
     now = context.currentTime;
-    oscillator = context.createOscillator();
-    gainNode = context.createGain();
-    oscillator.type = "sawtooth";
-    oscillator.frequency.setValueAtTime(220, now);
-    oscillator.frequency.exponentialRampToValueAtTime(55, now + 0.45);
-    gainNode.gain.setValueAtTime(scalePeakGain(0.2), now);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-    oscillator.connect(gainNode);
-    gainNode.connect(context.destination);
-    oscillator.start(now);
-    oscillator.stop(now + 0.52);
-    noiseBuffer = context.createBuffer(1, Math.floor(context.sampleRate * 0.2), context.sampleRate);
+    noiseDuration = 0.52;
+
+    lowOscillator = context.createOscillator();
+    lowGain = context.createGain();
+    lowOscillator.type = "sawtooth";
+    lowOscillator.frequency.setValueAtTime(142, now);
+    lowOscillator.frequency.exponentialRampToValueAtTime(22, now + 1.08);
+    lowGain.gain.setValueAtTime(scalePeakGain(0.28), now);
+    lowGain.gain.exponentialRampToValueAtTime(0.001, now + 1.16);
+    lowOscillator.connect(lowGain);
+    lowGain.connect(context.destination);
+    lowOscillator.start(now);
+    lowOscillator.stop(now + 1.18);
+
+    screechOscillator = context.createOscillator();
+    screechGain = context.createGain();
+    screechOscillator.type = "square";
+    screechOscillator.frequency.setValueAtTime(720, now);
+    screechOscillator.frequency.exponentialRampToValueAtTime(68, now + 0.48);
+    screechGain.gain.setValueAtTime(scalePeakGain(0.12), now);
+    screechGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    screechOscillator.connect(screechGain);
+    screechGain.connect(context.destination);
+    screechOscillator.start(now);
+    screechOscillator.stop(now + 0.52);
+
+    noiseBuffer = context.createBuffer(1, Math.floor(context.sampleRate * noiseDuration), context.sampleRate);
     noiseData = noiseBuffer.getChannelData(0);
     for (sampleIndex = 0; sampleIndex < noiseData.length; sampleIndex += 1) {
-      noiseData[sampleIndex] = (Math.random() * 2 - 1) * 0.35;
+      noiseData[sampleIndex] = (Math.random() * 2 - 1) * 0.42;
     }
     noiseSource = context.createBufferSource();
     noiseSource.buffer = noiseBuffer;
     noiseGain = context.createGain();
-    noiseGain.gain.setValueAtTime(scalePeakGain(0.12), now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    noiseGain.gain.setValueAtTime(scalePeakGain(0.18), now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + noiseDuration);
     noiseSource.connect(noiseGain);
     noiseGain.connect(context.destination);
     noiseSource.start(now);

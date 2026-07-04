@@ -10,6 +10,8 @@
   var ICON_MARKS_SRC = "icon-marks.svg";
   var SUCCESS_OVERLAY_MS = 5000;
 
+  var STATUS_FOREIGN_OBJECT_INSIDE = "trading.terminal.status.foreign-object-inside";
+
   var state = {
     screen: "contracts",
     marks: 0,
@@ -27,6 +29,7 @@
     previewTotalCount: 0,
     previewTotalPrice: 0,
     statusMessage: "",
+    statusMessageArgs: [],
     successOverlay: "",
     successMarksChange: 0,
     transit: null,
@@ -242,6 +245,20 @@
     }
   }
 
+  function updateTransitAutoOperateUi() {
+    var switchButton = document.getElementById("transitAutoOperateSwitch");
+    if (!switchButton) return;
+    switchButton.classList.toggle("is-on", transitAutoOperate);
+    switchButton.setAttribute("aria-checked", transitAutoOperate ? "true" : "false");
+  }
+
+  function setTransitAutoOperateEnabled(enabled) {
+    transitAutoOperate = !!enabled;
+    updateTransitAutoOperateUi();
+    maybeAutoOperateTransitStep();
+    postAction("set-auto-operate", { tradingPostAutoOperate: transitAutoOperate });
+  }
+
   function updateTransitToolbar(transit) {
     var backButton = document.getElementById("transitBackButton");
 
@@ -250,6 +267,8 @@
       backButton.disabled = !canCancel;
       backButton.textContent = t("trading.terminal.back", "Back");
     }
+
+    updateTransitAutoOperateUi();
   }
 
   function renderTransitScreen() {
@@ -420,13 +439,20 @@
 
   var ENTITY_NAME_KEY_PREFIX = "entity.";
   var ENTITY_NAME_KEY_SUFFIX = ".name";
+  var UNKNOWN_ITEM_DISPLAY_SENTINEL = "Unknown";
+
+  function getUnknownItemDisplayName() {
+    return t("trading.terminal.unknown-item", "Unknown");
+  }
 
   function getEntityDisplayName(entityId, fallbackDisplayName) {
     var localeKey;
     var localized;
     if (!entityId) {
-      if (fallbackDisplayName) return fallbackDisplayName;
-      return "";
+      if (!fallbackDisplayName || fallbackDisplayName === UNKNOWN_ITEM_DISPLAY_SENTINEL) {
+        return getUnknownItemDisplayName();
+      }
+      return fallbackDisplayName;
     }
     localeKey = ENTITY_NAME_KEY_PREFIX + entityId + ENTITY_NAME_KEY_SUFFIX;
     localized = t(localeKey, "");
@@ -439,6 +465,7 @@
     if (window.WebLocale && window.WebLocale.applyDom) {
       window.WebLocale.applyDom();
     }
+    updateHeader();
     renderContracts();
     renderHandshake();
     if (state.screen === "success") {
@@ -533,7 +560,7 @@
 
   function updateHeader() {
     var marksValue = document.getElementById("marksValue");
-    if (marksValue) setMarksAmountElement(marksValue, state.marks);
+    if (marksValue) setMarksAmountElement(marksValue, state.marks, null, true);
   }
 
   function createMarksIconElement(className) {
@@ -544,7 +571,7 @@
     return icon;
   }
 
-  function setMarksAmountElement(element, amount, prefix) {
+  function setMarksAmountElement(element, amount, prefix, includeMarksLabel) {
     if (!element) return;
     element.textContent = "";
     var wrap = document.createElement("span");
@@ -552,6 +579,13 @@
     if (prefix) wrap.appendChild(document.createTextNode(prefix));
     wrap.appendChild(document.createTextNode(String(amount)));
     wrap.appendChild(createMarksIconElement());
+    if (includeMarksLabel) {
+      var marksLabel = document.createElement("span");
+      marksLabel.className = "trade-marks-label";
+      marksLabel.setAttribute("data-locale-key", "trading.terminal.marks");
+      marksLabel.textContent = t("trading.terminal.marks", "Marks");
+      wrap.appendChild(marksLabel);
+    }
     element.appendChild(wrap);
   }
 
@@ -620,25 +654,23 @@
   function isContractDisabled(contract) {
     if (!contract || contract.kind === KIND_WILDCARD) return false;
     if (contract.selectable === false) return true;
+    if (contract.kind === KIND_BUY && contract.fitsInChamber === false) return true;
     return (contract.amount || 0) <= 0;
   }
 
   function formatAmount(contract) {
     if (!contract) return "—";
     if (contract.kind === KIND_WILDCARD) return t("trading.terminal.all", "ALL");
-    if (isContractDisabled(contract)) return "0";
+    if ((contract.amount || 0) <= 0) return "0";
     if (contract.amount > 0) return String(contract.amount);
     return "—";
   }
 
   function formatItemAmount(item, isBuy) {
-    var count = item.count || 0;
-    if (!isBuy) return String(count);
-    var selectedCount = item.selectedCount !== undefined ? item.selectedCount : item.count;
-    var maxCount = item.maxCount !== undefined ? item.maxCount : item.count;
-    if (maxCount <= 0) maxCount = item.count || 1;
-    if (selectedCount >= maxCount) return String(maxCount);
-    return String(selectedCount) + "/" + String(maxCount);
+    var contractCount = item.count || 0;
+    if (!isBuy) return String(contractCount);
+    var selectedCount = item.selectedCount !== undefined ? item.selectedCount : 0;
+    return String(selectedCount) + "/" + String(contractCount);
   }
 
   function createTableCell(className, text) {
@@ -697,10 +729,12 @@
     lockButton.className = "term-button trade-lock-button";
     if (contract.pinned) lockButton.classList.add("is-locked");
 
+    lockButton.setAttribute("aria-label", contract.pinned ? t("trading.terminal.locked", "LOCKED") : t("trading.terminal.unlocked", "UNLOCKED"));
+
     var lockIcon = document.createElement("img");
     lockIcon.className = "trade-lock-icon";
     lockIcon.src = contract.pinned ? ICON_LOCK_SRC : ICON_UNLOCK_SRC;
-    lockIcon.alt = contract.pinned ? t("trading.terminal.locked", "LOCKED") : t("trading.terminal.unlocked", "UNLOCKED");
+    lockIcon.alt = "";
     lockButton.appendChild(lockIcon);
 
     lockButton.addEventListener("click", function (event) {
@@ -765,13 +799,13 @@
       }(contract.id));
     }
 
+    row.appendChild(createTypeIconCell(getContractTypeClass(contract), contract.kind === KIND_BUY));
     row.appendChild(createIconCell(contract, contract.kind === KIND_WILDCARD));
     row.appendChild(createTableCell("trade-col-name", getEntityDisplayName(contract.entityId, contract.displayName) || t("trading.terminal.contract-fallback", "CONTRACT")));
-    row.appendChild(createLockCell(contract));
-    row.appendChild(createTypeIconCell(getContractTypeClass(contract), contract.kind === KIND_BUY));
     row.appendChild(createTableCell("trade-col-amount", formatAmount(contract)));
     row.appendChild(createMarksAmountCell("trade-col-price", contract.unitPrice, contract.kind === KIND_WILDCARD));
     row.appendChild(createMarksAmountCell("trade-col-total", contract.totalPrice, contract.kind === KIND_WILDCARD));
+    row.appendChild(createLockCell(contract));
     setRowRevealAnimation(row, revealIndex);
     list.appendChild(row);
   }
@@ -915,13 +949,13 @@
 
     var lineTotal = item.lineTotal !== undefined ? item.lineTotal : (item.unitPrice || 0) * (item.count || 1);
 
+    row.appendChild(createTypeIconCell(rowKind, isBuy));
     row.appendChild(createIconCell(item, false));
     row.appendChild(createTableCell("trade-col-name", getEntityDisplayName(item.entityId, item.displayName) || t("trading.terminal.item-fallback", "ITEM")));
-    row.appendChild(createQtyControlsCell(item, itemIndex, isBuy));
-    row.appendChild(createTypeIconCell(rowKind, isBuy));
     row.appendChild(createTableCell("trade-col-amount", formatItemAmount(item, isBuy)));
     row.appendChild(createMarksAmountCell("trade-col-price", item.unitPrice || 0, false));
     row.appendChild(createMarksAmountCell("trade-col-total", lineTotal, false));
+    row.appendChild(createQtyControlsCell(item, itemIndex, isBuy));
     setRowRevealAnimation(row, revealIndex);
     list.appendChild(row);
   }
@@ -945,8 +979,9 @@
     var contract = state.activeContract;
     var items = [];
     var rowKind = "is-sell";
+    var contractKind = getContractKind(contract);
 
-    if (contract.kind === KIND_BUY) {
+    if (contractKind === KIND_BUY) {
       items = state.previewItems || [];
       rowKind = "is-buy";
     } else {
@@ -976,6 +1011,27 @@
     totals.classList.add("term-hidden");
   }
 
+  function getContractKind(contract) {
+    if (!contract) return -1;
+    return Number(contract.kind);
+  }
+
+  function getPreviewSelectionTotals() {
+    var items = state.previewItems || [];
+    var count = 0;
+    var price = 0;
+    var index;
+    for (index = 0; index < items.length; index++) {
+      var item = items[index];
+      var selectedCount = item.selectedCount !== undefined ? item.selectedCount : (item.count || 0);
+      if (selectedCount < 0) selectedCount = 0;
+      var lineTotal = item.lineTotal !== undefined ? item.lineTotal : (item.unitPrice || 0) * selectedCount;
+      count += selectedCount;
+      price += lineTotal;
+    }
+    return { count: count, price: price };
+  }
+
   function updateConfirmButton() {
     var confirmButton = document.getElementById("confirmButton");
     if (!confirmButton) return;
@@ -987,12 +1043,24 @@
 
     var contract = state.activeContract;
     var canConfirm = true;
+    var contractKind = getContractKind(contract);
 
-    if (contract && (contract.kind === KIND_SELL || contract.kind === KIND_WILDCARD)) {
+    if (contractKind === KIND_SELL || contractKind === KIND_WILDCARD) {
       canConfirm = state.scanTotalCount > 0;
-    } else if (contract && contract.kind === KIND_BUY) {
-      canConfirm = state.previewTotalCount > 0;
+    } else if (contractKind === KIND_BUY) {
+      var previewTotals = getPreviewSelectionTotals();
+      var previewCount = previewTotals.count > 0 ? previewTotals.count : state.previewTotalCount;
+      canConfirm = previewCount > 0;
+      if (canConfirm && state.previewItems && state.previewItems.length > 0) {
+        var previewItem = state.previewItems[0];
+        var fitMax = previewItem.maxCount !== undefined ? previewItem.maxCount : 0;
+        var selectedCount = previewItem.selectedCount !== undefined ? previewItem.selectedCount : 0;
+        if (selectedCount > fitMax) canConfirm = false;
+      }
     }
+
+    // any status message is an error/blocker, so the trade cannot be confirmed while one is shown
+    if (canConfirm && state.statusMessage) canConfirm = false;
 
     confirmButton.disabled = !canConfirm;
   }
@@ -1008,25 +1076,32 @@
     if (title) title.textContent = contract ? (getEntityDisplayName(contract.entityId, contract.displayName) || t("trading.terminal.contract-fallback", "CONTRACT")) : "—";
     if (detail) {
       if (!contract) detail.textContent = "—";
-      else if (contract.kind === KIND_BUY) {
+      else if (getContractKind(contract) === KIND_BUY) {
         setTextWithMarksPrice(detail, "trading.terminal.buy-detail", "BUY UP TO {0} FOR {1}", contract.amount, contract.totalPrice);
-      } else if (contract.kind === KIND_WILDCARD) {
+      } else if (getContractKind(contract) === KIND_WILDCARD) {
         detail.textContent = t("trading.terminal.sell-wildcard-detail", "SELL ALL TRADEABLE (50%)");
       } else {
         setTextWithMarksPrice(detail, "trading.terminal.sell-detail", "SELL UP TO {0} FOR {1}", contract.amount, contract.totalPrice);
       }
     }
 
-    var isSell = contract && (contract.kind === KIND_SELL || contract.kind === KIND_WILDCARD);
-    if (scanButton) scanButton.classList.toggle("term-hidden", !isSell);
+    var contractKind = getContractKind(contract);
+    var isSell = contractKind === KIND_SELL || contractKind === KIND_WILDCARD;
+    var showBuyRescan = contractKind === KIND_BUY && state.statusMessage === STATUS_FOREIGN_OBJECT_INSIDE;
+    if (scanButton) scanButton.classList.toggle("term-hidden", !isSell && !showBuyRescan);
     if (scanButton && isTransitActive()) scanButton.disabled = true;
     else if (scanButton) scanButton.disabled = false;
     if (stopHandshakeButton && isTransitActive()) stopHandshakeButton.disabled = true;
     else if (stopHandshakeButton) stopHandshakeButton.disabled = false;
     if (statusMessage) {
-      statusMessage.textContent = state.statusMessage
-        ? t(state.statusMessage, state.statusMessage)
-        : "";
+      if (state.statusMessage) {
+        var statusArgs = state.statusMessageArgs || [];
+        statusMessage.textContent = statusArgs.length > 0
+          ? tFormat.apply(null, [state.statusMessage, state.statusMessage].concat(statusArgs))
+          : t(state.statusMessage, state.statusMessage);
+      } else {
+        statusMessage.textContent = "";
+      }
     }
 
     updateConfirmButton();
@@ -1120,6 +1195,7 @@
     state.previewTotalCount = nextState.previewTotalCount || 0;
     state.previewTotalPrice = nextState.previewTotalPrice || 0;
     state.statusMessage = nextState.statusMessage || "";
+    state.statusMessageArgs = nextState.statusMessageArgs || [];
     state.successOverlay = nextState.successOverlay || "";
     state.successMarksChange = nextState.successMarksChange || 0;
     state.transit = nextState.transit || null;
@@ -1313,6 +1389,14 @@
       });
     }
 
+    var transitAutoOperateSwitch = document.getElementById("transitAutoOperateSwitch");
+    if (transitAutoOperateSwitch) {
+      transitAutoOperateSwitch.addEventListener("click", function (event) {
+        event.stopPropagation();
+        setTransitAutoOperateEnabled(!transitAutoOperate);
+      });
+    }
+
     var successContinueButton = document.getElementById("tradeSuccessContinue");
     if (successContinueButton) {
       successContinueButton.addEventListener("click", function () {
@@ -1382,6 +1466,7 @@
     },
     setTransitAutoOperate: function (enabled) {
       transitAutoOperate = !!enabled;
+      updateTransitAutoOperateUi();
       maybeAutoOperateTransitStep();
     }
   };

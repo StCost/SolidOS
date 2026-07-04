@@ -91,8 +91,7 @@
           element.classList.contains("settings-step") ||
           element.classList.contains("extras-link-row") ||
           element.classList.contains("extras-game-picker") ||
-          element.classList.contains("extras-nav-tab") ||
-          element.classList.contains("extras-game-back")
+          element.classList.contains("extras-nav-tab")
         ) {
           return element;
         }

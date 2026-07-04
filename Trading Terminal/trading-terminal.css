@@ -1,4 +1,5 @@
 @import url("../Web Main Menu/screen-shared.css");
+@import url("../Web Main Menu/settings-menu.css");
 
 :root {
   --term-orange: #ff8000;
@@ -213,6 +214,20 @@ html.term-unity-cursor * {
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex: 1;
+}
+
+.trade-controls-status {
+  flex: 1;
+  min-width: 0;
+  color: #ff6666;
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  align-self: center;
+  min-height: 0;
 }
 
 .trade-handshake-back-button {
@@ -336,7 +351,7 @@ html.term-unity-cursor * {
 
 .trade-table-row {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 56px 40px 56px 64px 72px;
+  grid-template-columns: 40px 40px minmax(0, 1fr) 56px 64px 72px 40px;
   align-items: center;
   min-height: 40px;
   border-bottom: 1px solid rgba(255, 128, 0, 0.1);
@@ -388,7 +403,6 @@ html.term-unity-cursor * {
 }
 
 .trade-col-icon {
-  border-left: none;
   padding: 4px;
   display: flex;
   align-items: center;
@@ -418,10 +432,17 @@ html.term-unity-cursor * {
 }
 
 .trade-col-type {
+  border-left: none;
   box-sizing: border-box;
   white-space: nowrap;
   overflow: visible;
   text-overflow: clip;
+  min-width: 40px;
+  max-width: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .trade-col-lock,
@@ -433,8 +454,11 @@ html.term-unity-cursor * {
 }
 
 .trade-col-lock {
-  border-left: none;
   justify-content: center;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  overflow: visible;
 }
 
 .trade-sort-header {
@@ -461,6 +485,29 @@ html.term-unity-cursor * {
   text-align: left;
   justify-content: flex-start;
   padding-left: 10px;
+}
+
+.trade-sort-header.trade-col-type {
+  border-left: none;
+  justify-content: center;
+  padding: 0;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.trade-sort-header.trade-col-lock {
+  justify-content: center;
+  padding: 0;
+}
+
+.trade-sort-header.trade-col-type:not(.is-asc):not(.is-desc) .trade-sort-arrow,
+.trade-sort-header.trade-col-lock:not(.is-asc):not(.is-desc) .trade-sort-arrow {
+  display: none;
+}
+
+.trade-sort-header.trade-col-type .trade-sort-arrow,
+.trade-sort-header.trade-col-lock .trade-sort-arrow {
+  margin-left: 0;
 }
 
 .trade-transit-step.is-revealing,
@@ -514,6 +561,16 @@ html.term-unity-cursor * {
 
 .trade-contract-table {
   flex: 0 1 auto;
+}
+
+.trade-contract-table .trade-table-row {
+  grid-template-columns: 40px 40px minmax(0, 1fr) 56px 64px 72px 40px;
+}
+
+.trade-contract-table .trade-col-lock {
+  padding: 0;
+  min-width: 40px;
+  max-width: 40px;
 }
 
 .trade-contract-list {
@@ -618,12 +675,12 @@ html.term-unity-cursor * {
   min-width: 32px;
   max-width: 32px;
   padding: 0;
-  margin-left: auto;
-  margin-right: auto;
-  display: inline-flex;
+  margin: 0;
+  display: flex;
   align-items: center;
   justify-content: center;
   line-height: 0;
+  font-size: 0;
   border: 1px solid var(--term-orange-dim);
   background: rgba(255, 128, 0, 0.08);
 }
@@ -640,19 +697,12 @@ html.term-unity-cursor * {
   pointer-events: none;
 }
 
-.trade-col-type {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-left: 4px;
-  padding-right: 4px;
-}
-
 .trade-type-icon {
   width: 20px;
   height: 20px;
   display: block;
   object-fit: contain;
+  opacity: 0.6;
 }
 
 .trade-marks-inline {
@@ -672,6 +722,39 @@ html.term-unity-cursor * {
 
 .trade-marks-footer .trade-marks-icon {
   height: 16px;
+}
+
+.trade-marks-label {
+  color: var(--term-text-bright);
+  font-size: 13px;
+  text-shadow: 0 0 8px rgba(255, 200, 120, 0.35);
+}
+
+.trade-preview-icons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 56px;
+  width: 100%;
+  padding: 24px 16px;
+}
+
+.trade-preview-icon {
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.trade-preview-icon--sell,
+.trade-preview-icon--buy {
+  width: 72px;
+  height: 72px;
+  opacity: 0.9;
+}
+
+.trade-preview-icon--marks {
+  width: 88px;
+  height: 88px;
 }
 
 .trade-col-type.is-buy {
@@ -735,7 +818,7 @@ html.term-unity-cursor * {
 }
 
 .trade-item-table .trade-table-row {
-  grid-template-columns: 40px minmax(0, 1fr) minmax(200px, 1.35fr) 40px 56px 64px 72px;
+  grid-template-columns: 40px 40px minmax(0, 1fr) 56px 64px 72px minmax(200px, 1.35fr);
   min-height: 44px;
 }
 
@@ -817,6 +900,9 @@ html.term-unity-cursor * {
   color: #ff6666;
   font-size: 12px;
   min-height: 16px;
+}
+
+.trade-status:not(.trade-controls-status) {
   padding: 0 0 4px;
 }
 
@@ -921,9 +1007,25 @@ html.term-unity-cursor * {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 12px;
   min-height: 32px;
+}
+
+.trade-transit-auto-toggle {
+  --settings-choice-btn-height: clamp(2rem, 3.2vmin, 2.35rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  pointer-events: auto;
+}
+
+.trade-transit-auto-label {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .trade-transit-back-button {

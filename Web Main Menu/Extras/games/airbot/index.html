@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,6 +8,7 @@
   <link rel="stylesheet" href="../../../screen-shared.css" />
   <link rel="stylesheet" href="../../../settings-menu.css" />
   <script src="../iframe-game-locale.js"></script>
+  <script src="../iframe-game-audio-volume.js"></script>
   <script src="../extras-game-synth-audio.js"></script>
   <style>
     * {
@@ -15,7 +17,8 @@
       -webkit-user-select: none;
     }
 
-    html, body {
+    html,
+    body {
       margin: 0;
       height: 100%;
       overflow: hidden;
@@ -58,8 +61,13 @@
     }
 
     @keyframes damage-flash {
-      0% { opacity: 0.9; }
-      100% { opacity: 0; }
+      0% {
+        opacity: 0.9;
+      }
+
+      100% {
+        opacity: 0;
+      }
     }
 
     #damageFlash.is-head-burst {
@@ -71,8 +79,13 @@
     }
 
     @keyframes head-burst-flash {
-      0% { opacity: 1; }
-      100% { opacity: 0; }
+      0% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0;
+      }
     }
 
     #robotWrap {
@@ -150,8 +163,15 @@
     }
 
     @keyframes shield-pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.88; }
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.88;
+      }
     }
 
     #launchLeg {
@@ -208,15 +228,27 @@
     }
 
     #countdownText.pop {
-      animation: countdown-pop 0.9s ease-out;
+      animation: countdown-pop 0.45s ease-out;
     }
 
     @keyframes countdown-pop {
-      0% { transform: translate(-50%, -50%) scale(1.65); opacity: 0; }
-      16% { opacity: 1; }
-      30% { transform: translate(-50%, -50%) scale(1); }
-      86% { opacity: 1; }
-      100% { transform: translate(-50%, -50%) scale(1.05); opacity: 0; }
+      0% {
+        transform: translate(-50%, -50%) scale(1.65);
+        opacity: 0;
+      }
+
+      16% {
+        opacity: 1;
+      }
+
+      30% {
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
     }
 
     .hud-panel {
@@ -461,8 +493,13 @@
     }
 
     @keyframes record-title-glow {
-      from { text-shadow: 0 0 8px rgba(255, 200, 100, 0.4); }
-      to { text-shadow: 0 0 22px rgba(255, 220, 140, 0.95), 0 0 40px rgba(255, 160, 80, 0.45); }
+      from {
+        text-shadow: 0 0 8px rgba(255, 200, 100, 0.4);
+      }
+
+      to {
+        text-shadow: 0 0 22px rgba(255, 220, 140, 0.95), 0 0 40px rgba(255, 160, 80, 0.45);
+      }
     }
 
     #recordBurst {
@@ -488,8 +525,15 @@
     }
 
     @keyframes record-spark-fly {
-      0% { transform: translate(0, 0) scale(1); opacity: 1; }
-      100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translate(var(--dx), var(--dy)) scale(0);
+        opacity: 0;
+      }
     }
 
     #robotColorPicker {
@@ -643,16 +687,14 @@
       height: calc(var(--settings-choice-btn-height) * 0.72);
       min-width: 0;
       border: 1px solid rgba(255, 128, 0, 0.28);
-      background: linear-gradient(
-        to right,
-        #ff0000 0%,
-        #ffff00 17%,
-        #00ff00 33%,
-        #00ffff 50%,
-        #0000ff 67%,
-        #ff00ff 83%,
-        #ff0000 100%
-      );
+      background: linear-gradient(to right,
+          #ff0000 0%,
+          #ffff00 17%,
+          #00ff00 33%,
+          #00ffff 50%,
+          #0000ff 67%,
+          #ff00ff 83%,
+          #ff0000 100%);
       box-sizing: border-box;
       touch-action: none;
       cursor: ew-resize;
@@ -721,6 +763,7 @@
     }
   </style>
 </head>
+
 <body>
   <div id="gameRoot">
     <canvas id="gameCanvas" aria-hidden="true"></canvas>
@@ -730,8 +773,10 @@
       <div id="launchLegPivot">
         <svg id="launchLegSvg" viewBox="0 0 140 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <g stroke="#1f2942" stroke-width="2" stroke-linejoin="round">
-            <path d="M50 34 C 92 40, 98 70, 92 106" fill="none" stroke="#b5402f" stroke-width="6" stroke-linecap="round" />
-            <path d="M50 34 C 92 40, 98 70, 92 106" fill="none" stroke="#e0573f" stroke-width="2.4" stroke-linecap="round" />
+            <path d="M50 34 C 92 40, 98 70, 92 106" fill="none" stroke="#b5402f" stroke-width="6"
+              stroke-linecap="round" />
+            <path d="M50 34 C 92 40, 98 70, 92 106" fill="none" stroke="#e0573f" stroke-width="2.4"
+              stroke-linecap="round" />
             <rect x="20" y="10" width="48" height="34" rx="7" fill="#6b7ba0" />
             <rect x="26" y="16" width="20" height="12" rx="3" fill="#28324c" stroke="none" />
             <circle cx="44" cy="30" r="9" fill="#8694b8" />
@@ -742,7 +787,8 @@
             <circle cx="86" cy="110" r="16" fill="#7e8eb2" />
             <circle cx="86" cy="110" r="6" fill="#28324c" stroke="none" />
             <circle cx="74" cy="174" r="9" fill="#7e8eb2" />
-            <path d="M58 166 L94 162 Q114 164 118 182 L118 190 Q118 197 109 197 L60 197 Q51 197 51 188 Z" fill="#8694b8" />
+            <path d="M58 166 L94 162 Q114 164 118 182 L118 190 Q118 197 109 197 L60 197 Q51 197 51 188 Z"
+              fill="#8694b8" />
             <rect x="93" y="176" width="24" height="9" rx="3" fill="#28324c" stroke="none" />
             <circle cx="64" cy="70" r="2.6" fill="#28324c" stroke="none" />
             <circle cx="80" cy="142" r="2.6" fill="#28324c" stroke="none" />
@@ -763,11 +809,13 @@
           </g>
           <g id="robotLegLeft" class="robot-part">
             <rect x="29" y="66" width="10" height="28" rx="3" fill="#4a5878" stroke="#262f47" stroke-width="1.4" />
-            <path d="M25 92 L41 92 L43 100 L23 100 Z" fill="#8694b8" stroke="#262f47" stroke-width="1.4" stroke-linejoin="round" />
+            <path d="M25 92 L41 92 L43 100 L23 100 Z" fill="#8694b8" stroke="#262f47" stroke-width="1.4"
+              stroke-linejoin="round" />
           </g>
           <g id="robotLegRight" class="robot-part">
             <rect x="41" y="66" width="10" height="28" rx="3" fill="#4a5878" stroke="#262f47" stroke-width="1.4" />
-            <path d="M39 92 L55 92 L57 100 L37 100 Z" fill="#8694b8" stroke="#262f47" stroke-width="1.4" stroke-linejoin="round" />
+            <path d="M39 92 L55 92 L57 100 L37 100 Z" fill="#8694b8" stroke="#262f47" stroke-width="1.4"
+              stroke-linejoin="round" />
           </g>
           <g id="robotTorso">
             <rect x="24" y="34" width="32" height="40" rx="9" fill="#6b7ba0" stroke="#2c364f" stroke-width="1.6" />
@@ -806,7 +854,9 @@
               </span>
             </div>
             <div class="settings-field-control-box settings-field-control-box--toggle debug-spawn-control">
-              <input id="debugSpawnInput" type="number" min="0" step="100" class="settings-slider-value-input debug-spawn-input" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="Initial position" />
+              <input id="debugSpawnInput" type="number" min="0" step="100"
+                class="settings-slider-value-input debug-spawn-input" inputmode="numeric" autocomplete="off"
+                spellcheck="false" aria-label="Initial position" />
               <span class="debug-spawn-unit terminal-text--dim">m</span>
             </div>
           </div>
@@ -819,7 +869,8 @@
               </span>
             </div>
             <div class="settings-field-control-box settings-field-control-box--toggle">
-              <button id="debugGodmodeSwitch" type="button" class="settings-switch" role="switch" aria-checked="false" aria-label="Godmode">
+              <button id="debugGodmodeSwitch" type="button" class="settings-switch" role="switch" aria-checked="false"
+                aria-label="Godmode">
                 <span class="settings-switch-track" aria-hidden="true">
                   <span class="settings-switch-thumb"></span>
                 </span>
@@ -835,7 +886,8 @@
               </span>
             </div>
             <div class="settings-field-control-box settings-field-control-box--toggle">
-              <button id="debugStartWithShieldSwitch" type="button" class="settings-switch" role="switch" aria-checked="false" aria-label="Start with shield">
+              <button id="debugStartWithShieldSwitch" type="button" class="settings-switch" role="switch"
+                aria-checked="false" aria-label="Start with shield">
                 <span class="settings-switch-track" aria-hidden="true">
                   <span class="settings-switch-thumb"></span>
                 </span>
@@ -851,7 +903,8 @@
       <p id="screenMeters" class="hidden">0m</p>
       <div id="gameOverActions" class="hidden">
         <button id="gameOverMenuButton" type="button" class="game-over-action-btn">Start Menu</button>
-        <button id="gameOverRetryButton" type="button" class="game-over-action-btn game-over-action-btn--primary">Play Again</button>
+        <button id="gameOverRetryButton" type="button" class="game-over-action-btn game-over-action-btn--primary">Play
+          Again</button>
       </div>
       <div id="robotColorPicker" aria-label="Robot color"></div>
       <div id="recordBurst" aria-hidden="true"></div>
@@ -916,7 +969,7 @@
     var LEG_FADE_SECONDS = 0.5;
     var PLATEAU_EDGE_OFFSET_FACTOR = 0.5;
 
-    var GOOD_LANDING_TOLERANCE = 0.62;
+    var GOOD_LANDING_TOLERANCE = 0.72;
     var PERFECT_LANDING_TOLERANCE = 0.24;
     var TWO_PI = Math.PI * 2;
     var TWO_OVER_PI = 2 / Math.PI;
@@ -1800,7 +1853,7 @@
         playPromise.then(function () {
           hoverAudio.pause();
           hoverAudio.currentTime = 0;
-        }).catch(function () {});
+        }).catch(function () { });
       }
     }
 
@@ -1812,7 +1865,7 @@
       audioElement.currentTime = 0;
       var playPromise = audioElement.play();
       if (playPromise && playPromise.catch) {
-        playPromise.catch(function () {});
+        playPromise.catch(function () { });
       }
     }
 
@@ -3037,9 +3090,19 @@
       trimLegTrailPoints(points);
     }
 
+    function isLegLostForFoot(isLeftFoot) {
+      var limbId = isLeftFoot ? "robotLegLeft" : "robotLegRight";
+      var lossIndex = LIMB_LOSS_ORDER.indexOf(limbId);
+      return lossIndex >= 0 && lossIndex < lostLimbCount;
+    }
+
     function sampleLegTrailPoints() {
-      pushLegTrailPoint(legTrailLeftPoints, getRobotFootNaturalPosition(true));
-      pushLegTrailPoint(legTrailRightPoints, getRobotFootNaturalPosition(false));
+      if (!isLegLostForFoot(true)) {
+        pushLegTrailPoint(legTrailLeftPoints, getRobotFootNaturalPosition(true));
+      }
+      if (!isLegLostForFoot(false)) {
+        pushLegTrailPoint(legTrailRightPoints, getRobotFootNaturalPosition(false));
+      }
     }
 
     function updateLegTrailPointArray(points, deltaSeconds) {
@@ -3259,6 +3322,11 @@
       lostLimbCount += 1;
       limbElements[limbId].classList.add("is-lost");
       spawnDetachedLimb(limbId);
+      if (limbId === "robotLegLeft") {
+        legTrailLeftPoints.length = 0;
+      } else if (limbId === "robotLegRight") {
+        legTrailRightPoints.length = 0;
+      }
       playerVelocityY = -(impactSpeed * 0.32 + 180);
       playerYOffset = 0;
       landingLockTimer = 0.12;
@@ -3332,6 +3400,8 @@
           applyHeadGameOverLanding(playerVelocityY);
         } else {
           playerYOffset = 0;
+          var headGroundSlopeAngle = getGroundSlopeAngle(playerWorldX);
+          forwardSpeed += gravity * Math.sin(headGroundSlopeAngle) * deltaSeconds;
           forwardSpeed *= Math.exp(-HEAD_GROUND_SPEED_FRICTION * deltaSeconds);
           robotAngularVelocity *= Math.exp(-HEAD_GROUND_SPIN_FRICTION * deltaSeconds);
         }
@@ -3733,15 +3803,16 @@
     }
 
     function setCountdownText(text, isGo) {
+      countdownText.classList.remove("pop");
+      countdownText.classList.remove("is-visible");
+      void countdownText.offsetWidth;
       countdownText.textContent = text;
-      countdownText.classList.add("is-visible");
       if (isGo) {
         countdownText.classList.add("is-go");
       } else {
         countdownText.classList.remove("is-go");
       }
-      countdownText.classList.remove("pop");
-      void countdownText.offsetWidth;
+      countdownText.classList.add("is-visible");
       countdownText.classList.add("pop");
     }
 
@@ -4902,7 +4973,7 @@
           current.brightness
         );
       }
-      if (isLegTrailActive()) {
+      if (isLegTrailActive() && !isLegLostForFoot(isLeftFoot)) {
         var lastPoint = points[lastIndex];
         var foot = getRobotFootNaturalPosition(isLeftFoot);
         var lastScreenX = lastPoint.worldX - worldScroll;
@@ -5235,4 +5306,5 @@
     }
   </script>
 </body>
+
 </html>

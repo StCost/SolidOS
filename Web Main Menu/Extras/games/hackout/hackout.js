@@ -8,6 +8,7 @@
   var LOCALE_KEY_WIN_SUB = "web.game.hackout.win-sub";
   var LOCALE_KEY_LOSE_SUB = "web.game.hackout.lose-sub";
   var LOCALE_KEY_RETRY = "web.game.prompt.click-retry";
+  var LOCALE_KEY_CLICK_START = "web.game.prompt.click-start";
   var LOCALE_KEY_SCORE = "web.game.hackout.score";
   var LOCALE_KEY_BEST = "web.game.hackout.best";
 
@@ -18,9 +19,11 @@
   var MAX_WORD_LENGTH = 14;
   var MIN_FIELD_WORD_COUNT = 14;
   var MAX_FIELD_WORD_COUNT = 28;
-  var RESIZE_SETTLE_MS = 160;
   var FONT_SIZE_MIN = 7;
   var FONT_SIZE_MAX = 22;
+
+  var PHASE_START = "start";
+  var PHASE_PLAYING = "playing";
 
   var SYMBOL_CHARS = "!@#$%^&*+-=|;:.,?/~`";
   var BRACKET_PAIRS = [
@@ -54,6 +57,9 @@
   var hackOverlay = document.getElementById("hackOverlay");
   var overlayTitle = document.getElementById("overlayTitle");
   var overlaySub = document.getElementById("overlaySub");
+  var gameScreen = document.getElementById("gameScreen");
+  var screenTitle = document.getElementById("screenTitle");
+  var controlHint = document.getElementById("controlHint");
 
   var localeWordPool = [];
   var localeSignature = "";
@@ -66,10 +72,9 @@
   var gridFontSize = 12;
   var attemptsLeft = MAX_ATTEMPTS;
   var gameEnded = false;
+  var gamePhase = PHASE_START;
   var nextWordId = 1;
   var nextBracketPairId = 1;
-  var resizeSettleTimer = null;
-  var layoutReady = false;
   var attemptLogSerial = 0;
   var winStreakCurrent = 0;
   var winStreakBest = 0;
@@ -1138,6 +1143,64 @@
     setScoreHud();
   }
 
+  function isPlaying() {
+    return gamePhase === PHASE_PLAYING;
+  }
+
+  function isStart() {
+    return gamePhase === PHASE_START;
+  }
+
+  function showStartScreen() {
+    gamePhase = PHASE_START;
+    if (gameScreen) {
+      gameScreen.classList.remove("hidden");
+    }
+    if (screenTitle) {
+      screenTitle.textContent = "HACKOUT";
+    }
+    if (controlHint) {
+      controlHint.textContent = getLocalized(
+        LOCALE_KEY_CLICK_START,
+        "CLICK TO START"
+      );
+    }
+    if (terminalEl) {
+      terminalEl.innerHTML = "";
+    }
+    matchDisplay.textContent = "";
+    if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
+      window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
+    }
+  }
+
+  function hideGameScreen() {
+    if (gameScreen) {
+      gameScreen.classList.add("hidden");
+    }
+  }
+
+  function startPlaying() {
+    if (isPlaying()) {
+      return;
+    }
+    gamePhase = PHASE_PLAYING;
+    hideGameScreen();
+    refreshLocaleWordPool();
+    startNewRound();
+    if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
+      window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
+    }
+  }
+
+  function onGameScreenClick(event) {
+    if (!isStart()) {
+      return;
+    }
+    event.stopPropagation();
+    startPlaying();
+  }
+
   function applyStaticLocale() {
     hackTitle.textContent = "HACKOUT";
     attemptsLabel.textContent = getLocalized(LOCALE_KEY_ATTEMPTS, "ATTEMPTS");
@@ -1148,6 +1211,12 @@
       LOCALE_KEY_HINT,
       "Select a password. Brackets remove a dud. Symbols are noise."
     );
+    if (isStart() && controlHint) {
+      controlHint.textContent = getLocalized(
+        LOCALE_KEY_CLICK_START,
+        "CLICK TO START"
+      );
+    }
   }
 
   function showOverlay(isWin) {
@@ -1270,7 +1339,7 @@
 
   function onWordClick(entry) {
     var matchCount;
-    if (gameEnded || entry.isSpent) {
+    if (!isPlaying() || gameEnded || entry.isSpent) {
       return;
     }
     matchCount = countMatchingLetters(entry.text, passwordWord);
@@ -1353,7 +1422,7 @@
     var uselessInRange;
     var spentList;
     var secondEntry;
-    if (gameEnded) {
+    if (!isPlaying() || gameEnded) {
       return;
     }
     if (getSynth()) {
@@ -1577,6 +1646,9 @@
 
   function onCellClick(cell) {
     var entry;
+    if (!isPlaying() || gameEnded) {
+      return;
+    }
     if (cell.cellType === CELL_DOT) {
       return;
     }
@@ -1594,12 +1666,18 @@
 
   function measureFontMetrics(fontSize) {
     measureProbe.style.fontSize = String(fontSize) + "px";
-    terminalEl.style.fontSize = String(fontSize) + "px";
     var charWidth = measureProbe.offsetWidth;
     if (charWidth < 1) {
       charWidth = fontSize * 0.6;
     }
     return { charWidth: charWidth, lineHeight: fontSize };
+  }
+
+  function applyTerminalFontSize(fontSize) {
+    if (!terminalEl) {
+      return;
+    }
+    terminalEl.style.fontSize = String(fontSize) + "px";
   }
 
   function expandGridCountsToFillWrap(wrapSize, metrics, fontSize, minCells, cols, rows) {
@@ -2046,6 +2124,7 @@
     if (wordEntries.length !== beforeCount) {
       computeGridDimensions();
     }
+    applyTerminalFontSize(gridFontSize);
     clearHighlights();
     gridCells = buildGridCells();
     fragment = document.createDocumentFragment();
@@ -2056,12 +2135,6 @@
     terminalEl.appendChild(fragment);
     rebuildGridLookups();
     bindTerminalGridEvents();
-    layoutReady = true;
-  }
-
-  function relayoutGridKeepRound() {
-    clearHighlights();
-    renderGrid();
   }
 
   function rerollLevelKeepLives() {
@@ -2082,32 +2155,9 @@
     rerollLevelKeepLives();
   }
 
-  function scheduleResizeReroll() {
-    if (resizeSettleTimer != null) {
-      window.clearTimeout(resizeSettleTimer);
-    }
-    resizeSettleTimer = window.setTimeout(function onResizeSettled() {
-      resizeSettleTimer = null;
-      if (gameEnded) {
-        return;
-      }
-      if (layoutReady && passwordWord.length > 0) {
-        relayoutGridKeepRound();
-        return;
-      }
-      rerollLevelKeepLives();
-    }, RESIZE_SETTLE_MS);
-  }
-
   function onLocaleApplied() {
-    var changed = refreshLocaleWordPool();
+    refreshLocaleWordPool();
     applyStaticLocale();
-    if (changed || !layoutReady) {
-      if (gameEnded) {
-        return;
-      }
-      rerollLevelKeepLives();
-    }
   }
 
   function onOverlayClick() {
@@ -2117,19 +2167,12 @@
     startNewRound();
   }
 
-  function bindResizeObserver() {
-    if (!window.ResizeObserver || !terminalWrap) {
-      return;
-    }
-    var observer = new window.ResizeObserver(scheduleResizeReroll);
-    observer.observe(terminalWrap);
-  }
-
   function bindEvents() {
     window.addEventListener("web-locale-applied", onLocaleApplied);
-    window.addEventListener("resize", scheduleResizeReroll);
-    bindResizeObserver();
     hackOverlay.addEventListener("click", onOverlayClick);
+    if (gameScreen) {
+      gameScreen.addEventListener("click", onGameScreenClick);
+    }
   }
 
   function init() {
@@ -2141,7 +2184,7 @@
     attemptsLeft = MAX_ATTEMPTS;
     setAttemptsHud();
     setScoreHud();
-    rerollLevelKeepLives();
+    showStartScreen();
   }
 
   init();

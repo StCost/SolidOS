@@ -7,10 +7,25 @@
 
   function isLocalWebMainMenuLayout() {
     var path = window.location.pathname || "";
+    var href = window.location.href || "";
     return (
       path.indexOf(PATH_MARKER_WEB_MAIN_MENU) !== -1 ||
-      path.indexOf(PATH_MARKER_WEB_MAIN_MENU_ENCODED) !== -1
+      path.indexOf(PATH_MARKER_WEB_MAIN_MENU_ENCODED) !== -1 ||
+      href.indexOf(PATH_MARKER_WEB_MAIN_MENU) !== -1 ||
+      href.indexOf(PATH_MARKER_WEB_MAIN_MENU_ENCODED) !== -1
     );
+  }
+
+  function getStreamingAssetsAudioPrefix() {
+    var href = window.location.href || "";
+    var markerIndex = href.indexOf(PATH_MARKER_WEB_MAIN_MENU);
+    if (markerIndex === -1) {
+      markerIndex = href.indexOf(PATH_MARKER_WEB_MAIN_MENU_ENCODED);
+    }
+    if (markerIndex === -1) {
+      return "";
+    }
+    return href.substring(0, markerIndex) + AUDIO_FOLDER + "/";
   }
 
   function getGameAudioPrefixFromLayout() {
@@ -18,17 +33,22 @@
       return cachedGameAudioPrefix;
     }
     if (isLocalWebMainMenuLayout()) {
-      cachedGameAudioPrefix =
-        PARENT_SEGMENT +
-        "/" +
-        PARENT_SEGMENT +
-        "/" +
-        PARENT_SEGMENT +
-        "/" +
-        PARENT_SEGMENT +
-        "/" +
-        AUDIO_FOLDER +
-        "/";
+      var streamingAssetsPrefix = getStreamingAssetsAudioPrefix();
+      if (streamingAssetsPrefix) {
+        cachedGameAudioPrefix = streamingAssetsPrefix;
+      } else {
+        cachedGameAudioPrefix =
+          PARENT_SEGMENT +
+          "/" +
+          PARENT_SEGMENT +
+          "/" +
+          PARENT_SEGMENT +
+          "/" +
+          PARENT_SEGMENT +
+          "/" +
+          AUDIO_FOLDER +
+          "/";
+      }
     } else {
       cachedGameAudioPrefix =
         PARENT_SEGMENT + "/" + PARENT_SEGMENT + "/" + PARENT_SEGMENT + "/" + AUDIO_FOLDER + "/";

@@ -525,6 +525,10 @@
       var totalScore = 0;
       var finishX = 0;
       var finishY = 0;
+
+      function getFinishGravityHole() {
+        return { x: finishX, y: finishY, isFinish: true };
+      }
       var congratsScreenActive = false;
       var congratsTimer = 0;
       var congratsLevelDistance = 0;
@@ -1773,12 +1777,45 @@
         addWall(endCapLeft.x, endCapLeft.y, endCapRight.x, endCapRight.y);
       }
 
-      function getTunnelFinishPosition() {
+      function getTunnelEndPosition() {
         if (tunnelPath.length < 1) {
-          return { x: 0, y: 0 };
+          return {
+            x: 0,
+            y: 0,
+            tangentX: 1,
+            tangentY: 0,
+            halfWidth: CORRIDOR_HALF_WIDTH_MAX * 0.92
+          };
         }
         var last = tunnelPath[tunnelPath.length - 1];
-        return { x: last.x, y: last.y };
+        var tangentX = 1;
+        var tangentY = 0;
+        if (tunnelPath.length >= 2) {
+          var previous = tunnelPath[tunnelPath.length - 2];
+          var segX = last.x - previous.x;
+          var segY = last.y - previous.y;
+          var segLength = Math.sqrt(segX * segX + segY * segY);
+          if (segLength >= 0.001) {
+            tangentX = segX / segLength;
+            tangentY = segY / segLength;
+          }
+        }
+        return {
+          x: last.x,
+          y: last.y,
+          tangentX: tangentX,
+          tangentY: tangentY,
+          halfWidth: last.halfWidth
+        };
+      }
+
+      function getTunnelFinishPosition() {
+        var end = getTunnelEndPosition();
+        var holeOffset = BLACK_HOLE_PULL_RADIUS;
+        return {
+          x: end.x - end.tangentX * holeOffset,
+          y: end.y - end.tangentY * holeOffset
+        };
       }
 
       function buildBlackHoles(seed) {
@@ -2153,7 +2190,8 @@
               vx: 0,
               vy: 0,
               captured: true,
-              hole: pullResult.hole,
+              finish: pullResult.hole && pullResult.hole.isFinish === true,
+              hole: pullResult.hole && pullResult.hole.isFinish !== true ? pullResult.hole : null,
               wallBounced: false
             };
           }
@@ -2260,11 +2298,15 @@
         return 1 - distance / innerRadius;
       }
 
-      function isBallInsideBlackHolePull(hole) {
-        var offsetX = hole.x - ballX;
-        var offsetY = hole.y - ballY;
+      function isBallInsideGravityHolePull(holeX, holeY) {
+        var offsetX = holeX - ballX;
+        var offsetY = holeY - ballY;
         var distanceSq = offsetX * offsetX + offsetY * offsetY;
         return distanceSq < BLACK_HOLE_PULL_RADIUS * BLACK_HOLE_PULL_RADIUS;
+      }
+
+      function isBallInsideBlackHolePull(hole) {
+        return isBallInsideGravityHolePull(hole.x, hole.y);
       }
 
       function doesSegmentIntersectBlackHolePull(segmentStartX, segmentStartY, segmentEndX, segmentEndY, hole) {
@@ -2304,6 +2346,16 @@
               return true;
             }
           }
+        }
+        return false;
+      }
+
+      function shouldShowFinishPullOutline(aimPreview) {
+        if (gameState === stateRolling) {
+          return isBallInsideGravityHolePull(finishX, finishY);
+        }
+        if (gameState === stateAiming && hitsLeft > 0 && !loseScreenActive && !levelIntroActive) {
+          return doesTrajectoryPreviewAffectBlackHole(aimPreview, getFinishGravityHole());
         }
         return false;
       }
@@ -2368,8 +2420,23 @@
               pointY: pathPoint.y,
               holeX: hole.x,
               holeY: hole.y,
-              strength: strength
+              strength: strength,
+              isFinish: false
             });
+          }
+          if (levelReady) {
+            var finishHole = getFinishGravityHole();
+            var finishStrength = getBlackHolePullDisplayStrength(pathPoint.x, pathPoint.y, finishHole);
+            if (finishStrength >= TRAJECTORY_PULL_STRENGTH_MIN) {
+              influences.push({
+                pointX: pathPoint.x,
+                pointY: pathPoint.y,
+                holeX: finishHole.x,
+                holeY: finishHole.y,
+                strength: finishStrength,
+                isFinish: true
+              });
+            }
           }
         }
         return influences;
@@ -2411,14 +2478,18 @@
             options
           );
           if (stepResult.captured) {
-            positionX = stepResult.hole.x;
-            positionY = stepResult.hole.y;
+            positionX = stepResult.hole ? stepResult.hole.x : finishX;
+            positionY = stepResult.hole ? stepResult.hole.y : finishY;
             segmentPoints.push({ x: positionX, y: positionY });
             traveled += Math.sqrt(
               (positionX - previousX) * (positionX - previousX) +
               (positionY - previousY) * (positionY - previousY)
             );
-            captured = true;
+            if (stepResult.finish) {
+              reachedFinish = true;
+            } else {
+              captured = true;
+            }
             break;
           }
           positionX = stepResult.x;
@@ -2430,7 +2501,7 @@
             (positionY - previousY) * (positionY - previousY)
           );
           segmentPoints.push({ x: positionX, y: positionY });
-          if (isPositionInFinishZone(positionX, positionY)) {
+          if (!stepResult.captured && isPositionInFinishZone(positionX, positionY)) {
             reachedFinish = true;
             velX = 0;
             velY = 0;
@@ -3795,31 +3866,82 @@
         }
       }
 
-      function applyBlackHolePullToVelocity(positionX, positionY, velocityX, velocityY, deltaSeconds, checkCapture) {
-        var holeIndex;
-        for (holeIndex = 0; holeIndex < blackHoles.length; holeIndex += 1) {
-          var hole = blackHoles[holeIndex];
-          var offsetX = hole.x - positionX;
-          var offsetY = hole.y - positionY;
-          var distanceSq = offsetX * offsetX + offsetY * offsetY;
-          if (distanceSq < 0.001) {
-            if (checkCapture) {
-              return { velocityX: 0, velocityY: 0, captured: true, hole: hole };
-            }
-            continue;
+      function applyGravityPullFromHole(positionX, positionY, velocityX, velocityY, holeX, holeY, deltaSeconds, checkCapture) {
+        var offsetX = holeX - positionX;
+        var offsetY = holeY - positionY;
+        var distanceSq = offsetX * offsetX + offsetY * offsetY;
+        var captured = false;
+        if (distanceSq < 0.001) {
+          if (checkCapture) {
+            captured = true;
           }
+        } else {
           var distance = Math.sqrt(distanceSq);
           if (distance < BLACK_HOLE_EVENT_RADIUS) {
             if (checkCapture) {
-              return { velocityX: velocityX, velocityY: velocityY, captured: true, hole: hole };
+              captured = true;
             }
-            continue;
-          }
-          if (distance < BLACK_HOLE_PULL_RADIUS) {
+          } else if (distance < BLACK_HOLE_PULL_RADIUS) {
             var pullStrength = BLACK_HOLE_PULL_FORCE / (distanceSq * 0.038 + 5);
             velocityX += (offsetX / distance) * pullStrength * deltaSeconds;
             velocityY += (offsetY / distance) * pullStrength * deltaSeconds;
           }
+        }
+        return {
+          velocityX: velocityX,
+          velocityY: velocityY,
+          captured: captured,
+          distanceSq: distanceSq
+        };
+      }
+
+      function applyBlackHolePullToVelocity(positionX, positionY, velocityX, velocityY, deltaSeconds, checkCapture) {
+        var holeIndex;
+        var captureHole = null;
+        var captureDistanceSq = Infinity;
+        for (holeIndex = 0; holeIndex < blackHoles.length; holeIndex += 1) {
+          var hole = blackHoles[holeIndex];
+          var pullResult = applyGravityPullFromHole(
+            positionX,
+            positionY,
+            velocityX,
+            velocityY,
+            hole.x,
+            hole.y,
+            deltaSeconds,
+            checkCapture
+          );
+          velocityX = pullResult.velocityX;
+          velocityY = pullResult.velocityY;
+          if (checkCapture && pullResult.captured && pullResult.distanceSq < captureDistanceSq) {
+            captureHole = hole;
+            captureDistanceSq = pullResult.distanceSq;
+          }
+        }
+        if (levelReady) {
+          var finishHole = getFinishGravityHole();
+          var finishPullResult = applyGravityPullFromHole(
+            positionX,
+            positionY,
+            velocityX,
+            velocityY,
+            finishHole.x,
+            finishHole.y,
+            deltaSeconds,
+            checkCapture
+          );
+          velocityX = finishPullResult.velocityX;
+          velocityY = finishPullResult.velocityY;
+          if (checkCapture && finishPullResult.captured && finishPullResult.distanceSq < captureDistanceSq) {
+            captureHole = finishHole;
+            captureDistanceSq = finishPullResult.distanceSq;
+          }
+        }
+        if (captureHole) {
+          if (captureDistanceSq < 0.001) {
+            return { velocityX: 0, velocityY: 0, captured: true, hole: captureHole };
+          }
+          return { velocityX: velocityX, velocityY: velocityY, captured: true, hole: captureHole };
         }
         return { velocityX: velocityX, velocityY: velocityY, captured: false, hole: null };
       }
@@ -3959,14 +4081,14 @@
             var bounceSpeed = Math.sqrt(ballVelX * ballVelX + ballVelY * ballVelY);
             getSynth().playBounce(bounceSpeed);
           }
+          if (stepResult.finish) {
+            physicsTimeAccumulator = 0;
+            triggerLevelComplete();
+            return;
+          }
           if (stepResult.captured && stepResult.hole) {
             physicsTimeAccumulator = 0;
             triggerBlackHoleWarp(stepResult.hole.x, stepResult.hole.y);
-            return;
-          }
-          if (isBallInFinishZone()) {
-            physicsTimeAccumulator = 0;
-            triggerLevelComplete();
             return;
           }
         }
@@ -4611,7 +4733,7 @@
         }
       }
 
-      function drawBlackHoleInfluenceLine(pointScreenX, pointScreenY, holeScreenX, holeScreenY, pullStrength, centerGlow, controlScreenX, controlScreenY) {
+      function drawBlackHoleInfluenceLine(pointScreenX, pointScreenY, holeScreenX, holeScreenY, pullStrength, centerGlow, controlScreenX, controlScreenY, isFinish) {
         var proximity = getBlackHoleInfluenceProximity(pullStrength);
         var lineAlpha = 0.1 + proximity * 0.44;
         var lineWidthRange = BLACK_HOLE_INFLUENCE_LINE_WIDTH_MAX - BLACK_HOLE_INFLUENCE_LINE_WIDTH_MIN;
@@ -4620,6 +4742,14 @@
           (BLACK_HOLE_INFLUENCE_LINE_WIDTH_MIN + proximity * lineWidthRange) * cameraZoom
         );
         var glowStrength = getBlackHoleInfluenceGlowStrength(pullStrength, centerGlow);
+        var glowStroke = "rgba(210, 160, 255, ";
+        var glowShadow = "rgba(220, 170, 255, ";
+        var coreStroke = "rgba(190, 140, 255, ";
+        if (isFinish) {
+          glowStroke = "rgba(255, 210, 90, ";
+          glowShadow = "rgba(255, 220, 110, ";
+          coreStroke = "rgba(255, 190, 70, ";
+        }
         if (glowStrength > 0.05) {
           var pulse = 1;
           if (glowStrength > 0.28) {
@@ -4631,9 +4761,9 @@
           }
           ctx.save();
           ctx.lineCap = "round";
-          ctx.strokeStyle = "rgba(210, 160, 255, " + (0.14 + animatedGlow * 0.66) + ")";
+          ctx.strokeStyle = glowStroke + (0.14 + animatedGlow * 0.66) + ")";
           ctx.lineWidth = lineWidth + animatedGlow * 4.5 * cameraZoom;
-          ctx.shadowColor = "rgba(220, 170, 255, " + (0.22 + animatedGlow * 0.68) + ")";
+          ctx.shadowColor = glowShadow + (0.22 + animatedGlow * 0.68) + ")";
           ctx.shadowBlur = 4 + animatedGlow * 22;
           drawBlackHoleInfluenceLinePath(
             pointScreenX,
@@ -4648,7 +4778,7 @@
           ctx.restore();
         }
         ctx.lineCap = "round";
-        ctx.strokeStyle = "rgba(190, 140, 255, " + lineAlpha + ")";
+        ctx.strokeStyle = coreStroke + lineAlpha + ")";
         ctx.lineWidth = lineWidth;
         drawBlackHoleInfluenceLinePath(
           pointScreenX,
@@ -4710,7 +4840,7 @@
         };
       }
 
-      function drawBlackHoleInfluenceLineWorld(startX, startY, holeX, holeY, pullStrength, centerGlow, lineIndex, lineCount) {
+      function drawBlackHoleInfluenceLineWorld(startX, startY, holeX, holeY, pullStrength, centerGlow, lineIndex, lineCount, isFinish) {
         var pointScreen = worldToScreen(startX, startY);
         var holeScreen = worldToScreen(holeX, holeY);
         var curveControl = getBlackHoleInfluenceCurveControlWorld(startX, startY, holeX, holeY, lineIndex, lineCount);
@@ -4729,11 +4859,12 @@
           pullStrength,
           centerGlow,
           controlScreenX,
-          controlScreenY
+          controlScreenY,
+          isFinish === true
         );
       }
 
-      function drawLiveBlackHolePullInfluence(ballX, ballY, holeX, holeY, forceMinimumStrength) {
+      function drawLiveBlackHolePullInfluence(ballX, ballY, holeX, holeY, forceMinimumStrength, isFinish) {
         var holePoint = { x: holeX, y: holeY };
         var pullStrength = getBlackHolePullDisplayStrength(ballX, ballY, holePoint);
         if (pullStrength < TRAJECTORY_PULL_STRENGTH_MIN) {
@@ -4768,7 +4899,8 @@
           pullStrength,
           centerGlow,
           lineIndex,
-          totalLineCount
+          totalLineCount,
+          isFinish === true
         );
         lineIndex += 1;
         if (innerDepth <= 0.001) {
@@ -4797,7 +4929,8 @@
             sampleStrength,
             sampleGlow,
             lineIndex,
-            totalLineCount
+            totalLineCount,
+            isFinish === true
           );
           lineIndex += 1;
         }
@@ -4824,7 +4957,8 @@
             sampleStrength,
             sampleGlow,
             lineIndex,
-            totalLineCount
+            totalLineCount,
+            isFinish === true
           );
           lineIndex += 1;
         }
@@ -4867,7 +5001,8 @@
             sample.strength,
             sampleGlow,
             holeLineIndices[sampleHoleKey],
-            holeLineCounts[sampleHoleKey]
+            holeLineCounts[sampleHoleKey],
+            sample.isFinish === true
           );
           holeLineIndices[sampleHoleKey] += 1;
         }
@@ -4894,8 +5029,9 @@
         var holeIndex;
         for (holeIndex = 0; holeIndex < blackHoles.length; holeIndex += 1) {
           var hole = blackHoles[holeIndex];
-          drawLiveBlackHolePullInfluence(displayBall.x, displayBall.y, hole.x, hole.y, false);
+          drawLiveBlackHolePullInfluence(displayBall.x, displayBall.y, hole.x, hole.y, false, false);
         }
+        drawLiveBlackHolePullInfluence(displayBall.x, displayBall.y, finishX, finishY, false, true);
         ctx.restore();
       }
 
@@ -5137,29 +5273,7 @@
         };
       }
 
-      function getFinishLineGeometry() {
-        if (tunnelPath.length < 2) {
-          return null;
-        }
-        var lastIndex = tunnelPath.length - 1;
-        var previous = tunnelPath[lastIndex - 1];
-        var last = tunnelPath[lastIndex];
-        var segX = last.x - previous.x;
-        var segY = last.y - previous.y;
-        var segLength = Math.sqrt(segX * segX + segY * segY);
-        if (segLength < 0.001) {
-          return null;
-        }
-        return {
-          centerX: finishX,
-          centerY: finishY,
-          tangentX: segX / segLength,
-          tangentY: segY / segLength,
-          halfWidth: last.halfWidth
-        };
-      }
-
-      function drawCorridorLineMarker(centerX, centerY, tangentX, tangentY, corridorHalfWidth, markerKind) {
+      function drawCorridorLineMarker(centerX, centerY, tangentX, tangentY, corridorHalfWidth) {
         var perpX = -tangentY;
         var perpY = tangentX;
         var span = corridorHalfWidth * CORRIDOR_LINE_WIDTH_SCALE;
@@ -5168,12 +5282,6 @@
         var stripeWidth = (span * 2) / stripeCount;
         var lightColor = "rgba(235, 242, 228, 0.92)";
         var darkColor = "rgba(42, 48, 40, 0.88)";
-        var labelColor = "rgba(228, 236, 220, 0.95)";
-        if (markerKind === "finish") {
-          lightColor = "rgba(255, 236, 160, 0.94)";
-          darkColor = "rgba(175, 125, 28, 0.9)";
-          labelColor = "rgba(255, 248, 210, 0.96)";
-        }
         var stripeIndex;
         var halfDepth = depth * 0.5;
         for (stripeIndex = 0; stripeIndex < stripeCount; stripeIndex += 1) {
@@ -5203,16 +5311,6 @@
           ctx.lineTo(screenFour.x, screenFour.y);
           ctx.closePath();
           ctx.fill();
-        }
-        if (markerKind === "finish") {
-          var labelOffset = halfDepth + CORRIDOR_LINE_LABEL_OFFSET;
-          var labelX = centerX - tangentX * labelOffset;
-          var labelY = centerY - tangentY * labelOffset;
-          var labelScreen = worldToScreen(labelX, labelY);
-          var labelText = getLocalized(LOCALE_KEY_MARKER_FINISH, "FINISH");
-          ctx.fillStyle = labelColor;
-          ctx.font = "11px Courier New, Courier, monospace";
-          ctx.fillText(labelText, labelScreen.x - 22, labelScreen.y - 4);
         }
       }
 
@@ -5259,8 +5357,7 @@
             startLine.centerY,
             startLine.tangentX,
             startLine.tangentY,
-            startLine.halfWidth,
-            "start"
+            startLine.halfWidth
           );
           drawStartFloorLabel(
             startLine.centerX,
@@ -5270,34 +5367,91 @@
             startLine.halfWidth
           );
         }
-        var finishLine = getFinishLineGeometry();
-        if (finishLine) {
-          drawCorridorLineMarker(
-            finishLine.centerX,
-            finishLine.centerY,
-            finishLine.tangentX,
-            finishLine.tangentY,
-            finishLine.halfWidth,
-            "finish"
-          );
-        }
       }
 
-      function drawFinishZone() {
-        var finishScreen = worldToScreen(finishX, finishY);
-        var inFinishZone = isBallInFinishZone();
-        if (inFinishZone) {
-          ctx.strokeStyle = "rgba(255, 180, 70, 0.95)";
-          ctx.fillStyle = "rgba(255, 200, 80, 0.28)";
-        } else {
-          ctx.strokeStyle = "rgba(255, 220, 90, 0.7)";
-          ctx.fillStyle = "rgba(255, 230, 120, 0.14)";
+      function drawFinishGravityHole() {
+        var time = Date.now() * 0.001;
+        var width = canvas.clientWidth;
+        var height = canvas.clientHeight;
+        var aimPreview = cachedAimTrajectoryPreview;
+        var screen = worldToScreen(finishX, finishY);
+        var pullRadius = getBlackHoleScreenRadius(BLACK_HOLE_PULL_RADIUS);
+        var cullMargin = pullRadius + 48;
+        if (screen.x < -cullMargin || screen.x > width + cullMargin || screen.y < -cullMargin || screen.y > height + cullMargin) {
+          return;
         }
-        ctx.lineWidth = 2.5;
+        var showPullOutline = shouldShowFinishPullOutline(aimPreview);
+        var spin = time * 2.4;
+        var eventRadius = getBlackHoleScreenRadius(BLACK_HOLE_EVENT_RADIUS);
+        var drawRadius = getBlackHoleScreenRadius(BLACK_HOLE_DRAW_RADIUS);
+        var gravityPulse = 0.72 + Math.sin(time * 1.8) * 0.28;
+        var gravityFill = ctx.createRadialGradient(screen.x, screen.y, eventRadius, screen.x, screen.y, pullRadius);
+        gravityFill.addColorStop(0, "rgba(36, 24, 4, 0)");
+        gravityFill.addColorStop(0.55, "rgba(120, 72, 12, " + (0.1 * gravityPulse) + ")");
+        gravityFill.addColorStop(0.88, "rgba(180, 110, 20, " + (0.18 * gravityPulse) + ")");
+        gravityFill.addColorStop(1, "rgba(220, 150, 30, " + (0.28 * gravityPulse) + ")");
+        ctx.fillStyle = gravityFill;
         ctx.beginPath();
-        ctx.arc(finishScreen.x, finishScreen.y, FINISH_ZONE_RADIUS, 0, Math.PI * 2);
+        ctx.arc(screen.x, screen.y, pullRadius, 0, Math.PI * 2);
         ctx.fill();
+        if (showPullOutline) {
+          ctx.strokeStyle = "rgba(255, 200, 70, " + (0.24 + gravityPulse * 0.3) + ")";
+          ctx.lineWidth = Math.max(1, cameraZoom);
+          ctx.setLineDash([3 * cameraZoom, 7 * cameraZoom]);
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, pullRadius * 0.55, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.strokeStyle = "rgba(255, 220, 90, " + (0.34 + gravityPulse * 0.34) + ")";
+          ctx.lineWidth = Math.max(1.5, 1.5 * cameraZoom);
+          ctx.setLineDash([8 * cameraZoom, 6 * cameraZoom]);
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, pullRadius, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        var capturePulse = 0.8 + Math.sin(time * 3.2) * 0.2;
+        ctx.strokeStyle = "rgba(255, 180, 50, " + (0.5 * capturePulse) + ")";
+        ctx.lineWidth = Math.max(1.2, 1.2 * cameraZoom);
+        ctx.beginPath();
+        ctx.arc(screen.x, screen.y, eventRadius * 1.15, 0, Math.PI * 2);
         ctx.stroke();
+        var outerRadius = drawRadius;
+        var gradient = ctx.createRadialGradient(screen.x, screen.y, 0, screen.x, screen.y, outerRadius * 1.35);
+        gradient.addColorStop(0, "rgba(0, 0, 0, 1)");
+        gradient.addColorStop(0.35, "rgba(24, 14, 2, 0.98)");
+        gradient.addColorStop(0.65, "rgba(120, 72, 12, 0.55)");
+        gradient.addColorStop(1, "rgba(180, 110, 20, 0)");
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(screen.x, screen.y, outerRadius * 1.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255, 200, 70, 0.62)";
+        ctx.lineWidth = Math.max(2, 2 * cameraZoom);
+        ctx.beginPath();
+        ctx.arc(screen.x, screen.y, outerRadius * 0.72, 0, Math.PI * 2);
+        ctx.stroke();
+        var ringIndex;
+        for (ringIndex = 0; ringIndex < 3; ringIndex += 1) {
+          var ringRadius = outerRadius * (0.45 + ringIndex * 0.18);
+          ctx.strokeStyle = "rgba(255, 220, 90, " + (0.38 - ringIndex * 0.08) + ")";
+          ctx.lineWidth = Math.max(1.2, 1.2 * cameraZoom);
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, ringRadius, spin + ringIndex, spin + ringIndex + Math.PI * 1.35);
+          ctx.stroke();
+        }
+        var holeCore = ctx.createRadialGradient(screen.x, screen.y, 0, screen.x, screen.y, eventRadius * 1.05);
+        holeCore.addColorStop(0, "rgba(12, 6, 0, 0.98)");
+        holeCore.addColorStop(0.35, "rgba(80, 48, 8, 0.92)");
+        holeCore.addColorStop(0.72, "rgba(160, 96, 16, 0.55)");
+        holeCore.addColorStop(1, "rgba(0, 0, 0, 0.98)");
+        ctx.fillStyle = holeCore;
+        ctx.beginPath();
+        ctx.arc(screen.x, screen.y, eventRadius * 0.95, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255, 220, 90, 0.28)";
+        ctx.beginPath();
+        ctx.arc(screen.x, screen.y, eventRadius * 0.18, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       function isFinishVisibleOnScreen() {
@@ -5399,15 +5553,15 @@
         var badgeTop = -badgePaddingY - arrowSize * 0.55;
         var badgeBottom = badgePaddingY + arrowSize * 0.55;
         ctx.fillStyle = "rgba(12, 8, 4, 0.78)";
-        ctx.strokeStyle = "rgba(255, 210, 90, 0.78)";
-        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = "rgba(255, 230, 80, 0.92)";
+        ctx.lineWidth = 1.4;
         ctx.beginPath();
         ctx.rect(badgeLeft, badgeTop, badgeRight - badgeLeft, badgeBottom - badgeTop);
         ctx.fill();
         ctx.stroke();
         var arrowBaseLocalX = arrowTipLocalX - arrowSize * 1.7;
-        ctx.fillStyle = "rgba(255, 220, 96, 1)";
-        ctx.strokeStyle = "rgba(48, 32, 8, 0.95)";
+        ctx.fillStyle = "rgba(255, 236, 72, 1)";
+        ctx.strokeStyle = "rgba(72, 48, 8, 0.95)";
         ctx.lineWidth = 1.2;
         ctx.beginPath();
         ctx.moveTo(arrowTipLocalX, 0);
@@ -5446,9 +5600,9 @@
         }
         cachedAimTrajectoryPreview = getAimTrajectoryPreview();
         drawBlackHoles();
+        drawFinishGravityHole();
         drawWalls();
         drawStartFinishLineMarkers();
-        drawFinishZone();
         drawFinishParticles();
         drawAimLine();
         drawCursorPushField();

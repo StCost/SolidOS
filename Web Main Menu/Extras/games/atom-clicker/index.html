@@ -7,7 +7,6 @@
   <script src="../iframe-game-locale.js"></script>
   <script src="../iframe-game-input.js"></script>
   <script src="../iframe-game-audio-volume.js"></script>
-  <script src="../extras-game-ui-audio-paths.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -631,6 +630,43 @@
       }
     }
 
+    #gameScreen {
+      position: absolute;
+      inset: 0;
+      z-index: 8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      pointer-events: auto;
+      background: rgba(4, 6, 9, 0.58);
+      cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
+    }
+
+    #gameScreen.hidden {
+      display: none;
+    }
+
+    #screenTitle {
+      margin: 0;
+      font-size: 1.35rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: #ffcc9f;
+      text-shadow: 0 0 18px rgba(255, 128, 0, 0.55);
+    }
+
+    #controlHint {
+      margin: 0;
+      font-size: 0.88rem;
+      letter-spacing: 0.12em;
+      color: rgba(255, 180, 120, 0.78);
+      text-align: center;
+      max-width: min(88vw, 22rem);
+      line-height: 1.45;
+    }
+
   </style>
 </head>
 <body>
@@ -667,6 +703,10 @@
     </div>
     </div>
   </div>
+  <div id="gameScreen">
+    <h1 id="screenTitle">Atom Clicker</h1>
+    <p id="controlHint">CLICK TO START</p>
+  </div>
   <script src="../extras-game-start-music-notify.js"></script>
   <script>
     var CLICK_AUDIO_FILE = "ui-atom-clicker-click.wav";
@@ -684,13 +724,20 @@
 
     var degreeSymbol = "\u00B0";
     var LOCALE_KEY_BEST_LABEL = "web.game.best-label";
+    var LOCALE_KEY_CLICK_START = "web.game.prompt.click-start";
+    var PHASE_START = "start";
+    var PHASE_PLAYING = "playing";
     var HIGH_SCORE_STORAGE_KEY = "cm-atom-clicker-high-score";
     var score = 0;
     var highScore = 0;
+    var gamePhase = PHASE_START;
     var scoreElement = document.getElementById("score");
     var highScoreElement = document.getElementById("highScore");
     var bestScoreShake = document.getElementById("bestScoreShake");
     var scoreShake = document.getElementById("scoreShake");
+    var gameScreen = document.getElementById("gameScreen");
+    var screenTitle = document.getElementById("screenTitle");
+    var controlHint = document.getElementById("controlHint");
     var nucleusCluster = document.getElementById("nucleusCluster");
     var atomShake = document.getElementById("atomShake");
     var gameBox = document.getElementById("gameBox");
@@ -807,6 +854,68 @@
 
     function applyGameLocale() {
       setHighScoreText();
+      if (isStart()) {
+        if (screenTitle) {
+          screenTitle.textContent = "Atom Clicker";
+        }
+        if (controlHint) {
+          controlHint.textContent = getLocalized(
+            LOCALE_KEY_CLICK_START,
+            "CLICK TO START"
+          );
+        }
+      }
+    }
+
+    function isPlaying() {
+      return gamePhase === PHASE_PLAYING;
+    }
+
+    function isStart() {
+      return gamePhase === PHASE_START;
+    }
+
+    function showStartScreen() {
+      gamePhase = PHASE_START;
+      if (gameScreen) {
+        gameScreen.classList.remove("hidden");
+      }
+      if (screenTitle) {
+        screenTitle.textContent = "Atom Clicker";
+      }
+      if (controlHint) {
+        controlHint.textContent = getLocalized(
+          LOCALE_KEY_CLICK_START,
+          "CLICK TO START"
+        );
+      }
+      if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyStartScreenReady) {
+        window.WebExtrasGameStartMusicNotify.notifyStartScreenReady();
+      }
+    }
+
+    function hideGameScreen() {
+      if (gameScreen) {
+        gameScreen.classList.add("hidden");
+      }
+    }
+
+    function startPlaying() {
+      if (isPlaying()) {
+        return;
+      }
+      gamePhase = PHASE_PLAYING;
+      hideGameScreen();
+      if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
+        window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
+      }
+    }
+
+    function onGameScreenClick() {
+      if (!isStart()) {
+        return;
+      }
+      startPlaying();
     }
 
     function bindLocaleListener() {
@@ -1407,6 +1516,9 @@
     var lastGameInputStamp = 0;
 
     function registerClickAt(clientX, clientY) {
+      if (!isPlaying()) {
+        return;
+      }
       var x = clientX;
       var y = clientY;
       var clickValue = getClickMinimum(score);
@@ -1496,14 +1608,15 @@
         setCursorPointer(event.clientX, event.clientY);
       });
       document.addEventListener("pointerleave", clearCursorPointer);
+      if (gameScreen) {
+        gameScreen.addEventListener("click", onGameScreenClick);
+      }
     }
 
     document.addEventListener("selectstart", function (event) {
       event.preventDefault();
     });
-    if (window.WebExtrasGameStartMusicNotify && window.WebExtrasGameStartMusicNotify.notifyGameplayStarted) {
-      window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
-    }
+    showStartScreen();
   </script>
 </body>
 </html>

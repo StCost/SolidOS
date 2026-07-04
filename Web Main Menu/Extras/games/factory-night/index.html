@@ -1,6 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+    (function () {
+      var pageHref = window.location.href;
+      var baseHref;
+      if (/^file:/.test(pageHref) || window.vuplex) {
+        baseHref = pageHref.substring(0, pageHref.lastIndexOf("/") + 1);
+      } else {
+        var path = window.location.pathname || "/";
+        if (path.endsWith("/")) {
+          baseHref = window.location.origin + path;
+        } else {
+          var segment = path.slice(path.lastIndexOf("/") + 1);
+          if (segment.indexOf(".") >= 0) {
+            baseHref = window.location.origin + path.substring(0, path.lastIndexOf("/") + 1);
+          } else {
+            baseHref = window.location.origin + path + "/";
+          }
+        }
+      }
+      var baseElement = document.createElement("base");
+      baseElement.href = baseHref;
+      document.head.appendChild(baseElement);
+    })();
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Factory Night</title>
@@ -12,7 +36,6 @@
   </style>
   <script src="../../iframe-game-locale.js"></script>
   <script src="../extras-game-start-music-notify.js"></script>
-  <script src="../extras-game-ui-audio-paths.js"></script>
   <script src="../iframe-game-audio-volume.js"></script>
   <script src="../extras-game-synth-audio.js"></script>
   <link rel="stylesheet" href="factory-night.css" />
@@ -107,6 +130,8 @@
 
     <div id="fullscreenScreamer" class="is-hidden" aria-hidden="true"></div>
   </div>
+  <script src="../extras-game-ui-audio-paths.js"></script>
+  <script src="assets/image-manifest.js"></script>
   <script src="factory-night.js"></script>
 </body>
 </html>

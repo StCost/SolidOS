@@ -28,11 +28,6 @@
     { value: "false", labelKey: "no" }
   ];
 
-  var INVENTORY_SCROLL_OPTIONS = [
-    { value: "true", labelKey: "settings.inventory-scroll-clamp" },
-    { value: "false", labelKey: "settings.inventory-scroll-loop" }
-  ];
-
   var ENTITY_DISTANCE_OPTIONS = [
     2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000
   ];
@@ -42,6 +37,12 @@
     { value: "settings.graphics.aa-fxaa", labelKey: "settings.graphics.aa-fxaa" },
     { value: "settings.graphics.aa-smaa", labelKey: "settings.graphics.aa-smaa" },
     { value: "settings.graphics.aa-taa", labelKey: "settings.graphics.aa-taa" }
+  ];
+
+  var WINDOW_MODE_OPTIONS = [
+    { value: "settings.display.window-mode-windowed", labelKey: "settings.display.window-mode-windowed" },
+    { value: "settings.display.window-mode-borderless", labelKey: "settings.display.window-mode-borderless" },
+    { value: "settings.display.window-mode-fullscreen", labelKey: "settings.display.window-mode-fullscreen" }
   ];
 
   var TABS = [
@@ -55,6 +56,7 @@
   var DEFAULT_STATE = {
     autoSelectPickup: true,
     inventoryScrollClamp: false,
+    inventoryScrollReverse: false,
     optimisticTerrainOps: true,
     tradingPostAutoOperate: false,
     thirdPersonView: false,
@@ -62,6 +64,7 @@
     sprintInputMode: 0,
     crouchInputMode: 0,
     screenShakeIntensityPercent: 100,
+    crosshairSizePercent: 100,
     entityDistance: 2000,
     lookSensitivityPercent: 100,
     language: "english",
@@ -95,6 +98,9 @@
     graphicsFieldOfView: 60,
     graphicsFpsCapFps: 60,
     graphicsWebPixelDensityPercent: 100,
+    displayWindowModeKey: "settings.display.window-mode-windowed",
+    displayResolutionKey: "",
+    displayResolutionOptions: [],
     desktopIconScalePercent: 100,
     showFpsCounter: false,
     languageOptions: []
@@ -294,12 +300,28 @@
     return sortLanguageOptions(options);
   }
 
+  function getDisplayResolutionOptions() {
+    var source = state.displayResolutionOptions;
+    if (!source || !source.length) {
+      var fallbackKey = state.displayResolutionKey || "1920x1080";
+      return [{ value: fallbackKey, label: fallbackKey }];
+    }
+    var options = [];
+    var index;
+    for (index = 0; index < source.length; index++) {
+      var entry = source[index];
+      options.push({ value: entry.value, label: entry.label || entry.value });
+    }
+    return options;
+  }
+
   function getFieldsForTab(tabId) {
     if (tabId === "gameplay") {
       return [
         { type: "slider", key: "screenShakeIntensityPercent", labelKey: "settings.screen-shake", min: 0, max: 100, step: 1, format: percentFormat },
         { type: "toggle", key: "autoSelectPickup", labelKey: "settings.item-auto-select" },
-        { type: "choice", key: "inventoryScrollClamp", labelKey: "settings.inventory-scroll", options: INVENTORY_SCROLL_OPTIONS, format: boolChoiceFormat },
+        { type: "toggle", key: "inventoryScrollClamp", labelKey: "settings.inventory-scroll-clamp" },
+        { type: "toggle", key: "inventoryScrollReverse", labelKey: "settings.inventory-scroll-reverse" },
         { type: "toggle", key: "optimisticTerrainOps", labelKey: "settings.optimistic-network-terrain-operations" },
         { type: "toggle", key: "tradingPostAutoOperate", labelKey: "settings.trading-post-auto-operate" },
         { type: "toggle", key: "thirdPersonView", labelKey: "settings.third-person-view-walking" },
@@ -330,6 +352,15 @@
       return [
         { type: "choice", key: "language", labelKey: "settings.language", options: getLanguageOptions, format: stringChoiceFormat },
         { type: "toggle", key: "useCustomCursor", labelKey: "settings.custom-cursor" },
+        {
+          type: "slider",
+          key: "crosshairSizePercent",
+          labelKey: "settings.crosshair-size",
+          min: 50,
+          max: 200,
+          step: 5,
+          format: percentFormat
+        },
         { type: "toggle", key: "terminalAnimationsEnabled", labelKey: "settings.terminal-animations" },
         { type: "toggle", key: "menuBackgroundAnimationEnabled", labelKey: "settings.menu-background-animation" },
         {
@@ -352,6 +383,8 @@
 
     if (tabId === "graphics") {
       return [
+        { type: "choice", key: "displayWindowModeKey", labelKey: "settings.display.window-mode", options: WINDOW_MODE_OPTIONS, format: stringChoiceFormat },
+        { type: "choice", key: "displayResolutionKey", labelKey: "settings.display.resolution", options: getDisplayResolutionOptions, format: stringChoiceFormat },
         {
           type: "slider",
           key: "graphicsLodBiasPercent",
@@ -1521,16 +1554,18 @@
     return number;
   }
 
-  function clampSliderTypedNumber(field, number) {
+  function clampSliderTypedNumber(field, number, skipStepSnap) {
     var min = Number(field.min);
     var max = Number(field.max);
     if (number < min) number = min;
     if (number > max) number = max;
-    var step = Number(field.step);
-    if (step > 0) {
-      number = Math.round(number / step) * step;
-      if (number < min) number = min;
-      if (number > max) number = max;
+    if (!skipStepSnap) {
+      var step = Number(field.step);
+      if (step > 0) {
+        number = Math.round(number / step) * step;
+        if (number < min) number = min;
+        if (number > max) number = max;
+      }
     }
     return number;
   }
@@ -1552,9 +1587,13 @@
       setSliderValueDisplay(valueInput, field, slider.value);
       return;
     }
-    var clampedNumber = clampSliderTypedNumber(field, typedNumber);
+    // typed input keeps the exact number (only clamped to range), no snapping to the drag step of 5
+    var clampedNumber = clampSliderTypedNumber(field, typedNumber, true);
     var wireValue = String(Math.round(clampedNumber));
+    var dragStep = slider.step;
+    slider.step = "any"; // let the slider hold the exact typed value instead of snapping it to the drag step
     slider.value = wireValue;
+    slider.step = dragStep;
     updateSliderDisplay(field, slider, valueInput);
     postChange(field.key, getSliderPostValue(field, wireValue));
     onAudioVolumeSliderInput(field);
@@ -1685,7 +1724,8 @@
     slider.className = "settings-slider";
     slider.min = String(field.min);
     slider.max = String(field.max);
-    slider.step = String(field.step);
+    // dragging/wheel snaps numeric sliders to steps of 5; typed input stays exact (see commitSliderValueInput)
+    slider.step = field.steppedOptions ? String(field.step) : "5";
 
     if (field.steppedOptions) {
       var steppedIndex = getSteppedOptionIndex(field.steppedOptions, state[field.key]);
@@ -1777,6 +1817,10 @@
       if (!Object.prototype.hasOwnProperty.call(payload, key)) continue;
       if (key === "languageOptions" && payload.languageOptions) {
         state.languageOptions = payload.languageOptions;
+        continue;
+      }
+      if (key === "displayResolutionOptions" && payload.displayResolutionOptions) {
+        state.displayResolutionOptions = payload.displayResolutionOptions;
         continue;
       }
       if (key === "controlsSection" || key === "controlsRows" || key === "controlsListeningRowId") continue;
