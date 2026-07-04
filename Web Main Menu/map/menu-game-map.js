@@ -369,12 +369,12 @@
       }
       if (pinSignatures[markIndex] !== signature) {
         pin.innerHTML = "";
-        pin.appendChild(createPinIconElement(mark.icon, mark.color));
         if (mark.label) {
           var label = createDiv("game-map-pin-label", pin);
           label.textContent = mark.label;
           label.style.color = mark.color || "#ff8040";
         }
+        pin.appendChild(createPinIconElement(mark.icon, mark.color));
         pinSignatures[markIndex] = signature;
       }
     }
