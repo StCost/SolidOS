@@ -178,6 +178,18 @@
         if (element.classList.contains("os-statusbar-node-button")) {
           return "pointer";
         }
+        if (element.classList.contains("os-taskbar-app")) {
+          return "pointer";
+        }
+        if (element.classList.contains("os-start-menu-item")) {
+          return "pointer";
+        }
+        if (element.classList.contains("settings-switch")) {
+          return "pointer";
+        }
+        if (element.classList.contains("os-start-menu-submenu-item")) {
+          return "pointer";
+        }
         if (element.classList.contains("game-hud-slot")) {
           return "pointer";
         }

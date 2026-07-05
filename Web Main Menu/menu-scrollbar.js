@@ -27,6 +27,8 @@
     }
     if (
       element.classList.contains("menu-v-scroll-view") ||
+      element.classList.contains("os-start-menu-scroll") ||
+      element.classList.contains("os-start-menu-games-scroll") ||
       element.classList.contains("term-splash-scroll") ||
       element.classList.contains("settings-scroll") ||
       element.classList.contains("extras-scroll") ||

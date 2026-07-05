@@ -1909,60 +1909,9 @@ var WebWindowManager = (function () {
   }
 
   function layoutMinimizedWindowsInContainer(containerElement, appendedWindowElement) {
-    var bounds;
-    var inset;
-    var gap;
-    var minimizedWindows;
-    var orderedWindows;
-    var cursorX;
-    var rowBottom;
-    var rowMaxHeight;
-    var index;
-    var windowElement;
-    var presetName;
-    var minimizedSize;
-    var width;
-    var height;
-    var left;
-    var top;
     if (!containerElement) return;
-    bounds = getBounds(containerElement);
-    if (bounds.width < 1 || bounds.height < 1) return;
-    inset = MINIMIZE_BOTTOM_INSET_PX;
-    gap = MINIMIZE_GAP_PX;
-    minimizedWindows = getMinimizedWindowsInContainer(containerElement);
-    if (!minimizedWindows.length) return;
-    orderedWindows = buildMinimizedWindowLayoutOrder(minimizedWindows, appendedWindowElement);
-    cursorX = inset;
-    rowBottom = bounds.height - inset;
-    rowMaxHeight = 0;
-    for (index = 0; index < orderedWindows.length; index++) {
-      windowElement = orderedWindows[index];
-      presetName = windowElement.getAttribute("data-wm-preset");
-      minimizedSize = getMinimizedWindowSize(windowElement, presetName);
-      width = minimizedSize.width;
-      height = minimizedSize.height;
-      if (cursorX > inset && cursorX + width > bounds.width - inset) {
-        rowBottom = rowBottom - rowMaxHeight - gap;
-        cursorX = inset;
-        rowMaxHeight = 0;
-      }
-      left = cursorX;
-      top = rowBottom - height;
-      if (top < inset) {
-        top = inset;
-      }
-      if (left + width > bounds.width - inset) {
-        left = bounds.width - inset - width;
-      }
-      if (left < inset) {
-        left = inset;
-      }
-      applyMinimizedWindowRectState(windowElement, left, top, width, height);
-      cursorX = cursorX + width + gap;
-      if (height > rowMaxHeight) {
-        rowMaxHeight = height;
-      }
+    if (window.WebDesktop && window.WebDesktop.syncTaskbarApps) {
+      window.WebDesktop.syncTaskbarApps();
     }
   }
 
@@ -2943,7 +2892,18 @@ var WebWindowManager = (function () {
 
   function setMinimizedWindowRect(windowElement) {
     var containerElement = getLayoutContainer(windowElement);
+    var presetName;
+    var minimizedSize;
     if (!containerElement || !windowElement.wmState) return;
+    presetName = windowElement.getAttribute("data-wm-preset");
+    minimizedSize = getMinimizedWindowSize(windowElement, presetName);
+    applyMinimizedWindowRectState(
+      windowElement,
+      windowElement.wmState.left,
+      windowElement.wmState.top,
+      minimizedSize.width,
+      minimizedSize.height
+    );
     layoutMinimizedWindowsInContainer(containerElement, windowElement);
   }
 

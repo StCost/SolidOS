@@ -65,27 +65,15 @@
 
   function buildMinimizedBootstrapCssRule(presetName, stackIndex) {
     var presetSelector = escapePresetSelector(presetName);
-    var left = MINIMIZE_BOTTOM_INSET_PX + stackIndex * (MINIMIZED_BOOTSTRAP_WIDTH_PX + MINIMIZE_GAP_PX);
     return (
       "html." +
       HTML_BOOTSTRAP_CLASS +
       ' .os-window[data-wm-preset="' +
       presetSelector +
       '"]{' +
-      "left:" +
-      left +
-      "px!important;" +
-      "top:auto!important;" +
-      "bottom:" +
-      MINIMIZE_BOTTOM_INSET_PX +
-      "px!important;" +
-      "right:auto!important;" +
-      "width:" +
-      MINIMIZED_BOOTSTRAP_WIDTH_PX +
-      "px!important;" +
-      "height:" +
-      MINIMIZED_BOOTSTRAP_CHROME_HEIGHT_PX +
-      "px!important;" +
+      "visibility:hidden!important;" +
+      "pointer-events:none!important;" +
+      "opacity:0!important;" +
       "overflow:hidden!important;" +
       "transform:none!important;margin:0!important;}"
     );

@@ -8,6 +8,8 @@
 }
 
 .menu-v-scroll-clip > .menu-v-scroll-view,
+.menu-v-scroll-clip > .os-start-menu-scroll,
+.menu-v-scroll-clip > .os-start-menu-games-scroll,
 .menu-v-scroll-clip > .worlds-list,
 .menu-v-scroll-clip > .settings-scroll,
 .menu-v-scroll-clip > .extras-scroll,
