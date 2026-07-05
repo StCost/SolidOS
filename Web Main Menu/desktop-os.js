@@ -3590,6 +3590,7 @@ var WebDesktop = (function () {
         buttonElement.parentNode.removeChild(buttonElement);
       }
     }
+    updateDesktopWindowsToggleState();
   }
 
   function getStartMenuIconSrc(iconElement) {
@@ -4614,12 +4615,72 @@ var WebDesktop = (function () {
     statusNodeButton.wmStatusNodeBound = true;
   }
 
+  function clearDesktopWindowsTogglePointerHover() {
+    var toggleButton = document.getElementById("desktopWindowsToggle");
+    if (!toggleButton) return;
+    toggleButton.classList.remove("is-pointer-hover");
+  }
+
+  function updateDesktopWindowsToggleState() {
+    var toggleButton = document.getElementById("desktopWindowsToggle");
+    var windowManager;
+    var restoreAll;
+    if (!toggleButton) return;
+    windowManager = getWindowManager();
+    if (!windowManager || !windowManager.areAllVisibleDesktopWindowsMinimized) return;
+    restoreAll = windowManager.areAllVisibleDesktopWindowsMinimized();
+    if (restoreAll) {
+      toggleButton.setAttribute("data-wm-windows-toggle", "restore");
+      toggleButton.setAttribute("data-locale-aria-label", "web.status.windows-restore-all");
+    } else {
+      toggleButton.removeAttribute("data-wm-windows-toggle");
+      toggleButton.setAttribute("data-locale-aria-label", "web.status.windows-minimize-all");
+    }
+    if (window.WebLocale && window.WebLocale.applyElement) {
+      window.WebLocale.applyElement(toggleButton);
+    }
+  }
+
+  function onDesktopWindowsToggleClick(event) {
+    var windowManager;
+    if (!event || event.button !== 0) return;
+    event.preventDefault();
+    clearDesktopWindowsTogglePointerHover();
+    windowManager = getWindowManager();
+    if (!windowManager || !windowManager.toggleMinimizeAllDesktopWindows) return;
+    windowManager.toggleMinimizeAllDesktopWindows();
+    updateDesktopWindowsToggleState();
+    syncTaskbarApps();
+  }
+
+  function onDesktopWindowsTogglePointerEnter(event) {
+    if (!event || !event.currentTarget) return;
+    event.currentTarget.classList.add("is-pointer-hover");
+  }
+
+  function onDesktopWindowsTogglePointerLeave(event) {
+    if (!event || !event.currentTarget) return;
+    event.currentTarget.classList.remove("is-pointer-hover");
+  }
+
+  function bindDesktopWindowsToggle() {
+    var toggleButton = document.getElementById("desktopWindowsToggle");
+    if (!toggleButton || toggleButton.wmDesktopWindowsToggleBound) return;
+    toggleButton.addEventListener("click", onDesktopWindowsToggleClick);
+    toggleButton.addEventListener("pointerenter", onDesktopWindowsTogglePointerEnter);
+    toggleButton.addEventListener("pointerleave", onDesktopWindowsTogglePointerLeave);
+    toggleButton.addEventListener("blur", clearDesktopWindowsTogglePointerHover);
+    toggleButton.wmDesktopWindowsToggleBound = true;
+    updateDesktopWindowsToggleState();
+  }
+
   function bindTaskbar() {
     bindStatusNodeButton();
     bindStartMenuDismiss();
     bindStartMenuScrollWheel();
     readTaskbarOrderFromStorage();
     bindTaskbarDrag();
+    bindDesktopWindowsToggle();
     syncTaskbarApps();
     window.addEventListener("web-desktop-window-focused", syncTaskbarApps);
     window.addEventListener("web-desktop-window-closed", syncTaskbarApps);
@@ -5079,6 +5140,8 @@ var WebDesktop = (function () {
     hasOpenAppWindows: hasOpenAppWindows,
     updateDesktopTabOrder: updateDesktopTabOrder,
     syncTaskbarApps: syncTaskbarApps,
+    clearDesktopWindowsTogglePointerHover: clearDesktopWindowsTogglePointerHover,
+    updateDesktopWindowsToggleState: updateDesktopWindowsToggleState,
     isMenuLayoutPhoneVertical: isMenuLayoutPhoneVertical,
     updateMenuLayoutPhoneMode: updateMenuLayoutPhoneMode,
     getDesktopIconScalePercent: getDesktopIconScalePercent,
