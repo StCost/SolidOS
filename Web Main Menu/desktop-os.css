@@ -521,7 +521,70 @@ html.terminal-animations-off .os-start-menu-submenu--opening .os-start-menu-open
 }
 
 .os-shell--desktop .os-statusbar--bottom .os-statusbar-segment--right {
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 0;
+  gap: 0;
+  align-self: stretch;
+  align-items: stretch;
+}
+
+.os-shell--desktop .os-statusbar--bottom .os-statusbar-segment--right .os-clock {
+  padding-top: 6px;
+  padding-bottom: 6px;
   padding-right: clamp(12px, 2vmin, 20px);
+  display: inline-flex;
+  align-items: center;
+}
+
+.os-shell--desktop .os-statusbar-windows-toggle.os-window-control {
+  width: 6px;
+  min-width: 6px;
+  height: 100%;
+  min-height: 100%;
+  align-self: stretch;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-left: 1px solid rgba(255, 128, 0, 0.22);
+  border-radius: 0;
+  background: transparent;
+  box-sizing: border-box;
+  cursor: var(--cursor-pointer);
+  appearance: none;
+}
+
+.os-shell--desktop .os-statusbar-windows-toggle.os-window-control:hover,
+.os-shell--desktop .os-statusbar-windows-toggle.os-window-control:focus-visible,
+.os-shell--desktop .os-statusbar-windows-toggle.os-window-control.is-pointer-hover {
+  background: rgba(255, 128, 0, 0.12);
+  outline: none;
+}
+
+.os-shell--desktop .os-statusbar-windows-toggle.os-window-control[data-wm-windows-toggle="restore"] {
+  background: rgba(255, 128, 0, 0.14);
+}
+
+.menu-screen.menu-screen--unity-cursor .os-shell--desktop .os-statusbar-windows-toggle.os-window-control:hover,
+.menu-screen.menu-screen--unity-cursor .os-shell--desktop .os-statusbar-windows-toggle.os-window-control:focus-visible {
+  background: transparent;
+}
+
+.menu-screen.menu-screen--unity-cursor
+  .os-shell--desktop
+  .os-statusbar-windows-toggle.os-window-control[data-wm-windows-toggle="restore"] {
+  background: rgba(255, 128, 0, 0.14);
+}
+
+.menu-screen.menu-screen--unity-cursor .os-shell--desktop .os-statusbar-windows-toggle.os-window-control.is-pointer-hover {
+  background: rgba(255, 128, 0, 0.12);
+}
+
+.menu-screen.menu-screen--unity-cursor
+  .os-shell--desktop
+  .os-statusbar-windows-toggle.os-window-control[data-wm-windows-toggle="restore"].is-pointer-hover {
+  background: rgba(255, 128, 0, 0.14);
 }
 
 .os-shell--desktop .os-desktop .os-window--managed.os-window--minimized {
