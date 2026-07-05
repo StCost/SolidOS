@@ -5070,6 +5070,89 @@ var WebDesktop = (function () {
     return false;
   }
 
+  function resetAllStartMenuDesktopVisibilitySwitches() {
+    var startMenuElement = document.getElementById("osStartMenu");
+    var flyoutsRoot = getStartMenuFlyoutsRoot();
+    var containers = [startMenuElement, flyoutsRoot];
+    var containerIndex;
+    var switches;
+    var switchIndex;
+    var switchButton;
+
+    for (containerIndex = 0; containerIndex < containers.length; containerIndex++) {
+      if (!containers[containerIndex]) continue;
+      switches = containers[containerIndex].querySelectorAll(".settings-switch[data-desktop-icon]");
+      for (switchIndex = 0; switchIndex < switches.length; switchIndex++) {
+        switchButton = switches[switchIndex];
+        switchButton.classList.add("is-on");
+        switchButton.setAttribute("aria-checked", "true");
+      }
+    }
+  }
+
+  function resetAllDesktopLinks() {
+    var gameIdsToClear = [];
+    var gameId;
+    var iconElement;
+    var iconId;
+    var icons;
+    var index;
+    var layoutIconId;
+
+    cancelPendingIconLayoutSave();
+
+    for (gameId in gameDesktopLinkIds) {
+      if (!Object.prototype.hasOwnProperty.call(gameDesktopLinkIds, gameId)) continue;
+      gameIdsToClear.push(gameId);
+    }
+
+    if (desktopIconsRoot) {
+      icons = desktopIconsRoot.querySelectorAll('.os-desktop-icon[data-desktop-icon^="game-"]');
+      for (index = icons.length - 1; index >= 0; index--) {
+        iconElement = icons[index];
+        iconId = iconElement.getAttribute("data-desktop-icon") || "";
+        if (iconId.indexOf("game-") === 0) {
+          gameId = iconId.substring(5);
+          if (gameId && gameIdsToClear.indexOf(gameId) === -1) {
+            gameIdsToClear.push(gameId);
+          }
+        }
+        if (iconElement.parentNode) {
+          iconElement.parentNode.removeChild(iconElement);
+        }
+      }
+    }
+
+    gameDesktopLinkIds = {};
+
+    for (index = 0; index < gameIdsToClear.length; index++) {
+      gameId = gameIdsToClear[index];
+      layoutIconId = getGameDesktopIconId(gameId);
+      if (Object.prototype.hasOwnProperty.call(savedIconLayoutTable, layoutIconId)) {
+        delete savedIconLayoutTable[layoutIconId];
+      }
+      setStartMenuGameDesktopLinkSwitchState(gameId, false);
+    }
+
+    try {
+      localStorage.removeItem(GAME_DESKTOP_LINKS_STORAGE_KEY);
+    } catch (error) {
+    }
+
+    desktopIconVisibilityTable = {};
+    try {
+      localStorage.removeItem(DESKTOP_ICON_VISIBILITY_STORAGE_KEY);
+    } catch (error) {
+    }
+
+    applyAllDesktopIconVisibility();
+    resetAllStartMenuDesktopVisibilitySwitches();
+    updateActionIconsState();
+    updateDesktopTabOrder();
+    persistIconLayoutsNow();
+    dispatchGameDesktopIconsRestored();
+  }
+
   function initOnReady() {
     if (window.WebSettings && window.WebSettings.getDesktopIconScalePercent) {
       setDesktopIconScalePercent(window.WebSettings.getDesktopIconScalePercent());
@@ -5172,7 +5255,8 @@ var WebDesktop = (function () {
     getDesktopIconScalePercent: getDesktopIconScalePercent,
     setDesktopIconScalePercent: setDesktopIconScalePercent,
     getDesktopIconImagePixelSize: getDesktopIconImagePixelSize,
-    releaseDesktopPointerInteractionState: releaseDesktopPointerInteractionState
+    releaseDesktopPointerInteractionState: releaseDesktopPointerInteractionState,
+    resetAllDesktopLinks: resetAllDesktopLinks
   };
 })();
 
