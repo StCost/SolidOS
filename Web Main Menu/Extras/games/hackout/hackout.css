@@ -114,7 +114,7 @@ body {
   z-index: 1;
   flex: 1 1 auto;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   min-height: 0;
   overflow: hidden;
 }
@@ -129,70 +129,72 @@ body {
   overflow: hidden;
 }
 
-.hack-sidebar {
+.hack-footer {
   position: relative;
   z-index: 3;
-  flex: 0 0 12.5rem;
-  display: flex;
-  flex-direction: column;
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 0.8fr) minmax(0, 1.7fr) minmax(5.5rem, 0.75fr);
+  gap: 0.65rem;
+  padding: 0.4rem 0.55rem 0.45rem;
+  border-top: 1px solid rgba(61, 255, 122, 0.22);
+  background: rgba(2, 12, 6, 0.94);
+  min-height: 5.5rem;
+  max-height: 6.5rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+.hack-footer-col {
+  min-width: 0;
   min-height: 0;
-  border-left: 1px solid rgba(61, 255, 122, 0.28);
-  background: rgba(2, 12, 6, 0.96);
-  padding: 0.45rem 0.4rem 0.4rem;
-  gap: 0.45rem;
-}
-
-.hack-sidebar-attempts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.5rem;
-  padding-bottom: 0.4rem;
-  border-bottom: 1px solid rgba(61, 255, 122, 0.2);
-  flex-shrink: 0;
-}
-
-.hack-sidebar-score {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  padding-bottom: 0.4rem;
-  border-bottom: 1px solid rgba(61, 255, 122, 0.2);
-  flex-shrink: 0;
+  gap: 0.28rem;
 }
 
-.hack-sidebar-score-row {
+.hack-footer-col-lives {
+  justify-content: flex-start;
+}
+
+.hack-footer-col-score {
+  justify-content: flex-start;
+  border-left: 1px solid rgba(61, 255, 122, 0.2);
+  padding-left: 0.65rem;
+}
+
+.hack-footer-col-score .hack-footer-score-row:last-child .hack-footer-value {
+  color: #9dffb8;
+}
+
+.hack-footer-lives-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.hack-footer-score-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
 }
 
-.hack-sidebar-score-value {
-  font-size: 0.82rem;
-  letter-spacing: 0.12em;
-  color: #7dffb0;
-  text-shadow: 0 0 8px rgba(61, 255, 122, 0.35);
-}
-
-.hack-sidebar-score-row:last-child .hack-sidebar-score-value {
-  color: #9dffb8;
-}
-
-.hack-sidebar-label {
+.hack-footer-label {
   font-size: 0.68rem;
   letter-spacing: 0.1em;
   color: rgba(61, 255, 122, 0.5);
 }
 
-.hack-sidebar-attempts-value {
+.hack-footer-value {
   font-size: 0.82rem;
   letter-spacing: 0.12em;
   color: #7dffb0;
   text-shadow: 0 0 8px rgba(61, 255, 122, 0.35);
 }
 
-.hack-sidebar-log-title {
+.hack-footer-log-title {
   margin: 0;
   font-size: 0.68rem;
   font-weight: normal;
@@ -201,15 +203,20 @@ body {
   flex-shrink: 0;
 }
 
-.hack-sidebar-log {
+.hack-footer-log {
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.28rem;
+  gap: 0.22rem;
   padding-right: 0.1rem;
+}
+
+.hack-footer-col-log {
+  border-left: 1px solid rgba(61, 255, 122, 0.2);
+  padding-left: 0.65rem;
 }
 
 .hack-attempt-row {
@@ -310,23 +317,9 @@ body {
   cursor: default;
 }
 
-.hack-footer {
-  position: relative;
-  z-index: 3;
-  flex-shrink: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.65rem 1.2rem;
-  padding: 0.4rem 0.55rem 0.45rem;
-  border-top: 1px solid rgba(61, 255, 122, 0.22);
-  background: rgba(2, 12, 6, 0.94);
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-}
-
 .hack-match-display {
-  min-width: 8rem;
+  min-width: 0;
+  margin-top: 0.15rem;
   color: #7dffb0;
   text-shadow: 0 0 10px rgba(61, 255, 122, 0.4);
 }
@@ -347,9 +340,27 @@ body {
 }
 
 .hack-hint {
-  flex: 1 1 auto;
-  color: rgba(61, 255, 122, 0.42);
-  min-width: 10rem;
+  display: none;
+}
+
+.game-screen-tutorial {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  color: rgba(61, 255, 122, 0.72);
+  text-align: center;
+  max-width: min(88vw, 24rem);
+  line-height: 1.55;
+}
+
+.game-screen-start {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: rgba(61, 255, 122, 0.5);
+  text-align: center;
+  max-width: min(88vw, 22rem);
+  line-height: 1.45;
 }
 
 .hack-overlay {
@@ -403,7 +414,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.55rem;
+  gap: 0.75rem;
   pointer-events: auto;
   background: rgba(2, 8, 4, 0.72);
   cursor: url("../../../cursor-pointer.svg") 2.1 0, pointer;
@@ -420,14 +431,4 @@ body {
   text-transform: uppercase;
   color: #7dffb0;
   text-shadow: 0 0 18px rgba(61, 255, 122, 0.55);
-}
-
-#controlHint {
-  margin: 0;
-  font-size: 0.78rem;
-  letter-spacing: 0.12em;
-  color: rgba(61, 255, 122, 0.65);
-  text-align: center;
-  max-width: min(88vw, 22rem);
-  line-height: 1.45;
 }

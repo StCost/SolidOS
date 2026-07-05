@@ -13,14 +13,16 @@
   var LOCALE_KEY_BEST = "web.game.hackout.best";
 
   var HIGH_SCORE_STORAGE_KEY = "cm-hackout-best-streak";
-  var MAX_ATTEMPTS = 5;
+  var MAX_ATTEMPTS = 3;
   var BRACKET_PLACE_ATTEMPTS = 24;
+  var MIN_WORDS_OUTSIDE_DUDS = 4;
   var MIN_WORD_LENGTH = 4;
   var MAX_WORD_LENGTH = 14;
   var MIN_FIELD_WORD_COUNT = 14;
   var MAX_FIELD_WORD_COUNT = 28;
   var FONT_SIZE_MIN = 7;
   var FONT_SIZE_MAX = 22;
+  var GRID_RIGHT_EDGE_RESERVE_CHARS = 1.5;
 
   var PHASE_START = "start";
   var PHASE_PLAYING = "playing";
@@ -43,9 +45,7 @@
   var terminalWrap = document.getElementById("terminalWrap");
   var measureProbe = document.getElementById("hackMeasureProbe");
   var matchDisplay = document.getElementById("matchDisplay");
-  var hackHint = document.getElementById("hackHint");
   var hackLives = document.getElementById("hackLives");
-  var attemptsValue = document.getElementById("attemptsValue");
   var attemptsLabel = document.getElementById("attemptsLabel");
   var attemptLogTitle = document.getElementById("attemptLogTitle");
   var attemptLogList = document.getElementById("attemptLogList");
@@ -59,6 +59,7 @@
   var overlaySub = document.getElementById("overlaySub");
   var gameScreen = document.getElementById("gameScreen");
   var screenTitle = document.getElementById("screenTitle");
+  var tutorialHint = document.getElementById("tutorialHint");
   var controlHint = document.getElementById("controlHint");
 
   var localeWordPool = [];
@@ -83,6 +84,7 @@
   var bracketRangeByPairId = null;
   var wordHighlightElementsByWordId = null;
   var bracketHighlightElementsByPairId = null;
+  var protectedOutsideWordIds = {};
 
   function getSynth() {
     return window.WebExtrasGameSynthAudio;
@@ -1090,7 +1092,6 @@
   }
 
   function setAttemptsHud() {
-    attemptsValue.textContent = String(attemptsLeft);
     hackLives.innerHTML = "";
     var index;
     for (index = 0; index < MAX_ATTEMPTS; index++) {
@@ -1151,6 +1152,13 @@
     return gamePhase === PHASE_START;
   }
 
+  function getTutorialText() {
+    return getLocalized(
+      LOCALE_KEY_HINT,
+      "Select a password. Brackets remove a dud. Symbols are noise."
+    );
+  }
+
   function showStartScreen() {
     gamePhase = PHASE_START;
     if (gameScreen) {
@@ -1158,6 +1166,9 @@
     }
     if (screenTitle) {
       screenTitle.textContent = "HACKOUT";
+    }
+    if (tutorialHint) {
+      tutorialHint.textContent = getTutorialText();
     }
     if (controlHint) {
       controlHint.textContent = getLocalized(
@@ -1207,10 +1218,9 @@
     scoreLabel.textContent = getLocalized(LOCALE_KEY_SCORE, "SCORE");
     bestLabel.textContent = getLocalized(LOCALE_KEY_BEST, "BEST");
     attemptLogTitle.textContent = getLocalized(LOCALE_KEY_ATTEMPT_LOG, "ATTEMPT LOG");
-    hackHint.textContent = getLocalized(
-      LOCALE_KEY_HINT,
-      "Select a password. Brackets remove a dud. Symbols are noise."
-    );
+    if (tutorialHint) {
+      tutorialHint.textContent = getTutorialText();
+    }
     if (isStart() && controlHint) {
       controlHint.textContent = getLocalized(
         LOCALE_KEY_CLICK_START,
@@ -1300,11 +1310,51 @@
     return { startIndex: minIndex, endIndex: maxIndex };
   }
 
+  function isProtectedOutsideWord(entry) {
+    if (!entry || !entry.id) {
+      return false;
+    }
+    return protectedOutsideWordIds[entry.id] === true;
+  }
+
+  function setProtectedOutsideWords(wordStarts, wordLength, placedRanges) {
+    var index;
+    var entry;
+    var wordStart;
+    var wordEnd;
+    var rangeIndex;
+    var bracketRange;
+    var inside;
+    protectedOutsideWordIds = {};
+    for (index = 0; index < wordEntries.length; index++) {
+      entry = wordEntries[index];
+      if (!entry) {
+        continue;
+      }
+      wordStart = wordStarts[index];
+      wordEnd = wordStart + wordLength - 1;
+      inside = false;
+      for (rangeIndex = 0; rangeIndex < placedRanges.length; rangeIndex++) {
+        bracketRange = placedRanges[rangeIndex];
+        if (wordOverlapsBracketRange(wordStart, wordEnd, bracketRange.startIndex, bracketRange.endIndex)) {
+          inside = true;
+          break;
+        }
+      }
+      if (!inside) {
+        protectedOutsideWordIds[entry.id] = true;
+      }
+    }
+  }
+
   function spendWordsInRange(startIndex, endIndex) {
     var wordIds = getWordIdsInCellRange(startIndex, endIndex);
     var entries = getEntriesFromWordIds(wordIds);
     var index;
     for (index = 0; index < entries.length; index++) {
+      if (isProtectedOutsideWord(entries[index])) {
+        continue;
+      }
       entries[index].isSpent = true;
     }
   }
@@ -1324,11 +1374,26 @@
 
   function dotBracketScope(pairId) {
     var range = getBracketCellRange(pairId);
+    var index;
+    var cell;
+    var entry;
     if (!range) {
       return;
     }
     spendWordsInRange(range.startIndex, range.endIndex);
-    dotCellRange(range.startIndex, range.endIndex);
+    for (index = range.startIndex; index <= range.endIndex; index++) {
+      cell = gridCells[index];
+      if (!cell) {
+        continue;
+      }
+      if (cell.cellType === CELL_WORD && cell.wordId) {
+        entry = getWordEntryById(cell.wordId);
+        if (entry && isProtectedOutsideWord(entry)) {
+          continue;
+        }
+      }
+      setCellAsDot(cell);
+    }
   }
 
   function checkWinOrLose() {
@@ -1420,8 +1485,7 @@
     var index;
     var passwordEntry;
     var uselessInRange;
-    var spentList;
-    var secondEntry;
+    var index;
     if (!isPlaying() || gameEnded) {
       return;
     }
@@ -1451,17 +1515,12 @@
       showOverlay(true);
       return;
     }
-    spentList = [];
     dotBracketScope(pairId);
     for (index = 0; index < entries.length; index++) {
-      if (!entries[index].isSpent) {
-        entries[index].isSpent = true;
+      if (entries[index].isSpent || isProtectedOutsideWord(entries[index])) {
+        continue;
       }
-      spentList.push(entries[index]);
-    }
-    secondEntry = pickEntryNotInList(getActiveUselessEntries(), spentList);
-    if (secondEntry) {
-      markWordSpent(secondEntry);
+      entries[index].isSpent = true;
     }
   }
 
@@ -1527,13 +1586,19 @@
   }
 
   function highlightBracketPairCells(pairId) {
-    var elements = bracketHighlightElementsByPairId ? bracketHighlightElementsByPairId[pairId] : null;
-    var index;
-    if (!elements) {
+    var range = getBracketCellRange(pairId);
+    var openCell;
+    var closeCell;
+    if (!range) {
       return;
     }
-    for (index = 0; index < elements.length; index++) {
-      highlightCellElement(elements[index]);
+    openCell = gridCells[range.startIndex];
+    if (openCell && openCell.cellType !== CELL_DOT && openCell.element) {
+      highlightCellElement(openCell.element);
+    }
+    closeCell = gridCells[range.endIndex];
+    if (closeCell && closeCell.cellType !== CELL_DOT && closeCell.element) {
+      highlightCellElement(closeCell.element);
     }
   }
 
@@ -1620,7 +1685,6 @@
       bracketPairId = getBracketPairIdForCellIndex(cell.cellIndex);
       if (bracketPairId >= 0) {
         highlightBracketPairCells(bracketPairId);
-        highlightCellElement(cell.element);
       } else {
         highlightCellElement(cell.element);
       }
@@ -1680,13 +1744,22 @@
     terminalEl.style.fontSize = String(fontSize) + "px";
   }
 
+  function getGridLayoutSize(wrapSize, metrics) {
+    var widthReserve = Math.ceil(metrics.charWidth * GRID_RIGHT_EDGE_RESERVE_CHARS);
+    return {
+      width: Math.max(metrics.charWidth, wrapSize.width - widthReserve),
+      height: wrapSize.height
+    };
+  }
+
   function expandGridCountsToFillWrap(wrapSize, metrics, fontSize, minCells, cols, rows) {
-    var maxRows = Math.max(1, Math.floor(wrapSize.height / fontSize));
-    var maxCols = Math.max(1, Math.floor(wrapSize.width / metrics.charWidth));
-    while ((maxRows + 1) * fontSize <= wrapSize.height) {
+    var layoutSize = getGridLayoutSize(wrapSize, metrics);
+    var maxRows = Math.max(1, Math.floor(layoutSize.height / fontSize));
+    var maxCols = Math.max(1, Math.floor(layoutSize.width / metrics.charWidth));
+    while ((maxRows + 1) * fontSize <= layoutSize.height) {
       maxRows += 1;
     }
-    while ((maxCols + 1) * metrics.charWidth <= wrapSize.width) {
+    while ((maxCols + 1) * metrics.charWidth <= layoutSize.width) {
       maxCols += 1;
     }
     if (maxRows > rows) {
@@ -1717,6 +1790,7 @@
     var bestRows = 0;
     var bestFontSize = FONT_SIZE_MIN;
     var metrics;
+    var layoutSize;
     var cols;
     var rows;
     var totalCells;
@@ -1724,8 +1798,9 @@
     var minCells = roundWordCount * wordLength + roundWordCount + 8;
     for (fontSize = FONT_SIZE_MAX; fontSize >= FONT_SIZE_MIN; fontSize -= 1) {
       metrics = measureFontMetrics(fontSize);
-      cols = Math.max(1, Math.floor(wrapSize.width / metrics.charWidth));
-      rows = Math.max(1, Math.floor(wrapSize.height / metrics.lineHeight));
+      layoutSize = getGridLayoutSize(wrapSize, metrics);
+      cols = Math.max(1, Math.floor(layoutSize.width / metrics.charWidth));
+      rows = Math.max(1, Math.floor(layoutSize.height / metrics.lineHeight));
       totalCells = cols * rows;
       if (totalCells >= minCells) {
         bestCols = cols;
@@ -1737,8 +1812,9 @@
     if (bestCols === 0) {
       metrics = measureFontMetrics(FONT_SIZE_MIN);
       bestFontSize = FONT_SIZE_MIN;
-      bestCols = Math.max(1, Math.floor(wrapSize.width / metrics.charWidth));
-      bestRows = Math.max(1, Math.floor(wrapSize.height / metrics.lineHeight));
+      layoutSize = getGridLayoutSize(wrapSize, metrics);
+      bestCols = Math.max(1, Math.floor(layoutSize.width / metrics.charWidth));
+      bestRows = Math.max(1, Math.floor(layoutSize.height / metrics.lineHeight));
     }
     metrics = measureFontMetrics(bestFontSize);
     var expandedGrid = expandGridCountsToFillWrap(
@@ -1917,7 +1993,55 @@
     return true;
   }
 
-  function tryPlaceBracketInFillerForDud(cells, wordIndex, wordStarts, wordLength, pair) {
+  function wordOverlapsBracketRange(wordStart, wordEnd, bracketStart, bracketEnd) {
+    return wordStart <= bracketEnd && wordEnd >= bracketStart;
+  }
+
+  function getWordsOutsideDudCount(wordStarts, wordLength, placedRanges) {
+    var outsideCount = 0;
+    var passwordOutside = false;
+    var index;
+    var entry;
+    var wordStart;
+    var wordEnd;
+    var rangeIndex;
+    var bracketRange;
+    var inside;
+    for (index = 0; index < wordEntries.length; index++) {
+      entry = wordEntries[index];
+      if (!entry || entry.isSpent) {
+        continue;
+      }
+      wordStart = wordStarts[index];
+      wordEnd = wordStart + wordLength - 1;
+      inside = false;
+      for (rangeIndex = 0; rangeIndex < placedRanges.length; rangeIndex++) {
+        bracketRange = placedRanges[rangeIndex];
+        if (wordOverlapsBracketRange(wordStart, wordEnd, bracketRange.startIndex, bracketRange.endIndex)) {
+          inside = true;
+          break;
+        }
+      }
+      if (!inside) {
+        outsideCount += 1;
+        if (entry.isPassword) {
+          passwordOutside = true;
+        }
+      }
+    }
+    if (!passwordOutside) {
+      return 0;
+    }
+    return outsideCount;
+  }
+
+  function canPlaceBracketRange(wordStarts, wordLength, placedRanges, openIndex, closeIndex) {
+    var trialRanges = placedRanges.slice();
+    trialRanges.push({ startIndex: openIndex, endIndex: closeIndex });
+    return getWordsOutsideDudCount(wordStarts, wordLength, trialRanges) >= MIN_WORDS_OUTSIDE_DUDS;
+  }
+
+  function tryPlaceBracketInFillerForDud(cells, wordIndex, wordStarts, wordLength, pair, placedRanges) {
     var wordStart = wordStarts[wordIndex];
     var wordEnd = wordStart + wordLength - 1;
     var gapStart = 0;
@@ -1954,10 +2078,52 @@
       if (closeIndex <= openIndex) {
         continue;
       }
+      if (!canPlaceBracketRange(wordStarts, wordLength, placedRanges, openIndex, closeIndex)) {
+        continue;
+      }
       placeBracketPairAt(cells, openIndex, closeIndex, pair);
+      placedRanges.push({ startIndex: openIndex, endIndex: closeIndex });
       return true;
     }
     return false;
+  }
+
+  function insertBracketPairs(cells, wordStarts, wordLength) {
+    var dudWordIndices = [];
+    var placedRanges = [];
+    var index;
+    var pairIndex;
+    var dudWordIndex;
+    var entry;
+    var pair;
+    var pairTypeIndex;
+    for (index = 0; index < wordStarts.length; index++) {
+      entry = wordEntries[index];
+      if (!entry || entry.isPassword) {
+        continue;
+      }
+      dudWordIndices.push(index);
+    }
+    if (dudWordIndices.length === 0) {
+      return;
+    }
+    shuffleArray(dudWordIndices);
+    pairTypeIndex = 0;
+    for (pairIndex = 0; pairIndex < dudWordIndices.length; pairIndex++) {
+      dudWordIndex = dudWordIndices[pairIndex];
+      entry = wordEntries[dudWordIndex];
+      if (!entry || entry.isSpent) {
+        continue;
+      }
+      pair = BRACKET_PAIRS[pairTypeIndex % BRACKET_PAIRS.length];
+      pairTypeIndex += 1;
+      if (tryPlaceBracketInFillerForDud(cells, dudWordIndex, wordStarts, wordLength, pair, placedRanges)) {
+        continue;
+      }
+      pair = BRACKET_PAIRS[pickRandomIndex(BRACKET_PAIRS.length)];
+      tryPlaceBracketInFillerForDud(cells, dudWordIndex, wordStarts, wordLength, pair, placedRanges);
+    }
+    setProtectedOutsideWords(wordStarts, wordLength, placedRanges);
   }
 
   function fillTrailingFillerSymbols(cells, wordStarts, wordLength) {
@@ -1991,42 +2157,6 @@
       cell.wordCharIndex = -1;
       cell.bracketPairId = -1;
       cell.bracketSide = "";
-    }
-  }
-
-  function insertBracketPairs(cells, wordStarts, wordLength) {
-    var dudWordIndices = [];
-    var index;
-    var pairIndex;
-    var dudWordIndex;
-    var entry;
-    var pair;
-    var pairTypeIndex;
-    for (index = 0; index < wordStarts.length; index++) {
-      entry = wordEntries[index];
-      if (!entry || entry.isPassword) {
-        continue;
-      }
-      dudWordIndices.push(index);
-    }
-    if (dudWordIndices.length === 0) {
-      return;
-    }
-    shuffleArray(dudWordIndices);
-    pairTypeIndex = 0;
-    for (pairIndex = 0; pairIndex < dudWordIndices.length; pairIndex++) {
-      dudWordIndex = dudWordIndices[pairIndex];
-      entry = wordEntries[dudWordIndex];
-      if (!entry || entry.isSpent) {
-        continue;
-      }
-      pair = BRACKET_PAIRS[pairTypeIndex % BRACKET_PAIRS.length];
-      pairTypeIndex += 1;
-      if (tryPlaceBracketInFillerForDud(cells, dudWordIndex, wordStarts, wordLength, pair)) {
-        continue;
-      }
-      pair = BRACKET_PAIRS[pickRandomIndex(BRACKET_PAIRS.length)];
-      tryPlaceBracketInFillerForDud(cells, dudWordIndex, wordStarts, wordLength, pair);
     }
   }
 
@@ -2114,10 +2244,22 @@
     terminalEl.addEventListener("click", onTerminalClick);
   }
 
+  function getProtectedOutsideWordCount() {
+    var count = 0;
+    var wordId;
+    for (wordId in protectedOutsideWordIds) {
+      if (protectedOutsideWordIds[wordId]) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
   function renderGrid() {
     var index;
     var fragment;
     var beforeCount;
+    var retry;
     computeGridDimensions();
     beforeCount = wordEntries.length;
     ensureFieldWordCount();
@@ -2126,7 +2268,13 @@
     }
     applyTerminalFontSize(gridFontSize);
     clearHighlights();
-    gridCells = buildGridCells();
+    for (retry = 0; retry < 8; retry++) {
+      nextBracketPairId = 1;
+      gridCells = buildGridCells();
+      if (getProtectedOutsideWordCount() >= MIN_WORDS_OUTSIDE_DUDS) {
+        break;
+      }
+    }
     fragment = document.createDocumentFragment();
     for (index = 0; index < gridCells.length; index++) {
       fragment.appendChild(bindCellElement(gridCells[index], index));
