@@ -9,6 +9,8 @@
   var LOCALE_KEY_RESET_LAYOUTS_DONE = "settings.web.reset-window-layouts-done";
   var LOCALE_KEY_RESET_DEFAULTS = "settings.web.reset-defaults";
   var LOCALE_KEY_RESET_WINDOW_LAYOUTS = "settings.web.reset-window-layouts";
+  var LOCALE_KEY_RESET_DESKTOP_LINKS = "settings.web.reset-desktop-links";
+  var LOCALE_KEY_RESET_DESKTOP_LINKS_DONE = "settings.web.reset-desktop-links-done";
   var LOCALE_KEY_RESET_CONFIRM = "settings.web.reset-confirm";
   var SETTINGS_CONFIRM_PENDING_CLASS = "is-settings-confirm-pending";
   var SETTINGS_LIST_ROW_STRIPED_CLASS = "is-settings-list-row-striped";
@@ -374,6 +376,12 @@
           max: 300,
           step: 5,
           format: percentFormat
+        },
+        {
+          type: "action",
+          actionId: "reset-desktop-links",
+          labelKey: "settings.web.desktop-links",
+          buttonLabelKey: "settings.web.reset-desktop-links"
         },
         {
           type: "action",
@@ -1007,6 +1015,25 @@
     onConfirm(event);
   }
 
+  function onSettingsResetActionConfirmButtonClick(event) {
+    var button = event.currentTarget;
+    var actionId;
+    if (!button.classList.contains(SETTINGS_CONFIRM_PENDING_CLASS)) {
+      setSettingsConfirmButtonPending(button);
+      return;
+    }
+    actionId = button.getAttribute("data-settings-confirm-action-id") || "";
+    clearSettingsConfirmButton(button);
+    runSettingsResetConfirmAction(actionId, event);
+  }
+
+  function bindSettingsResetConfirmActionButton(button, actionId, labelKey) {
+    button.setAttribute("data-settings-confirm-label-key", labelKey);
+    button.setAttribute("data-settings-confirm-action-id", actionId);
+    button.addEventListener("pointerleave", onSettingsConfirmButtonPointerLeave);
+    button.addEventListener("click", onSettingsResetActionConfirmButtonClick);
+  }
+
   function bindSettingsConfirmButton(button, labelKey, onConfirm) {
     button.setAttribute("data-settings-confirm-label-key", labelKey);
     button.addEventListener("pointerleave", onSettingsConfirmButtonPointerLeave);
@@ -1043,6 +1070,38 @@
     showSettingsSuccessToast(
       LOCALE_KEY_RESET_LAYOUTS_DONE,
       "Window positions reset.",
+      event.clientX,
+      event.clientY
+    );
+  }
+
+  function isSettingsResetConfirmAction(actionId) {
+    return actionId === "reset-window-layouts" || actionId === "reset-desktop-links";
+  }
+
+  function getSettingsResetConfirmLabelKey(actionId) {
+    if (actionId === "reset-window-layouts") return LOCALE_KEY_RESET_WINDOW_LAYOUTS;
+    if (actionId === "reset-desktop-links") return LOCALE_KEY_RESET_DESKTOP_LINKS;
+    return "";
+  }
+
+  function runSettingsResetConfirmAction(actionId, event) {
+    if (actionId === "reset-window-layouts") {
+      performWindowLayoutsReset(event);
+      return;
+    }
+    if (actionId === "reset-desktop-links") {
+      performDesktopLinksReset(event);
+    }
+  }
+
+  function performDesktopLinksReset(event) {
+    if (window.WebDesktop && window.WebDesktop.resetAllDesktopLinks) {
+      window.WebDesktop.resetAllDesktopLinks();
+    }
+    showSettingsSuccessToast(
+      LOCALE_KEY_RESET_DESKTOP_LINKS_DONE,
+      "Default desktop links restored.",
       event.clientX,
       event.clientY
     );
@@ -1336,9 +1395,7 @@
   }
 
   function onSettingsAction(actionId, event) {
-    if (actionId === "reset-window-layouts") {
-      performWindowLayoutsReset(event);
-    }
+    runSettingsResetConfirmAction(actionId, event);
   }
 
   function buildActionRow(field) {
@@ -1360,7 +1417,7 @@
     actionButton.type = "button";
     actionButton.className = "term-row settings-action-btn";
     var buttonLabelKey = field.buttonLabelKey || field.labelKey;
-    if (field.actionId === "reset-window-layouts") {
+    if (isSettingsResetConfirmAction(field.actionId)) {
       var actionPrefix = document.createElement("span");
       actionPrefix.className = "term-row-prefix terminal-text--dim";
       actionPrefix.textContent = "[!]";
@@ -1371,8 +1428,12 @@
     buttonLabel.setAttribute("data-locale-key", buttonLabelKey);
     buttonLabel.textContent = getLocalized(buttonLabelKey, buttonLabelKey);
     actionButton.appendChild(buttonLabel);
-    if (field.actionId === "reset-window-layouts") {
-      bindSettingsConfirmButton(actionButton, LOCALE_KEY_RESET_WINDOW_LAYOUTS, performWindowLayoutsReset);
+    if (isSettingsResetConfirmAction(field.actionId)) {
+      bindSettingsResetConfirmActionButton(
+        actionButton,
+        field.actionId,
+        getSettingsResetConfirmLabelKey(field.actionId)
+      );
     } else {
       actionButton.addEventListener("click", function (event) {
         onSettingsAction(field.actionId, event);
@@ -2032,6 +2093,14 @@
     for (resetIndex = 0; resetIndex < layoutResetLabels.length; resetIndex++) {
       layoutResetLabels[resetIndex].setAttribute("data-locale-key", LOCALE_KEY_RESET_WINDOW_LAYOUTS);
       layoutResetLabels[resetIndex].textContent = layoutResetLabelText;
+    }
+    var desktopLinksResetLabels = document.querySelectorAll(
+      '.settings-row--action[data-setting-action="reset-desktop-links"] .settings-action-btn .term-row-label'
+    );
+    var desktopLinksResetLabelText = getLocalized(LOCALE_KEY_RESET_DESKTOP_LINKS, "Reset links");
+    for (resetIndex = 0; resetIndex < desktopLinksResetLabels.length; resetIndex++) {
+      desktopLinksResetLabels[resetIndex].setAttribute("data-locale-key", LOCALE_KEY_RESET_DESKTOP_LINKS);
+      desktopLinksResetLabels[resetIndex].textContent = desktopLinksResetLabelText;
     }
     updateComposeLabels();
   }
