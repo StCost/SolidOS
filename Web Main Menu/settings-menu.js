@@ -7,6 +7,7 @@
   var SETTINGS_SUCCESS_TOAST_VIEWPORT_PADDING_PX = 12;
   var LOCALE_KEY_RESET_DEFAULTS_DONE = "settings.web.reset-defaults-done";
   var LOCALE_KEY_RESET_LAYOUTS_DONE = "settings.web.reset-window-layouts-done";
+  var SETTINGS_LIST_ROW_STRIPED_CLASS = "is-settings-list-row-striped";
   var LOCAL_ONLY_SETTING_KEYS = {
     desktopIconScalePercent: true
   };
@@ -982,14 +983,51 @@
     );
   }
 
+  function collectSettingsListRowElements() {
+    var rows = [];
+    var childIndex;
+    var blockChildIndex;
+    if (!contentRoot) return rows;
+    for (childIndex = 0; childIndex < contentRoot.children.length; childIndex++) {
+      var child = contentRoot.children[childIndex];
+      if (child.classList.contains("settings-row")) {
+        rows.push(child);
+      } else if (child.classList.contains("settings-controls-block")) {
+        for (blockChildIndex = 0; blockChildIndex < child.children.length; blockChildIndex++) {
+          var blockChild = child.children[blockChildIndex];
+          if (blockChild.classList.contains("settings-row")) {
+            rows.push(blockChild);
+          }
+        }
+      } else if (child.classList.contains("settings-tab-reset-footer")) {
+        rows.push(child);
+      }
+    }
+    return rows;
+  }
+
+  function syncSettingsListRowStripes() {
+    var rows = collectSettingsListRowElements();
+    var index;
+    for (index = 0; index < rows.length; index++) {
+      if ((index + 1) % 2 === 0) {
+        rows[index].classList.add(SETTINGS_LIST_ROW_STRIPED_CLASS);
+      } else {
+        rows[index].classList.remove(SETTINGS_LIST_ROW_STRIPED_CLASS);
+      }
+    }
+  }
+
   function appendSettingsResetFooter() {
     if (!contentRoot) return;
     if (settingsResetFooterElement && contentRoot.contains(settingsResetFooterElement)) {
+      syncSettingsListRowStripes();
       return;
     }
     var existingFooter = contentRoot.querySelector(".settings-tab-reset-footer");
     if (existingFooter) {
       settingsResetFooterElement = existingFooter;
+      syncSettingsListRowStripes();
       return;
     }
     var footer = document.createElement("div");
@@ -1013,6 +1051,7 @@
     footer.appendChild(resetButton);
     contentRoot.appendChild(footer);
     settingsResetFooterElement = footer;
+    syncSettingsListRowStripes();
   }
 
   function updateSettingsTabButtonsInPlace(existingTabs) {
@@ -1149,6 +1188,7 @@
 
     if (activeTabId === "controls") {
       renderControlsOnly();
+      syncSettingsListRowStripes();
       return;
     }
 
@@ -1171,6 +1211,7 @@
       contentRoot.classList.add("is-empty");
     }
     appendSettingsResetFooter();
+    syncSettingsListRowStripes();
     refreshAllSliderFillVisuals();
     if (window.WebNewPlayerHints && window.WebNewPlayerHints.syncLanguageHint) {
       window.WebNewPlayerHints.syncLanguageHint();
@@ -2015,6 +2056,7 @@
     percentFormat: percentFormat,
     buildSliderRowForField: buildSliderRow,
     renderControlsOnly: renderControlsOnly,
+    syncSettingsListRowStripes: syncSettingsListRowStripes,
     refreshAllSliderValuePositions: refreshAllSliderValuePositions,
     refreshOnOpen: onSettingsMenuOpen,
     releaseContent: releaseSettingsContent

@@ -811,10 +811,6 @@ html.menu-layouts-pending #device.menu-mode--menu:not(.menu-boot-pending) {
   transition: background-color 0.1s ease, border-color 0.1s ease;
 }
 
-.settings-scroll>.settings-row.settings-row--choice:nth-child(even),
-.settings-scroll>.settings-row.settings-row--slider:nth-child(even),
-.settings-scroll>.settings-row.settings-row--toggle:nth-child(even),
-.settings-scroll>.settings-row.settings-row--action:nth-child(even),
 .worlds-list>li:nth-child(even)>.worlds-entry {
   background-color: var(--term-list-row-stripe);
 }

@@ -58,6 +58,10 @@
   box-sizing: border-box;
 }
 
+.settings-content-window .settings-tabs.settings-tabs--toolbar {
+  margin-bottom: 0;
+}
+
 .settings-tabs.settings-tabs--toolbar .settings-tab {
   width: auto !important;
   flex: 0 1 auto;
@@ -170,6 +174,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+  gap: 0;
 }
 
 .settings-scroll {
@@ -191,14 +196,15 @@
 
 .settings-row.settings-row--choice,
 .settings-row.settings-row--slider,
-.settings-row.settings-row--toggle {
+.settings-row.settings-row--toggle,
+.settings-row.settings-row--action {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
   border: none;
   border-bottom: 1px dashed rgba(255, 128, 0, 0.18);
   background: transparent;
-  padding: 0.35em 0 0.5em;
+  padding: 0.5em;
   min-height: 0;
 }
 
@@ -208,9 +214,13 @@
 
 .settings-row.settings-row--choice:last-child,
 .settings-row.settings-row--slider:last-child,
-.settings-row.settings-row--toggle:last-child {
+.settings-row.settings-row--toggle:last-child,
+.settings-row.settings-row--action:last-child {
   border-bottom: none;
-  padding-bottom: 0.2em;
+}
+
+.settings-scroll > .settings-row:has(+ .settings-tab-reset-footer) {
+  border-bottom: 1px dashed rgba(255, 128, 0, 0.18);
 }
 
 .settings-field-line {
@@ -423,7 +433,7 @@
   display: flex;
   align-items: flex-start;
   align-self: auto;
-  padding: 0;
+  padding: 0.12em 0 0 0;
   min-height: 0;
   position: relative;
 }
@@ -886,7 +896,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.5em;
+  gap: 0;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -894,7 +904,6 @@
 
 .settings-controls-block>.settings-row.settings-row--slider {
   flex-shrink: 0;
-  margin-bottom: 0.15em;
   padding-bottom: 0.65em;
 }
 
@@ -911,7 +920,7 @@
   gap: 0.35em;
   width: 100%;
   flex-shrink: 0;
-  padding: 0.35em 0 0.55em;
+  padding: 0.5em;
   border-bottom: 1px dashed rgba(255, 128, 0, 0.18);
   box-sizing: border-box;
 }
@@ -942,7 +951,7 @@
   border: none;
   border-bottom: 1px dashed rgba(255, 128, 0, 0.18);
   background: transparent;
-  padding: 0.35em 0 0.5em;
+  padding: 0.5em;
 }
 
 .settings-field-control-box--bind {
@@ -1007,4 +1016,13 @@
   --settings-switch-motion-ms: 0ms;
   transition: none !important;
   animation: none !important;
+}
+
+.settings-row.settings-row--choice.is-settings-list-row-striped,
+.settings-row.settings-row--slider.is-settings-list-row-striped,
+.settings-row.settings-row--toggle.is-settings-list-row-striped,
+.settings-row.settings-row--action.is-settings-list-row-striped,
+.settings-row.settings-row--bind.is-settings-list-row-striped,
+.settings-tab-reset-footer.is-settings-list-row-striped {
+  background-color: var(--term-list-row-stripe);
 }
