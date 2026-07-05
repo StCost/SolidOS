@@ -65,8 +65,20 @@
   var CAPTURE_PULL_STRENGTH = 11;
   var METEOROID_RADIUS_MIN = 8;
   var METEOROID_RADIUS_MAX = 15;
-  var METEOROIDS_PER_SECTOR_MIN = 2;
-  var METEOROIDS_PER_SECTOR_MAX = 5;
+  var METEOROID_AHEAD_BAND_HEIGHT = 300;
+  var METEOROID_AHEAD_SPAWN_OFFSET = 24;
+  var METEOROIDS_AHEAD_TARGET = 5;
+  var METEOROIDS_GAP_MIN = 3;
+  var METEOROIDS_GAP_MAX = 5;
+  var METEOROID_PLACEMENT_ATTEMPTS = 12;
+  var METEOROID_PLACEMENT_CLEARANCE = 16;
+  var METEOROID_DRIFT_AMPLITUDE_MIN = 14;
+  var METEOROID_DRIFT_AMPLITUDE_MAX = 32;
+  var METEOROID_DRIFT_SPEED_MIN = 0.32;
+  var METEOROID_DRIFT_SPEED_MAX = 0.78;
+  var METEOROID_ABSORB_RADIUS_PADDING = 28;
+  var METEOROID_ABSORB_DURATION = 0.38;
+  var METEOROID_DESTROY_SPARK_COUNT = 10;
   var PLANET_SPIN_SPEED_MIN = 0.45;
   var PLANET_SPIN_SPEED_MAX = 1.15;
   var PLANET_RING_SPIN_SPEED_MIN = 0.3;
@@ -74,6 +86,7 @@
   var PLANET_RING_CHANCE = 0.5;
   var PLANET_RING_RADIUS_FACTOR = 1.58;
   var PLANET_RING_INNER_FACTOR = 0.9;
+  var PLANET_PRUNE_BEHIND_RATIO = 0.8;
 
   var PLANET_PALETTES = [
     { core: "#3d7ec8", rim: "#8ec8ff", glow: "#1a4080", ring: "rgba(120,200,255,0.22)" },
@@ -102,13 +115,14 @@
   var phase = PHASE_START;
   var planets = [];
   var meteoroids = [];
+  var meteoroidAbsorptions = [];
   var stars = [];
   var trail = [];
   var trajectoryPoints = [];
   var attachEffects = [];
   var gameTimeSeconds = 0;
   var nextPlanetIndex = 0;
-  var nextMeteoroidSectorIndex = 0;
+  var nextMeteoroidIndex = 0;
   var highestGeneratedY = 0;
   var startWorldY = 0;
   var peakWorldY = 0;
@@ -121,6 +135,7 @@
   var detachedFromPlanetIndex = -1;
   var pointerDownActive = false;
   var skipNextLaunchFromRelease = false;
+  var worldSeed = 0;
 
   var satellite = {
     worldX: 0,
@@ -193,8 +208,14 @@
     hudDistance.textContent = formatDistance(distanceMeters);
   }
 
+  function randomizeWorldSeed() {
+    worldSeed = Math.floor(Math.random() * 1000000) + Math.random();
+    buildStars();
+  }
+
   function seededRandom(seed) {
-    var value = Math.sin(seed * 127.1 + seed * 311.7) * 43758.5453;
+    var combinedSeed = seed + worldSeed * 9973.1;
+    var value = Math.sin(combinedSeed * 127.1 + combinedSeed * 311.7) * 43758.5453;
     return value - Math.floor(value);
   }
 
@@ -290,32 +311,348 @@
     return Math.floor(Math.max(viewHeight, 400) * FIRST_PLANET_SCREEN_RATIO);
   }
 
-  function createMeteoroid(sectorMinY, sectorMaxY, seed) {
+  function createMeteoroid(minY, maxY, seed) {
     var playableWidth = Math.max(viewWidth, 320);
-    var sectorHeight = sectorMaxY - sectorMinY;
-    if (sectorHeight < 24) {
-      sectorHeight = 24;
+    var bandHeight = maxY - minY;
+    if (bandHeight < 24) {
+      bandHeight = 24;
     }
     return {
-      worldX: PLANET_X_MARGIN + seededRandom(seed * 2.3) * (playableWidth - PLANET_X_MARGIN * 2),
-      worldY: sectorMinY + seededRandom(seed * 5.1) * sectorHeight,
+      anchorWorldX: PLANET_X_MARGIN + seededRandom(seed * 2.3) * (playableWidth - PLANET_X_MARGIN * 2),
+      anchorWorldY: minY + seededRandom(seed * 5.1) * bandHeight,
       radius: METEOROID_RADIUS_MIN + seededRandom(seed * 8.7) * (METEOROID_RADIUS_MAX - METEOROID_RADIUS_MIN),
       rotation: seededRandom(seed * 11.9) * TWO_PI,
       spin: (seededRandom(seed * 13.3) - 0.5) * 2.8,
-      jaggedSeed: seed * 19.7
+      jaggedSeed: seed * 19.7,
+      driftAmplitudeX: METEOROID_DRIFT_AMPLITUDE_MIN + seededRandom(seed * 23.1) * (METEOROID_DRIFT_AMPLITUDE_MAX - METEOROID_DRIFT_AMPLITUDE_MIN),
+      driftAmplitudeY: METEOROID_DRIFT_AMPLITUDE_MIN + seededRandom(seed * 27.7) * (METEOROID_DRIFT_AMPLITUDE_MAX - METEOROID_DRIFT_AMPLITUDE_MIN),
+      driftSpeedX: METEOROID_DRIFT_SPEED_MIN + seededRandom(seed * 31.3) * (METEOROID_DRIFT_SPEED_MAX - METEOROID_DRIFT_SPEED_MIN),
+      driftSpeedY: METEOROID_DRIFT_SPEED_MIN + seededRandom(seed * 37.9) * (METEOROID_DRIFT_SPEED_MAX - METEOROID_DRIFT_SPEED_MIN),
+      driftPhaseX: seededRandom(seed * 41.5) * TWO_PI,
+      driftPhaseY: seededRandom(seed * 43.9) * TWO_PI
     };
   }
 
-  function spawnMeteoroidsInSector(sectorMinY, sectorMaxY, sectorIndex) {
+  function getMeteoroidWorldX(meteoroid, timeSeconds) {
+    var timeValue = timeSeconds;
+    if (timeValue == null) {
+      timeValue = gameTimeSeconds;
+    }
+    return meteoroid.anchorWorldX + Math.sin(timeValue * meteoroid.driftSpeedX + meteoroid.driftPhaseX) * meteoroid.driftAmplitudeX;
+  }
+
+  function getMeteoroidWorldY(meteoroid, timeSeconds) {
+    var timeValue = timeSeconds;
+    if (timeValue == null) {
+      timeValue = gameTimeSeconds;
+    }
+    return meteoroid.anchorWorldY + Math.cos(timeValue * meteoroid.driftSpeedY + meteoroid.driftPhaseY) * meteoroid.driftAmplitudeY;
+  }
+
+  function getMeteoroidPlacementClearance(planet, meteoroidRadius) {
+    return planet.orbitRadius + meteoroidRadius + METEOROID_PLACEMENT_CLEARANCE + planet.driftAmplitude + METEOROID_DRIFT_AMPLITUDE_MAX;
+  }
+
+  function isMeteoroidTooCloseToPlanetForPlacement(anchorWorldX, anchorWorldY, meteoroidRadius, planet, useAbsorbClearance) {
+    var deltaX;
+    var deltaY;
+    var clearance;
+    if (!planet) {
+      return false;
+    }
+    deltaX = anchorWorldX - planet.anchorWorldX;
+    deltaY = anchorWorldY - planet.worldY;
+    if (useAbsorbClearance) {
+      clearance = getPlanetAbsorbRadius(planet) + meteoroidRadius + METEOROID_PLACEMENT_CLEARANCE;
+    } else {
+      clearance = getMeteoroidPlacementClearance(planet, meteoroidRadius);
+    }
+    return deltaX * deltaX + deltaY * deltaY < clearance * clearance;
+  }
+
+  function tryCreateMeteoroidBetweenPlanets(sectorMinY, sectorMaxY, seed, bottomPlanet, topPlanet) {
+    var attempt;
+    var attemptSeed;
+    var meteoroid;
+    for (attempt = 0; attempt < METEOROID_PLACEMENT_ATTEMPTS; attempt += 1) {
+      attemptSeed = seed + attempt * 91.7;
+      meteoroid = createMeteoroid(sectorMinY, sectorMaxY, attemptSeed);
+      if (isMeteoroidTooCloseToPlanetForPlacement(meteoroid.anchorWorldX, meteoroid.anchorWorldY, meteoroid.radius, bottomPlanet, false)) {
+        continue;
+      }
+      if (isMeteoroidTooCloseToPlanetForPlacement(meteoroid.anchorWorldX, meteoroid.anchorWorldY, meteoroid.radius, topPlanet, true)) {
+        continue;
+      }
+      return meteoroid;
+    }
+    return null;
+  }
+
+  function fillMeteoroidsBetweenPlanets(bottomPlanet, topPlanet, gapIndex, allowOnScreenBootstrap) {
+    var sectorMinY;
+    var sectorMaxY;
+    var spawnMinY;
+    var spawnMaxY;
+    var offScreenMinY;
     var countRange;
     var count;
     var index;
     var meteoroid;
-    countRange = METEOROIDS_PER_SECTOR_MAX - METEOROIDS_PER_SECTOR_MIN;
-    count = METEOROIDS_PER_SECTOR_MIN + Math.floor(seededRandom(sectorIndex * 67.1 + 4.2) * (countRange + 1));
+    if (!bottomPlanet || !topPlanet) {
+      return;
+    }
+    sectorMinY = bottomPlanet.worldY + 40;
+    sectorMaxY = topPlanet.worldY - 24;
+    offScreenMinY = cameraY + viewHeight + METEOROID_AHEAD_SPAWN_OFFSET;
+    spawnMinY = Math.max(sectorMinY, offScreenMinY);
+    spawnMaxY = sectorMaxY;
+    if (spawnMaxY - spawnMinY < 32) {
+      if (!allowOnScreenBootstrap || sectorMaxY - sectorMinY < 32) {
+        return;
+      }
+      spawnMinY = sectorMinY;
+      spawnMaxY = sectorMaxY;
+    }
+    countRange = METEOROIDS_GAP_MAX - METEOROIDS_GAP_MIN;
+    count = METEOROIDS_GAP_MIN + Math.floor(seededRandom(gapIndex * 67.1 + 4.2) * (countRange + 1));
     for (index = 0; index < count; index += 1) {
-      meteoroid = createMeteoroid(sectorMinY, sectorMaxY, sectorIndex * 17 + index + 1);
-      meteoroids.push(meteoroid);
+      meteoroid = tryCreateMeteoroidBetweenPlanets(spawnMinY, spawnMaxY, gapIndex * 17 + index + 1, bottomPlanet, topPlanet);
+      if (meteoroid) {
+        meteoroids.push(meteoroid);
+        nextMeteoroidIndex += 1;
+      }
+    }
+  }
+
+  function getMeteoroidAheadBand() {
+    var bandMinY = cameraY + viewHeight + METEOROID_AHEAD_SPAWN_OFFSET;
+    return {
+      minY: bandMinY,
+      maxY: bandMinY + METEOROID_AHEAD_BAND_HEIGHT
+    };
+  }
+
+  function isMeteoroidWorldYInBand(worldY, bandMinY, bandMaxY) {
+    return worldY >= bandMinY && worldY <= bandMaxY;
+  }
+
+  function countMeteoroidsInAheadBand(bandMinY, bandMaxY) {
+    var index;
+    var meteoroid;
+    var count = 0;
+    for (index = 0; index < meteoroids.length; index += 1) {
+      meteoroid = meteoroids[index];
+      if (isMeteoroidWorldYInBand(getMeteoroidWorldY(meteoroid), bandMinY, bandMaxY)) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  function maintainMeteoroidsAhead() {
+    var band;
+    var count;
+    if (phase !== PHASE_PLAYING || viewHeight <= 0) {
+      return;
+    }
+    band = getMeteoroidAheadBand();
+    count = countMeteoroidsInAheadBand(band.minY, band.maxY);
+    while (count < METEOROIDS_AHEAD_TARGET) {
+      meteoroids.push(createMeteoroid(band.minY, band.maxY, nextMeteoroidIndex + 1));
+      nextMeteoroidIndex += 1;
+      count += 1;
+    }
+  }
+
+  function cleanupMeteoroidsBehindCamera() {
+    var index;
+    var meteoroid;
+    var minKeepY = cameraY - viewHeight * 0.6;
+    for (index = meteoroids.length - 1; index >= 0; index -= 1) {
+      meteoroid = meteoroids[index];
+      if (getMeteoroidWorldY(meteoroid) < minKeepY) {
+        meteoroids.splice(index, 1);
+      }
+    }
+  }
+
+  function getFirstPlanetKeepIndex() {
+    if (satellite.state === SATELLITE_STATE_ORBITING) {
+      return satellite.planetIndex;
+    }
+    if (satellite.state === SATELLITE_STATE_FLYING) {
+      if (detachedFromPlanetIndex >= 0) {
+        return detachedFromPlanetIndex;
+      }
+      return satellite.planetIndex;
+    }
+    if (satellite.state === SATELLITE_STATE_CAPTURING && satellite.capturePlanetIndex >= 0) {
+      return satellite.capturePlanetIndex;
+    }
+    return 0;
+  }
+
+  function shiftPlanetIndexAfterPrune(planetIndex, removeCount) {
+    if (planetIndex < 0) {
+      return planetIndex;
+    }
+    return planetIndex - removeCount;
+  }
+
+  function cleanupPlanetsBehindCamera() {
+    var pruneMaxWorldY;
+    var firstKeepIndex;
+    var removeCount;
+    var index;
+    var planet;
+    var absorption;
+    if (phase !== PHASE_PLAYING || viewHeight <= 0 || planets.length === 0) {
+      return;
+    }
+    pruneMaxWorldY = cameraY - viewHeight * PLANET_PRUNE_BEHIND_RATIO;
+    firstKeepIndex = getFirstPlanetKeepIndex();
+    removeCount = 0;
+    for (index = 0; index < planets.length; index += 1) {
+      if (index >= firstKeepIndex) {
+        break;
+      }
+      planet = planets[index];
+      if (planet.worldY >= pruneMaxWorldY) {
+        break;
+      }
+      removeCount += 1;
+    }
+    if (removeCount <= 0) {
+      return;
+    }
+    planets.splice(0, removeCount);
+    satellite.planetIndex = shiftPlanetIndexAfterPrune(satellite.planetIndex, removeCount);
+    detachedFromPlanetIndex = shiftPlanetIndexAfterPrune(detachedFromPlanetIndex, removeCount);
+    satellite.capturePlanetIndex = shiftPlanetIndexAfterPrune(satellite.capturePlanetIndex, removeCount);
+    for (index = meteoroidAbsorptions.length - 1; index >= 0; index -= 1) {
+      absorption = meteoroidAbsorptions[index];
+      absorption.planetIndex -= removeCount;
+      if (absorption.planetIndex < 0) {
+        meteoroidAbsorptions.splice(index, 1);
+      }
+    }
+  }
+
+  function getPlanetAbsorbRadius(planet) {
+    return (planet.orbitRadius + METEOROID_ABSORB_RADIUS_PADDING) * 2;
+  }
+
+  function isMeteoroidInPlanetAbsorbRadius(meteoroid, planet, timeSeconds) {
+    var deltaX;
+    var deltaY;
+    var absorbRadius;
+    if (!planet || !meteoroid) {
+      return false;
+    }
+    deltaX = getMeteoroidWorldX(meteoroid, timeSeconds) - getPlanetWorldX(planet);
+    deltaY = getMeteoroidWorldY(meteoroid, timeSeconds) - planet.worldY;
+    absorbRadius = getPlanetAbsorbRadius(planet);
+    return deltaX * deltaX + deltaY * deltaY <= absorbRadius * absorbRadius;
+  }
+
+  function spawnMeteoroidDestroyEffects(worldX, worldY, radius) {
+    var sparkIndex;
+    var angle;
+    var speed;
+    attachEffects.push({
+      kind: "flash",
+      worldX: worldX,
+      worldY: worldY,
+      radius: radius * 1.5,
+      life: 1,
+      maxLife: 0.3,
+      colorHex: "rgba(255,130,80,1)",
+      delay: 0
+    });
+    for (sparkIndex = 0; sparkIndex < METEOROID_DESTROY_SPARK_COUNT; sparkIndex += 1) {
+      angle = seededRandom(worldX * 3.1 + worldY * 5.3 + sparkIndex * 7.7) * TWO_PI;
+      speed = 90 + seededRandom(sparkIndex * 11.3 + worldY) * 170;
+      attachEffects.push({
+        kind: "spark",
+        worldX: worldX,
+        worldY: worldY,
+        velocityX: Math.cos(angle) * speed,
+        velocityY: Math.sin(angle) * speed,
+        life: 1,
+        maxLife: 0.34 + seededRandom(sparkIndex * 3.1) * 0.24,
+        colorHex: sparkIndex % 2 === 0 ? "#ffb070" : "#ff6040",
+        delay: 0
+      });
+    }
+  }
+
+  function startMeteoroidAbsorption(meteoroid, planetIndex) {
+    meteoroidAbsorptions.push({
+      meteoroid: meteoroid,
+      planetIndex: planetIndex,
+      progress: 0,
+      startWorldX: getMeteoroidWorldX(meteoroid),
+      startWorldY: getMeteoroidWorldY(meteoroid)
+    });
+  }
+
+  function absorbMeteoroidsNearPlanet(planet, planetIndex) {
+    var index;
+    var meteoroid;
+    if (!planet || planet.spawnProgress >= 1) {
+      return;
+    }
+    for (index = meteoroids.length - 1; index >= 0; index -= 1) {
+      meteoroid = meteoroids[index];
+      if (isMeteoroidInPlanetAbsorbRadius(meteoroid, planet, gameTimeSeconds)) {
+        startMeteoroidAbsorption(meteoroid, planetIndex);
+        meteoroids.splice(index, 1);
+      }
+    }
+  }
+
+  function getAbsorptionWorldPosition(absorption) {
+    var planet;
+    var eased;
+    var planetWorldX;
+    var planetWorldY;
+    planet = getPlanet(absorption.planetIndex);
+    if (!planet) {
+      return {
+        x: absorption.startWorldX,
+        y: absorption.startWorldY,
+        scale: 0
+      };
+    }
+    eased = getCaptureEase(absorption.progress);
+    planetWorldX = getPlanetWorldX(planet);
+    planetWorldY = planet.worldY;
+    return {
+      x: absorption.startWorldX + (planetWorldX - absorption.startWorldX) * eased,
+      y: absorption.startWorldY + (planetWorldY - absorption.startWorldY) * eased,
+      scale: 1 - eased * 0.88
+    };
+  }
+
+  function updateMeteoroidAbsorptions(deltaTime) {
+    var index;
+    var absorption;
+    var planet;
+    var worldPosition;
+    for (index = meteoroidAbsorptions.length - 1; index >= 0; index -= 1) {
+      absorption = meteoroidAbsorptions[index];
+      planet = getPlanet(absorption.planetIndex);
+      if (!planet) {
+        meteoroidAbsorptions.splice(index, 1);
+        continue;
+      }
+      absorption.progress += deltaTime / METEOROID_ABSORB_DURATION;
+      if (absorption.progress < 1) {
+        continue;
+      }
+      worldPosition = getAbsorptionWorldPosition(absorption);
+      spawnMeteoroidDestroyEffects(worldPosition.x, worldPosition.y, absorption.meteoroid.radius);
+      meteoroidAbsorptions.splice(index, 1);
     }
   }
 
@@ -361,26 +698,27 @@
     }
     previewPlanet = getNextPlanetSlotPreview();
     if (previewPlanet) {
+      var isFirstGap;
       highestGeneratedY = previewPlanet.worldY;
       previousPlanet = planets[planets.length - 1];
-      previousWorldY = previousPlanet.worldY;
-      spawnMeteoroidsInSector(previousWorldY + 40, highestGeneratedY - 24, nextMeteoroidSectorIndex);
-      nextMeteoroidSectorIndex += 1;
+      isFirstGap = planets.length === 1;
       planet = previewPlanet;
       planet.spawnProgress = 0;
       planets.push(planet);
       nextPlanetIndex += 1;
+      fillMeteoroidsBetweenPlanets(previousPlanet, planet, nextPlanetIndex - 1, isFirstGap);
+      absorbMeteoroidsNearPlanet(planet, planets.length - 1);
       return;
     }
     previousPlanet = planets[planets.length - 1];
     previousWorldY = previousPlanet.worldY;
     highestGeneratedY = previousWorldY + getNextPlanetSpacing(nextPlanetIndex);
-    spawnMeteoroidsInSector(previousWorldY + 40, highestGeneratedY - 24, nextMeteoroidSectorIndex);
-    nextMeteoroidSectorIndex += 1;
     planet = createPlanet(highestGeneratedY, nextPlanetIndex);
     planet.spawnProgress = 0;
     planets.push(planet);
     nextPlanetIndex += 1;
+    fillMeteoroidsBetweenPlanets(previousPlanet, planet, nextPlanetIndex - 1, false);
+    absorbMeteoroidsNearPlanet(planet, planets.length - 1);
   }
 
   function onPlanetAttached(planetIndex) {
@@ -398,6 +736,7 @@
       if (planet.spawnProgress >= 1) {
         continue;
       }
+      absorbMeteoroidsNearPlanet(planet, index);
       planet.spawnProgress += deltaTime / PLANET_SPAWN_DURATION;
       if (planet.spawnProgress > 1) {
         planet.spawnProgress = 1;
@@ -497,8 +836,14 @@
     return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
   }
 
-  function getPlanetGravityAcceleration(worldX, worldY, ignorePlanetIndex) {
-    var index;
+  function getNextPlanetIndex() {
+    if (detachedFromPlanetIndex >= 0) {
+      return detachedFromPlanetIndex + 1;
+    }
+    return satellite.planetIndex + 1;
+  }
+
+  function getPlanetGravityAcceleration(worldX, worldY, gravityPlanetIndex) {
     var planet;
     var deltaX;
     var deltaY;
@@ -508,30 +853,34 @@
     var strength;
     var accelerationX = 0;
     var accelerationY = 0;
-    for (index = 0; index < planets.length; index += 1) {
-      if (index === ignorePlanetIndex && ignorePlanetIndex >= 0) {
-        continue;
-      }
-      planet = planets[index];
-      deltaX = getPlanetWorldX(planet) - worldX;
-      deltaY = planet.worldY - worldY;
-      distanceSquared = deltaX * deltaX + deltaY * deltaY;
-      if (distanceSquared < planet.radius * planet.radius) {
-        continue;
-      }
-      gravityRange = Math.max(PLANET_GRAVITY_RANGE_MIN, planet.orbitRadius * PLANET_GRAVITY_ORBIT_RANGE_FACTOR);
-      distance = Math.sqrt(distanceSquared);
-      if (distanceSquared <= gravityRange * gravityRange) {
-        strength = PLANET_GRAVITY_STRENGTH * planet.radius / distanceSquared;
-        strength += PLANET_GRAVITY_LINEAR * planet.radius / distance;
-        accelerationX += (deltaX / distance) * strength;
-        accelerationY += (deltaY / distance) * strength;
-      } else if (distanceSquared <= gravityRange * gravityRange * PLANET_GRAVITY_OUTER_RANGE_FACTOR * PLANET_GRAVITY_OUTER_RANGE_FACTOR) {
-        strength = PLANET_GRAVITY_STRENGTH * planet.radius * PLANET_GRAVITY_OUTER_PULL_FACTOR / distanceSquared;
-        strength += PLANET_GRAVITY_LINEAR * planet.radius * PLANET_GRAVITY_OUTER_PULL_FACTOR / distance;
-        accelerationX += (deltaX / distance) * strength;
-        accelerationY += (deltaY / distance) * strength;
-      }
+    planet = getPlanet(gravityPlanetIndex);
+    if (!planet || planet.spawnProgress < 1) {
+      return {
+        x: 0,
+        y: 0
+      };
+    }
+    deltaX = getPlanetWorldX(planet) - worldX;
+    deltaY = planet.worldY - worldY;
+    distanceSquared = deltaX * deltaX + deltaY * deltaY;
+    if (distanceSquared < planet.radius * planet.radius) {
+      return {
+        x: 0,
+        y: 0
+      };
+    }
+    gravityRange = Math.max(PLANET_GRAVITY_RANGE_MIN, planet.orbitRadius * PLANET_GRAVITY_ORBIT_RANGE_FACTOR);
+    distance = Math.sqrt(distanceSquared);
+    if (distanceSquared <= gravityRange * gravityRange) {
+      strength = PLANET_GRAVITY_STRENGTH * planet.radius / distanceSquared;
+      strength += PLANET_GRAVITY_LINEAR * planet.radius / distance;
+      accelerationX = (deltaX / distance) * strength;
+      accelerationY = (deltaY / distance) * strength;
+    } else if (distanceSquared <= gravityRange * gravityRange * PLANET_GRAVITY_OUTER_RANGE_FACTOR * PLANET_GRAVITY_OUTER_RANGE_FACTOR) {
+      strength = PLANET_GRAVITY_STRENGTH * planet.radius * PLANET_GRAVITY_OUTER_PULL_FACTOR / distanceSquared;
+      strength += PLANET_GRAVITY_LINEAR * planet.radius * PLANET_GRAVITY_OUTER_PULL_FACTOR / distance;
+      accelerationX = (deltaX / distance) * strength;
+      accelerationY = (deltaY / distance) * strength;
     }
     return {
       x: accelerationX,
@@ -539,9 +888,9 @@
     };
   }
 
-  function applyPlanetGravityToVelocity(worldX, worldY, velocityX, velocityY, deltaTime, ignorePlanetIndex) {
+  function applyPlanetGravityToVelocity(worldX, worldY, velocityX, velocityY, deltaTime, gravityPlanetIndex) {
     var acceleration;
-    acceleration = getPlanetGravityAcceleration(worldX, worldY, ignorePlanetIndex);
+    acceleration = getPlanetGravityAcceleration(worldX, worldY, gravityPlanetIndex);
     velocityX += acceleration.x * deltaTime;
     velocityY += acceleration.y * deltaTime;
     return {
@@ -758,8 +1107,8 @@
       distance = getDistanceBetween(
         satellite.worldX,
         satellite.worldY,
-        meteoroid.worldX,
-        meteoroid.worldY
+        getMeteoroidWorldX(meteoroid),
+        getMeteoroidWorldY(meteoroid)
       );
       if (distance <= meteoroid.radius + SATELLITE_RADIUS) {
         return true;
@@ -899,40 +1248,34 @@
   }
 
   function findCapturingPlanet() {
-    var index;
     var planet;
     var distance;
     var orbitDistanceError;
-    var bestIndex;
-    var bestOrbitDistanceError;
     var speed;
     var captureTolerance;
-    bestIndex = -1;
-    bestOrbitDistanceError = Infinity;
+    var nextPlanetIndex;
+    nextPlanetIndex = getNextPlanetIndex();
+    planet = getPlanet(nextPlanetIndex);
+    if (!planet) {
+      return -1;
+    }
+    if (planet.spawnProgress < 1) {
+      return -1;
+    }
     speed = Math.sqrt(satellite.velocityX * satellite.velocityX + satellite.velocityY * satellite.velocityY);
     captureTolerance = ORBIT_CAPTURE_TOLERANCE + speed * 0.03;
-    for (index = planets.length - 1; index >= 0; index -= 1) {
-      if (index === detachedFromPlanetIndex) {
-        continue;
-      }
-      planet = planets[index];
-      if (planet.spawnProgress < 1) {
-        continue;
-      }
-      distance = getDistanceToPlanet(planet);
-      if (distance > planet.orbitRadius + captureTolerance) {
-        continue;
-      }
-      if (distance < planet.radius - SATELLITE_RADIUS) {
-        continue;
-      }
-      orbitDistanceError = Math.abs(distance - planet.orbitRadius);
-      if (orbitDistanceError < bestOrbitDistanceError) {
-        bestOrbitDistanceError = orbitDistanceError;
-        bestIndex = index;
-      }
+    distance = getDistanceToPlanet(planet);
+    if (distance > planet.orbitRadius + captureTolerance) {
+      return -1;
     }
-    return bestIndex;
+    if (distance < planet.radius - SATELLITE_RADIUS) {
+      return -1;
+    }
+    orbitDistanceError = Math.abs(distance - planet.orbitRadius);
+    if (orbitDistanceError <= captureTolerance) {
+      return nextPlanetIndex;
+    }
+    return -1;
   }
 
   function isSatelliteOffScreen() {
@@ -1000,7 +1343,7 @@
       satellite.velocityX,
       satellite.velocityY,
       deltaTime,
-      -1
+      getNextPlanetIndex()
     );
     satellite.velocityX = velocity.x;
     satellite.velocityY = velocity.y;
@@ -1039,46 +1382,49 @@
     return TRAJECTORY_STEP_COUNT;
   }
 
-  function wouldCapturePlanetAt(worldX, worldY, speed, ignorePlanetIndex) {
-    var index;
+  function wouldCapturePlanetAt(worldX, worldY, speed, capturePlanetIndex) {
     var planet;
     var distance;
     var orbitDistanceError;
     var captureTolerance;
+    planet = getPlanet(capturePlanetIndex);
+    if (!planet) {
+      return false;
+    }
+    if (planet.spawnProgress < 1) {
+      return false;
+    }
     captureTolerance = ORBIT_CAPTURE_TOLERANCE + speed * 0.03;
-    for (index = planets.length - 1; index >= 0; index -= 1) {
-      if (index === ignorePlanetIndex) {
-        continue;
-      }
-      if (index === detachedFromPlanetIndex) {
-        continue;
-      }
-      planet = planets[index];
-      if (planet.spawnProgress < 1) {
-        continue;
-      }
-      distance = getDistanceToPlanetAt(worldX, worldY, planet);
-      if (distance > planet.orbitRadius + captureTolerance) {
-        continue;
-      }
-      if (distance < planet.radius - SATELLITE_RADIUS) {
-        continue;
-      }
-      orbitDistanceError = Math.abs(distance - planet.orbitRadius);
-      if (orbitDistanceError <= captureTolerance) {
-        return true;
-      }
+    distance = getDistanceToPlanetAt(worldX, worldY, planet);
+    if (distance > planet.orbitRadius + captureTolerance) {
+      return false;
+    }
+    if (distance < planet.radius - SATELLITE_RADIUS) {
+      return false;
+    }
+    orbitDistanceError = Math.abs(distance - planet.orbitRadius);
+    if (orbitDistanceError <= captureTolerance) {
+      return true;
     }
     return false;
   }
 
-  function wouldHitMeteoroidAt(worldX, worldY) {
+  function wouldHitMeteoroidAt(worldX, worldY, timeSeconds) {
     var index;
     var meteoroid;
     var distance;
+    var predictTime = timeSeconds;
+    if (predictTime == null) {
+      predictTime = gameTimeSeconds;
+    }
     for (index = 0; index < meteoroids.length; index += 1) {
       meteoroid = meteoroids[index];
-      distance = getDistanceBetween(worldX, worldY, meteoroid.worldX, meteoroid.worldY);
+      distance = getDistanceBetween(
+        worldX,
+        worldY,
+        getMeteoroidWorldX(meteoroid, predictTime),
+        getMeteoroidWorldY(meteoroid, predictTime)
+      );
       if (distance <= meteoroid.radius + SATELLITE_RADIUS) {
         return true;
       }
@@ -1086,21 +1432,23 @@
     return false;
   }
 
-  function detectTrajectoryHits(points, ignorePlanetIndex) {
+  function detectTrajectoryHits(points, capturePlanetIndex) {
     var stepIndex;
     var point;
     var speed;
     var meteoroidStep;
     var planetStep;
+    var predictTime;
     meteoroidStep = -1;
     planetStep = -1;
     for (stepIndex = 1; stepIndex < points.length; stepIndex += 1) {
       point = points[stepIndex];
-      if (meteoroidStep < 0 && wouldHitMeteoroidAt(point.x, point.y)) {
+      predictTime = gameTimeSeconds + stepIndex * TRAJECTORY_STEP_TIME;
+      if (meteoroidStep < 0 && wouldHitMeteoroidAt(point.x, point.y, predictTime)) {
         meteoroidStep = stepIndex;
       }
       speed = getDistanceBetween(points[stepIndex - 1].x, points[stepIndex - 1].y, point.x, point.y) / TRAJECTORY_STEP_TIME;
-      if (planetStep < 0 && wouldCapturePlanetAt(point.x, point.y, speed, ignorePlanetIndex)) {
+      if (planetStep < 0 && wouldCapturePlanetAt(point.x, point.y, speed, capturePlanetIndex)) {
         planetStep = stepIndex;
       }
       if (meteoroidStep >= 0 && planetStep >= 0) {
@@ -1156,7 +1504,7 @@
         velocityX,
         velocityY,
         TRAJECTORY_STEP_TIME,
-        -1
+        satellite.planetIndex + 1
       );
       velocityX = velocity.x;
       velocityY = velocity.y;
@@ -1183,11 +1531,12 @@
     var firstPlanet;
     planets.length = 0;
     meteoroids.length = 0;
+    meteoroidAbsorptions.length = 0;
     trail.length = 0;
     attachEffects.length = 0;
     trajectoryPoints.length = 0;
     nextPlanetIndex = 0;
-    nextMeteoroidSectorIndex = 0;
+    nextMeteoroidIndex = 0;
     highestGeneratedY = 0;
     launchCooldownTimer = 0;
     detachedFromPlanetIndex = -1;
@@ -1212,6 +1561,7 @@
   }
 
   function resetRun() {
+    randomizeWorldSeed();
     isNewRecord = false;
     distanceMeters = 0;
     peakWorldY = 0;
@@ -1228,6 +1578,7 @@
     skipNextLaunchFromRelease = true;
     resetRun();
     onPlanetAttached(0);
+    maintainMeteoroidsAhead();
     if (window.WebExtrasGameStartMusicNotify) {
       window.WebExtrasGameStartMusicNotify.notifyGameplayStarted();
     }
@@ -1235,6 +1586,7 @@
 
   function showStartScreen() {
     phase = PHASE_START;
+    randomizeWorldSeed();
     resizeCanvas();
     initWorld();
     updatePreviewCamera();
@@ -1662,9 +2014,9 @@
     context.restore();
   }
 
-  function drawMeteoroid(meteoroid, timeSeconds) {
-    var screen = worldToScreen(meteoroid.worldX, meteoroid.worldY);
-    var radius = meteoroid.radius;
+  function drawMeteoroidAt(worldX, worldY, meteoroid, timeSeconds, scale) {
+    var screen = worldToScreen(worldX, worldY);
+    var radius = meteoroid.radius * scale;
     var pointIndex;
     var angle;
     var pointRadius;
@@ -1672,6 +2024,9 @@
     var pointY;
     var pulse;
     var pulseAlpha;
+    if (radius <= 0.5) {
+      return;
+    }
     meteoroid.rotation += meteoroid.spin * 0.016;
     pulse = 0.72 + 0.28 * Math.sin(timeSeconds * 5.5 + meteoroid.jaggedSeed);
     pulseAlpha = 0.18 + pulse * 0.22;
@@ -1706,6 +2061,33 @@
     context.restore();
   }
 
+  function drawMeteoroid(meteoroid, timeSeconds) {
+    drawMeteoroidAt(
+      getMeteoroidWorldX(meteoroid, timeSeconds),
+      getMeteoroidWorldY(meteoroid, timeSeconds),
+      meteoroid,
+      timeSeconds,
+      1
+    );
+  }
+
+  function drawAbsorbingMeteoroids(timeSeconds) {
+    var index;
+    var absorption;
+    var worldPosition;
+    for (index = 0; index < meteoroidAbsorptions.length; index += 1) {
+      absorption = meteoroidAbsorptions[index];
+      worldPosition = getAbsorptionWorldPosition(absorption);
+      drawMeteoroidAt(
+        worldPosition.x,
+        worldPosition.y,
+        absorption.meteoroid,
+        timeSeconds,
+        worldPosition.scale
+      );
+    }
+  }
+
   function drawMeteoroids(timeSeconds) {
     var index;
     var meteoroid;
@@ -1713,14 +2095,15 @@
     var maxY = cameraY + viewHeight * 2;
     for (index = 0; index < meteoroids.length; index += 1) {
       meteoroid = meteoroids[index];
-      if (meteoroid.worldY < minY - 80) {
+      if (getMeteoroidWorldY(meteoroid) < minY - 80) {
         continue;
       }
-      if (meteoroid.worldY > maxY + 80) {
+      if (getMeteoroidWorldY(meteoroid) > maxY + 80) {
         continue;
       }
       drawMeteoroid(meteoroid, timeSeconds);
     }
+    drawAbsorbingMeteoroids(timeSeconds);
   }
 
   function drawLaunchGuide() {
@@ -1739,7 +2122,7 @@
     if (fullPoints.length < 2) {
       return;
     }
-    hits = detectTrajectoryHits(fullPoints, satellite.planetIndex);
+    hits = detectTrajectoryHits(fullPoints, satellite.planetIndex + 1);
     drawCount = getTrajectoryDrawStepCount();
     trajectoryPoints.length = 0;
     for (index = 0; index < fullPoints.length && index <= drawCount; index += 1) {
@@ -1856,6 +2239,7 @@
 
     updatePlanetSpawns(deltaTime);
     updatePlanetSpins(deltaTime);
+    updateMeteoroidAbsorptions(deltaTime);
     updateAttachEffects(deltaTime);
     if (phase === PHASE_START) {
       updateOrbiting(deltaTime);
@@ -1876,6 +2260,9 @@
         pushTrailPoint();
       }
       updateCamera(deltaTime);
+      maintainMeteoroidsAhead();
+      cleanupMeteoroidsBehindCamera();
+      cleanupPlanetsBehindCamera();
       updateDistanceScore();
     }
 

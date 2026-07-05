@@ -24,37 +24,38 @@
           <div class="hack-terminal" id="hackTerminal" aria-live="polite"></div>
         </div>
         <footer class="hack-footer">
-          <div class="hack-match-display" id="matchDisplay"></div>
-          <div class="hack-hint" id="hackHint"></div>
+          <div class="hack-footer-col hack-footer-col-lives">
+            <div class="hack-footer-lives-row">
+              <span class="hack-footer-label" id="attemptsLabel">ATTEMPTS</span>
+              <div class="hack-lives" id="hackLives" aria-hidden="true"></div>
+            </div>
+            <div class="hack-match-display" id="matchDisplay"></div>
+          </div>
+          <div class="hack-footer-col hack-footer-col-log">
+            <h3 class="hack-footer-log-title" id="attemptLogTitle">ATTEMPT LOG</h3>
+            <div class="hack-footer-log" id="attemptLogList" aria-live="polite"></div>
+          </div>
+          <div class="hack-footer-col hack-footer-col-score">
+            <div class="hack-footer-score-row">
+              <span class="hack-footer-label" id="scoreLabel">SCORE</span>
+              <span class="hack-footer-value" id="scoreValue">0</span>
+            </div>
+            <div class="hack-footer-score-row">
+              <span class="hack-footer-label" id="bestLabel">BEST</span>
+              <span class="hack-footer-value" id="bestValue">0</span>
+            </div>
+          </div>
         </footer>
         <div class="hack-overlay hidden" id="hackOverlay">
           <h2 class="hack-overlay-title" id="overlayTitle"></h2>
           <p class="hack-overlay-sub" id="overlaySub"></p>
         </div>
       </div>
-      <aside class="hack-sidebar" id="hackSidebar">
-        <div class="hack-sidebar-attempts">
-          <span class="hack-sidebar-label" id="attemptsLabel">ATTEMPTS</span>
-          <span class="hack-sidebar-attempts-value" id="attemptsValue">5</span>
-          <div class="hack-lives" id="hackLives" aria-hidden="true"></div>
-        </div>
-        <div class="hack-sidebar-score">
-          <div class="hack-sidebar-score-row">
-            <span class="hack-sidebar-label" id="scoreLabel">SCORE</span>
-            <span class="hack-sidebar-score-value" id="scoreValue">0</span>
-          </div>
-          <div class="hack-sidebar-score-row">
-            <span class="hack-sidebar-label" id="bestLabel">BEST</span>
-            <span class="hack-sidebar-score-value" id="bestValue">0</span>
-          </div>
-        </div>
-        <h3 class="hack-sidebar-log-title" id="attemptLogTitle">ATTEMPT LOG</h3>
-        <div class="hack-sidebar-log" id="attemptLogList" aria-live="polite"></div>
-      </aside>
     </div>
     <div id="gameScreen">
       <h1 id="screenTitle">HACKOUT</h1>
-      <p id="controlHint">Select a password. Brackets remove a dud. Symbols are noise.</p>
+      <p id="tutorialHint" class="game-screen-tutorial"></p>
+      <p id="controlHint" class="game-screen-start"></p>
     </div>
   </div>
   <script src="hackout.js"></script>

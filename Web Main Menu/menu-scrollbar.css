@@ -168,7 +168,7 @@ html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-clip > .term-splash
 html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-clip > .term-splash-scroll::-webkit-scrollbar-track:vertical,
 html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-clip > .term-splash-scroll::-webkit-scrollbar-thumb:vertical:hover,
 html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-clip > .term-splash-scroll::-webkit-scrollbar-thumb:vertical:active {
-  cursor: var(--cursor-scroll, url("cursor-scroll.svg?v=1") 11.2 11.2, default) !important;
+  cursor: var(--cursor-scroll, url("cursor-scroll.svg") 11.2 11.2, default) !important;
 }
 
 html:not(.menu-unity-host) .menu-v-scroll-clip > .term-splash-scroll::-webkit-scrollbar-thumb:horizontal,
@@ -183,7 +183,7 @@ html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-clip > .term-splash
 html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-clip > .term-splash-scroll::-webkit-scrollbar-track:horizontal,
 html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-clip > .term-splash-scroll::-webkit-scrollbar-thumb:horizontal:hover,
 html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-clip > .term-splash-scroll::-webkit-scrollbar-thumb:horizontal:active {
-  cursor: var(--cursor-scroll-h, url("cursor-scroll-h.svg?v=1") 11.2 11.2, ew-resize) !important;
+  cursor: var(--cursor-scroll-h, url("cursor-scroll-h.svg") 11.2 11.2, ew-resize) !important;
 }
 
 .menu-v-scroll-clip--overlay-bar {
@@ -243,7 +243,7 @@ html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-clip > .term-splash
   pointer-events: auto;
   background: var(--scrollbar-thumb, rgba(255, 128, 0, 0.35));
   touch-action: none;
-  cursor: var(--cursor-scroll, url("cursor-scroll.svg?v=1") 11.2 11.2, default);
+  cursor: var(--cursor-scroll, url("cursor-scroll.svg") 11.2 11.2, default);
 }
 
 .menu-v-scroll-bar-thumb:hover {
@@ -256,7 +256,7 @@ html:not(.menu-unity-host) .menu-v-scroll-bar-thumb:hover,
 html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-bar-track,
 html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-bar-thumb,
 html.menu-unity-host.menu-unity-custom-cursor .menu-v-scroll-bar-thumb:hover {
-  cursor: var(--cursor-scroll, url("cursor-scroll.svg?v=1") 11.2 11.2, default);
+  cursor: var(--cursor-scroll, url("cursor-scroll.svg") 11.2 11.2, default);
 }
 
 html:not(.menu-unity-host) .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar,
@@ -269,7 +269,7 @@ html.menu-unity-host.menu-unity-custom-cursor .menu-h-scroll-clip > .menu-h-scro
 html.menu-unity-host.menu-unity-custom-cursor .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb,
 html.menu-unity-host.menu-unity-custom-cursor .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb:hover,
 html.menu-unity-host.menu-unity-custom-cursor .menu-h-scroll-clip > .menu-h-scroll-view::-webkit-scrollbar-thumb:active {
-  cursor: var(--cursor-scroll-h, url("cursor-scroll-h.svg?v=1") 11.2 11.2, ew-resize);
+  cursor: var(--cursor-scroll-h, url("cursor-scroll-h.svg") 11.2 11.2, ew-resize);
 }
 
 html.menu-unity-host .os-window--managed:not(.os-window--focused):not(.os-window--closed) .menu-v-scroll-clip > .menu-v-scroll-view,
