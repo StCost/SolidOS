@@ -305,7 +305,7 @@
   right: 0;
   top: -4px;
   height: 8px;
-  cursor: url("cursor-resize-ns.svg?v=2") 11.2 11.2, ns-resize !important;
+  cursor: url("cursor-resize-ns.svg") 11.2 11.2, ns-resize !important;
 }
 
 .os-wm-resize--n {
@@ -313,7 +313,7 @@
   right: 8px;
   top: -4px;
   height: 8px;
-  cursor: url("cursor-resize-ns.svg?v=2") 11.2 11.2, ns-resize !important;
+  cursor: url("cursor-resize-ns.svg") 11.2 11.2, ns-resize !important;
 }
 
 .os-wm-resize--s {
@@ -321,7 +321,7 @@
   right: 8px;
   bottom: -4px;
   height: 8px;
-  cursor: url("cursor-resize-ns.svg?v=2") 11.2 11.2, ns-resize !important;
+  cursor: url("cursor-resize-ns.svg") 11.2 11.2, ns-resize !important;
 }
 
 .os-window--managed .os-wm-resize--e,
@@ -334,7 +334,7 @@
   bottom: 8px;
   right: -4px;
   width: 8px;
-  cursor: url("cursor-resize-ew.svg?v=2") 11.2 11.2, ew-resize !important;
+  cursor: url("cursor-resize-ew.svg") 11.2 11.2, ew-resize !important;
 }
 
 .os-wm-resize--w {
@@ -342,7 +342,7 @@
   bottom: 8px;
   left: -4px;
   width: 8px;
-  cursor: url("cursor-resize-ew.svg?v=2") 11.2 11.2, ew-resize !important;
+  cursor: url("cursor-resize-ew.svg") 11.2 11.2, ew-resize !important;
 }
 
 .os-window--managed .os-wm-resize--ne {
@@ -358,7 +358,7 @@
   right: -4px;
   width: 12px;
   height: 12px;
-  cursor: url("cursor-resize-nwse.svg?v=2") 11.2 11.2, nwse-resize !important;
+  cursor: url("cursor-resize-nwse.svg") 11.2 11.2, nwse-resize !important;
 }
 
 .os-wm-resize--nw {
@@ -366,7 +366,7 @@
   left: -4px;
   width: 12px;
   height: 12px;
-  cursor: url("cursor-resize-nesw.svg?v=2") 11.2 11.2, nesw-resize !important;
+  cursor: url("cursor-resize-nesw.svg") 11.2 11.2, nesw-resize !important;
 }
 
 .os-wm-resize--se {
@@ -374,7 +374,7 @@
   right: -4px;
   width: 12px;
   height: 12px;
-  cursor: url("cursor-resize-nesw.svg?v=2") 11.2 11.2, nesw-resize !important;
+  cursor: url("cursor-resize-nesw.svg") 11.2 11.2, nesw-resize !important;
 }
 
 .os-wm-resize--sw {
@@ -382,7 +382,7 @@
   left: -4px;
   width: 12px;
   height: 12px;
-  cursor: url("cursor-resize-nwse.svg?v=2") 11.2 11.2, nwse-resize !important;
+  cursor: url("cursor-resize-nwse.svg") 11.2 11.2, nwse-resize !important;
 }
 
 .term-overlay .os-window[data-wm-preset] {
