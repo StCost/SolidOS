@@ -1048,18 +1048,21 @@ body[data-icon-drag] * {
   align-content: flex-start;
   gap: 8px;
   padding-bottom: 0.65em;
-  margin-bottom: 0.4em;
+  margin-bottom: 0;
   border-bottom: 1px solid rgba(255, 128, 0, 0.22);
   overflow: visible;
   box-sizing: border-box;
 }
 
 .settings-tab-reset-footer {
-  margin-top: 1.25em;
-  padding-top: 0.85em;
-  border-top: 1px solid rgba(255, 128, 0, 0.18);
+  margin-top: 0;
+  padding: 0.5em;
+  border-top: none;
+  border-bottom: none;
   display: flex;
   justify-content: flex-end;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .credits-intro {
