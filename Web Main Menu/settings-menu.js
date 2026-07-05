@@ -112,7 +112,6 @@
   var settingsHostStateReady = false;
   var contentRoot;
   var tabsRoot;
-  var settingsResetFooterElement;
   var successToastEl;
   var successToastTimer = 0;
 
@@ -181,7 +180,6 @@
     if (window.WebMenuHelpTooltip) {
       window.WebMenuHelpTooltip.hide();
     }
-    settingsResetFooterElement = null;
     releaseSettingsScrollBound();
     contentRoot = null;
     tabsRoot = null;
@@ -1020,16 +1018,8 @@
 
   function appendSettingsResetFooter() {
     if (!contentRoot) return;
-    if (settingsResetFooterElement && contentRoot.contains(settingsResetFooterElement)) {
-      syncSettingsListRowStripes();
-      return;
-    }
-    var existingFooter = contentRoot.querySelector(".settings-tab-reset-footer");
-    if (existingFooter) {
-      settingsResetFooterElement = existingFooter;
-      syncSettingsListRowStripes();
-      return;
-    }
+    if (contentRoot.querySelector(".settings-tab-reset-footer")) return;
+
     var footer = document.createElement("div");
     footer.className = "settings-tab-reset-footer";
     var resetButton = document.createElement("button");
@@ -1050,8 +1040,6 @@
     resetButton.addEventListener("click", onSettingsResetClicked);
     footer.appendChild(resetButton);
     contentRoot.appendChild(footer);
-    settingsResetFooterElement = footer;
-    syncSettingsListRowStripes();
   }
 
   function updateSettingsTabButtonsInPlace(existingTabs) {
@@ -1182,7 +1170,6 @@
     if (window.WebMenuHelpTooltip) {
       window.WebMenuHelpTooltip.hide();
     }
-    settingsResetFooterElement = null;
     contentRoot.textContent = "";
     contentRoot.classList.remove("is-empty");
 
@@ -1225,12 +1212,9 @@
     var labelSpan = document.createElement("span");
     labelSpan.className = "settings-label";
 
-    var textSpan = document.createElement("span");
-    textSpan.className = "settings-label-text term-row-label terminal-text";
-    textSpan.textContent = getFieldLabel(field);
-    labelSpan.appendChild(textSpan);
-
+    var labelText = getFieldLabel(field);
     var helpText = getFieldHelpText(field);
+
     if (helpText) {
       var helpButton = document.createElement("button");
       helpButton.type = "button";
@@ -1244,7 +1228,29 @@
           getLocalized("settings.web.help.title", "Help")
         );
       }
-      labelSpan.appendChild(helpButton);
+
+      var lastSpaceIndex = labelText.lastIndexOf(" ");
+      if (lastSpaceIndex > 0) {
+        var leadingTextSpan = document.createElement("span");
+        leadingTextSpan.className = "settings-label-text term-row-label terminal-text";
+        leadingTextSpan.textContent = labelText.substring(0, lastSpaceIndex + 1);
+        labelSpan.appendChild(leadingTextSpan);
+      }
+
+      var suffixSpan = document.createElement("span");
+      suffixSpan.className = "settings-label-help-suffix";
+
+      var textSpan = document.createElement("span");
+      textSpan.className = "settings-label-text term-row-label terminal-text";
+      textSpan.textContent = lastSpaceIndex > 0 ? labelText.substring(lastSpaceIndex + 1) : labelText;
+      suffixSpan.appendChild(textSpan);
+      suffixSpan.appendChild(helpButton);
+      labelSpan.appendChild(suffixSpan);
+    } else {
+      var textSpan = document.createElement("span");
+      textSpan.className = "settings-label-text term-row-label terminal-text";
+      textSpan.textContent = labelText;
+      labelSpan.appendChild(textSpan);
     }
 
     labelBox.appendChild(labelSpan);
@@ -1409,10 +1415,15 @@
       }
     );
 
-    var optionsStrip = document.createElement("div");
-    optionsStrip.className = "settings-choice-options";
+    var optionsStart = document.createElement("div");
+    optionsStart.className = "settings-choice-options-start";
 
+    var optionsEnd = document.createElement("div");
+    optionsEnd.className = "settings-choice-options-end";
+
+    var optionButtons = [];
     var optionIndex;
+    var lastOptionIndex = options.length - 1;
     for (optionIndex = 0; optionIndex < options.length; optionIndex++) {
       var option = options[optionIndex];
       var optionButton = document.createElement("button");
@@ -1424,7 +1435,7 @@
       optionButton.addEventListener("click", function (event) {
         setFieldValue(field, event.currentTarget.getAttribute("data-option-value"), true);
       });
-      optionsStrip.appendChild(optionButton);
+      optionButtons.push(optionButton);
     }
 
     var nextButton = buildStepButton(
@@ -1436,9 +1447,27 @@
       }
     );
 
-    picker.appendChild(prevButton);
-    picker.appendChild(optionsStrip);
-    picker.appendChild(nextButton);
+    if (options.length === 0) {
+      optionsStart.appendChild(prevButton);
+      optionsEnd.appendChild(nextButton);
+      picker.appendChild(optionsStart);
+      picker.appendChild(optionsEnd);
+    } else if (options.length === 1) {
+      optionsStart.appendChild(prevButton);
+      optionsStart.appendChild(optionButtons[0]);
+      optionsStart.appendChild(nextButton);
+      picker.appendChild(optionsStart);
+    } else {
+      optionsStart.appendChild(prevButton);
+      optionsStart.appendChild(optionButtons[0]);
+      picker.appendChild(optionsStart);
+      for (optionIndex = 1; optionIndex < lastOptionIndex; optionIndex++) {
+        picker.appendChild(optionButtons[optionIndex]);
+      }
+      optionsEnd.appendChild(optionButtons[lastOptionIndex]);
+      optionsEnd.appendChild(nextButton);
+      picker.appendChild(optionsEnd);
+    }
     controlBox.appendChild(picker);
     line.appendChild(labelBox);
     line.appendChild(controlBox);
@@ -2056,7 +2085,6 @@
     percentFormat: percentFormat,
     buildSliderRowForField: buildSliderRow,
     renderControlsOnly: renderControlsOnly,
-    syncSettingsListRowStripes: syncSettingsListRowStripes,
     refreshAllSliderValuePositions: refreshAllSliderValuePositions,
     refreshOnOpen: onSettingsMenuOpen,
     releaseContent: releaseSettingsContent
