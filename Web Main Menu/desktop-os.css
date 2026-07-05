@@ -367,6 +367,10 @@ html.terminal-animations-off .os-start-menu-submenu--opening .os-start-menu-open
   flex-direction: column;
 }
 
+.os-start-menu-flyouts .os-start-menu-submenu[data-start-submenu-nested="true"] {
+  z-index: 22;
+}
+
 .os-start-menu-submenu-host:hover > .os-start-menu-submenu {
   display: none;
 }
