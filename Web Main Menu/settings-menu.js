@@ -7,6 +7,10 @@
   var SETTINGS_SUCCESS_TOAST_VIEWPORT_PADDING_PX = 12;
   var LOCALE_KEY_RESET_DEFAULTS_DONE = "settings.web.reset-defaults-done";
   var LOCALE_KEY_RESET_LAYOUTS_DONE = "settings.web.reset-window-layouts-done";
+  var LOCALE_KEY_RESET_DEFAULTS = "settings.web.reset-defaults";
+  var LOCALE_KEY_RESET_WINDOW_LAYOUTS = "settings.web.reset-window-layouts";
+  var LOCALE_KEY_RESET_CONFIRM = "settings.web.reset-confirm";
+  var SETTINGS_CONFIRM_PENDING_CLASS = "is-settings-confirm-pending";
   var SETTINGS_LIST_ROW_STRIPED_CLASS = "is-settings-list-row-striped";
   var LOCAL_ONLY_SETTING_KEYS = {
     desktopIconScalePercent: true
@@ -960,7 +964,58 @@
 
   }
 
-  function onSettingsResetClicked(event) {
+  function getSettingsConfirmLabel() {
+    return getLocalized(LOCALE_KEY_RESET_CONFIRM, "Are you sure?");
+  }
+
+  function clearSettingsConfirmButton(button) {
+    var labelElement;
+    var labelKey;
+    if (!button) return;
+    button.classList.remove(SETTINGS_CONFIRM_PENDING_CLASS);
+    labelElement = button.querySelector(".term-row-label");
+    if (!labelElement) return;
+    labelKey = button.getAttribute("data-settings-confirm-label-key");
+    if (!labelKey) return;
+    labelElement.setAttribute("data-locale-key", labelKey);
+    labelElement.textContent = getLocalized(labelKey, labelElement.textContent);
+  }
+
+  function setSettingsConfirmButtonPending(button) {
+    var labelElement;
+    if (!button) return;
+    button.classList.add(SETTINGS_CONFIRM_PENDING_CLASS);
+    labelElement = button.querySelector(".term-row-label");
+    if (!labelElement) return;
+    labelElement.removeAttribute("data-locale-key");
+    labelElement.textContent = getSettingsConfirmLabel();
+  }
+
+  function onSettingsConfirmButtonPointerLeave(event) {
+    var button = event.currentTarget;
+    if (!button.classList.contains(SETTINGS_CONFIRM_PENDING_CLASS)) return;
+    clearSettingsConfirmButton(button);
+  }
+
+  function onSettingsConfirmButtonClick(event, onConfirm) {
+    var button = event.currentTarget;
+    if (!button.classList.contains(SETTINGS_CONFIRM_PENDING_CLASS)) {
+      setSettingsConfirmButtonPending(button);
+      return;
+    }
+    clearSettingsConfirmButton(button);
+    onConfirm(event);
+  }
+
+  function bindSettingsConfirmButton(button, labelKey, onConfirm) {
+    button.setAttribute("data-settings-confirm-label-key", labelKey);
+    button.addEventListener("pointerleave", onSettingsConfirmButtonPointerLeave);
+    button.addEventListener("click", function (event) {
+      onSettingsConfirmButtonClick(event, onConfirm);
+    });
+  }
+
+  function performSettingsReset(event) {
     if (window.WebSettingsBridge) {
       resetLocalOnlySettings();
       window.WebSettingsBridge.reset();
@@ -976,6 +1031,18 @@
     showSettingsSuccessToast(
       LOCALE_KEY_RESET_DEFAULTS_DONE,
       "Defaults restored.",
+      event.clientX,
+      event.clientY
+    );
+  }
+
+  function performWindowLayoutsReset(event) {
+    if (window.WebWindowManager && window.WebWindowManager.resetAllLayouts) {
+      window.WebWindowManager.resetAllLayouts();
+    }
+    showSettingsSuccessToast(
+      LOCALE_KEY_RESET_LAYOUTS_DONE,
+      "Window positions reset.",
       event.clientX,
       event.clientY
     );
@@ -1033,11 +1100,12 @@
 
     var label = document.createElement("span");
     label.className = "term-row-label terminal-text";
-    label.textContent = getLocalized("settings.web.reset-defaults", "Reset defaults");
+    label.setAttribute("data-locale-key", LOCALE_KEY_RESET_DEFAULTS);
+    label.textContent = getLocalized(LOCALE_KEY_RESET_DEFAULTS, "Reset all tabs to defaults");
 
     resetButton.appendChild(prefix);
     resetButton.appendChild(label);
-    resetButton.addEventListener("click", onSettingsResetClicked);
+    bindSettingsConfirmButton(resetButton, LOCALE_KEY_RESET_DEFAULTS, performSettingsReset);
     footer.appendChild(resetButton);
     contentRoot.appendChild(footer);
   }
@@ -1269,15 +1337,7 @@
 
   function onSettingsAction(actionId, event) {
     if (actionId === "reset-window-layouts") {
-      if (window.WebWindowManager && window.WebWindowManager.resetAllLayouts) {
-        window.WebWindowManager.resetAllLayouts();
-      }
-      showSettingsSuccessToast(
-        LOCALE_KEY_RESET_LAYOUTS_DONE,
-        "Window positions reset.",
-        event.clientX,
-        event.clientY
-      );
+      performWindowLayoutsReset(event);
     }
   }
 
@@ -1311,9 +1371,13 @@
     buttonLabel.setAttribute("data-locale-key", buttonLabelKey);
     buttonLabel.textContent = getLocalized(buttonLabelKey, buttonLabelKey);
     actionButton.appendChild(buttonLabel);
-    actionButton.addEventListener("click", function (event) {
-      onSettingsAction(field.actionId, event);
-    });
+    if (field.actionId === "reset-window-layouts") {
+      bindSettingsConfirmButton(actionButton, LOCALE_KEY_RESET_WINDOW_LAYOUTS, performWindowLayoutsReset);
+    } else {
+      actionButton.addEventListener("click", function (event) {
+        onSettingsAction(field.actionId, event);
+      });
+    }
 
     controlBox.appendChild(actionButton);
     line.appendChild(labelBox);
@@ -1948,17 +2012,25 @@
   }
 
   function updateNavLabels() {
+    var confirmButtons = document.querySelectorAll("[data-settings-confirm-label-key]");
+    var confirmIndex;
+    for (confirmIndex = 0; confirmIndex < confirmButtons.length; confirmIndex++) {
+      clearSettingsConfirmButton(confirmButtons[confirmIndex]);
+    }
+
     var resetButtons = document.querySelectorAll(".settings-tab-reset-btn .term-row-label");
     var resetIndex;
-    var resetLabelText = getLocalized("settings.web.reset-defaults", "Reset defaults");
+    var resetLabelText = getLocalized(LOCALE_KEY_RESET_DEFAULTS, "Reset all tabs to defaults");
     for (resetIndex = 0; resetIndex < resetButtons.length; resetIndex++) {
+      resetButtons[resetIndex].setAttribute("data-locale-key", LOCALE_KEY_RESET_DEFAULTS);
       resetButtons[resetIndex].textContent = resetLabelText;
     }
     var layoutResetLabels = document.querySelectorAll(
       '.settings-row--action[data-setting-action="reset-window-layouts"] .settings-action-btn .term-row-label'
     );
-    var layoutResetLabelText = getLocalized("settings.web.reset-window-layouts", "Reset positions");
+    var layoutResetLabelText = getLocalized(LOCALE_KEY_RESET_WINDOW_LAYOUTS, "Reset positions");
     for (resetIndex = 0; resetIndex < layoutResetLabels.length; resetIndex++) {
+      layoutResetLabels[resetIndex].setAttribute("data-locale-key", LOCALE_KEY_RESET_WINDOW_LAYOUTS);
       layoutResetLabels[resetIndex].textContent = layoutResetLabelText;
     }
     updateComposeLabels();
