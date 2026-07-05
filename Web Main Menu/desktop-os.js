@@ -2843,6 +2843,31 @@ var WebDesktop = (function () {
     return presetName;
   }
 
+  function getTaskbarTitleLabelFromElement(titleElement, textElement) {
+    var localeKey;
+    var fallbackText;
+    if (textElement) {
+      localeKey = textElement.getAttribute("data-locale-key");
+      fallbackText = textElement.textContent || "";
+      if (localeKey && window.WebLocale && window.WebLocale.get) {
+        return window.WebLocale.get(localeKey, fallbackText);
+      }
+      if (fallbackText) {
+        return fallbackText;
+      }
+    }
+    if (!titleElement) return "";
+    localeKey = titleElement.getAttribute("data-locale-key");
+    fallbackText = titleElement.textContent || "";
+    if (localeKey && window.WebLocale && window.WebLocale.get) {
+      return window.WebLocale.get(localeKey, fallbackText);
+    }
+    if (fallbackText) {
+      return fallbackText;
+    }
+    return "";
+  }
+
   function getTaskbarWindowLabel(windowElement) {
     var titleElement;
     var textElement;
@@ -2850,13 +2875,7 @@ var WebDesktop = (function () {
     titleElement = windowElement.querySelector(".os-window-title");
     if (!titleElement) return "";
     textElement = titleElement.querySelector(".os-window-title-text");
-    if (textElement && textElement.textContent) {
-      return textElement.textContent;
-    }
-    if (titleElement.textContent) {
-      return titleElement.textContent;
-    }
-    return "";
+    return getTaskbarTitleLabelFromElement(titleElement, textElement);
   }
 
   function getGameById(gameId) {
@@ -4688,10 +4707,16 @@ var WebDesktop = (function () {
     window.addEventListener("web-wm-layout-settled", syncTaskbarApps);
     window.addEventListener("web-desktop-windows-restored", syncTaskbarApps);
     window.addEventListener("web-desktop-game-icons-restored", onDesktopGameIconsRestoredForTaskbar);
+    window.addEventListener("web-locale-applied", onTaskbarLocaleApplied);
   }
 
   function onDesktopGameIconsRestoredForTaskbar() {
     syncTaskbarApps();
+  }
+
+  function onTaskbarLocaleApplied() {
+    syncTaskbarApps();
+    updateDesktopWindowsToggleState();
   }
 
   function getGameDesktopIconId(gameId) {
