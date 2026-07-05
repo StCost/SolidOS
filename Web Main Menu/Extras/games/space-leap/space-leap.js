@@ -86,6 +86,7 @@
   var PLANET_RING_CHANCE = 0.5;
   var PLANET_RING_RADIUS_FACTOR = 1.58;
   var PLANET_RING_INNER_FACTOR = 0.9;
+  var PLANET_PRUNE_BEHIND_RATIO = 0.8;
 
   var PLANET_PALETTES = [
     { core: "#3d7ec8", rim: "#8ec8ff", glow: "#1a4080", ring: "rgba(120,200,255,0.22)" },
@@ -471,6 +472,68 @@
       meteoroid = meteoroids[index];
       if (getMeteoroidWorldY(meteoroid) < minKeepY) {
         meteoroids.splice(index, 1);
+      }
+    }
+  }
+
+  function getFirstPlanetKeepIndex() {
+    if (satellite.state === SATELLITE_STATE_ORBITING) {
+      return satellite.planetIndex;
+    }
+    if (satellite.state === SATELLITE_STATE_FLYING) {
+      if (detachedFromPlanetIndex >= 0) {
+        return detachedFromPlanetIndex;
+      }
+      return satellite.planetIndex;
+    }
+    if (satellite.state === SATELLITE_STATE_CAPTURING && satellite.capturePlanetIndex >= 0) {
+      return satellite.capturePlanetIndex;
+    }
+    return 0;
+  }
+
+  function shiftPlanetIndexAfterPrune(planetIndex, removeCount) {
+    if (planetIndex < 0) {
+      return planetIndex;
+    }
+    return planetIndex - removeCount;
+  }
+
+  function cleanupPlanetsBehindCamera() {
+    var pruneMaxWorldY;
+    var firstKeepIndex;
+    var removeCount;
+    var index;
+    var planet;
+    var absorption;
+    if (phase !== PHASE_PLAYING || viewHeight <= 0 || planets.length === 0) {
+      return;
+    }
+    pruneMaxWorldY = cameraY - viewHeight * PLANET_PRUNE_BEHIND_RATIO;
+    firstKeepIndex = getFirstPlanetKeepIndex();
+    removeCount = 0;
+    for (index = 0; index < planets.length; index += 1) {
+      if (index >= firstKeepIndex) {
+        break;
+      }
+      planet = planets[index];
+      if (planet.worldY >= pruneMaxWorldY) {
+        break;
+      }
+      removeCount += 1;
+    }
+    if (removeCount <= 0) {
+      return;
+    }
+    planets.splice(0, removeCount);
+    satellite.planetIndex = shiftPlanetIndexAfterPrune(satellite.planetIndex, removeCount);
+    detachedFromPlanetIndex = shiftPlanetIndexAfterPrune(detachedFromPlanetIndex, removeCount);
+    satellite.capturePlanetIndex = shiftPlanetIndexAfterPrune(satellite.capturePlanetIndex, removeCount);
+    for (index = meteoroidAbsorptions.length - 1; index >= 0; index -= 1) {
+      absorption = meteoroidAbsorptions[index];
+      absorption.planetIndex -= removeCount;
+      if (absorption.planetIndex < 0) {
+        meteoroidAbsorptions.splice(index, 1);
       }
     }
   }
@@ -2199,6 +2262,7 @@
       updateCamera(deltaTime);
       maintainMeteoroidsAhead();
       cleanupMeteoroidsBehindCamera();
+      cleanupPlanetsBehindCamera();
       updateDistanceScore();
     }
 
