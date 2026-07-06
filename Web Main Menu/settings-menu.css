@@ -58,6 +58,10 @@
   box-sizing: border-box;
 }
 
+.settings-content-window .settings-tabs.settings-tabs--toolbar {
+  margin-bottom: 0;
+}
+
 .settings-tabs.settings-tabs--toolbar .settings-tab {
   width: auto !important;
   flex: 0 1 auto;
@@ -170,6 +174,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+  gap: 0;
 }
 
 .settings-scroll {
@@ -191,26 +196,16 @@
 
 .settings-row.settings-row--choice,
 .settings-row.settings-row--slider,
-.settings-row.settings-row--toggle {
+.settings-row.settings-row--toggle,
+.settings-row.settings-row--action {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
   border: none;
   border-bottom: 1px dashed rgba(255, 128, 0, 0.18);
   background: transparent;
-  padding: 0.35em 0 0.5em;
+  padding: 0.5em;
   min-height: 0;
-}
-
-.settings-row.settings-row--slider {
-  min-height: 0;
-}
-
-.settings-row.settings-row--choice:last-child,
-.settings-row.settings-row--slider:last-child,
-.settings-row.settings-row--toggle:last-child {
-  border-bottom: none;
-  padding-bottom: 0.2em;
 }
 
 .settings-field-line {
@@ -269,6 +264,19 @@
 
 .settings-label-text {
   display: inline;
+  vertical-align: top;
+}
+
+.settings-label-help-suffix,
+.settings-label-help-suffix .settings-label-text {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+.settings-label-help-suffix {
+  display: inline-block;
+  max-width: 100%;
   vertical-align: top;
 }
 
@@ -423,7 +431,7 @@
   display: flex;
   align-items: flex-start;
   align-self: auto;
-  padding: 0;
+  padding: 0.12em 0 0 0;
   min-height: 0;
   position: relative;
 }
@@ -628,8 +636,15 @@
   box-sizing: border-box;
 }
 
-.settings-choice-options {
-  display: contents;
+.settings-choice-options-start,
+.settings-choice-options-end {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  flex: 0 0 auto;
+  gap: 0.25em;
+  box-sizing: border-box;
 }
 
 .settings-option-btn {
@@ -886,7 +901,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.5em;
+  gap: 0;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -894,7 +909,6 @@
 
 .settings-controls-block>.settings-row.settings-row--slider {
   flex-shrink: 0;
-  margin-bottom: 0.15em;
   padding-bottom: 0.65em;
 }
 
@@ -911,7 +925,7 @@
   gap: 0.35em;
   width: 100%;
   flex-shrink: 0;
-  padding: 0.35em 0 0.55em;
+  padding: 0.5em;
   border-bottom: 1px dashed rgba(255, 128, 0, 0.18);
   box-sizing: border-box;
 }
@@ -942,7 +956,7 @@
   border: none;
   border-bottom: 1px dashed rgba(255, 128, 0, 0.18);
   background: transparent;
-  padding: 0.35em 0 0.5em;
+  padding: 0.5em;
 }
 
 .settings-field-control-box--bind {
@@ -1007,4 +1021,9 @@
   --settings-switch-motion-ms: 0ms;
   transition: none !important;
   animation: none !important;
+}
+
+.settings-row.is-settings-list-row-striped,
+.settings-tab-reset-footer.is-settings-list-row-striped {
+  background-color: var(--term-list-row-stripe);
 }

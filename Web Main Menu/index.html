@@ -65,6 +65,7 @@
   <link rel="stylesheet" href="menu-new-player-hints.css" />
   <script src="web-local-storage-bootstrap.js"></script>
   <script src="web-local-storage-bridge.js"></script>
+  <script src="menu-taskbar-order-bootstrap.js"></script>
   <script src="menu-background.js"></script>
   <script src="menu-layout-coords.js"></script>
   <script src="menu-window-layouts-bootstrap.js"></script>
@@ -188,13 +189,11 @@
               </button>
               <button type="button" class="os-desktop-icon" data-desktop-icon="worlds">
                 <span class="os-desktop-icon-glyph" aria-hidden="true"></span>
-                <span class="os-desktop-icon-label terminal-text" data-locale-key="web.desktop.icon.worlds">Worlds
-                  List</span>
+                <span class="os-desktop-icon-label terminal-text" data-locale-key="web.desktop.icon.worlds">Worlds</span>
               </button>
               <button type="button" class="os-desktop-icon" data-desktop-icon="servers">
                 <span class="os-desktop-icon-glyph" aria-hidden="true"></span>
-                <span class="os-desktop-icon-label terminal-text" data-locale-key="web.desktop.icon.servers">Servers
-                  List</span>
+                <span class="os-desktop-icon-label terminal-text" data-locale-key="web.desktop.icon.servers">Servers</span>
               </button>
               <button type="button" class="os-desktop-icon" data-desktop-icon="steam">
                 <span class="os-desktop-icon-glyph" aria-hidden="true"></span>
@@ -203,7 +202,7 @@
               </button>
               <button type="button" class="os-desktop-icon" data-desktop-icon="settings">
                 <span class="os-desktop-icon-glyph" aria-hidden="true"></span>
-                <span class="os-desktop-icon-label terminal-text" data-locale-key="menu.settings">Settings</span>
+                <span class="os-desktop-icon-label terminal-text" data-locale-key="web.window.client-settings">Settings</span>
               </button>
               <button type="button" class="os-desktop-icon" data-desktop-icon="games">
                 <span class="os-desktop-icon-glyph" aria-hidden="true"></span>
@@ -520,16 +519,6 @@
                 <div class="menu-v-scroll-clip">
                   <div class="extras-scroll extras-scroll--game menu-v-scroll-view" role="region" aria-label="Game">
                     <div class="extras-view extras-view--game" id="extrasViewGamePlay">
-                      <div class="extras-game-toolbar">
-                        <button type="button" class="extras-game-desktop-link-option"
-                          id="btnExtrasGamePlayDesktopLinkSwitch" aria-pressed="false">
-                          <span class="settings-switch extras-game-desktop-link-switch-visual" aria-hidden="true">
-                            <span class="settings-switch-track"><span class="settings-switch-thumb"></span></span>
-                          </span>
-                          <span class="extras-game-desktop-link-label terminal-text"
-                            data-locale-key="web.extras.game.link-on-desktop">Link on Desktop</span>
-                        </button>
-                      </div>
                       <div id="extrasGamePlayKeyboardFocus" tabindex="0" aria-hidden="true"
                         class="extras-game-keyboard-focus"></div>
                       <iframe class="extras-game-frame" id="extrasGamePlayFrame" title="Extras game"></iframe>
@@ -642,13 +631,32 @@
         </div>
 
         <header class="os-statusbar os-statusbar--bottom" aria-hidden="true">
-          <button type="button" class="os-statusbar-segment os-statusbar-node-button terminal-text--dim"
-            id="osStatusNode" data-locale-key="web.status.node">SolidOS</button>
+          <div class="os-taskbar-start">
+            <button type="button" class="os-statusbar-segment os-statusbar-node-button terminal-text--dim"
+              id="osStatusNode" aria-expanded="false" aria-controls="osStartMenu" aria-haspopup="menu">
+              <img class="os-statusbar-node-icon" src="solidos-molecule.svg" width="18" height="18" alt=""
+                decoding="async" draggable="false" />
+              <span class="os-statusbar-node-label" data-locale-key="web.status.node">SolidOS</span>
+            </button>
+            <nav class="os-taskbar-apps" id="osTaskbarApps" data-locale-aria-label="web.aria.taskbar-apps"
+              aria-label="Open windows"></nav>
+            <div class="os-start-menu" id="osStartMenu" hidden role="menu" aria-labelledby="osStatusNode">
+              <div class="os-start-menu-body-shell">
+                <div class="menu-v-scroll-clip os-start-menu-scroll-clip">
+                  <div class="menu-v-scroll-view os-start-menu-scroll" id="osStartMenuScroll">
+                    <div class="os-start-menu-list" id="osStartMenuList" role="none"></div>
+                  </div>
+                </div>
+                <div class="os-start-menu-open-reveal" aria-hidden="true"></div>
+              </div>
+              <div class="os-start-menu-flyouts" id="osStartMenuFlyouts"></div>
+            </div>
+          </div>
           <span class="os-statusbar-segment os-statusbar-segment--right terminal-text--dim">
             <span class="os-clock">00:00:00</span>
+            <button type="button" class="os-statusbar-windows-toggle os-window-control" id="desktopWindowsToggle"
+              data-locale-aria-label="web.status.windows-minimize-all" aria-label="Minimize all windows"></button>
           </span>
-          <button type="button" class="os-statusbar-windows-toggle os-window-control" id="desktopWindowsToggle"
-            aria-label="Minimize all windows"></button>
         </header>
       </div>
     </div>

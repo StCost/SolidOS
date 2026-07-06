@@ -132,13 +132,10 @@
     viewGame = windowElement.querySelector(".extras-view--game");
     gameFrame = windowElement.querySelector(".extras-game-frame");
     gameKeyboardFocus = windowElement.querySelector(".extras-game-keyboard-focus");
-    btnExtrasGameDesktopLinkSwitch = windowElement.querySelector(".extras-game-desktop-link-option");
     activeGameId = getGamePlayWindowGameId(windowElement);
     bindGameFrameInteraction(gameFrame, gameKeyboardFocus);
-    bindGameDesktopLinkSwitch(btnExtrasGameDesktopLinkSwitch);
     if (activeGameId) {
       currentView = VIEW_GAME;
-      updateGameDesktopLinkSwitch(VIEW_GAME);
     }
   }
 
@@ -2001,8 +1998,6 @@
       }
     });
   }
-
-  bindGameDesktopLinkSwitch(btnExtrasGameDesktopLinkSwitch);
 
   var btnLinkOverlayConfirm = document.getElementById("extrasLinkOverlayConfirm");
   if (btnLinkOverlayConfirm) btnLinkOverlayConfirm.addEventListener("click", onLinkOverlayConfirm);

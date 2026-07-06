@@ -7,6 +7,13 @@
   var SETTINGS_SUCCESS_TOAST_VIEWPORT_PADDING_PX = 12;
   var LOCALE_KEY_RESET_DEFAULTS_DONE = "settings.web.reset-defaults-done";
   var LOCALE_KEY_RESET_LAYOUTS_DONE = "settings.web.reset-window-layouts-done";
+  var LOCALE_KEY_RESET_DEFAULTS = "settings.web.reset-defaults";
+  var LOCALE_KEY_RESET_WINDOW_LAYOUTS = "settings.web.reset-window-layouts";
+  var LOCALE_KEY_RESET_DESKTOP_LINKS = "settings.web.reset-desktop-links";
+  var LOCALE_KEY_RESET_DESKTOP_LINKS_DONE = "settings.web.reset-desktop-links-done";
+  var LOCALE_KEY_RESET_CONFIRM = "settings.web.reset-confirm";
+  var SETTINGS_CONFIRM_PENDING_CLASS = "is-settings-confirm-pending";
+  var SETTINGS_LIST_ROW_STRIPED_CLASS = "is-settings-list-row-striped";
   var LOCAL_ONLY_SETTING_KEYS = {
     desktopIconScalePercent: true
   };
@@ -111,7 +118,6 @@
   var settingsHostStateReady = false;
   var contentRoot;
   var tabsRoot;
-  var settingsResetFooterElement;
   var successToastEl;
   var successToastTimer = 0;
 
@@ -180,7 +186,6 @@
     if (window.WebMenuHelpTooltip) {
       window.WebMenuHelpTooltip.hide();
     }
-    settingsResetFooterElement = null;
     releaseSettingsScrollBound();
     contentRoot = null;
     tabsRoot = null;
@@ -371,6 +376,12 @@
           max: 300,
           step: 5,
           format: percentFormat
+        },
+        {
+          type: "action",
+          actionId: "reset-desktop-links",
+          labelKey: "settings.web.desktop-links",
+          buttonLabelKey: "settings.web.reset-desktop-links"
         },
         {
           type: "action",
@@ -961,7 +972,77 @@
 
   }
 
-  function onSettingsResetClicked(event) {
+  function getSettingsConfirmLabel() {
+    return getLocalized(LOCALE_KEY_RESET_CONFIRM, "Are you sure?");
+  }
+
+  function clearSettingsConfirmButton(button) {
+    var labelElement;
+    var labelKey;
+    if (!button) return;
+    button.classList.remove(SETTINGS_CONFIRM_PENDING_CLASS);
+    labelElement = button.querySelector(".term-row-label");
+    if (!labelElement) return;
+    labelKey = button.getAttribute("data-settings-confirm-label-key");
+    if (!labelKey) return;
+    labelElement.setAttribute("data-locale-key", labelKey);
+    labelElement.textContent = getLocalized(labelKey, labelElement.textContent);
+  }
+
+  function setSettingsConfirmButtonPending(button) {
+    var labelElement;
+    if (!button) return;
+    button.classList.add(SETTINGS_CONFIRM_PENDING_CLASS);
+    labelElement = button.querySelector(".term-row-label");
+    if (!labelElement) return;
+    labelElement.removeAttribute("data-locale-key");
+    labelElement.textContent = getSettingsConfirmLabel();
+  }
+
+  function onSettingsConfirmButtonPointerLeave(event) {
+    var button = event.currentTarget;
+    if (!button.classList.contains(SETTINGS_CONFIRM_PENDING_CLASS)) return;
+    clearSettingsConfirmButton(button);
+  }
+
+  function onSettingsConfirmButtonClick(event, onConfirm) {
+    var button = event.currentTarget;
+    if (!button.classList.contains(SETTINGS_CONFIRM_PENDING_CLASS)) {
+      setSettingsConfirmButtonPending(button);
+      return;
+    }
+    clearSettingsConfirmButton(button);
+    onConfirm(event);
+  }
+
+  function onSettingsResetActionConfirmButtonClick(event) {
+    var button = event.currentTarget;
+    var actionId;
+    if (!button.classList.contains(SETTINGS_CONFIRM_PENDING_CLASS)) {
+      setSettingsConfirmButtonPending(button);
+      return;
+    }
+    actionId = button.getAttribute("data-settings-confirm-action-id") || "";
+    clearSettingsConfirmButton(button);
+    runSettingsResetConfirmAction(actionId, event);
+  }
+
+  function bindSettingsResetConfirmActionButton(button, actionId, labelKey) {
+    button.setAttribute("data-settings-confirm-label-key", labelKey);
+    button.setAttribute("data-settings-confirm-action-id", actionId);
+    button.addEventListener("pointerleave", onSettingsConfirmButtonPointerLeave);
+    button.addEventListener("click", onSettingsResetActionConfirmButtonClick);
+  }
+
+  function bindSettingsConfirmButton(button, labelKey, onConfirm) {
+    button.setAttribute("data-settings-confirm-label-key", labelKey);
+    button.addEventListener("pointerleave", onSettingsConfirmButtonPointerLeave);
+    button.addEventListener("click", function (event) {
+      onSettingsConfirmButtonClick(event, onConfirm);
+    });
+  }
+
+  function performSettingsReset(event) {
     if (window.WebSettingsBridge) {
       resetLocalOnlySettings();
       window.WebSettingsBridge.reset();
@@ -982,16 +1063,89 @@
     );
   }
 
+  function performWindowLayoutsReset(event) {
+    if (window.WebWindowManager && window.WebWindowManager.resetAllLayouts) {
+      window.WebWindowManager.resetAllLayouts();
+    }
+    showSettingsSuccessToast(
+      LOCALE_KEY_RESET_LAYOUTS_DONE,
+      "Window positions reset.",
+      event.clientX,
+      event.clientY
+    );
+  }
+
+  function isSettingsResetConfirmAction(actionId) {
+    return actionId === "reset-window-layouts" || actionId === "reset-desktop-links";
+  }
+
+  function getSettingsResetConfirmLabelKey(actionId) {
+    if (actionId === "reset-window-layouts") return LOCALE_KEY_RESET_WINDOW_LAYOUTS;
+    if (actionId === "reset-desktop-links") return LOCALE_KEY_RESET_DESKTOP_LINKS;
+    return "";
+  }
+
+  function runSettingsResetConfirmAction(actionId, event) {
+    if (actionId === "reset-window-layouts") {
+      performWindowLayoutsReset(event);
+      return;
+    }
+    if (actionId === "reset-desktop-links") {
+      performDesktopLinksReset(event);
+    }
+  }
+
+  function performDesktopLinksReset(event) {
+    if (window.WebDesktop && window.WebDesktop.resetAllDesktopLinks) {
+      window.WebDesktop.resetAllDesktopLinks();
+    }
+    showSettingsSuccessToast(
+      LOCALE_KEY_RESET_DESKTOP_LINKS_DONE,
+      "Default desktop links restored.",
+      event.clientX,
+      event.clientY
+    );
+  }
+
+  function collectSettingsListRowElements() {
+    var rows = [];
+    var childIndex;
+    var blockChildIndex;
+    if (!contentRoot) return rows;
+    for (childIndex = 0; childIndex < contentRoot.children.length; childIndex++) {
+      var child = contentRoot.children[childIndex];
+      if (child.classList.contains("settings-row")) {
+        rows.push(child);
+      } else if (child.classList.contains("settings-controls-block")) {
+        for (blockChildIndex = 0; blockChildIndex < child.children.length; blockChildIndex++) {
+          var blockChild = child.children[blockChildIndex];
+          if (blockChild.classList.contains("settings-row")) {
+            rows.push(blockChild);
+          }
+        }
+      } else if (child.classList.contains("settings-tab-reset-footer")) {
+        rows.push(child);
+      }
+    }
+    return rows;
+  }
+
+  function syncSettingsListRowStripes() {
+    var rows = collectSettingsListRowElements();
+    var index;
+    for (index = 0; index < rows.length; index++) {
+      if ((index + 1) % 2 === 0) {
+        rows[index].classList.add(SETTINGS_LIST_ROW_STRIPED_CLASS);
+      } else {
+        rows[index].classList.remove(SETTINGS_LIST_ROW_STRIPED_CLASS);
+      }
+    }
+  }
+
   function appendSettingsResetFooter() {
     if (!contentRoot) return;
-    if (settingsResetFooterElement && contentRoot.contains(settingsResetFooterElement)) {
-      return;
-    }
-    var existingFooter = contentRoot.querySelector(".settings-tab-reset-footer");
-    if (existingFooter) {
-      settingsResetFooterElement = existingFooter;
-      return;
-    }
+    if (contentRoot.querySelector(".settings-tab-reset-footer")) return;
+
     var footer = document.createElement("div");
     footer.className = "settings-tab-reset-footer";
     var resetButton = document.createElement("button");
@@ -1005,14 +1159,14 @@
 
     var label = document.createElement("span");
     label.className = "term-row-label terminal-text";
-    label.textContent = getLocalized("settings.web.reset-defaults", "Reset defaults");
+    label.setAttribute("data-locale-key", LOCALE_KEY_RESET_DEFAULTS);
+    label.textContent = getLocalized(LOCALE_KEY_RESET_DEFAULTS, "Reset all tabs to defaults");
 
     resetButton.appendChild(prefix);
     resetButton.appendChild(label);
-    resetButton.addEventListener("click", onSettingsResetClicked);
+    bindSettingsConfirmButton(resetButton, LOCALE_KEY_RESET_DEFAULTS, performSettingsReset);
     footer.appendChild(resetButton);
     contentRoot.appendChild(footer);
-    settingsResetFooterElement = footer;
   }
 
   function updateSettingsTabButtonsInPlace(existingTabs) {
@@ -1143,12 +1297,12 @@
     if (window.WebMenuHelpTooltip) {
       window.WebMenuHelpTooltip.hide();
     }
-    settingsResetFooterElement = null;
     contentRoot.textContent = "";
     contentRoot.classList.remove("is-empty");
 
     if (activeTabId === "controls") {
       renderControlsOnly();
+      syncSettingsListRowStripes();
       return;
     }
 
@@ -1171,6 +1325,7 @@
       contentRoot.classList.add("is-empty");
     }
     appendSettingsResetFooter();
+    syncSettingsListRowStripes();
     refreshAllSliderFillVisuals();
     if (window.WebNewPlayerHints && window.WebNewPlayerHints.syncLanguageHint) {
       window.WebNewPlayerHints.syncLanguageHint();
@@ -1184,12 +1339,9 @@
     var labelSpan = document.createElement("span");
     labelSpan.className = "settings-label";
 
-    var textSpan = document.createElement("span");
-    textSpan.className = "settings-label-text term-row-label terminal-text";
-    textSpan.textContent = getFieldLabel(field);
-    labelSpan.appendChild(textSpan);
-
+    var labelText = getFieldLabel(field);
     var helpText = getFieldHelpText(field);
+
     if (helpText) {
       var helpButton = document.createElement("button");
       helpButton.type = "button";
@@ -1203,7 +1355,29 @@
           getLocalized("settings.web.help.title", "Help")
         );
       }
-      labelSpan.appendChild(helpButton);
+
+      var lastSpaceIndex = labelText.lastIndexOf(" ");
+      if (lastSpaceIndex > 0) {
+        var leadingTextSpan = document.createElement("span");
+        leadingTextSpan.className = "settings-label-text term-row-label terminal-text";
+        leadingTextSpan.textContent = labelText.substring(0, lastSpaceIndex + 1);
+        labelSpan.appendChild(leadingTextSpan);
+      }
+
+      var suffixSpan = document.createElement("span");
+      suffixSpan.className = "settings-label-help-suffix";
+
+      var textSpan = document.createElement("span");
+      textSpan.className = "settings-label-text term-row-label terminal-text";
+      textSpan.textContent = lastSpaceIndex > 0 ? labelText.substring(lastSpaceIndex + 1) : labelText;
+      suffixSpan.appendChild(textSpan);
+      suffixSpan.appendChild(helpButton);
+      labelSpan.appendChild(suffixSpan);
+    } else {
+      var textSpan = document.createElement("span");
+      textSpan.className = "settings-label-text term-row-label terminal-text";
+      textSpan.textContent = labelText;
+      labelSpan.appendChild(textSpan);
     }
 
     labelBox.appendChild(labelSpan);
@@ -1221,17 +1395,7 @@
   }
 
   function onSettingsAction(actionId, event) {
-    if (actionId === "reset-window-layouts") {
-      if (window.WebWindowManager && window.WebWindowManager.resetAllLayouts) {
-        window.WebWindowManager.resetAllLayouts();
-      }
-      showSettingsSuccessToast(
-        LOCALE_KEY_RESET_LAYOUTS_DONE,
-        "Window positions reset.",
-        event.clientX,
-        event.clientY
-      );
-    }
+    runSettingsResetConfirmAction(actionId, event);
   }
 
   function buildActionRow(field) {
@@ -1253,7 +1417,7 @@
     actionButton.type = "button";
     actionButton.className = "term-row settings-action-btn";
     var buttonLabelKey = field.buttonLabelKey || field.labelKey;
-    if (field.actionId === "reset-window-layouts") {
+    if (isSettingsResetConfirmAction(field.actionId)) {
       var actionPrefix = document.createElement("span");
       actionPrefix.className = "term-row-prefix terminal-text--dim";
       actionPrefix.textContent = "[!]";
@@ -1264,9 +1428,17 @@
     buttonLabel.setAttribute("data-locale-key", buttonLabelKey);
     buttonLabel.textContent = getLocalized(buttonLabelKey, buttonLabelKey);
     actionButton.appendChild(buttonLabel);
-    actionButton.addEventListener("click", function (event) {
-      onSettingsAction(field.actionId, event);
-    });
+    if (isSettingsResetConfirmAction(field.actionId)) {
+      bindSettingsResetConfirmActionButton(
+        actionButton,
+        field.actionId,
+        getSettingsResetConfirmLabelKey(field.actionId)
+      );
+    } else {
+      actionButton.addEventListener("click", function (event) {
+        onSettingsAction(field.actionId, event);
+      });
+    }
 
     controlBox.appendChild(actionButton);
     line.appendChild(labelBox);
@@ -1368,10 +1540,15 @@
       }
     );
 
-    var optionsStrip = document.createElement("div");
-    optionsStrip.className = "settings-choice-options";
+    var optionsStart = document.createElement("div");
+    optionsStart.className = "settings-choice-options-start";
 
+    var optionsEnd = document.createElement("div");
+    optionsEnd.className = "settings-choice-options-end";
+
+    var optionButtons = [];
     var optionIndex;
+    var lastOptionIndex = options.length - 1;
     for (optionIndex = 0; optionIndex < options.length; optionIndex++) {
       var option = options[optionIndex];
       var optionButton = document.createElement("button");
@@ -1383,7 +1560,7 @@
       optionButton.addEventListener("click", function (event) {
         setFieldValue(field, event.currentTarget.getAttribute("data-option-value"), true);
       });
-      optionsStrip.appendChild(optionButton);
+      optionButtons.push(optionButton);
     }
 
     var nextButton = buildStepButton(
@@ -1395,9 +1572,27 @@
       }
     );
 
-    picker.appendChild(prevButton);
-    picker.appendChild(optionsStrip);
-    picker.appendChild(nextButton);
+    if (options.length === 0) {
+      optionsStart.appendChild(prevButton);
+      optionsEnd.appendChild(nextButton);
+      picker.appendChild(optionsStart);
+      picker.appendChild(optionsEnd);
+    } else if (options.length === 1) {
+      optionsStart.appendChild(prevButton);
+      optionsStart.appendChild(optionButtons[0]);
+      optionsStart.appendChild(nextButton);
+      picker.appendChild(optionsStart);
+    } else {
+      optionsStart.appendChild(prevButton);
+      optionsStart.appendChild(optionButtons[0]);
+      picker.appendChild(optionsStart);
+      for (optionIndex = 1; optionIndex < lastOptionIndex; optionIndex++) {
+        picker.appendChild(optionButtons[optionIndex]);
+      }
+      optionsEnd.appendChild(optionButtons[lastOptionIndex]);
+      optionsEnd.appendChild(nextButton);
+      picker.appendChild(optionsEnd);
+    }
     controlBox.appendChild(picker);
     line.appendChild(labelBox);
     line.appendChild(controlBox);
@@ -1878,18 +2073,34 @@
   }
 
   function updateNavLabels() {
+    var confirmButtons = document.querySelectorAll("[data-settings-confirm-label-key]");
+    var confirmIndex;
+    for (confirmIndex = 0; confirmIndex < confirmButtons.length; confirmIndex++) {
+      clearSettingsConfirmButton(confirmButtons[confirmIndex]);
+    }
+
     var resetButtons = document.querySelectorAll(".settings-tab-reset-btn .term-row-label");
     var resetIndex;
-    var resetLabelText = getLocalized("settings.web.reset-defaults", "Reset defaults");
+    var resetLabelText = getLocalized(LOCALE_KEY_RESET_DEFAULTS, "Reset all tabs to defaults");
     for (resetIndex = 0; resetIndex < resetButtons.length; resetIndex++) {
+      resetButtons[resetIndex].setAttribute("data-locale-key", LOCALE_KEY_RESET_DEFAULTS);
       resetButtons[resetIndex].textContent = resetLabelText;
     }
     var layoutResetLabels = document.querySelectorAll(
       '.settings-row--action[data-setting-action="reset-window-layouts"] .settings-action-btn .term-row-label'
     );
-    var layoutResetLabelText = getLocalized("settings.web.reset-window-layouts", "Reset positions");
+    var layoutResetLabelText = getLocalized(LOCALE_KEY_RESET_WINDOW_LAYOUTS, "Reset positions");
     for (resetIndex = 0; resetIndex < layoutResetLabels.length; resetIndex++) {
+      layoutResetLabels[resetIndex].setAttribute("data-locale-key", LOCALE_KEY_RESET_WINDOW_LAYOUTS);
       layoutResetLabels[resetIndex].textContent = layoutResetLabelText;
+    }
+    var desktopLinksResetLabels = document.querySelectorAll(
+      '.settings-row--action[data-setting-action="reset-desktop-links"] .settings-action-btn .term-row-label'
+    );
+    var desktopLinksResetLabelText = getLocalized(LOCALE_KEY_RESET_DESKTOP_LINKS, "Reset links");
+    for (resetIndex = 0; resetIndex < desktopLinksResetLabels.length; resetIndex++) {
+      desktopLinksResetLabels[resetIndex].setAttribute("data-locale-key", LOCALE_KEY_RESET_DESKTOP_LINKS);
+      desktopLinksResetLabels[resetIndex].textContent = desktopLinksResetLabelText;
     }
     updateComposeLabels();
   }
