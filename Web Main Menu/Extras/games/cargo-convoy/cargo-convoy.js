@@ -324,106 +324,6 @@
     return window.WebExtrasGameSynthAudio;
   }
 
-  var CRYSTAL_AUDIO_COUNT = 3;
-  var CRYSTAL_AUDIO_FILES = [
-    "ui-deep-collapse-crystal-01.wav",
-    "ui-deep-collapse-crystal-02.wav",
-    "ui-deep-collapse-crystal-03.wav"
-  ];
-  var CRYSTAL_AUDIO_PATHS = [
-    "../../../../audio/ui-deep-collapse-crystal-01.wav",
-    "../../../../audio/ui-deep-collapse-crystal-02.wav",
-    "../../../../audio/ui-deep-collapse-crystal-03.wav"
-  ];
-  var crystalAudioElements = null;
-  var pendingCrystalCollectSoundCount = 0;
-
-  function getArcadeGamesOutputVolume() {
-    if (window.WebExtrasGameAudioVolume && window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume) {
-      return window.WebExtrasGameAudioVolume.getArcadeGamesOutputVolume();
-    }
-    return 0.5;
-  }
-
-  function getCrystalSoundPath(soundIndex) {
-    if (window.WebExtrasGameUiAudioPaths && window.WebExtrasGameUiAudioPaths.getUiSoundPath) {
-      return window.WebExtrasGameUiAudioPaths.getUiSoundPath(CRYSTAL_AUDIO_FILES[soundIndex]);
-    }
-    return CRYSTAL_AUDIO_PATHS[soundIndex];
-  }
-
-  function ensureCrystalAudio() {
-    var soundIndex;
-    var audioElement;
-    if (crystalAudioElements) {
-      return true;
-    }
-    crystalAudioElements = [];
-    for (soundIndex = 0; soundIndex < CRYSTAL_AUDIO_COUNT; soundIndex += 1) {
-      audioElement = new Audio(getCrystalSoundPath(soundIndex));
-      audioElement.preload = "auto";
-      crystalAudioElements.push(audioElement);
-    }
-    return true;
-  }
-
-  function getCrystalSoundVolume() {
-    return getArcadeGamesOutputVolume();
-  }
-
-  function playCrystalSoundAtIndex(soundIndex, soundVolume) {
-    var audio;
-    var playPromise;
-    if (!ensureCrystalAudio()) {
-      return;
-    }
-    audio = crystalAudioElements[soundIndex].cloneNode();
-    audio.volume = soundVolume;
-    playPromise = audio.play();
-    if (playPromise && playPromise.catch) {
-      playPromise.catch(function () {});
-    }
-  }
-
-  function playCrystalCollectSounds(collectCount) {
-    var soundIndex;
-    var randomIndex;
-    var playIndex;
-    var soundVolume;
-    if (!collectCount || collectCount < 1) {
-      return;
-    }
-    if (!ensureCrystalAudio()) {
-      return;
-    }
-    if (collectCount >= CRYSTAL_AUDIO_COUNT) {
-      soundVolume = getCrystalSoundVolume();
-      for (soundIndex = 0; soundIndex < CRYSTAL_AUDIO_COUNT; soundIndex += 1) {
-        playCrystalSoundAtIndex(soundIndex, soundVolume);
-      }
-      return;
-    }
-    soundVolume = getCrystalSoundVolume();
-    for (playIndex = 0; playIndex < collectCount; playIndex += 1) {
-      randomIndex = Math.floor(Math.random() * CRYSTAL_AUDIO_COUNT);
-      playCrystalSoundAtIndex(randomIndex, soundVolume);
-    }
-  }
-
-  function queueCrystalCollectSound() {
-    pendingCrystalCollectSoundCount += 1;
-  }
-
-  function flushCrystalCollectSounds() {
-    var collectCount;
-    if (pendingCrystalCollectSoundCount < 1) {
-      return;
-    }
-    collectCount = pendingCrystalCollectSoundCount;
-    pendingCrystalCollectSoundCount = 0;
-    playCrystalCollectSounds(collectCount);
-  }
-
   function getLocaleApi() {
     if (window.WebLocale) {
       return window.WebLocale;
@@ -2355,7 +2255,6 @@
     simulationFrameIndex = 0;
     distanceTraveled = 0;
     crystalCount = 0;
-    pendingCrystalCollectSoundCount = 0;
     scrollSpeed = SCROLL_SPEED_BASE;
     enemySpawnTimer = 2.5;
     minefieldSpawnTimer = 11;
@@ -2500,7 +2399,6 @@
     if (getSynth()) {
       getSynth().ensureContext();
     }
-    ensureCrystalAudio();
     if (getSynth()) {
       getSynth().playGameStart();
     }
@@ -5105,7 +5003,9 @@
     crystals.splice(index, 1);
     tryAutoSpawnEscorts();
     syncPlayingHud();
-    queueCrystalCollectSound();
+    if (getSynth()) {
+      getSynth().playCollect();
+    }
   }
 
   function getUnitCrystalCollectRadius(unit) {
@@ -5773,7 +5673,6 @@
     updateCrystalAutoCollect(deltaSeconds);
     updateCrystalCollection();
     updateUnitCrystalCollection();
-    flushCrystalCollectSounds();
     updateCamera(deltaSeconds);
     updateDistanceTraveledFromTruck(truckXBeforeScroll, scrollMove);
     cleanupOffScreenUnits();
