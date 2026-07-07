@@ -978,6 +978,16 @@
     crosshairElement.classList.toggle("is-visible", shouldShow);
   }
 
+  function clearCrosshairScreenPosition() {
+    bindCrosshairDom();
+    if (!crosshairElement) return;
+    crosshairElement.style.removeProperty("left");
+    crosshairElement.style.removeProperty("top");
+    crosshairElement.style.removeProperty("transform");
+    crosshairElement.style.removeProperty("position");
+    crosshairElement.style.removeProperty("z-index");
+  }
+
   function applyCrosshairState(payload) {
     if (!payload) return;
     pendingCrosshairState = {
@@ -988,10 +998,27 @@
     };
     bindCrosshairDom();
     if (!crosshairElement) return;
+    if (!payload.useScreenPosition) clearCrosshairScreenPosition();
     crosshairElement.classList.remove("is-mode-normal", "is-mode-can-interact", "is-mode-interacting");
     crosshairElement.classList.add(getCrosshairModeClassName(pendingCrosshairState.mode));
     applyCrosshairSizeToElement();
     applyCrosshairVisibilityFromState();
+  }
+
+  function applyCrosshairAtScreen(payload) {
+    applyCrosshairState(payload);
+    bindCrosshairDom();
+    if (!crosshairElement) return;
+    if (!payload || !payload.visible || !payload.useScreenPosition) {
+      clearCrosshairScreenPosition();
+      return;
+    }
+    crosshairElement.style.position = "fixed";
+    crosshairElement.style.left = payload.screenX + "px";
+    crosshairElement.style.top = payload.screenY + "px";
+    crosshairElement.style.transform = "translate(-50%, -50%)";
+    crosshairElement.style.pointerEvents = "none";
+    crosshairElement.style.zIndex = "99999";
   }
 
   function applyDefaultCrosshairState() {
@@ -1954,6 +1981,7 @@
     applyInventoryState: applyInventoryState,
     applyHealthState: applyHealthState,
     applyCrosshairState: applyCrosshairState,
+    applyCrosshairAtScreen: applyCrosshairAtScreen,
     setSlotIcon: setSlotIcon,
     applyIconUpdates: applyIconUpdates,
     addChatMessage: addChatMessage,
