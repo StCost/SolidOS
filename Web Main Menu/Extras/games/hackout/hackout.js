@@ -1682,11 +1682,10 @@
       return;
     }
     if (cell.cellType === CELL_SYMBOL) {
+      highlightCellElement(cell.element);
       bracketPairId = getBracketPairIdForCellIndex(cell.cellIndex);
       if (bracketPairId >= 0) {
         highlightBracketPairCells(bracketPairId);
-      } else {
-        highlightCellElement(cell.element);
       }
       return;
     }
