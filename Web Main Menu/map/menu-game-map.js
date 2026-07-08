@@ -130,9 +130,6 @@
     panelElement.id = "gameMapPanel";
     panelElement.hidden = true;
 
-    panelIconsElement = createDiv("game-map-panel-icons", panelElement);
-    panelColorsElement = createDiv("game-map-panel-colors", panelElement);
-
     panelInputElement = document.createElement("input");
     panelInputElement.type = "text";
     panelInputElement.className = "game-map-panel-input";
@@ -156,13 +153,10 @@
     createDiv("settings-switch-thumb", switchTrack);
     pinnedRow.appendChild(panelPinnedElement);
 
+    panelIconsElement = createDiv("game-map-panel-icons", panelElement);
+    panelColorsElement = createDiv("game-map-panel-colors", panelElement);
+
     var actions = createDiv("game-map-panel-actions", panelElement);
-    panelCancelButton = document.createElement("button");
-    panelCancelButton.type = "button";
-    panelCancelButton.className = "game-map-panel-button game-map-panel-button--lead";
-    panelCancelButton.setAttribute("data-locale-key", "web.generic.cancel");
-    panelCancelButton.textContent = localeText("web.generic.cancel", "Cancel");
-    actions.appendChild(panelCancelButton);
 
     panelDeleteButton = document.createElement("button");
     panelDeleteButton.type = "button";
@@ -180,7 +174,6 @@
 
     panelSaveButton.addEventListener("click", onPanelSave);
     panelDeleteButton.addEventListener("click", onPanelDelete);
-    panelCancelButton.addEventListener("click", onPanelCancel);
     panelPinnedElement.addEventListener("click", onPinnedToggle);
     panelInputElement.addEventListener("keydown", onPanelInputKeyDown);
     panelInputElement.addEventListener("focus", onPanelInputFocus);
