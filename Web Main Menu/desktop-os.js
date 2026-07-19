@@ -2,6 +2,13 @@ var WebDesktop = (function () {
   var ICON_LAYOUTS_STORAGE_KEY = "cm-menu-icon-layouts";
   var GAME_DESKTOP_LINKS_STORAGE_KEY = "cm-menu-game-desktop-links";
   var DESKTOP_ICON_VISIBILITY_STORAGE_KEY = "cm-menu-desktop-icon-visibility";
+  var DESKTOP_ICON_DEFAULT_VISIBLE = {
+    worlds: true,
+    steam: true,
+    settings: true,
+    quit: true,
+    disconnect: true
+  };
   var TASKBAR_ORDER_STORAGE_KEY = "cm-menu-taskbar-order";
   var TASKBAR_APP_ICON_PIXEL_SIZE = 16;
   var TASKBAR_DRAG_START_THRESHOLD_PX = 8;
@@ -2761,7 +2768,13 @@ var WebDesktop = (function () {
     if (Object.prototype.hasOwnProperty.call(desktopIconVisibilityTable, iconId)) {
       return desktopIconVisibilityTable[iconId] !== false;
     }
-    return true;
+    if (Object.prototype.hasOwnProperty.call(DESKTOP_ICON_DEFAULT_VISIBLE, iconId)) {
+      return DESKTOP_ICON_DEFAULT_VISIBLE[iconId] === true;
+    }
+    if (iconId.indexOf(START_MENU_GAME_ICON_PREFIX) === 0) {
+      return true;
+    }
+    return false;
   }
 
   function writeDesktopIconVisibilityToStorage() {
@@ -5153,6 +5166,22 @@ var WebDesktop = (function () {
     dispatchGameDesktopIconsRestored();
   }
 
+  function onLocalStorageRestoredFromUnity() {
+    window.__cmIconLayoutsPayload = null;
+    window.__cmTaskbarOrderPayload = null;
+    desktopIconVisibilityTable = {};
+    loadDesktopIconVisibilityFromStorage();
+    applyAllDesktopIconVisibility();
+    populateDefaultIconLayoutTable();
+    mergePersistedIconLayoutPayload(getPersistedIconLayoutsPayload());
+    applyAllSavedIconLayoutsAndResolve();
+    restoreEnabledGameDesktopIcons();
+    readTaskbarOrderFromStorage();
+    syncTaskbarApps();
+    updateActionIconsState();
+    updateDesktopTabOrder();
+  }
+
   function initOnReady() {
     if (window.WebSettings && window.WebSettings.getDesktopIconScalePercent) {
       setDesktopIconScalePercent(window.WebSettings.getDesktopIconScalePercent());
@@ -5256,7 +5285,8 @@ var WebDesktop = (function () {
     setDesktopIconScalePercent: setDesktopIconScalePercent,
     getDesktopIconImagePixelSize: getDesktopIconImagePixelSize,
     releaseDesktopPointerInteractionState: releaseDesktopPointerInteractionState,
-    resetAllDesktopLinks: resetAllDesktopLinks
+    resetAllDesktopLinks: resetAllDesktopLinks,
+    onLocalStorageRestoredFromUnity: onLocalStorageRestoredFromUnity
   };
 })();
 

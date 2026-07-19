@@ -1541,23 +1541,36 @@ var WebWindowManager = (function () {
   }
 
   function applyAllSavedLayoutsWhenReady(onComplete) {
-    if (!isDesktopLayoutWorkspaceReady()) {
-      window.requestAnimationFrame(function () {
-        applyAllSavedLayoutsWhenReady(onComplete);
-      });
-      return;
-    }
-    applyAllSavedLayoutsInDocument();
     applyDesktopWindowVisibilityFromSaved();
-    applySavedWindowStackOrder(true);
-    applySavedChromeStatesFromSaved();
     clearLayoutBootstrap();
-    syncWindowLayoutsPayloadToHost(null);
     setDesktopBootLayoutsReady();
-    if (onComplete) onComplete();
+
+    function finishWhenWorkspaceReady() {
+      if (!isDesktopLayoutWorkspaceReady()) {
+        window.requestAnimationFrame(finishWhenWorkspaceReady);
+        return;
+      }
+      applyAllSavedLayoutsInDocument();
+      applyDesktopWindowVisibilityFromSaved();
+      applySavedWindowStackOrder(true);
+      applySavedChromeStatesFromSaved();
+      clearLayoutBootstrap();
+      syncWindowLayoutsPayloadToHost(null);
+      setDesktopBootLayoutsReady();
+      if (onComplete) onComplete();
+    }
+
+    finishWhenWorkspaceReady();
   }
 
   function loadPersistedLayouts() {
+    cancelPendingLayoutSave();
+    populateDefaultWindowLayoutTable();
+    mergePersistedWindowLayoutPayload(getPersistedLayoutsPayload());
+  }
+
+  function reloadPersistedLayoutsFromStorage() {
+    window.__cmWmLayoutsPayload = null;
     cancelPendingLayoutSave();
     populateDefaultWindowLayoutTable();
     mergePersistedWindowLayoutPayload(getPersistedLayoutsPayload());
@@ -1588,6 +1601,21 @@ var WebWindowManager = (function () {
     applyRouteBootDesktopVisibilityFromLocation();
     if (!hasPersistedWindowLayouts()) {
       clearLayoutBootstrap();
+      setDesktopBootLayoutsReady();
+      return;
+    }
+    applyAllSavedLayoutsWhenReady();
+  }
+
+  function onLocalStorageRestoredFromUnity() {
+    reloadPersistedLayoutsFromStorage();
+    applyDesktopWindowVisibilityFromSaved();
+    clearLayoutBootstrap();
+    if (!desktopLayoutBootFinished) {
+      finishDesktopLayoutBoot();
+      return;
+    }
+    if (!hasPersistedWindowLayouts()) {
       setDesktopBootLayoutsReady();
       return;
     }
@@ -2773,6 +2801,7 @@ var WebWindowManager = (function () {
 
   function prepareWindowForOpen(windowElement) {
     if (!windowElement) return;
+    clearLayoutBootstrap();
     clearWindowVisualOnlyCloseState(windowElement);
     restoreClosedWindowBody(windowElement);
     ensureWindowStructure(windowElement);
@@ -2844,6 +2873,7 @@ var WebWindowManager = (function () {
   function restoreFromMinimized(windowElement) {
     var restoreState = getWindowRestoreState(windowElement);
     if (!restoreState) return false;
+    clearLayoutBootstrap();
     windowElement.classList.remove("os-window--minimized");
     if (!windowElement.wmState) {
       prepareWindowDragStart(windowElement);
@@ -3601,6 +3631,7 @@ var WebWindowManager = (function () {
     toggleMinimizeAllDesktopWindows: toggleMinimizeAllDesktopWindows,
     areAllVisibleDesktopWindowsMinimized: areAllVisibleDesktopWindowsMinimized,
     scheduleWindowLayoutsSave: scheduleWindowLayoutsSave,
+    onLocalStorageRestoredFromUnity: onLocalStorageRestoredFromUnity,
     hasSavedLayouts: hasSavedLayouts,
     hasPersistedWindowLayouts: hasPersistedWindowLayouts,
     setRouteBootDesktopVisibility: setRouteBootDesktopVisibility,
