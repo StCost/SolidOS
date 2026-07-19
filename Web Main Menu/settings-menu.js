@@ -1506,6 +1506,10 @@
     }
   }
 
+  function hideBrokenLanguageFlagImage() {
+    this.style.display = "none";
+  }
+
   function buildStepButton(glyph, ariaLabel, className, onClick) {
     var button = document.createElement("button");
     button.type = "button";
@@ -1563,11 +1567,28 @@
     for (optionIndex = 0; optionIndex < options.length; optionIndex++) {
       var option = options[optionIndex];
       var optionButton = document.createElement("button");
+      var optionLabel;
+      var optionFlag;
       optionButton.type = "button";
       optionButton.className = "settings-option-btn";
       if (option.value === wireValue) optionButton.className += " is-active";
-      optionButton.textContent = getOptionLabel(option);
       optionButton.setAttribute("data-option-value", option.value);
+      if (field.key === "language") {
+        optionFlag = document.createElement("img");
+        optionFlag.className = "lang-flag";
+        optionFlag.src = "flags/" + encodeURIComponent(option.value) + ".svg";
+        optionFlag.alt = "";
+        optionFlag.setAttribute("aria-hidden", "true");
+        optionFlag.draggable = false;
+        optionFlag.onerror = hideBrokenLanguageFlagImage;
+        optionButton.appendChild(optionFlag);
+        optionLabel = document.createElement("span");
+        optionLabel.className = "settings-option-label";
+        optionLabel.textContent = getOptionLabel(option);
+        optionButton.appendChild(optionLabel);
+      } else {
+        optionButton.textContent = getOptionLabel(option);
+      }
       optionButton.addEventListener("click", function (event) {
         setFieldValue(field, event.currentTarget.getAttribute("data-option-value"), true);
       });
