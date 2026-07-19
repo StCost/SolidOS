@@ -76,6 +76,7 @@
     lookSensitivityPercent: 100,
     language: "english",
     useCustomCursor: true,
+    cursorSize: 0.7,
     terminalAnimationsEnabled: true,
     menuBackgroundAnimationEnabled: true,
     menuMusicEnabled: true,
@@ -357,6 +358,16 @@
       return [
         { type: "choice", key: "language", labelKey: "settings.language", options: getLanguageOptions, format: stringChoiceFormat },
         { type: "toggle", key: "useCustomCursor", labelKey: "settings.custom-cursor" },
+        {
+          type: "slider",
+          key: "cursorSize",
+          labelKey: "settings.cursor-size",
+          min: 50,
+          max: 300,
+          step: 5,
+          format: volumeFormat,
+          parse: volumeParse
+        },
         {
           type: "slider",
           key: "crosshairSizePercent",
